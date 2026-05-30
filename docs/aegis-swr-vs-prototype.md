@@ -15,13 +15,13 @@ single LLM call, and reproduce the same resolution through the **Aegis SWR** pro
 pipeline (Data Adapter → multi-agent Synthetic War Room → storage), using the simplest
 backends:
 
-| Concern | Choice |
-|---|---|
-| Debug engine | `CdbBackend` (`cdb.exe`, Debugging Tools for Windows) |
-| AI backend | OpenAI (`gpt-5.4`) |
-| Storage | `FilesystemStore` (JSON reports on disk) |
+| Concern      | Choice                                                                                                                                                               |
+|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Debug engine | `CdbBackend` (`cdb.exe`, Debugging Tools for Windows)                                                                                                                |
+| AI backend   | OpenAI (`gpt-5.4`)                                                                                                                                                   |
+| Storage      | `FilesystemStore` (JSON reports on disk)                                                                                                                             |
 | Code backend | **none** — a PDB carries both debug symbols *and* (optionally) build provenance; symbol resolution is the Debug Backend's job, so no separate code backend was wired |
-| Log backend | **skipped** — dump-only |
+| Log backend  | **skipped** — dump-only                                                                                                                                              |
 
 The success bar: Aegis must reach *at least* the prototype's conclusion — a deliberate
 NULL-pointer write in `CrashUi!Crash_Window::on_access_violation_click`.
@@ -83,19 +83,19 @@ CDB is invoked as
 
 ## 4. Result — side by side
 
-| Dimension | Prototype (1 GPT call) | Aegis SWR (4-agent MAS) |
-|---|---|---|
-| Root cause | Deliberate NULL-pointer **write** | **Match** — "deliberately injected … write through a null pointer" |
-| Faulting module | `CrashUi.exe` | `CrashUi` ✔ |
-| Faulting function | `Crash_Window::on_access_violation_click` | **Match** ✔ |
-| Exception | `0xC0000005` access violation | **Match** ✔ |
-| Source line | (not isolated) | `CrashUi.cpp:121` ✔ (from resolved symbols) |
+| Dimension                   | Prototype (1 GPT call)                            | Aegis SWR (4-agent MAS)                                                        |
+|-----------------------------|---------------------------------------------------|--------------------------------------------------------------------------------|
+| Root cause                  | Deliberate NULL-pointer **write**                 | **Match** — "deliberately injected … write through a null pointer"             |
+| Faulting module             | `CrashUi.exe`                                     | `CrashUi` ✔                                                                    |
+| Faulting function           | `Crash_Window::on_access_violation_click`         | **Match** ✔                                                                    |
+| Exception                   | `0xC0000005` access violation                     | **Match** ✔                                                                    |
+| Source line                 | (not isolated)                                    | `CrashUi.cpp:121` ✔ (from resolved symbols)                                    |
 | Deliberate-injection theory | Confirmed (intentional, *not* external injection) | **Match** — Skeptic confirmed, citing the failure-bucket name and handler name |
-| Output shape | Prose: RCA / Faulting Module / Recommendation | Structured `RCAReport` + turn-by-turn dialogue + probabilistic-fix diff |
-| Confidence | implicit ("high") | **0.97 (HIGH)**, explicit weighted consensus |
-| Rounds | 1 (single shot) | Converged in **1 debate round** |
-| Symbol resolution | full | `symbol_resolution_score = 1.0` |
-| Tokens (Aegis run) | n/a | 21,489 in / 2,029 out |
+| Output shape                | Prose: RCA / Faulting Module / Recommendation     | Structured `RCAReport` + turn-by-turn dialogue + probabilistic-fix diff        |
+| Confidence                  | implicit ("high")                                 | **0.97 (HIGH)**, explicit weighted consensus                                   |
+| Rounds                      | 1 (single shot)                                   | Converged in **1 debate round**                                                |
+| Symbol resolution           | full                                              | `symbol_resolution_score = 1.0`                                                |
+| Tokens (Aegis run)          | n/a                                               | 21,489 in / 2,029 out                                                          |
 
 **Verdict: parity reached, and exceeded** — Aegis matched the prototype's conclusion and
 additionally produced a reasoning trail (four agents), a quantified consensus score, and a
@@ -108,7 +108,7 @@ concrete code fix.
 ### 5.1 Primary conclusion
 
 > The crash was most likely deliberately injected in the UI click handler
-> `Crash_Window::on_access_violation_click` by performing a write through a null pointer
+> `Crash_Window::on_access_violation_click` by performing write through a null pointer
 > (classic fault-injection pattern such as `*(int*)nullptr = ...` or equivalent). The logical
 > path is: user clicks a button → UI framework lambda bound in `Crash_Window` constructor fires
 > → message dispatch enters `Crash_Window::on_access_violation_click` → handler executes
@@ -125,12 +125,12 @@ concrete code fix.
 
 ### 5.3 Agent dialogue (round 1)
 
-| Agent | Conf | Message (summary) |
-|---|---|---|
-| OS Kernel | 0.97 | Write AV in CrashUi on a button/message-handler path; `AV.Dereference=NullPtr`, `AV.Fault=Write` → null-pointer write, not kernel/driver/I/O. |
-| Code Analyst | 0.99 | Deliberate null-pointer write in `on_access_violation_click`; full click→dispatch→handler path; `0xC0000005` at line 121. |
+| Agent         | Conf | Message (summary)                                                                                                                                                      |
+|---------------|------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| OS Kernel     | 0.97 | Write AV in CrashUi on a button/message-handler path; `AV.Dereference=NullPtr`, `AV.Fault=Write` → null-pointer write, not kernel/driver/I/O.                          |
+| Code Analyst  | 0.99 | Deliberate null-pointer write in `on_access_violation_click`; full click→dispatch→handler path; `0xC0000005` at line 121.                                              |
 | Log Historian | 0.97 | First-seen signature (no history provided); naming + stack + bucket strongly support deliberate injection; small confidence reduction for lack of recurrence evidence. |
-| Skeptic | 0.90 | **Confirmed (high)**; the stated module/function appear in the trace, the code is consistent with the exception, and no external-injection evidence exists. |
+| Skeptic       | 0.90 | **Confirmed (high)**; the stated module/function appear in the trace, the code is consistent with the exception, and no external-injection evidence exists.            |
 
 Weighted consensus = **0.967 (HIGH)** → converged in one round → Output Synthesizer.
 
@@ -170,13 +170,13 @@ Running the prototype's scenario through Aegis surfaced five concrete backend de
 Each was fixed and unit-tested; all are recorded as authoritative as-built notes in
 `docs/specs/PRODUCTION_DESIGN_SPEC.md` (§6.1.1, §6.2.1).
 
-| # | Symptom | Fix | Where |
-|---|---|---|---|
-| 1 | `--ai openai` still sent the Anthropic default model `claude-sonnet-4-6` → OpenAI 404 | `AISettings.resolved_model` substitutes the provider default (`gpt-5.4`) only when the configured model doesn't match the provider | `config/settings.py` |
-| 2 | gpt-5-class reasoning models reject `max_tokens` and non-default `temperature` | `OpenAIBackend._completion_kwargs()` sends `max_completion_tokens` (16k floor so reasoning doesn't starve the answer) and omits `temperature` for reasoning models | `backends/ai/openai_provider.py` |
-| 3 | A transient `APITimeoutError` at the `skeptic_node` aborted the whole graph (run 2) | OpenAI client built with `timeout=300s`, `max_retries=4` (SDK exponential backoff) | `backends/ai/openai_provider.py` |
-| 4 | Fault code mis-extracted → `FaultClass.UNKNOWN`; OS Kernel agent noted "exception_code_raw as 0x0" | `_extract_exception_code` now matches all four `!analyze -v` keys (`EXCEPTION_CODE` / `ERROR_CODE` / `EXCEPTION_CODE_STR` / `ExceptionCode`) → `MEMORY_ACCESS_VIOLATION` | `backends/debug/cdb_worker.py` |
-| 5 | `symbol_resolution_score = 0.0` despite perfect symbols; structured `stack_frames` empty (LLM recovered only from raw text) | `parse_cdb_frames` rewritten to handle the real `!analyze -v` STACK_TEXT format (`<csp> <ret> : args : CallSite`, backtick 64-bit addresses) in addition to the `kn` format | `backends/debug/cdb_worker.py` |
+| # | Symptom                                                                                                                     | Fix                                                                                                                                                                         | Where                            |
+|---|-----------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------|
+| 1 | `--ai openai` still sent the Anthropic default model `claude-sonnet-4-6` → OpenAI 404                                       | `AISettings.resolved_model` substitutes the provider default (`gpt-5.4`) only when the configured model doesn't match the provider                                          | `config/settings.py`             |
+| 2 | gpt-5-class reasoning models reject `max_tokens` and non-default `temperature`                                              | `OpenAIBackend._completion_kwargs()` sends `max_completion_tokens` (16k floor so reasoning doesn't starve the answer) and omits `temperature` for reasoning models          | `backends/ai/openai_provider.py` |
+| 3 | A transient `APITimeoutError` at the `skeptic_node` aborted the whole graph (run 2)                                         | OpenAI client built with `timeout=300s`, `max_retries=4` (SDK exponential backoff)                                                                                          | `backends/ai/openai_provider.py` |
+| 4 | Fault code mis-extracted → `FaultClass.UNKNOWN`; OS Kernel agent noted "exception_code_raw as 0x0"                          | `_extract_exception_code` now matches all four `!analyze -v` keys (`EXCEPTION_CODE` / `ERROR_CODE` / `EXCEPTION_CODE_STR` / `ExceptionCode`) → `MEMORY_ACCESS_VIOLATION`    | `backends/debug/cdb_worker.py`   |
+| 5 | `symbol_resolution_score = 0.0` despite perfect symbols; structured `stack_frames` empty (LLM recovered only from raw text) | `parse_cdb_frames` rewritten to handle the real `!analyze -v` STACK_TEXT format (`<csp> <ret> : args : CallSite`, backtick 64-bit addresses) in addition to the `kn` format | `backends/debug/cdb_worker.py`   |
 
 Defects #4 and #5 were inherited from the prototype's regexes; they were invisible there
 because the prototype hands the *raw* `!analyze` text to the LLM and never relies on
@@ -186,12 +186,12 @@ fault-class weights both depend on correctly parsed frames).
 
 ### Effect of fix #5
 
-| | Before fix #5 | After fix #5 |
-|---|---|---|
-| `symbol_resolution_score` | 0.0 (false "LOW SYMBOL COVERAGE") | 1.0 |
-| Structured `stack_frames` | empty | fully populated |
-| Consensus | 0.964 | 0.97 |
-| Input tokens | 17,263 | 21,489 (frames now in the brief) |
+|                           | Before fix #5                     | After fix #5                     |
+|---------------------------|-----------------------------------|----------------------------------|
+| `symbol_resolution_score` | 0.0 (false "LOW SYMBOL COVERAGE") | 1.0                              |
+| Structured `stack_frames` | empty                             | fully populated                  |
+| Consensus                 | 0.964                             | 0.97                             |
+| Input tokens              | 17,263                            | 21,489 (frames now in the brief) |
 
 ---
 
