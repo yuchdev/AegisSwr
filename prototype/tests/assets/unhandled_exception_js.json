@@ -1,0 +1,59 @@
+{
+  "ProcessID": 3712,
+  "ProcessName": "SampleApp.exe",
+  "ExceptionCode": "0xE06D7363",
+  "ExceptionDescription": "Unhandled C++ Exception",
+  "ExceptionRecord": {
+    "Code": "0xE06D7363",
+    "Flags": "0x00000001",
+    "Address": "0x00007FF89B4C5D6E",
+    "Parameters": ["0x19930520", "0x000000D4B3C2A180", "0x00007FF61A3B4C5D"]
+  },
+  "Threads": [
+    {
+      "ThreadID": 1,
+      "Attributes": {
+        "IsFaulting": true,
+        "Priority": 0
+      },
+      "StackFrames": [
+        {
+          "FrameNumber": 0,
+          "Module": "ntdll",
+          "Function": "RtlUserThreadStart",
+          "Offset": "0x0000000000000021"
+        },
+        {
+          "FrameNumber": 1,
+          "Module": "kernel32",
+          "Function": "BaseThreadInitThunk",
+          "Offset": "0x0000000000000014"
+        },
+        {
+          "FrameNumber": 2,
+          "Module": "SampleApp",
+          "Function": "WinMain",
+          "Offset": "0x00000000000001f4"
+        },
+        {
+          "FrameNumber": 3,
+          "Module": "SampleApp",
+          "Function": "EventLoop::dispatch",
+          "Offset": "0x000000000000009c"
+        },
+        {
+          "FrameNumber": 4,
+          "Module": "SampleApp",
+          "Function": "DataProcessor::process<std::string>",
+          "Offset": "0x000000000000007c"
+        },
+        {
+          "FrameNumber": 5,
+          "Module": "SampleApp",
+          "Function": "ThrowingFunction",
+          "Offset": "0x000000000000003a"
+        }
+      ]
+    }
+  ]
+}

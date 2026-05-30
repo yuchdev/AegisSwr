@@ -1,0 +1,6 @@
+* thread #1, queue = 'com.apple.main-thread', stop reason = EXC_BAD_ACCESS (code=1, address=0x0)
+  * frame #0: 0x000000010a3c1c3f libdbwriter.dylib`db_writer::serialize(this=0x0) at db_writer.cpp:142
+    frame #1: 0x000000010a3c1210 libdbwriter.dylib`db_writer::flush() at db_writer.cpp:88
+    frame #2: 0x000000010a3c1550 libdbwriter.dylib`db_writer::commit() at db_writer.cpp:120
+    frame #3: 0x00007fff6a1c2090 libsystem_c.dylib`abort + 120
+    frame #4: 0x0000000000000000

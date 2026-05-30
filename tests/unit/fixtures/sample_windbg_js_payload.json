@@ -1,0 +1,44 @@
+{
+  "ProcessID": 4412,
+  "ProcessName": "appsvc.exe",
+  "ExceptionCode": "0xc0000005",
+  "ExceptionAddress": "0x00007ff8016a1c3f",
+  "FaultingModule": "db_writer",
+  "FaultingThread": {
+    "ThreadID": 1024,
+    "IsFaulting": true,
+    "Frames": [
+      {"FrameNumber": 0, "Module": "db_writer", "ModuleBase": "0x7ff801600000", "Function": "db_writer::serialize", "Offset": "0x00007ff8016a1c3f"},
+      {"FrameNumber": 1, "Module": "db_writer", "ModuleBase": "0x7ff801600000", "Function": "db_writer::flush",     "Offset": "0x00007ff8016a2210"},
+      {"FrameNumber": 2, "Module": "db_writer", "ModuleBase": "0x7ff801600000", "Function": "db_writer::commit",    "Offset": "0x00007ff8016a3550"},
+      {"FrameNumber": 3, "Module": "kernel32",  "ModuleBase": "0x7ff800250000", "Function": "BaseThreadInitThunk",  "Offset": "0x00007ff800255fa0"},
+      {"FrameNumber": 4, "Module": "",           "ModuleBase": "0x0",            "Function": "",                    "Offset": "0x0000000000000000"}
+    ]
+  },
+  "AllThreadsSummary": [
+    {
+      "ThreadID": 1024,
+      "IsFaulting": true,
+      "Frames": [
+        {"FrameNumber": 0, "Module": "db_writer", "ModuleBase": "0x7ff801600000", "Function": "db_writer::serialize", "Offset": "0x00007ff8016a1c3f"}
+      ]
+    },
+    {
+      "ThreadID": 1025,
+      "IsFaulting": false,
+      "Frames": [
+        {"FrameNumber": 0, "Module": "ntdll",   "ModuleBase": "0x7ff800010000", "Function": "NtWaitForSingleObject", "Offset": "0x00007ff800011234"},
+        {"FrameNumber": 1, "Module": "kernel32", "ModuleBase": "0x7ff800250000", "Function": "WaitForSingleObject",  "Offset": "0x00007ff800251234"},
+        {"FrameNumber": 2, "Module": "appsvc",   "ModuleBase": "0x7ff700010000", "Function": "WorkerThread::run",    "Offset": "0x00007ff700023456"}
+      ]
+    },
+    {
+      "ThreadID": 1026,
+      "IsFaulting": false,
+      "Frames": [
+        {"FrameNumber": 0, "Module": "ntdll",   "ModuleBase": "0x7ff800010000", "Function": "NtDelayExecution",     "Offset": "0x00007ff800012000"},
+        {"FrameNumber": 1, "Module": "appsvc",  "ModuleBase": "0x7ff700010000", "Function": "HeartbeatThread::run", "Offset": "0x00007ff700024000"}
+      ]
+    }
+  ]
+}

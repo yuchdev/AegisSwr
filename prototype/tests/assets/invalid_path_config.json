@@ -1,0 +1,8 @@
+{
+  "dump_path": "C:\\NonExistent\\Dumps\\crash.dmp",
+  "symbol_path": "C:\\NonExistent\\Symbols",
+  "ai_backend": "gemini",
+  "debug_engine": "cdb",
+  "storage_backend": "filesystem",
+  "storage_path": "C:\\NonExistent\\Output"
+}

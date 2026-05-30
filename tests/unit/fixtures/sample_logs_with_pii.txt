@@ -1,0 +1,12 @@
+[14:01:55] INFO: Service started by operator alice@example.com
+[14:01:56] INFO: Connection pool status OK
+[14:01:57] INFO: Connection pool status OK
+[14:01:58] INFO: Connection pool status OK
+[14:01:59] INFO: Inbound request from 192.168.10.45
+[14:02:00] INFO: Authenticated user bob.smith@corp.internal
+[14:02:01] WARNING: DB connection string postgresql://admin:s3cr3tpw@db-primary:5432/orders
+[14:02:02] WARNING: Using AWS access key AKIAIOSFODNN7EXAMPLE for backup
+[14:02:03] ERROR: Payment failed for card 4111 1111 1111 1111
+[14:02:04] ERROR: Upstream host 10.0.0.12 returned 500
+[14:02:05] FATAL: Unhandled access violation, writing crash dump
+[14:02:06] INFO: Notifying on-call carol@example.org

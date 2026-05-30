@@ -1,0 +1,79 @@
+Microsoft (R) Windows Debugger Version 10.0.22621.1 AMD64
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+Loading Dump File [C:\dumps\app.dmp]
+User Mini Dump File: Only registers, stack and portions of memory are available
+
+DBGHELP: ntdll.pdb - file not found
+DBGHELP: kernel32.pdb - file not found
+DBGHELP: kernelbase.pdb - file not found
+DBGHELP: ucrtbase.pdb - file not found
+DBGHELP: msvcp140.pdb - file not found
+DBGHELP: vcruntime140.pdb - file not found
+DBGHELP: ole32.pdb - file not found
+DBGHELP: combase.pdb - file not found
+DBGHELP: rpcrt4.pdb - file not found
+DBGHELP: advapi32.pdb - file not found
+DBGHELP: sechost.pdb - file not found
+DBGHELP: shell32.pdb - file not found
+DBGHELP: user32.pdb - file not found
+DBGHELP: gdi32.pdb - file not found
+DBGHELP: win32u.pdb - file not found
+DBGHELP: msvcrt.pdb - file not found
+DBGHELP: bcrypt.pdb - file not found
+DBGHELP: ws2_32.pdb - file not found
+DBGHELP: crypt32.pdb - file not found
+DBGHELP: dbghelp.pdb - file not found
+
+************* Symbol Loading Diagnostics *************
+*** WARNING: Unable to verify checksum for app.exe
+ModuleLoad: 00007ff8`00010000 00007ff8`00250000   ntdll.dll
+ModuleLoad: 00007ff8`00250000 00007ff8`00410000   kernel32.dll
+ModuleLoad: 00007ff8`00410000 00007ff8`00620000   kernelbase.dll
+ModuleLoad: 00007ff8`00620000 00007ff8`00710000   ucrtbase.dll
+ModuleLoad: 00007ff8`00710000 00007ff8`00890000   msvcp140.dll
+ModuleLoad: 00007ff8`00890000 00007ff8`008c0000   vcruntime140.dll
+ModuleLoad: 00007ff8`008c0000 00007ff8`00a30000   ole32.dll
+ModuleLoad: 00007ff8`00a30000 00007ff8`00b80000   combase.dll
+ModuleLoad: 00007ff8`00b80000 00007ff8`00c60000   rpcrt4.dll
+ModuleLoad: 00007ff8`00c60000 00007ff8`00d40000   advapi32.dll
+ModuleLoad: 00007ff8`00d40000 00007ff8`00d90000   sechost.dll
+ModuleLoad: 00007ff8`00d90000 00007ff8`011f0000   shell32.dll
+ModuleLoad: 00007ff8`011f0000 00007ff8`01340000   user32.dll
+ModuleLoad: 00007ff8`01340000 00007ff8`01390000   gdi32.dll
+ModuleLoad: 00007ff8`01390000 00007ff8`013c0000   win32u.dll
+ModuleLoad: 00007ff8`013c0000 00007ff8`01450000   msvcrt.dll
+ModuleLoad: 00007ff8`01450000 00007ff8`014e0000   bcrypt.dll
+ModuleLoad: 00007ff8`014e0000 00007ff8`01560000   ws2_32.dll
+ModuleLoad: 00007ff8`01560000 00007ff8`01680000   crypt32.dll
+ModuleLoad: 00007ff8`01680000 00007ff8`01720000   db_writer.dll
+ModuleLoad: 00007ff8`01720000 00007ff8`017a0000   imm32.dll
+ModuleLoad: 00007ff8`017a0000 00007ff8`01840000   oleaut32.dll
+
+EXCEPTION_ANALYSIS:
+
+EXCEPTION_CODE: (NTSTATUS) 0xc0000005 - The instruction at 0x%p referenced memory at 0x%p.
+
+FAULTING_IP:
+db_writer!db_writer::serialize+0x4a
+00007ff8`016a1c3f 488b09          mov     rcx,qword ptr [rcx]
+
+EXCEPTION_RECORD:  (.exr -1)
+ExceptionAddress: 00007ff8016a1c3f (db_writer!db_writer::serialize+0x000000000000004a)
+   ExceptionCode: c0000005 (Access violation)
+  ExceptionFlags: 00000000
+NumberParameters: 2
+   Parameter[0]: 0000000000000000
+   Parameter[1]: 0xCCCCCCCC
+
+MODULE_NAME: db_writer
+
+STACK_TEXT:
+00 00000012`abcd0000 00007ff8`016a1c3f db_writer!db_writer::serialize+0x4a
+01 00000012`abcd0040 00007ff8`016a2210 db_writer!db_writer::flush+0x90
+02 00000012`abcd0080 00007ff8`016a3550 db_writer!db_writer::commit+0x120
+03 00000012`abcd00c0 0xCCCCCCCC      0xCCCCCCCC
+04 00000012`abcd0100 00007ff8`00255fa0 kernel32!BaseThreadInitThunk+0x10
+
+Debug session time: Fri May 30 14:02:11.000 2026 (UTC + 0:00)
+quit:

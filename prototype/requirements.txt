@@ -1,0 +1,8 @@
+requests==2.31.0             # For JS callback server and API calls
+google-generativeai==0.3.2   # Gemini SDK
+openai==2.24.0
+httpx<0.28.0
+rich==13.7.0                 # CLI beautification
+PySide6==6.11.0              # GUI framework
+pytest==8.0.0                # Testing framework
+python-dotenv==1.0.1         # Environment variable management
