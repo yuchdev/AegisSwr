@@ -31,7 +31,7 @@
 
 ### Deliverables
 
-1. **`pyproject.toml`** — Poetry project configured with all dependencies, `aegis-swr` name, `src/aegis_swr/` package root, and `aegis` CLI entry point.
+1. **`pyproject.toml`** — PEP 621 project configured for uv with all dependencies, `aegis-swr` name, `src/aegis_swr/` package root, and `aegis` CLI entry point.
 2. **Directory skeleton** — all `__init__.py` files for `core/`, `agents/`, `backends/` (and subdirs), `sandbox/`, `api/`, `cli/`, `config/`.
 3. **`core/schemas.py`** — All Pydantic v2 models: `IncidentSource`, `IncidentBrief`, `DebugExtractionResult`, `StackFrame`, `Hypothesis`, `AgentTurn`, `SkepticVerdict`, `RCAReport`, `HITLRequest`, `InvestigationState` (TypedDict), `RCAHypothesis`.
 4. **`core/fault_codes.py`** — `FaultClass` enum and complete platform-to-FaultClass mapping tables for Windows NTSTATUS, Linux signals, macOS exception types.
@@ -45,7 +45,7 @@
 
 ### Success Criteria
 
-- `poetry install` completes with no errors.
+- `uv sync --group dev` completes with no errors.
 - `python -c "from aegis_swr.core.schemas import RCAReport; print('ok')"` succeeds.
 - `mypy src/` passes with zero errors.
 - `pytest tests/unit/test_schemas.py` passes (basic Pydantic model creation and serialization tests).

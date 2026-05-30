@@ -439,7 +439,7 @@ class DataAdapter:
             except Exception as exc:  # pragma: no cover - depends on tesseract binary
                 logger.warning(f"OCR failed for {raw_path}: {exc}")
                 continue
-            for text, conf in zip(data.get("text", []), data.get("conf", [])):
+            for text, conf in zip(data.get("text", []), data.get("conf", []), strict=False):
                 try:
                     confidence = float(conf)
                 except (TypeError, ValueError):

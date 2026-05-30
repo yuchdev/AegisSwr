@@ -57,7 +57,7 @@ The prototype additionally fed `CrashUi.log` and prior-report history into the p
 
 ```powershell
 $env:AEGIS_SYMBOL_CACHE='c:\symbols'   # reuse the prototype's cached symbols
-poetry run aegis analyze `
+uv run aegis analyze `
   --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' `
   --engine cdb --ai openai `
   --store filesystem --store-config '.\reports' `
@@ -213,7 +213,7 @@ fault-class weights both depend on correctly parsed frames).
 
 ```powershell
 $env:AEGIS_SYMBOL_CACHE='c:\symbols'
-poetry run aegis analyze `
+uv run aegis analyze `
   --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' `
   --engine cdb --ai openai `
   --store filesystem --store-config '.\reports' `
@@ -221,7 +221,7 @@ poetry run aegis analyze `
   --output rich
 ```
 
-Requires: Windows + `cdb.exe` on PATH, `OPENAI_API_KEY` set, `poetry install` complete.
+Requires: Windows + `cdb.exe` on PATH, `OPENAI_API_KEY` set, `uv sync --group dev` complete.
 Gate status at time of writing: **277 tests pass**, `ruff` clean, `mypy --strict` clean (52 files).
 
 ---

@@ -85,7 +85,7 @@ wincrash_analyzer/
 ├── orchestrator.py          # Central business logic
 ├── windbg_server.py         # Asynchronous bridge
 ├── exceptions.py            # Custom error hierarchy
-├── requirements.txt         # Library dependencies
+├── pyproject.toml          # Project dependencies and metadata
 └── README.md                # This file
 
 ```
@@ -103,7 +103,7 @@ wincrash_analyzer/
 ### 5.2 Installation
 
 1. **Clone the Repo**: `git clone <repo_url>`
-2. **Install Dependencies**: `pip install -r requirements.txt`.
+2. **Install Dependencies**: `uv sync --extra dev`.
 3. **Set Environment Variables**:
 * `set GEMINI_API_KEY=your_key`
 * `set OPENAI_API_KEY=your_key`.
@@ -128,7 +128,7 @@ python -m wincrash_analyzer.cli analyze --dump "C:\Crashes\UiCrash.dmp" --sym "C
 A PySide6-based graphical interface is also available for a more interactive experience.
 
 **Prerequisites:**
-- Ensure `PySide6` is installed (`pip install -r requirements.txt`).
+- Ensure `PySide6` is installed (`uv sync`).
 - A display environment (Windows Desktop).
 
 **Starting the GUI:**
@@ -152,6 +152,6 @@ The GUI allows you to:
 Execute the suite to verify the handshakes between the server and the debugger:
 
 ```powershell
-pytest tests/
+uv run pytest tests/
 
 ```

@@ -13,13 +13,13 @@ the storage and parsing layers real.
 
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+uv sync --extra dev
 
 # Run the full suite
-python -m pytest
+uv run python -m pytest
 
 # Run only the integration tests
-python -m pytest tests/test_full_pipeline_cdb.py tests/test_js_callback_integrity.py -v
+uv run python -m pytest tests/test_full_pipeline_cdb.py tests/test_js_callback_integrity.py -v
 ```
 
 The `pytest.ini` at the repository root enables live log output (`log_cli = true`)

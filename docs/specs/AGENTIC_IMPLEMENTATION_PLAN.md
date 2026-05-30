@@ -38,7 +38,7 @@
 5. Create `.github/workflows/ci.yml` with three jobs: `lint` (ruff), `typecheck` (mypy), `unit-test` (pytest tests/unit/).
 6. Create `Makefile` with targets: `install`, `lint`, `typecheck`, `test`.
 
-**Verification:** Run `poetry install` and `python -c "import aegis_swr; print('ok')"`. Must succeed.
+**Verification:** Run `uv sync --group dev` and `uv run python -c "import aegis_swr; print('ok')"`. Must succeed.
 
 ---
 
@@ -95,9 +95,9 @@
 
 After all four agents complete, run:
 ```bash
-poetry install
-mypy src/ --strict --ignore-missing-imports
-pytest tests/unit/ -v
+uv sync --group dev
+uv run mypy src/ --strict --ignore-missing-imports
+uv run pytest tests/unit/ -v
 ```
 All must pass before proceeding to Step 2.
 
@@ -862,8 +862,8 @@ deferred.
 
 After all agents complete, run:
 ```bash
-mypy src/ --strict --ignore-missing-imports
-pytest tests/unit/test_code_backends.py tests/unit/test_log_backends.py tests/unit/test_data_adapter.py -v
+uv run mypy src/ --strict --ignore-missing-imports
+uv run pytest tests/unit/test_code_backends.py tests/unit/test_log_backends.py tests/unit/test_data_adapter.py -v
 ```
 All must pass before proceeding to Step 7.
 

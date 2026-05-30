@@ -20,13 +20,13 @@ All commands run from the `prototype/` directory.
 
 ```powershell
 # Install dependencies
-pip install -r requirements.txt
+uv sync --extra dev
 
 # Run tests
-pytest tests/
+uv run pytest tests/
 
 # Run a single test file
-pytest tests/test_orchestrator.py
+uv run pytest tests/test_orchestrator.py
 
 # Run CLI analysis
 python -m wincrash_analyzer.cli analyze --dump <path.dmp> --sym <symbols_dir> --engine cdb --ai gemini

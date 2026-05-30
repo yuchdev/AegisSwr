@@ -48,9 +48,9 @@ cd aegis-swr
 ```
 
 
-2. Install dependencies using Poetry:
+2. Install dependencies using uv:
 ```bash
-poetry install
+uv sync --group dev
 
 ```
 
@@ -77,7 +77,7 @@ backends:
 
 4. Launch the core orchestration server:
 ```bash
-poetry run python -m aegis.core.server
+uv run python -m aegis.core.server
 
 ```
 
@@ -90,7 +90,7 @@ poetry run python -m aegis.core.server
 ### Triggering an Investigation (CLI Example)
 
 ```bash
-poetry run aegis analyze \
+uv run aegis analyze \
   --logs ./production_fail.log \
   --crashdump ./core.20260529.dmp \
   --screenshot ./error_ui.png
