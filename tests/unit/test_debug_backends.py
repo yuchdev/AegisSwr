@@ -157,6 +157,29 @@ def test_cdb_frame_source_line_parsing() -> None:
     assert frames[0].source_line == 142
 
 
+def test_cdb_parses_analyze_stack_text_format() -> None:
+    # Real `!analyze -v` STACK_TEXT: backtick 64-bit addresses, colon-delimited
+    # argument columns, no leading frame number, plus a column header to skip.
+    raw = (
+        "STACK_TEXT:  \n"
+        "Child-SP          RetAddr               : Args to Child           : Call Site\n"
+        "000000af`8e7de420 00007ff7`2a734087     : 000001d1`00000007 00007ff7`2a742ed0 "
+        ": CrashUi!Crash_Window::on_access_violation_click+0x509\n"
+        "000000af`8e7de8e0 00007ffa`ade2e858     : 00000000`00000000 00000000`ade28f71 "
+        ": user32!UserCallWinProcCheckWow+0x2f8\n"
+        "\n"
+    )
+    frames = parse_cdb_frames(raw)
+    assert len(frames) == 2  # header row is skipped
+    assert frames[0].module == "CrashUi"
+    assert frames[0].function == "Crash_Window::on_access_violation_click"
+    assert frames[0].instruction_address == "0x00007ff72a734087"
+    assert frames[1].module == "user32"
+    # All frames resolve a function on this trace.
+    backend_score = sum(1 for f in frames if f.function) / len(frames)
+    assert backend_score == 1.0
+
+
 # ---------------------------------------------------------------------------
 # GDB
 # ---------------------------------------------------------------------------

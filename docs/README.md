@@ -4,6 +4,14 @@ All design, planning, and analysis documents for the Aegis SWR project.
 
 ---
 
+## Validation Reports
+
+| Document | Description |
+|----------|-------------|
+| [aegis-swr-vs-prototype.md](aegis-swr-vs-prototype.md) | End-to-end reproduction of the WinCrashAnalyzer prototype's resolution of `CrashUi.exe.1324.dmp` (deliberate NULL-pointer write) through the full Aegis SWR pipeline — CDB + OpenAI (gpt-5.4) + filesystem store. Side-by-side result comparison, the five backend-engine fixes the run surfaced, and reproduction steps. |
+
+---
+
 ## Architecture Decision Records (`adr/`)
 
 | Document | Description |

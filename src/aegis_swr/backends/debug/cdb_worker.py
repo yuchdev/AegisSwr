@@ -43,14 +43,15 @@ def _extract_exception_code(raw: str) -> str:
     return "0x0"
 _MODULE_RE = re.compile(r"MODULE_NAME:\s+(\S+)")
 _TIMESTAMP_RE = re.compile(r"Debug session time:\s+(.*?)\s+\(UTC")
-_FRAME_RE = re.compile(
-    r"^\s*[0-9a-f]+\s+"          # frame number
-    r"[0-9a-f`]+\s+"            # child SP
-    r"([0-9a-fx`]+)\s+"        # return address
-    r"(\S+)"                   # call site symbol
-    r"(?:\s+\[(.+?)\s+@\s+(\d+)\])?",  # optional [file @ line]
-    re.IGNORECASE,
-)
+# Optional trailing source annotation: " [c:\src\file.cpp @ 142]".
+_SOURCE_RE = re.compile(r"\[(?P<file>.+?)\s+@\s+(?P<line>\d+)\]\s*$")
+# A debugger address column: hex digits, optional 0x prefix, optional `64-bit`
+# backtick separator (e.g. ``00007ff7`2a7359c9`` or ``0xCCCCCCCC``).
+_HEXLIKE_RE = re.compile(r"^(?:0x)?[0-9a-fA-F`]+$")
+
+
+def _looks_like_address(token: str) -> bool:
+    return bool(_HEXLIKE_RE.match(token)) and any(c in "0123456789abcdefABCDEF" for c in token)
 
 
 def _parse_callsite(symbol: str) -> tuple[str | None, str | None]:
@@ -67,6 +68,19 @@ def _parse_callsite(symbol: str) -> tuple[str | None, str | None]:
 
 
 def parse_cdb_frames(raw: str) -> list[StackFrame]:
+    """Parse the STACK_TEXT block into StackFrames.
+
+    Handles both CDB stack formats:
+
+    * ``!analyze -v`` STACK_TEXT — ``<child-sp> <ret-addr> : <args…> : <CallSite>``
+      with backtick-split 64-bit addresses and colon-delimited argument columns.
+    * ``kn``/simplified — ``<n> <child-sp> <ret-addr> <CallSite> [file @ line]``.
+
+    In both, the call site is isolated first (last colon-segment, else last
+    token); the return address is the last address-looking token in the
+    remaining columns. Header rows and non-frame lines (no address column) are
+    skipped.
+    """
     frames: list[StackFrame] = []
     in_stack = False
     number = 0
@@ -76,21 +90,42 @@ def parse_cdb_frames(raw: str) -> list[StackFrame]:
             continue
         if not in_stack:
             continue
-        if not line.strip():
+        stripped = line.strip()
+        if not stripped:
             break
-        match = _FRAME_RE.match(line)
-        if not match:
-            continue
-        ret_addr, symbol, source_file, source_line = match.groups()
-        module, function = _parse_callsite(symbol)
+
+        source_file: str | None = None
+        source_line: int | None = None
+        src = _SOURCE_RE.search(stripped)
+        if src:
+            source_file = src.group("file")
+            source_line = int(src.group("line"))
+            stripped = stripped[: src.start()].strip()
+
+        if " : " in stripped:
+            segments = stripped.split(" : ")
+            callsite = segments[-1].strip()
+            addr_tokens = segments[0].split()
+        else:
+            tokens = stripped.split()
+            if len(tokens) < 2:
+                continue
+            callsite = tokens[-1]
+            addr_tokens = tokens[:-1]
+
+        ret_candidates = [t for t in addr_tokens if _looks_like_address(t)]
+        if not ret_candidates or not callsite:
+            continue  # column header or non-frame line
+
+        module, function = _parse_callsite(callsite)
         frames.append(
             StackFrame(
                 frame_number=number,
                 module=module,
                 function=function,
                 source_file=source_file,
-                source_line=int(source_line) if source_line else None,
-                instruction_address=normalize_address(ret_addr),
+                source_line=source_line,
+                instruction_address=normalize_address(ret_candidates[-1]),
             )
         )
         number += 1
