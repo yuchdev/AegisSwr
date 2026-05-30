@@ -18,11 +18,16 @@ class CoreSettings(BaseSettings):
     stack_frames_limit: int = 20
 
 
+_ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-4-6"
+_OPENAI_DEFAULT_MODEL = "gpt-5.4"
+_OPENAI_MODEL_PREFIXES = ("gpt-", "o1", "o3", "o4")
+
+
 class AISettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
     provider: str = "anthropic"
-    model: str = "claude-sonnet-4-6"
+    model: str = _ANTHROPIC_DEFAULT_MODEL
     temperature: float = 0.2
     max_tokens: int = 4096
     stream: bool = True
@@ -34,6 +39,27 @@ class AISettings(BaseSettings):
         if v not in allowed:
             raise ValueError(f"provider must be one of {allowed}")
         return v
+
+    @property
+    def resolved_model(self) -> str:
+        """The model to send, reconciled with ``provider``.
+
+        ``model`` defaults to an Anthropic name. When the provider is switched to
+        OpenAI (e.g. ``--ai openai``) without also overriding the model, the
+        configured Anthropic name would be rejected by the OpenAI API. This
+        substitutes the provider's default model whenever the configured name does
+        not belong to the selected provider; an explicit, provider-matching model
+        is always respected.
+        """
+        if self.provider == "openai":
+            if self.model.startswith(_OPENAI_MODEL_PREFIXES):
+                return self.model
+            return _OPENAI_DEFAULT_MODEL
+        if self.provider == "anthropic":
+            if self.model.startswith("claude"):
+                return self.model
+            return _ANTHROPIC_DEFAULT_MODEL
+        return self.model
 
 
 class DebugSettings(BaseSettings):
@@ -82,17 +108,42 @@ class StorageSettings(BaseSettings):
 class LogBackendSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
-    provider: str = "file"
-    elk_url: str | None = None
-    fluent_host: str | None = None
-    fluent_port: int | None = None
+    provider: str = "file"                  # file | fluent  (elk deferred)
+    file_root: str | None = None            # base dir for service→file resolution (file)
+    default_severity_levels: list[str] = Field(
+        default_factory=lambda: ["FATAL", "CRITICAL", "ERROR", "WARNING"]
+    )
+    elk_url: str | None = None              # elk (deferred)
+    fluent_host: str | None = None          # fluent stub
+    fluent_port: int | None = None          # fluent stub
+    fluent_tag_prefix: str | None = None    # fluent stub
+
+    @field_validator("provider")
+    @classmethod
+    def validate_provider(cls, v: str) -> str:
+        allowed = {"file", "fluent", "elk"}
+        if v not in allowed:
+            raise ValueError(f"log provider must be one of {allowed}")
+        return v
 
 
 class CodeBackendSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
-    enabled: bool = False
-    repo_path: str | None = None
+    enabled: bool = False                   # false → no CodeBackend; Stage 8 skipped
+    provider: str = "git"                   # git | filesystem
+    repo_path: str | None = None            # working tree / source root
+    window_hours: int = 2                   # default look-back for get_commits_before
+    commit_limit: int = 10                  # default max commits returned
+    git_timeout_seconds: int = 30           # git subprocess timeout (git provider)
+
+    @field_validator("provider")
+    @classmethod
+    def validate_provider(cls, v: str) -> str:
+        allowed = {"git", "filesystem"}
+        if v not in allowed:
+            raise ValueError(f"code provider must be one of {allowed}")
+        return v
 
 
 class BackendsSettings(BaseSettings):

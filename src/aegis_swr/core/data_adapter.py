@@ -37,7 +37,7 @@ from aegis_swr.core.schemas import (
 from aegis_swr.core.tokens import count_tokens, truncate_to_tokens
 
 if TYPE_CHECKING:
-    from aegis_swr.backends.base import CodeBackend, DebugBackend
+    from aegis_swr.backends.base import CodeBackend, DebugBackend, LogBackend
     from aegis_swr.config.settings import Settings
 
 
@@ -129,6 +129,15 @@ def _severity_rank(line: str) -> int:
     return _SEVERITY_RANK[match.group(1).upper()]
 
 
+def _severity_token(line: str) -> str | None:
+    """Return the uppercased severity token in *line*, or None if none is present.
+
+    Reused by ``FileLogAdapter`` so the severity vocabulary stays in one place.
+    """
+    match = _SEVERITY_RE.search(line)
+    return match.group(1).upper() if match else None
+
+
 # ---------------------------------------------------------------------------
 # Stage 6 helpers: deterministic PII regexes (always-on baseline)
 # ---------------------------------------------------------------------------
@@ -188,6 +197,7 @@ class DataAdapter:
         source: IncidentSource,
         debug_backend: DebugBackend | None = None,
         code_backend: CodeBackend | None = None,
+        log_backend: LogBackend | None = None,
     ) -> IncidentBrief:
         scrub = _ScrubState()
 
@@ -225,8 +235,11 @@ class DataAdapter:
             # Stage 3: noise filter, then Stage 6 scrub
             raw_excerpt = self._scrub_text(apply_noise_filter(extraction.raw_text_excerpt), scrub)
 
-        # Stage 4: log processing, then Stage 6 scrub
-        log_summary = self._process_logs(source.log_paths, source.incident_timestamp)
+        # Stage 4: log processing (merge file lines + LogBackend lines), then scrub
+        backend_lines = await self._query_log_backend(source, log_backend)
+        log_summary = self._process_logs(
+            source.log_paths, source.incident_timestamp, extra_lines=backend_lines
+        )
         if log_summary:
             log_summary = self._scrub_text(log_summary, scrub)
 
@@ -303,6 +316,7 @@ class DataAdapter:
         self,
         log_paths: list[str],
         incident_ts: datetime | None,
+        extra_lines: list[str] | None = None,
     ) -> str | None:
         raw: list[str] = []
         for raw_path in log_paths:
@@ -311,6 +325,8 @@ class DataAdapter:
                 logger.warning(f"Log path does not exist, skipping: {raw_path}")
                 continue
             raw.extend(path.read_text(encoding="utf-8", errors="replace").splitlines())
+        if extra_lines:
+            raw.extend(extra_lines)
         if not raw:
             return None
 
@@ -482,6 +498,35 @@ class DataAdapter:
                 f"User assumption exceeded {limit}-token cap; truncated."
             )
         return truncated_text
+
+    # -- Stage 4 (LogBackend) ----------------------------------------------
+
+    async def _query_log_backend(
+        self,
+        source: IncidentSource,
+        log_backend: LogBackend | None,
+    ) -> list[str]:
+        """Pull windowed log lines from a LogBackend (fail open on any error)."""
+        if log_backend is None or source.incident_timestamp is None:
+            return []
+        service = source.metadata.get("service")
+        if not service:
+            return []
+        window = timedelta(seconds=self._settings.core.log_window_seconds)
+        try:
+            return await log_backend.query_window(
+                service=service,
+                start_time=source.incident_timestamp - window,
+                end_time=source.incident_timestamp + window,
+            )
+        except NotImplementedError:
+            logger.warning(
+                "LogBackend is a stub (e.g. fluent); falling back to file-based logs only."
+            )
+            return []
+        except Exception as exc:  # pragma: no cover - backend specific
+            logger.warning(f"LogBackend query failed; using file logs only: {exc}")
+            return []
 
     # -- Stage 8 -----------------------------------------------------------
 

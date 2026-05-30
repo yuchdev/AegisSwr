@@ -20,10 +20,27 @@ if TYPE_CHECKING:
 
 _DEFAULT_SYMBOL_SERVER = "https://msdl.microsoft.com/download/symbols"
 
-_EXC_CODE_RE = re.compile(
-    r"EXCEPTION_CODE:\s+\((?:NTSTATUS|HRESULT)\)\s+(0x[0-9a-fA-F]+)", re.IGNORECASE
+# !analyze -v reports the fault code under several different keys depending on
+# the crash. Try them in priority order; the prototype only matched the first,
+# which silently yielded 0x0 (→ FaultClass.UNKNOWN) for NULL_POINTER_WRITE dumps
+# that use ERROR_CODE / EXCEPTION_CODE_STR instead.
+_EXC_CODE_RES: tuple[re.Pattern[str], ...] = (
+    re.compile(r"EXCEPTION_CODE:\s+\((?:NTSTATUS|HRESULT)\)\s+(0x[0-9a-fA-F]+)", re.IGNORECASE),
+    re.compile(r"ERROR_CODE:\s+\((?:NTSTATUS|HRESULT)\)\s+(0x[0-9a-fA-F]+)", re.IGNORECASE),
+    re.compile(r"EXCEPTION_CODE_STR:\s+([0-9a-fA-F]{8})\b", re.IGNORECASE),
+    re.compile(r"ExceptionCode:\s+([0-9a-fA-F]{8})\b", re.IGNORECASE),
 )
 _EXC_ADDR_RE = re.compile(r"ExceptionAddress:\s+([0-9a-fA-F`]+)", re.IGNORECASE)
+
+
+def _extract_exception_code(raw: str) -> str:
+    """Return the fault code as ``0x``-prefixed lowercase hex, or ``0x0``."""
+    for pattern in _EXC_CODE_RES:
+        match = pattern.search(raw)
+        if match:
+            token = match.group(1).lower()
+            return token if token.startswith("0x") else f"0x{token}"
+    return "0x0"
 _MODULE_RE = re.compile(r"MODULE_NAME:\s+(\S+)")
 _TIMESTAMP_RE = re.compile(r"Debug session time:\s+(.*?)\s+\(UTC")
 _FRAME_RE = re.compile(
@@ -108,8 +125,7 @@ class CdbBackend(_BaseDebugBackend):
         ]
 
     def _parse(self, raw: str, source: IncidentSource) -> DebugExtractionResult:
-        code_match = _EXC_CODE_RE.search(raw)
-        exception_code = code_match.group(1) if code_match else "0x0"
+        exception_code = _extract_exception_code(raw)
         fault_class = map_windows_ntstatus(exception_code)
 
         frames = parse_cdb_frames(raw)

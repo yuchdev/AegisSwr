@@ -90,7 +90,7 @@ def anthropic_backend() -> tuple[AnthropicBackend, Any]:
 
 @pytest.fixture
 def openai_backend() -> tuple[OpenAIBackend, Any]:
-    settings = AISettings(provider="openai", model="gpt-4o")
+    settings = AISettings(provider="openai", model="gpt-5.4")
     with mock.patch("openai.AsyncOpenAI") as cls:
         client = mock.MagicMock()
         cls.return_value = client
@@ -226,6 +226,39 @@ async def test_openai_sends_json_schema_strict(
     assert kwargs["messages"][0]["role"] == "system"
 
 
+async def test_openai_reasoning_model_uses_max_completion_tokens(
+    openai_backend: tuple[OpenAIBackend, Any],
+) -> None:
+    # gpt-5.4 is a reasoning model: must use max_completion_tokens and omit
+    # temperature (only the default temperature is accepted).
+    backend, client = openai_backend
+    client.chat.completions.create = mock.AsyncMock(
+        return_value=_openai_response(json.dumps({"root_cause": "x", "confidence": 0.5}))
+    )
+    await backend.generate("system", _USER, Hypothesis)
+    kwargs = client.chat.completions.create.call_args.kwargs
+    assert "max_completion_tokens" in kwargs
+    assert kwargs["max_completion_tokens"] >= 16000
+    assert "max_tokens" not in kwargs
+    assert "temperature" not in kwargs
+
+
+async def test_openai_non_reasoning_model_uses_max_tokens() -> None:
+    settings = AISettings(provider="openai", model="gpt-4o", temperature=0.2, max_tokens=4096)
+    with mock.patch("openai.AsyncOpenAI") as cls:
+        client = mock.MagicMock()
+        cls.return_value = client
+        backend = OpenAIBackend(settings)
+    client.chat.completions.create = mock.AsyncMock(
+        return_value=_openai_response(json.dumps({"root_cause": "x", "confidence": 0.5}))
+    )
+    await backend.generate("system", _USER, Hypothesis)
+    kwargs = client.chat.completions.create.call_args.kwargs
+    assert kwargs["max_tokens"] == 4096
+    assert kwargs["temperature"] == 0.2
+    assert "max_completion_tokens" not in kwargs
+
+
 async def test_openai_retry_then_valid(
     openai_backend: tuple[OpenAIBackend, Any],
 ) -> None:
@@ -298,7 +331,7 @@ def test_factory_returns_anthropic() -> None:
 
 def test_factory_returns_openai() -> None:
     with mock.patch("openai.AsyncOpenAI"):
-        backend = create_ai_backend(AISettings(provider="openai", model="gpt-4o"))
+        backend = create_ai_backend(AISettings(provider="openai", model="gpt-5.4"))
     assert isinstance(backend, OpenAIBackend)
 
 

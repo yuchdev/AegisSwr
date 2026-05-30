@@ -169,6 +169,7 @@ class Orchestrator:
             source,
             debug_backend=self._debug,
             code_backend=self._code,
+            log_backend=self._log,
         )
         return {"incident_brief": brief.model_dump(mode="json")}
 

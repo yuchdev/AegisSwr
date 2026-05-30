@@ -42,10 +42,46 @@ def _to_openai_strict_schema(model: type[BaseModel]) -> dict[str, Any]:
     return schema
 
 
+# Reasoning models (gpt-5 family, o-series) reject `max_tokens` and any
+# non-default `temperature`; they require `max_completion_tokens`. Their
+# completion budget is also shared with internal reasoning tokens, so a small
+# cap can starve the visible answer — give structured output ample headroom.
+_REASONING_PREFIXES = ("gpt-5", "o1", "o3", "o4")
+_REASONING_MIN_COMPLETION_TOKENS = 16000
+
+
+# A multi-agent investigation issues many sequential calls; one transient
+# timeout must not abort the whole run. Reasoning models can also have high
+# tail latency, so allow a generous per-request timeout and SDK-level retries
+# (exponential backoff on timeouts / 429 / 5xx).
+_REQUEST_TIMEOUT_SECONDS = 300.0
+_MAX_RETRIES = 4
+
+
 class OpenAIBackend(_BaseAIBackend):
     def __init__(self, settings: AISettings) -> None:
         super().__init__(settings)
-        self._client: Any = openai.AsyncOpenAI()
+        self._client: Any = openai.AsyncOpenAI(
+            timeout=_REQUEST_TIMEOUT_SECONDS,
+            max_retries=_MAX_RETRIES,
+        )
+
+    def _is_reasoning_model(self) -> bool:
+        return self.model_name.startswith(_REASONING_PREFIXES)
+
+    def _completion_kwargs(self) -> dict[str, Any]:
+        """Token/temperature kwargs that match the model family's API contract."""
+        if self._is_reasoning_model():
+            # Default temperature only; reasoning needs room beyond the answer.
+            return {
+                "max_completion_tokens": max(
+                    self._settings.max_tokens, _REASONING_MIN_COMPLETION_TOKENS
+                )
+            }
+        return {
+            "temperature": self._settings.temperature,
+            "max_tokens": self._settings.max_tokens,
+        }
 
     async def _invoke(
         self,
@@ -56,9 +92,8 @@ class OpenAIBackend(_BaseAIBackend):
         full_messages = [{"role": "system", "content": system_prompt}, *messages]
         kwargs: dict[str, Any] = {
             "model": self.model_name,
-            "temperature": self._settings.temperature,
-            "max_tokens": self._settings.max_tokens,
             "messages": full_messages,
+            **self._completion_kwargs(),
         }
         if output_schema is not None:
             kwargs["response_format"] = {
@@ -86,11 +121,10 @@ class OpenAIBackend(_BaseAIBackend):
         full_messages = [{"role": "system", "content": system_prompt}, *messages]
         stream = await self._client.chat.completions.create(
             model=self.model_name,
-            temperature=self._settings.temperature,
-            max_tokens=self._settings.max_tokens,
             messages=full_messages,
             stream=True,
             stream_options={"include_usage": True},
+            **self._completion_kwargs(),
         )
         async for chunk in stream:
             if not chunk.choices:

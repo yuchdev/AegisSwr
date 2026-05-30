@@ -26,7 +26,7 @@ class _BaseAIBackend(AIAPIBackend):
 
     def __init__(self, settings: AISettings) -> None:
         self._settings = settings
-        self.model_name = settings.model
+        self.model_name = settings.resolved_model
         self._last_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0}
 
     # -- token accounting --------------------------------------------------

@@ -20,3 +20,7 @@ class SandboxExecutionError(AegisSWRError):
 
 class IncidentNotFoundError(AegisSWRError):
     """Requested incident ID does not exist in storage."""
+
+
+class CodeBackendError(AegisSWRError):
+    """A code backend could not read VCS history (missing repo, binary, or failed command)."""

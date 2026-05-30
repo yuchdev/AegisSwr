@@ -18,11 +18,11 @@ from aegis_swr.backends.debug import (
     create_debug_backend,
 )
 from aegis_swr.backends.debug._symbol_path import resolve_symbol_path
-from aegis_swr.backends.debug.cdb_worker import parse_cdb_frames
+from aegis_swr.backends.debug.cdb_worker import _extract_exception_code, parse_cdb_frames
 from aegis_swr.backends.debug.windbg_js_worker import _CallbackBridge
 from aegis_swr.config.settings import DebugSettings
 from aegis_swr.core.exceptions import DebugExtractionError, PlatformNotSupportedError
-from aegis_swr.core.fault_codes import FaultClass
+from aegis_swr.core.fault_codes import FaultClass, map_windows_ntstatus
 from aegis_swr.core.schemas import IncidentMode, IncidentSource
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -121,6 +121,27 @@ def test_cdb_command_sequence(debug_settings: DebugSettings, dump_path: str) -> 
     assert sym_chain.startswith("srv*")
     assert "msdl.microsoft.com" in sym_chain
     assert sym_chain.endswith("C:/extra/syms")
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "EXCEPTION_CODE: (NTSTATUS) 0xc0000005 - access violation",
+        "ERROR_CODE: (NTSTATUS) 0xc0000005 - The instruction at 0x%p referenced memory",
+        "EXCEPTION_CODE_STR:  c0000005",
+        "ExceptionCode: c0000005 (Access violation)",
+    ],
+)
+def test_cdb_extracts_exception_code_from_any_key(raw: str) -> None:
+    # A NULL_POINTER_WRITE dump reports the code under ERROR_CODE /
+    # EXCEPTION_CODE_STR rather than EXCEPTION_CODE; all must resolve.
+    code = _extract_exception_code(raw)
+    assert code == "0xc0000005"
+    assert map_windows_ntstatus(code) == FaultClass.MEMORY_ACCESS_VIOLATION
+
+
+def test_cdb_extracts_exception_code_absent() -> None:
+    assert _extract_exception_code("no code here") == "0x0"
 
 
 def test_cdb_frame_source_line_parsing() -> None:

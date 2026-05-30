@@ -9,7 +9,7 @@ This document explains how to configure and choose between the available AI back
 | Backend | Flag | Model | Best For |
 |---------|------|-------|----------|
 | Google Gemini | `--ai gemini` | `gemini-1.5-pro` | Complex heap corruption, large full-memory dumps |
-| OpenAI gpt-5.2 | `--ai openai` | `gpt-5.2` | Standard access violations, RIP/instruction-pointer deduction |
+| OpenAI gpt-5.4 | `--ai openai` | `gpt-5.4` | Standard access violations, RIP/instruction-pointer deduction |
 
 ---
 
@@ -31,7 +31,7 @@ wincrash-analyzer --dump crash.dmp --symbols C:\Symbols --ai gemini
 
 ### `--ai openai` (Standard Access Violations)
 
-OpenAI gpt-5.2 is the logical specialist. Use it when:
+OpenAI gpt-5.4 is the logical specialist. Use it when:
 
 - The crash is a straightforward **access violation** (`0xc0000005`) with a clean stack.
 - You need structured output with **RCA / Faulting Module / Recommendation** sections.
@@ -82,7 +82,7 @@ You can also place these variables in a `.env` file at the project root (loaded 
 3. Set a monthly budget alert or hard quota to avoid unexpected charges.
 4. Gemini 1.5 Pro pricing is per **input + output token**; full memory dumps can be large, so monitor token usage.
 
-### OpenAI gpt-5.2 – Usage Limits
+### OpenAI gpt-5.4 – Usage Limits
 
 1. Log in to the [OpenAI Platform](https://platform.openai.com/).
 2. Navigate to **Settings → Limits**.

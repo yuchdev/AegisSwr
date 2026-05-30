@@ -69,6 +69,20 @@ def analyze(  # noqa: PLR0913
     store_config: Annotated[
         str | None, typer.Option("--store-config", help="Storage config value (path / bucket URL).")
     ] = None,
+    code_provider: Annotated[
+        str, typer.Option("--code-provider", help="Code backend: none | git | filesystem.")
+    ] = "none",
+    repo: Annotated[
+        Path | None,
+        typer.Option("--repo", help="Repo / source root (enables the code backend)."),
+    ] = None,
+    log_provider: Annotated[
+        str, typer.Option("--log-provider", help="Log backend: file | fluent.")
+    ] = "file",
+    log_service: Annotated[
+        str | None,
+        typer.Option("--log-service", help="Service name for LogBackend.query_window."),
+    ] = None,
     output: Annotated[
         str, typer.Option("--output", help="Output format: rich | json | quiet.")
     ] = "rich",
@@ -101,6 +115,10 @@ def analyze(  # noqa: PLR0913
             "ai": ai,
             "store": store,
             "store_config": store_config,
+            "code_provider": code_provider,
+            "repo": str(repo) if repo else None,
+            "log_provider": log_provider,
+            "log_service": log_service,
             "output": output,
             "severity": severity,
         }
@@ -121,12 +139,23 @@ def analyze(  # noqa: PLR0913
         ai=ai,
         store=store,
         store_config=store_config,
+        code_provider=code_provider,
+        repo=repo,
+        log_provider=log_provider,
+        log_service=log_service,
         output=output,
         severity=severity,
     )
 
-    # Build IncidentSource.
+    # Build IncidentSource. The code backend reads metadata["repo_path"]; the log
+    # backend reads metadata["service"] (Data Adapter stages 8 and 4).
     from aegis_swr.core.schemas import IncidentMode, IncidentSource
+
+    metadata: dict[str, str] = {}
+    if opts.get("repo"):
+        metadata["repo_path"] = str(opts["repo"])
+    if opts.get("log_service"):
+        metadata["service"] = str(opts["log_service"])
 
     mode = IncidentMode.CRASH_DUMP if opts.get("dump") else IncidentMode.LOG_FORENSICS
     source = IncidentSource(
@@ -136,6 +165,7 @@ def analyze(  # noqa: PLR0913
         screenshot_paths=[str(p) for p in (opts.get("shots") or [])],
         symbol_path=str(opts["sym"]) if opts.get("sym") else None,
         user_assumption=opts.get("assume"),
+        metadata=metadata,
     )
 
     # Build settings overrides for engine and AI provider.
@@ -148,9 +178,28 @@ def analyze(  # noqa: PLR0913
     if opts.get("store_config"):
         _apply_store_config(settings, opts["store"], opts["store_config"])
 
+    # Code backend: --repo implies enabled; default provider to git unless one
+    # was explicitly requested via --code-provider.
+    code_provider_opt = opts.get("code_provider") or "none"
+    if opts.get("repo"):
+        settings.backends.code.enabled = True
+        settings.backends.code.repo_path = str(opts["repo"])
+        settings.backends.code.provider = (
+            "git" if code_provider_opt == "none" else code_provider_opt
+        )
+    else:
+        settings.backends.code.enabled = code_provider_opt != "none"
+        if code_provider_opt != "none":
+            settings.backends.code.provider = code_provider_opt
+
+    # Log backend provider.
+    settings.backends.log.provider = opts.get("log_provider") or "file"
+
     # Create backends.
     from aegis_swr.backends.ai import create_ai_backend
+    from aegis_swr.backends.code import create_code_backend
     from aegis_swr.backends.debug import create_debug_backend
+    from aegis_swr.backends.log import create_log_backend
     from aegis_swr.backends.storage import create_storage_backends
 
     ai_backend = create_ai_backend(settings.backends.ai)
@@ -163,6 +212,14 @@ def analyze(  # noqa: PLR0913
         except Exception as exc:  # noqa: BLE001
             typer.echo(f"Warning: debug backend unavailable ({exc})", err=True)
 
+    code_backend = create_code_backend(settings.backends.code)
+
+    log_backend = None
+    try:
+        log_backend = create_log_backend(settings.backends.log)
+    except Exception as exc:  # noqa: BLE001
+        typer.echo(f"Warning: log backend unavailable ({exc})", err=True)
+
     from aegis_swr.core.orchestrator import Orchestrator
 
     orch = Orchestrator(
@@ -171,6 +228,8 @@ def analyze(  # noqa: PLR0913
         debug_backend=debug_backend,
         relational_store=relational,
         object_store=object_store,
+        log_backend=log_backend,
+        code_backend=code_backend,
     )
 
     # Run with progress spinner.

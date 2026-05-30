@@ -16,6 +16,8 @@
 | 4 | Debug Backends | Week 6 | CDB (Windows), GDB (Linux), LLDB (macOS); FaultClass mapping |
 | 5 | Multi-Agent System | Week 7–9 | LangGraph state graph; 4 agents; consensus; HITL trigger |
 | 6 | Storage Backends | Week 10 | PostgreSQL, S3/MinIO, Qdrant; dedup by content hash |
+| 6.1 | Code Backend | Week 10 | Git + filesystem code adapters; Stage 8 code-history attribution |
+| 6.2 | Log Backend | Week 10 | File log adapter + Fluent stub; Stage 4 windowed log queries |
 | 7 | CLI & Local Mode | Week 11 | Typer CLI; in-process pipeline without API server |
 | 8 | REST API Layer | Week 12–13 | FastAPI app; SSE streaming; auth; rate limiting |
 | 9 | Secure Code Sandbox | Week 14 | Docker/gVisor executor; compile + AST validation |
@@ -296,6 +298,83 @@
 
 ---
 
+## Phase 6.1: Code Backend
+
+**Goal:** Implement the optional `CodeBackend` family that attributes a crash to recent source changes (Data Adapter Stage 8). Three adapters expose the same `CodeBackend` interface so the Data Adapter never branches on provider. The PDB adapter provides the highest-fidelity attribution on Windows by reading the exact build revision from the PDB Source Server stream rather than using a time-window approximation.
+
+### Deliverables
+
+1. **`backends/code/git_adapter.py`** — `GitCodeAdapter(CodeBackend)`:
+   - `get_commits_before` via `git log --since/--until --max-count --name-only --date=iso-strict` with a `\x1f`/`\x1e`-delimited pretty format → `list[CommitRecord]`.
+   - `get_file_diff` via `git show {sha} -- {path}`; `blame` via `git blame -L --line-porcelain`.
+   - All Git access through `subprocess.run` list-form argv with `cwd=repo_path` and `git_timeout_seconds`. Missing `.git` or missing `git` binary → `CodeBackendError`. Path-traversal guard on `file_path`.
+
+2. **`backends/code/filesystem_adapter.py`** — `FilesystemCodeAdapter(CodeBackend)` (no VCS):
+   - `get_commits_before`: directory walk; synthesize one `CommitRecord` per file modified within the window (`sha="fs:…"`, `author="unknown"`, `authored_at=mtime`).
+   - `get_file_diff`: returns current file contents with a `--- (no VCS history)` header.
+   - `blame`: one `BlameRecord` per line with `sha="fs:…"`, `authored_at=None`.
+
+3. **`backends/code/pdb_adapter.py`** — `PdbCodeAdapter(CodeBackend)` (Windows-only):
+   - Uses `pdbstr.exe -r -p:{pdb_path} -s:srcsrv` (Debugging Tools for Windows, same install as `cdb.exe`) to extract the Source Server stream.
+   - Parses the INI-like SrcSrv block: `VERCTRL`, `GITREPO`/repo URL, per-file revision SHAs.
+   - `get_commits_before`: ignores `window_hours` — the SrcSrv SHA *is* the build revision. Returns one `CommitRecord` per unique SHA with `author="PdbSourceServer"`.
+   - `get_file_diff` / `blame`: delegates to `git show` / `git blame` with the exact SHA from SrcSrv when `VERCTRL=git`; other VCS types return empty (fail open).
+   - Constructor raises `CodeBackendError` immediately on non-Windows (`sys.platform != "win32"`).
+   - All subprocess calls use list-form argv; `pdbstr_timeout_seconds` config.
+   - `pdb_path` resolved from settings or auto-derived from dump path + symbol cache.
+
+4. **`backends/code/_paths.py`** — shared path-traversal guard (`safe_repo_path`), reused by all three adapters.
+
+5. **`backends/code/__init__.py`** — `create_code_backend(settings: CodeBackendSettings) -> CodeBackend | None` (returns `None` when `enabled=false`; routes `git` / `filesystem` / `pdb`).
+
+6. **`CodeBackendSettings`** in `config/settings.py`: `enabled`, `provider` (`git|filesystem|pdb`), `repo_path`, `pdb_path`, `window_hours`, `commit_limit`, `git_timeout_seconds`, `pdbstr_timeout_seconds` + `config.yaml` `backends.code` block. **`CodeBackendError`** added to `core/exceptions.py`.
+
+7. **Stage 8 fail-open** — Data Adapter catches `CodeBackendError`, logs a warning, continues with empty `code_history`.
+
+8. **`tests/unit/test_code_backends.py`** — Git (mocked subprocess: commit/blame parse, missing-repo/binary raises, traversal); Filesystem (`tmp_path`: window selection, diff, blame, traversal); PDB (mocked `pdbstr.exe`: SrcSrv parse, empty-stream graceful, non-Windows raises, missing-binary raises, git diff/blame delegation); factory (disabled → None, git, filesystem, pdb, unknown → ValueError).
+
+9. **`tests/unit/fixtures/sample_srcsrv_stream.txt`** — realistic SrcSrv INI fixture.
+
+### Success Criteria
+
+- `GitCodeAdapter.get_commits_before()` parses a fixture `git log` payload into correct `CommitRecord`s (newest first).
+- `FilesystemCodeAdapter` returns only in-window files, capped to `limit`, with no `git` dependency.
+- `PdbCodeAdapter.get_commits_before()` parses a fixture SrcSrv stream into one `CommitRecord` with `author="PdbSourceServer"` and all files listed; ignores `window_hours`.
+- `PdbCodeAdapter` constructor raises `CodeBackendError` on non-Windows.
+- `PdbCodeAdapter` returns `[]` gracefully when `pdbstr.exe` exits non-zero (no SrcSrv stream present).
+- `create_code_backend()` returns `None` when `enabled=false`.
+- `pytest tests/unit/test_code_backends.py` passes with zero external calls.
+
+---
+
+## Phase 6.2: Log Backend
+
+**Goal:** Implement the optional `LogBackend` family queried in Data Adapter Stage 4. A real local-file adapter plus a Fluent plugin stub; ELK deferred.
+
+### Deliverables
+
+1. **`backends/log/file_adapter.py`** — `FileLogAdapter(LogBackend)`:
+   - `async query_window(service, start, end, severity_levels)` resolves `{file_root}/{service}*.{log,txt}`, reads via `asyncio.to_thread`, filters by parsed timestamp window and severity. Returns `[]` when `file_root` is unset (file-path source still applies). Path-traversal guard within `file_root`.
+
+2. **`backends/log/fluent_adapter.py`** — `FluentAdapter(LogBackend)` stub: constructor warns; `query_window` raises `NotImplementedError`. Module docstring documents the intended Fluent forward/HTTP design.
+
+3. **`backends/log/__init__.py`** — `create_log_backend(settings: LogSettings) -> LogBackend | None` (`file`/`fluent`; `elk` → `NotImplementedError`; unknown → `ValueError`).
+
+4. **`LogSettings`** in `config/settings.py` (`provider`, `file_root`, `default_severity_levels`, `fluent_host`, `fluent_port`, `fluent_tag_prefix`) + `config.yaml` `backends.log` block.
+
+5. **Stage 4 wiring** — `DataAdapter.process` gains `log_backend: LogBackend | None = None`. When a `LogBackend`, a `service` (from `IncidentSource.metadata["service"]`), and `incident_timestamp` are all present, `query_window` lines are merged with file lines before Drain3 clustering. The call is wrapped in try/except — a stub `NotImplementedError` or query error degrades to file-only (fail open).
+
+6. **`tests/unit/test_log_backends.py`** — File adapter (time window, severity filter, no-file_root → empty, traversal, missing file skipped); Fluent stub raises; factory mapping. Plus `test_data_adapter_merges_log_backend_lines` in `test_data_adapter.py`.
+
+### Success Criteria
+
+- `FileLogAdapter.query_window()` returns only lines inside the window and matching severity.
+- `FluentAdapter.query_window()` raises `NotImplementedError`; the Data Adapter degrades to file-only without failing.
+- `create_log_backend()` returns the correct adapter per provider.
+- `pytest tests/unit/test_log_backends.py` passes with zero external calls.
+
+---
+
 ## Phase 7: CLI & Local Mode
 
 **Goal:** Implement the Typer CLI supporting local (in-process) analysis. Options can come from explicit CLI flags OR a JSON config file with the same key names. Prototype patterns (engine, ai, store, assumption, `--config` / `--save-config`) are carried forward.
@@ -322,11 +401,13 @@
    - `--dump PATH`, `--log PATH` (multiple), `--shot PATH` (multiple), `--sym PATH`, `--assume TEXT`
    - `--engine ENGINE` (auto|cdb|windbg_js), `--ai PROVIDER` (anthropic|openai)
    - `--store TYPE` (filesystem|sqlite|s3|postgres), `--store-config VALUE`
+   - `--code-provider TYPE` (none|git|filesystem), `--repo PATH` (sets code backend on + `repo_path`)
+   - `--log-provider TYPE` (file|fluent), `--log-service NAME` (service for `LogBackend.query_window`)
    - `--output FORMAT` (rich|json|quiet), `--severity LEVEL` (DEBUG|INFO|WARNING|ERROR)
    - `--config PATH` — load JSON config file; defaults to `DEFAULT_CONFIG_PATH` if it exists
    - `--save-config` — write effective options to JSON file and exit
    - Merge order: CLI flag > JSON config > hardcoded default.
-   - Build `IncidentSource`, create backends via `create_storage_backends`, instantiate `Orchestrator`, call `Orchestrator.run()`.
+   - Build `IncidentSource` (stash `--log-service` in `metadata["service"]`); create backends via `create_storage_backends`, `create_code_backend`, `create_log_backend`; instantiate `Orchestrator(..., code_backend=..., log_backend=...)`; call `Orchestrator.run()`.
    - Display with `rich_formatter` (spinner during analysis), `json_formatter`, or silent exit.
    - Exit code 1 on `HITLRequest` (prints the structured clarification request to stderr).
 
@@ -527,6 +608,12 @@ Phase 1 (Foundation)
   │       │
   │       └──► Phase 5 (MAS)           ← orchestrator calls storage
   │
+  ├──► Phase 6.1 (Code Backend)        ← optional; Data Adapter Stage 8 calls it
+  │       └──► Phase 7 (CLI)           ← --code-provider / --repo wire it in
+  │
+  ├──► Phase 6.2 (Log Backend)         ← optional; Data Adapter Stage 4 calls it
+  │       └──► Phase 7 (CLI)           ← --log-provider / --log-service wire it in
+  │
   Phase 5 (MAS Engine)
   │
   ├──► Phase 7 (CLI)                   ← CLI calls orchestrator directly; first E2E test gate
@@ -538,5 +625,5 @@ Phase 1 (Foundation)
   Phases 7, 8, 9 ──► Phase 10 (Testing & Hardening)
 ```
 
-**Minimum viable working product** (end-to-end pipeline, no API): Phases 1 → 4 → 2 → 3 → 5 → 6 → 7.  
+**Minimum viable working product** (end-to-end pipeline, no API): Phases 1 → 4 → 2 → 3 → 5 → 6 → 7. Phases 6.1 / 6.2 (Code & Log backends) are optional enrichers — they can land alongside Phase 6 or be deferred without blocking the MVP.  
 **Full production deployment**: all 10 phases complete.

@@ -17,7 +17,7 @@ _SYSTEM_MESSAGE = (
 
 class OpenAIBackend(AIBackendBase):
     """
-    AI backend that uses OpenAI gpt-5.2.
+    AI backend that uses OpenAI gpt-5.4.
     """
 
     @property
@@ -25,13 +25,13 @@ class OpenAIBackend(AIBackendBase):
         """
         Identifier for the AI model used.
 
-        @return: The model name string "gpt-5.2".
+        @return: The model name string "gpt-5.4".
         """
-        return "gpt-5.2"
+        return "gpt-5.4"
 
     def analyze(self, crash_data: str, history: list[dict] | None = None, assumption: str | None = None) -> str:
         """
-        Analyze crash data using gpt-5.2 and return a diagnosis.
+        Analyze crash data using gpt-5.4 and return a diagnosis.
 
         @param crash_data: The raw or sanitized crash data string (e.g., stack trace).
         @param history: Optional list of historical crash records for context.
@@ -70,7 +70,7 @@ class OpenAIBackend(AIBackendBase):
 
         try:
             response = client.chat.completions.create(
-                model="gpt-5.2",
+                model="gpt-5.4",
                 messages=[
                     {"role": "system", "content": _SYSTEM_MESSAGE},
                     {"role": "user", "content": user_content},

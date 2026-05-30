@@ -10,12 +10,19 @@ Tracks progress against [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Update
 | 4 | Debug Backends | ✅ Complete | `test_debug_backends.py`, `integration/test_debug_pipeline.py` |
 | 5 | Multi-Agent System | ✅ Complete | `test_consensus.py`, `test_agents.py`, `test_orchestrator.py` |
 | 6 | Storage Backends | ✅ Complete (Postgres stub) | `test_storage_backends.py` |
+| 6.1 | Code Backend | 🔶 Partial (git + fs done; PDB spec'd, not built) | `test_code_backends.py` (git/fs) |
+| 6.2 | Log Backend | ⬜ Not started (spec'd) | — |
 | 7 | CLI & Local Mode | ✅ Complete | `test_cli.py`, `integration/test_e2e_cli.py` |
 | 8 | REST API Layer | ⬜ Not started | — |
 | 9 | Secure Code Sandbox | ⬜ Not started | — |
 | 10 | Testing & Hardening | ⬜ Not started | — |
 
-**Current gate status:** `ruff` clean · `mypy --strict` clean (47 files) · 228 tests passing (unit + integration).
+**Current gate status:** `mypy --strict` clean (52 files) · 276 tests passing (unit + integration). Phases 6.1 (git + filesystem adapters) and 6.2 (file + fluent adapters) partially shipped; PDB adapter spec'd, not yet implemented.
+
+**End-to-end validation (real dump, 2026-05-31):** reproduced the prototype's resolution of `CrashUi.exe.1324.dmp` (deterministic NULL-pointer write in `CrashUi!Crash_Window::on_access_violation_click`) through the full Aegis pipeline — `CdbBackend` → `DataAdapter` → 4-agent MAS → `FilesystemStore`, with `--ai openai` (gpt-5.4). Consensus 0.97 (HIGH), converged in 1 round, and the panel additionally emitted a probabilistic-fix diff. Backend engine fixes made during this run (all in `PRODUCTION_DESIGN_SPEC.md` §6.1.1 / §6.2.1):
+- `AISettings.resolved_model` — `--ai openai` now uses an OpenAI model instead of the Anthropic default.
+- `OpenAIBackend` reasoning-model contract — `max_completion_tokens` (16k floor), no `temperature`; client `timeout=300s` + `max_retries=4`.
+- `CdbBackend._extract_exception_code` — multi-key fault-code extraction (`EXCEPTION_CODE` / `ERROR_CODE` / `EXCEPTION_CODE_STR` / `ExceptionCode`); fixes a prototype-ported defect that mapped NULL_POINTER_WRITE dumps to `FaultClass.UNKNOWN`.
 
 **Test layout:** `tests/unit/` (isolated component tests, mocked SDKs), `tests/integration/` (cross-component contracts), `tests/unit/fixtures/` (shared `MockAIBackend`, `MockDebugBackend`, and data fixtures, importable as `tests.unit.fixtures.*` via `pythonpath=["."]`).
 
@@ -124,3 +131,5 @@ Delivered:
 
 Unit coverage (`test_cli.py`, 12 tests): help flags, --save-config writes JSON, --config sets defaults, CLI flag overrides config, json/rich output, HITL exit code 1, config show redacts, config set writes YAML, config helpers.  
 Integration coverage (`test_e2e_cli.py`, 4 tests): JSON output E2E, rich output, log-only mode, config round-trip.
+
+> **Pending (lands with Phases 6.1 / 6.2):** the `--code-provider`, `--repo`, `--log-provider`, and `--log-service` flags and their orchestrator wiring are specified in `AGENTIC_IMPLEMENTATION_PLAN.md Step 7` / `IMPLEMENTATION_PLAN.md Phase 7` but are not yet implemented — they depend on the Code/Log backends being built first.

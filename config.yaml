@@ -36,14 +36,21 @@ backends:
     vector_collection: "incident_history"
 
   log:
-    provider: "file"
-    elk_url: null
-    fluent_host: null
-    fluent_port: null
+    provider: "file"                # file | fluent  (elk deferred)
+    file_root: null                 # base dir for service→file resolution (file provider)
+    default_severity_levels: ["FATAL", "CRITICAL", "ERROR", "WARNING"]
+    elk_url: null                   # elk (deferred)
+    fluent_host: null               # fluent stub
+    fluent_port: null               # fluent stub
+    fluent_tag_prefix: null         # fluent stub
 
   code:
-    enabled: false
-    repo_path: null
+    enabled: false                  # false → no CodeBackend; Stage 8 skipped
+    provider: "git"                 # git | filesystem
+    repo_path: null                 # working tree / source root
+    window_hours: 2                 # default look-back for get_commits_before
+    commit_limit: 10                # default max commits returned
+    git_timeout_seconds: 30         # git subprocess timeout (git provider)
 
 sandbox:
   enabled: true

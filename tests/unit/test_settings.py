@@ -1,5 +1,5 @@
 
-from aegis_swr.config.settings import Settings
+from aegis_swr.config.settings import AISettings, Settings
 from aegis_swr.core.fault_codes import FaultClass
 
 
@@ -15,6 +15,28 @@ def test_default_ai_settings(settings: Settings) -> None:
     assert settings.backends.ai.provider == "anthropic"
     assert settings.backends.ai.model == "claude-sonnet-4-6"
     assert settings.backends.ai.temperature == 0.2
+
+
+def test_resolved_model_openai_substitutes_default() -> None:
+    # provider switched to openai but model left at the anthropic default →
+    # the OpenAI default model is substituted.
+    ai = AISettings(provider="openai", model="claude-sonnet-4-6")
+    assert ai.resolved_model == "gpt-5.4"
+
+
+def test_resolved_model_openai_respects_explicit() -> None:
+    ai = AISettings(provider="openai", model="gpt-4o")
+    assert ai.resolved_model == "gpt-4o"
+
+
+def test_resolved_model_anthropic_substitutes_default() -> None:
+    ai = AISettings(provider="anthropic", model="gpt-5.4")
+    assert ai.resolved_model == "claude-sonnet-4-6"
+
+
+def test_resolved_model_anthropic_respects_explicit() -> None:
+    ai = AISettings(provider="anthropic", model="claude-opus-4-8")
+    assert ai.resolved_model == "claude-opus-4-8"
 
 
 def test_default_sandbox_settings(settings: Settings) -> None:

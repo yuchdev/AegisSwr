@@ -13,12 +13,12 @@
 
 ### Agent Matrix
 
-| Agent Role | Responsibility |
-|---|---|
-| `PackageArchitect` | Creates `pyproject.toml`, all `__init__.py` skeletons, CI config |
-| `SchemaEngineer` | Implements all Pydantic v2 models in `core/schemas.py` and `core/fault_codes.py` |
-| `InterfaceDesigner` | Implements all abstract base classes in `backends/base.py` and `agents/base.py` |
-| `ConfigEngineer` | Implements `config/settings.py` + `config.yaml` |
+| Agent Role          | Responsibility                                                                   |
+|---------------------|----------------------------------------------------------------------------------|
+| `PackageArchitect`  | Creates `pyproject.toml`, all `__init__.py` skeletons, CI config                 |
+| `SchemaEngineer`    | Implements all Pydantic v2 models in `core/schemas.py` and `core/fault_codes.py` |
+| `InterfaceDesigner` | Implements all abstract base classes in `backends/base.py` and `agents/base.py`  |
+| `ConfigEngineer`    | Implements `config/settings.py` + `config.yaml`                                  |
 
 ### Agentic Execution Brief
 
@@ -51,7 +51,7 @@
 **Instructions:**
 1. Implement `src/aegis_swr/core/schemas.py` with all models exactly as specified in §4: `IncidentMode`, `DumpFormat`, `IncidentSource`, `StackFrame`, `DebugExtractionResult`, `ConfidenceLevel`, `Hypothesis`, `AgentTurn`, `SkepticVerdict`, `HITLRequest`, `RCAReport`, `InvestigationState` (TypedDict), `OSKernelOutput`, `CodeAnalystOutput`, `LogHistorianOutput`, `ValidationResult`, `UIContext`, `CommitRecord`, `BlameRecord`.
 2. All models use Pydantic v2 syntax (`model_config = ConfigDict(...)` not class `Config`).
-3. All `datetime` fields are `datetime` with `timezone.utc` default factory where auto-populated.
+3. All `datetime` fields are `datetime` with `timezone.utc` default factory where autopopulated.
 4. Add `model_json_schema()` class method verification: call it on each model at import time in tests.
 5. Implement `src/aegis_swr/core/fault_codes.py` with `FaultClass` enum and the full platform mapping table from spec §4.2. Include `map_windows_ntstatus(code: str) -> FaultClass`, `map_linux_signal(signal: int) -> FaultClass`, `map_macos_exception(code: int) -> FaultClass` functions.
 6. Write `tests/unit/test_schemas.py`: test that each model can be instantiated with required fields, serialized to JSON, and deserialized back without data loss. Test all three FaultClass mapping functions with boundary inputs.
@@ -107,11 +107,11 @@ All must pass before proceeding to Step 2.
 
 ### Agent Matrix
 
-| Agent Role | Responsibility |
-|---|---|
-| `PipelineEngineer` | Core `DataAdapter` class with all nine stages |
-| `NLPEngineer` | Drain3 clustering, Presidio PII scrubbing, OCR integration |
-| `TestEngineer` | Fixtures and unit tests for all pipeline stages |
+| Agent Role         | Responsibility                                             |
+|--------------------|------------------------------------------------------------|
+| `PipelineEngineer` | Core `DataAdapter` class with all nine stages              |
+| `NLPEngineer`      | Drain3 clustering, Presidio PII scrubbing, OCR integration |
+| `TestEngineer`     | Fixtures and unit tests for all pipeline stages            |
 
 ### Agentic Execution Brief
 
@@ -198,11 +198,11 @@ All must pass before proceeding to Step 2.
 
 ### Agent Matrix
 
-| Agent Role | Responsibility |
-|---|---|
-| `AnthropicEngineer` | `anthropic_provider.py` with caching, structured output, streaming |
-| `OpenAIEngineer` | `openai_provider.py` with JSON schema output, streaming |
-| `BackendTestEngineer` | Unit tests with mocked LLM clients |
+| Agent Role            | Responsibility                                                     |
+|-----------------------|--------------------------------------------------------------------|
+| `AnthropicEngineer`   | `anthropic_provider.py` with caching, structured output, streaming |
+| `OpenAIEngineer`      | `openai_provider.py` with JSON schema output, streaming            |
+| `BackendTestEngineer` | Unit tests with mocked LLM clients                                 |
 
 ### Agentic Execution Brief
 
@@ -270,12 +270,12 @@ All must pass before proceeding to Step 2.
 
 ### Agent Matrix
 
-| Agent Role | Responsibility |
-|---|---|
-| `WindowsDebugEngineer` | `cdb_worker.py` — full CDB implementation with all regex parsers |
-| `WinDbgJSEngineer` | `windbg_js_worker.py` + `assets/windbg_diagnostic.js` — WinDbg JS engine backend |
-| `LinuxDebugEngineer` | `gdb_worker.py` and `lldb_worker.py` — Linux/macOS stubs |
-| `DebugTestEngineer` | Unit tests with fixture subprocess output for all backends |
+| Agent Role             | Responsibility                                                                   |
+|------------------------|----------------------------------------------------------------------------------|
+| `WindowsDebugEngineer` | `cdb_worker.py` — full CDB implementation with all regex parsers                 |
+| `WinDbgJSEngineer`     | `windbg_js_worker.py` + `assets/windbg_diagnostic.js` — WinDbg JS engine backend |
+| `LinuxDebugEngineer`   | `gdb_worker.py` and `lldb_worker.py` — Linux/macOS stubs                         |
+| `DebugTestEngineer`    | Unit tests with fixture subprocess output for all backends                       |
 
 ### Agentic Execution Brief
 
@@ -402,7 +402,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 1. Create `tests/unit/fixtures/sample_windbg_js_payload.json` — a realistic DDM JSON payload with:
    - `ExceptionCode: "0xc0000005"`, `ExceptionAddress: "0x00007ff8016a1c3f"`, `FaultingModule: "db_writer"`
    - `FaultingThread.Frames`: 5 frames, 4 with non-empty `Function`, 1 with empty `Function`
-   - `AllThreadsSummary`: 2 additional threads, each with 2-3 summarised frames
+   - `AllThreadsSummary`: 2 additional threads, each with 2-3 summarized frames
 
 2. Write the following tests, all using `mock.patch("aegis_swr.backends.debug._base.subprocess.run")`:
 
@@ -422,7 +422,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
    - `test_callback_bridge_assigns_ephemeral_port`: `with _CallbackBridge(timeout=5) as b:` asserts `b.port > 0`. (Does start a real local socket — short-lived.)
    
-   - `test_callback_bridge_per_instance_queue_isolation`: open two bridges simultaneously; POST to each port independently; `wait_for_payload()` on each returns only the payload sent to that specific port.
+   - `test_callback_bridge_per_instance_queue_isolation`: open two bridges simultaneously; POST to each port independently; `wait_for_payload()` on each return only the payload sent to that specific port.
 
 4. New factory tests:
 
@@ -439,12 +439,12 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 ### Agent Matrix
 
-| Agent Role | Responsibility |
-|---|---|
-| `ConsensusEngineer` | `core/consensus.py` — weighted CS formula + convergence logic |
+| Agent Role             | Responsibility                                                                                       |
+|------------------------|------------------------------------------------------------------------------------------------------|
+| `ConsensusEngineer`    | `core/consensus.py` — weighted CS formula + convergence logic                                        |
 | `AgentPersonaEngineer` | All four agent implementations (`os_kernel.py`, `code_analyst.py`, `log_historian.py`, `skeptic.py`) |
-| `OrchestratorEngineer` | `core/orchestrator.py` — LangGraph state graph wiring |
-| `MASTestEngineer` | Unit tests with mock AI backends |
+| `OrchestratorEngineer` | `core/orchestrator.py` — LangGraph state graph wiring                                                |
+| `MASTestEngineer`      | Unit tests with mock AI backends                                                                     |
 
 ### Agentic Execution Brief
 
@@ -556,13 +556,13 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 ### Agent Matrix
 
-| Agent Role | Responsibility |
-|---|---|
-| `FilesystemEngineer` | `filesystem_store.py` — JSON files + binary objects on disk |
-| `SQLiteEngineer` | `sqlite_store.py` — SQLite database |
-| `S3Engineer` | `s3_store.py` — S3/MinIO reports and raw objects |
-| `StubEngineer` | `postgres_store.py` — NotImplementedError stub |
-| `StorageTestEngineer` | Unit tests for all four backends + factory |
+| Agent Role            | Responsibility                                              |
+|-----------------------|-------------------------------------------------------------|
+| `FilesystemEngineer`  | `filesystem_store.py` — JSON files + binary objects on disk |
+| `SQLiteEngineer`      | `sqlite_store.py` — SQLite database                         |
+| `S3Engineer`          | `s3_store.py` — S3/MinIO reports and raw objects            |
+| `StubEngineer`        | `postgres_store.py` — NotImplementedError stub              |
+| `StorageTestEngineer` | Unit tests for all four backends + factory                  |
 
 ### Agentic Execution Brief
 
@@ -630,7 +630,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
    - `update_hitl_response(incident_id, response)`: load report; update; re-save.
 6. **`ObjectStore` methods**:
    - `upload_raw(incident_id, filename, data)`: `PutObject(Key=f"objects/{incident_id}/{filename}", Body=data)`; return `f"{incident_id}/{filename}"`.
-   - `get_raw(object_key)`: `GetObject(Key=f"objects/{object_key}")`['Body'].read(); `NoSuchKey` → raise `IncidentNotFoundError`.
+   - `get_raw(object_key)`: `GetObject(Key=f"objects/{object_key}")['Body'].read();` `NoSuchKey` → raise `IncidentNotFoundError`.
 
 **Verification:** mypy passes.
 
@@ -662,16 +662,223 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 ---
 
+## Step 6.1: Code Backend
+
+Implements the `CodeBackend` family (`PRODUCTION_DESIGN_SPEC.md §6.5`) consumed by
+Data Adapter Stage 8. Three adapters: a real Git backend, a no-VCS filesystem
+fallback, and a Windows PDB Source Server adapter that gives the **exact** build
+revision rather than a time-window approximation. All are optional — when
+`enabled=false` the factory returns `None` and Stage 8 is skipped.
+
+### Agent Matrix
+
+| Agent Role               | Responsibility                                                                                   |
+|--------------------------|--------------------------------------------------------------------------------------------------|
+| `GitCodeEngineer`        | `code/git_adapter.py` — `git log`/`show`/`blame` via subprocess                                  |
+| `FilesystemCodeEngineer` | `code/filesystem_adapter.py` — directory walk, no VCS                                            |
+| `PdbCodeEngineer`        | `code/pdb_adapter.py` — Windows PDB SrcSrv stream → exact build revision (Windows-only)         |
+| `CodeFactoryEngineer`    | `code/__init__.py` factory, `CodeBackendSettings`, `config.yaml`, `CodeBackendError`             |
+| `CodeTestEngineer`       | `tests/unit/test_code_backends.py`                                                               |
+
+### Agentic Execution Brief
+
+#### Agent: GitCodeEngineer
+
+**Inputs provided:**
+- `PRODUCTION_DESIGN_SPEC.md §6.5` + §6.5.1 — `CodeBackend` ABC and Git command design
+- `PRODUCTION_DESIGN_SPEC.md §4.7` — `CommitRecord` / `BlameRecord` schemas
+- `prototype/` has no code backend — this is a net-new component
+
+**Instructions:**
+1. Implement `src/aegis_swr/backends/code/git_adapter.py` — `GitCodeAdapter(CodeBackend)`.
+2. Constructor `__init__(self, settings: CodeSettings)` — store settings; resolve `repo_path` with `pathlib.Path(...).expanduser()` lazily per call (the ABC takes `repo_path` per method, so the per-call value wins; settings supply `window_hours`, `commit_limit`, `git_timeout_seconds` defaults).
+3. Helper `_git(self, repo_path: Path, *args: str) -> str` — `subprocess.run(["git", *args], cwd=str(repo_path), capture_output=True, text=True, timeout=settings.git_timeout_seconds)`. **List-form argv, never `shell=True`.** `FileNotFoundError` (no git binary) → `CodeBackendError`. Non-zero exit → `CodeBackendError` with stderr.
+4. Helper `_assert_repo(repo_path)` — raise `CodeBackendError` if `repo_path / ".git"` is absent.
+5. `get_commits_before(repo_path, before, window_hours=2, limit=10)`: run `git log` with `--since`/`--until` from the window, `--max-count={limit}`, `--date=iso-strict`, `--name-only`, and a `\x1f`/`\x1e`-delimited `--pretty=format`. Parse into `CommitRecord`s (newest first). `changed_files` from the trailing path lines.
+6. `get_file_diff(repo_path, file_path, commit_sha)`: `git show {sha} -- {file_path}`; return the diff text; unknown sha/path → `""`.
+7. `blame(repo_path, file_path, line_range)`: `git blame -L {start},{end} --line-porcelain -- {file_path}`; parse porcelain blocks → `BlameRecord`s.
+8. Path-safety helper `_safe_rel(repo_path, file_path)` — resolve and assert the path stays within `repo_path`; traversal → `ValueError`.
+
+**Invariants:** list-form argv only; no `shell=True`; every method tolerant of empty output. The Data Adapter (Stage 8) is responsible for catching `CodeBackendError` and degrading — this backend raises, it does not swallow.
+
+**Verification:** mypy passes.
+
+---
+
+#### Agent: FilesystemCodeEngineer
+
+**Inputs provided:**
+- `PRODUCTION_DESIGN_SPEC.md §6.5.2` — no-VCS degradation rules
+- `PRODUCTION_DESIGN_SPEC.md §4.7` — record schemas
+
+**Instructions:**
+1. Implement `src/aegis_swr/backends/code/filesystem_adapter.py` — `FilesystemCodeAdapter(CodeBackend)`.
+2. `get_commits_before(repo_path, before, window_hours=2, limit=10)`: walk `repo_path` with `os.walk`, pruning `.git`, `node_modules`, and dot-directories. For each file whose mtime (UTC) is within `[before − window_hours, before]`, build a `CommitRecord` with `sha="fs:"+sha1(relpath).hexdigest()[:12]`, `author="unknown"`, `authored_at=mtime`, `message="filesystem mtime"`, `changed_files=[relpath]`. Sort newest-mtime first; cap to `limit`.
+3. `get_file_diff(repo_path, file_path, commit_sha)`: read current file contents (UTF-8, errors="replace"); return them prefixed with `"--- (no VCS history)\n"`. Missing file → `""`.
+4. `blame(repo_path, file_path, line_range)`: read the file; for each line in `line_range` emit a `BlameRecord(line_number, sha="fs:"+…, author="unknown", authored_at=None, line_content=line)`.
+5. Reuse the same `_safe_rel` traversal guard as `GitCodeAdapter` (factor it into a small shared `_paths.py` helper or duplicate — keep it dependency-free).
+
+**Invariants:** never raise on a *missing* file (return empty); only raise `ValueError` on path traversal. Pure stdlib (`os`, `hashlib`, `pathlib`, `datetime`).
+
+**Verification:** mypy passes.
+
+---
+
+#### Agent: PdbCodeEngineer
+
+**Inputs provided:**
+- `PRODUCTION_DESIGN_SPEC.md §6.5.4` — full PdbCodeAdapter design
+- `PRODUCTION_DESIGN_SPEC.md §4.7` — `CommitRecord` / `BlameRecord` schemas
+- As-built `GitCodeAdapter` in `code/git_adapter.py` — reuse its `blame()` parser for the git-fallback blame path
+
+**Instructions:**
+1. Implement `src/aegis_swr/backends/code/pdb_adapter.py` — `PdbCodeAdapter(CodeBackend)`.
+2. Constructor `__init__(self, settings: CodeBackendSettings)` — store settings; compute `self._pdb_timeout = settings.pdbstr_timeout_seconds`.
+3. Helper `_resolve_pdb(repo_path: str) -> str`: use `settings.pdb_path` if set; else try `{repo_path}/{stem}.pdb` where `stem` is derived from the nearest `.pdb` in the symbol cache; raise `CodeBackendError("No PDB path configured …")` if unresolvable.
+4. Helper `_extract_srcsrv(pdb_path: str) -> str`: run `subprocess.run(["pdbstr.exe", "-r", f"-p:{pdb_path}", "-s:srcsrv"], …)` with list-form argv, `timeout=self._pdb_timeout`. `FileNotFoundError` → `CodeBackendError("pdbstr.exe not found…")`. Non-zero exit → `""` (no SrcSrv stream, not an error). **Windows-only guard:** check `sys.platform == "win32"` in the constructor; on other platforms raise `CodeBackendError("PdbCodeAdapter requires Windows (pdbstr.exe)")`.
+5. `_parse_srcsrv(stream: str) -> tuple[str, str, dict[str, str]]`: parse the SrcSrv INI-like format; return `(verctrl, repo_url, {file_path: revision_sha})`. Unknown `VERCTRL` → `verctrl="unknown"`.
+6. `get_commits_before(repo_path, before, window_hours, limit)`:
+   - Resolve PDB, extract SrcSrv, parse. If stream is empty → `[]`.
+   - Collect unique revision SHAs; `timestamp = pdb_file.stat().st_mtime` coerced to `datetime`. Return one `CommitRecord` per unique SHA with `author="PdbSourceServer"`, `message="SrcSrv build revision"`, `files_changed=[list of files at that SHA]`. Ignore `before`/`window_hours`/`limit`.
+7. `get_file_diff(repo_path, file_path, commit_sha)`: if `verctrl == "git"` delegate to `subprocess.run(["git", "show", f"{commit_sha}:{file_path}"], cwd=repo_path, …)`. Unknown VCS → `""`. Any failure → `""` (fail open).
+8. `blame(repo_path, file_path, line_range)`: if `verctrl == "git"` run `git blame -L {start},{end} --line-porcelain {commit_sha} -- {file_path}` (using the SHA from the SrcSrv map); parse via `_parse_blame_porcelain` imported from `git_adapter`. Any failure → `[]` (fail open).
+
+**Invariants:** list-form argv; Windows-only guard in constructor; every method fail-open on empty/missing SrcSrv.
+
+**Verification:** mypy passes; adapter raises `CodeBackendError` on non-Windows platform import.
+
+---
+
+#### Agent: CodeFactoryEngineer
+
+**Instructions:**
+1. Add `CodeBackendError(AegisSWRError)` to `core/exceptions.py`.
+2. Implement `backends/code/__init__.py` with `create_code_backend(settings: CodeBackendSettings) -> CodeBackend | None`. Provider routing: `enabled=false` → `None`; `git` → `GitCodeAdapter`; `filesystem` → `FilesystemCodeAdapter`; `pdb` → `PdbCodeAdapter`; unknown → `ValueError`.
+3. Update `CodeBackendSettings` in `config/settings.py`: add `pdb_path: str | None = None`, `pdbstr_timeout_seconds: int = 15`; extend the `provider` validator to allow `"pdb"` alongside `"git"` | `"filesystem"`.
+4. Update `config.yaml` `backends.code` block per spec §11 (add `pdb_path: null` and `pdbstr_timeout_seconds: 15`).
+5. **Amend Step 2 (Data Adapter):** `DataAdapter.process` already accepts `code_backend`; confirm Stage 8 catches `CodeBackendError`, logs a warning, and continues with empty `code_history` (the "fail open" rule).
+
+**Verification:** `python -c "from aegis_swr.backends.code import create_code_backend"` succeeds; mypy passes.
+
+---
+
+#### Agent: CodeTestEngineer
+
+**Instructions:**
+1. Write `tests/unit/test_code_backends.py`. All tests run without a network and without requiring a real system binary.
+2. **GitCodeAdapter** (mock `subprocess.run`): `test_git_get_commits_before_parses_records`, `test_git_blame_parses_porcelain`, `test_git_missing_repo_raises` (no `.git` → `CodeBackendError`), `test_git_missing_binary_raises` (`FileNotFoundError` → `CodeBackendError`), `test_git_path_traversal_blocked`.
+3. **FilesystemCodeAdapter** (in `tmp_path`): `test_fs_commits_within_window`, `test_fs_commits_respects_limit`, `test_fs_file_diff_returns_contents`, `test_fs_blame_line_range`, `test_fs_path_traversal_blocked`.
+4. **PdbCodeAdapter** (mock `subprocess.run`, mock `sys.platform`):
+   - `test_pdb_non_windows_raises`: mock `sys.platform = "linux"` → constructor raises `CodeBackendError`.
+   - `test_pdb_get_commits_parses_srcsrv`: mock `pdbstr.exe` stdout to return a fixture SrcSrv stream (2 files, 1 SHA, `VERCTRL=git`) → one `CommitRecord` with correct SHA, `author="PdbSourceServer"`, both files in `files_changed`.
+   - `test_pdb_missing_pdbstr_raises`: `FileNotFoundError` on `pdbstr.exe` subprocess → `CodeBackendError("pdbstr.exe not found")`.
+   - `test_pdb_empty_srcsrv_returns_empty`: `pdbstr.exe` exits 1 (no SrcSrv stream) → `get_commits_before` returns `[]` (no error).
+   - `test_pdb_get_file_diff_git_verctrl`: mock `git show` → returns diff text.
+   - `test_pdb_blame_git_verctrl`: mock `git blame --line-porcelain` → returns `BlameRecord`s.
+5. **Factory:** `enabled=False` → `None`; `git` → `GitCodeAdapter`; `filesystem` → `FilesystemCodeAdapter`; `pdb` → `PdbCodeAdapter`; unknown → `ValueError`.
+
+**Fixture:** `tests/unit/fixtures/sample_srcsrv_stream.txt` — realistic SrcSrv INI block with `VERCTRL=git`, `GITREPO=https://…`, two source file entries.
+
+**Verification:** `pytest tests/unit/test_code_backends.py -v` passes with zero external calls.
+
+---
+
+## Step 6.2: Log Backend
+
+Implements the `LogBackend` family (`PRODUCTION_DESIGN_SPEC.md §6.4`) queried by
+Data Adapter Stage 4. A real local-file adapter plus a Fluent plugin stub. ELK is
+deferred.
+
+### Agent Matrix
+
+| Agent Role           | Responsibility                                                          |
+|----------------------|-------------------------------------------------------------------------|
+| `FileLogEngineer`    | `log/file_adapter.py` — windowed/severity-filtered local log reads      |
+| `FluentStubEngineer` | `log/fluent_adapter.py` — `NotImplementedError` plugin stub             |
+| `LogFactoryEngineer` | `log/__init__.py` factory, `LogSettings`, `config.yaml`, Stage 4 wiring |
+| `LogTestEngineer`    | `tests/unit/test_log_backends.py`                                       |
+
+### Agentic Execution Brief
+
+#### Agent: FileLogEngineer
+
+**Inputs provided:**
+- `PRODUCTION_DESIGN_SPEC.md §6.4` + §6.4.1 — `LogBackend` ABC and file-resolution rules
+- `core/data_adapter.py` — existing Stage 4 temporal-window + severity logic to reuse
+
+**Instructions:**
+1. Implement `src/aegis_swr/backends/log/file_adapter.py` — `FileLogAdapter(LogBackend)`.
+2. Constructor stores `settings: LogSettings` (provides `file_root`, `default_severity_levels`).
+3. `async def query_window(service, start_time, end_time, severity_levels=None) -> list[str]`:
+   - Resolve candidate files: if `settings.file_root` is set, glob `{file_root}/{service}*.log` and `{file_root}/{service}*.txt`; otherwise return `[]` (the Data Adapter still has the `IncidentSource.log_paths` file path covered).
+   - Read each file in `asyncio.to_thread`; for each line best-effort parse a leading ISO-8601 / syslog timestamp; keep lines whose timestamp ∈ `[start_time, end_time]` (retain unparseable lines only when the window endpoints are absent).
+   - Apply `severity_levels or settings.default_severity_levels` as a case-insensitive token filter when provided.
+4. Path safety: resolved file paths must stay within `file_root` (traversal → `ValueError`).
+
+**Invariants:** all file I/O via `asyncio.to_thread`; never raise on a missing file (skip it). Reuse the timestamp/severity helpers from `core/data_adapter` where practical rather than duplicating regexes.
+
+**Verification:** mypy passes.
+
+---
+
+#### Agent: FluentStubEngineer
+
+**Instructions:**
+1. Implement `src/aegis_swr/backends/log/fluent_adapter.py` — `FluentAdapter(LogBackend)`.
+2. Constructor stores `settings`; log a warning that this is a stub (mirrors `PostgresStore`, spec §8.4).
+3. `async def query_window(...)` raises `NotImplementedError("FluentAdapter is a stub. Implement the Fluent forward/HTTP query in a future phase.")`.
+4. Add a module docstring describing the intended production design (connect to `fluent_host:fluent_port`, tag-scoped `fluent_tag_prefix.{service}` time-range query) for the future implementer.
+
+**Verification:** mypy passes; importing the module makes no network connection.
+
+---
+
+#### Agent: LogFactoryEngineer
+
+**Instructions:**
+1. Implement `backends/log/__init__.py` with `create_log_backend(settings: LogSettings) -> LogBackend | None` per spec §6.4.3 (`file` → `FileLogAdapter`; `fluent` → `FluentAdapter`; `elk` → `NotImplementedError`; unknown → `ValueError`).
+2. Add `LogSettings` to `config/settings.py`: `provider: str = "file"`, `file_root: str | None = None`, `default_severity_levels: list[str] = ["FATAL", "CRITICAL", "ERROR", "WARNING"]`, `fluent_host: str | None = None`, `fluent_port: int | None = None`, `fluent_tag_prefix: str | None = None`. Add a `provider` validator. Wire under `BackendsSettings.log` (replacing the placeholder `elk_url`/`fluent_*` pair).
+3. Update `config.yaml` `backends.log` block per spec §11.
+4. **Amend Step 2 (Data Adapter):** extend `DataAdapter.process` signature with `log_backend: LogBackend | None = None`. In Stage 4, when `log_backend` is not None AND a `service` name (from `IncidentSource.metadata["service"]` or the CLI `--log-service`) and `incident_timestamp` are present, call `await log_backend.query_window(...)` and merge the returned lines with the file-based lines **before** Drain3 clustering. Wrap the call in try/except — a stub `NotImplementedError` or a transient query error logs a warning and falls back to file-only logs (fail open).
+
+**Verification:** `python -c "from aegis_swr.backends.log import create_log_backend"` succeeds; mypy passes.
+
+---
+
+#### Agent: LogTestEngineer
+
+**Instructions:**
+1. Write `tests/unit/test_log_backends.py` — no network, no Fluent service.
+2. **FileLogAdapter** (in `tmp_path` with `file_root`): `test_file_window_filters_by_time` (lines inside vs outside the window), `test_file_severity_filter`, `test_file_no_file_root_returns_empty`, `test_file_path_traversal_blocked`, `test_file_missing_file_skipped`.
+3. **FluentAdapter:** `test_fluent_query_window_raises_notimplemented`.
+4. **Factory:** `provider="file"` → `FileLogAdapter`; `provider="fluent"` → `FluentAdapter`; `provider="elk"` → `NotImplementedError`; unknown → `ValueError`.
+5. **Stage 4 merge:** add `test_data_adapter_merges_log_backend_lines` to `tests/unit/test_data_adapter.py` — a fake `LogBackend` returning two windowed lines; assert they appear in the brief's `log_summary` alongside file lines; assert a stub raising `NotImplementedError` degrades to file-only without failing.
+
+**Verification:** `pytest tests/unit/test_log_backends.py -v` passes with zero external calls.
+
+---
+
+### Step 6.1 / 6.2 Integration Check
+
+After all agents complete, run:
+```bash
+mypy src/ --strict --ignore-missing-imports
+pytest tests/unit/test_code_backends.py tests/unit/test_log_backends.py tests/unit/test_data_adapter.py -v
+```
+All must pass before proceeding to Step 7.
+
+---
+
 ## Step 7: CLI & Local Mode
 
 ### Agent Matrix
 
-| Agent Role | Responsibility |
-|---|---|
+| Agent Role           | Responsibility                                                                      |
+|----------------------|-------------------------------------------------------------------------------------|
 | `ConfigFileEngineer` | `cli/_config.py`, `cli/_logging.py` — JSON config load/save/merge, sensitive filter |
-| `FormatterEngineer` | `cli/_formatters.py` — rich panel + json output |
-| `CLIEngineer` | `cli/commands.py` — all subcommands, `load_recent` addition to storage ABCs |
-| `CLITestEngineer` | `tests/unit/test_cli.py`, `tests/integration/test_e2e_cli.py` |
+| `FormatterEngineer`  | `cli/_formatters.py` — rich panel + json output                                     |
+| `CLIEngineer`        | `cli/commands.py` — all subcommands, `load_recent` addition to storage ABCs         |
+| `CLITestEngineer`    | `tests/unit/test_cli.py`, `tests/integration/test_e2e_cli.py`                       |
 
 ### Agentic Execution Brief
 
@@ -685,7 +892,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 **Instructions:**
 1. Implement `src/aegis_swr/cli/_config.py`:
    - `DEFAULT_CONFIG_PATH: Path = Path("~/.aegis-swr/analyze.json").expanduser()`
-   - `ANALYZE_CONFIG_KEYS: tuple[str, ...]` — tuple of all option names that belong in the JSON file (`dump`, `logs`, `shots`, `sym`, `assume`, `engine`, `ai`, `store`, `store_config`, `output`, `severity`).
+   - `ANALYZE_CONFIG_KEYS: tuple[str, ...]` — tuple of all option names that belong in the JSON file (`dump`, `logs`, `shots`, `sym`, `assume`, `engine`, `ai`, `store`, `store_config`, `code_provider`, `repo`, `log_provider`, `log_service`, `output`, `severity`).
    - `load_analyze_config(path: Path | None = None) -> dict[str, Any]` — reads JSON from path (default = `DEFAULT_CONFIG_PATH`); returns `{}` if file absent or malformed (log a warning on parse error).
    - `save_analyze_config(opts: dict[str, Any], path: Path | None = None) -> None` — writes only keys from `ANALYZE_CONFIG_KEYS` to the JSON file; creates parent dirs.
    - `merge_options(config: dict[str, Any], ctx: typer.Context, **cli_values: Any) -> dict[str, Any]` — for each key: if `ctx.get_parameter_source(key) == ParameterSource.COMMAND_LINE`, use CLI value; else use `config.get(key, cli_values[key])`. Return the merged dict.
@@ -739,15 +946,17 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 1. Create the Typer app: `app = typer.Typer(name="aegis", help="Aegis SWR — forensics platform")`.
 2. Create a `config_app = typer.Typer()` sub-app and register it with `app.add_typer(config_app, name="config")`.
 3. Implement `aegis analyze`:
-   - All flags from spec §12.2. `--log` and `--shot` are `list[Path]` with `default=[]`.
+   - All flags from spec §12.2, including the new `--code-provider` (`none`|`git`|`filesystem`, default `none`), `--repo PATH`, `--log-provider` (`file`|`fluent`, default `file`), `--log-service TEXT`. `--log` and `--shot` are `list[Path]` with `default=[]`.
    - First action: `configure_logging(severity)`.
    - Load JSON config: `config = load_analyze_config(config_path if config_path else None)`.
    - If `--save-config`: build options dict from current values; call `save_analyze_config(opts, config_path)`; print confirmation; `raise typer.Exit()`.
-   - Merge: `opts = merge_options(config, ctx, dump=dump, logs=logs, ...)`.
-   - Build `IncidentSource` from merged opts.
+   - Merge: `opts = merge_options(config, ctx, dump=dump, logs=logs, ...)` (include the four new keys).
+   - Build `IncidentSource` from merged opts. When `opts["log_service"]` is set, put it in `metadata["service"]` so Stage 4 can pass it to the `LogBackend`.
    - Determine `StorageSettings` from `store` / `store_config` merged opts; call `create_storage_backends`.
    - Override `settings.backends.ai.provider` from `opts["ai"]`; override `settings.backends.debug.engine` from `opts["engine"]`.
-   - Instantiate `Orchestrator(settings, ai_backend, debug_backend, relational, object_store)`.
+   - **Code backend:** override `settings.backends.code` from `opts["code_provider"]` / `opts["repo"]` — if `repo` is set, force `enabled=true` and default `provider` to `git` when `code_provider == "none"`; otherwise `enabled = (code_provider != "none")` with `provider = code_provider`. Call `create_code_backend(settings.backends.code)` (may return `None`).
+   - **Log backend:** override `settings.backends.log.provider` from `opts["log_provider"]`; call `create_log_backend(settings.backends.log)`.
+   - Instantiate `Orchestrator(settings, ai_backend, debug_backend, relational, object_store, code_backend=code_backend, log_backend=log_backend)`. (Extend the `Orchestrator` constructor and its `DataAdapter.process` call to forward `code_backend` and `log_backend`; both default to `None` so existing call sites are unaffected.)
    - Run with spinner: `with Progress(SpinnerColumn(), ...) as p: p.add_task("Analysing..."); report = asyncio.run(orch.run(source))`.
    - If `report.hitl_request`: print HITL panel to stderr; `raise typer.Exit(code=1)`.
    - Output: `json_formatter` / `rich_formatter` / quiet based on `opts["output"]`.
@@ -783,6 +992,9 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
    - `test_analyze_hitl_exits_nonzero`: mock `Orchestrator.run` returns a report with `hitl_request` set; assert exit code is 1.
    - `test_config_show_redacts_secrets`: `aegis config show` output does not contain `sk-ant-` or actual API key value.
    - `test_export_help`: `aegis export --help` exits 0; output contains `--store`, `--to-store`.
+   - `test_analyze_help_lists_backend_flags`: `aegis analyze --help` output contains `--code-provider`, `--repo`, `--log-provider`, `--log-service`.
+   - `test_repo_flag_enables_git_code_backend`: invoke with `--repo {tmp_repo}` (no `--code-provider`); assert the `CodeSettings` passed to `create_code_backend` has `enabled=True` and `provider="git"`.
+   - `test_log_service_sets_metadata`: invoke with `--log-service auth-api`; assert the built `IncidentSource.metadata["service"] == "auth-api"`.
 
 2. Write `tests/integration/test_e2e_cli.py`:
    - Patches `Orchestrator.run` at `aegis_swr.core.orchestrator.Orchestrator.run` to return a pre-built `RCAReport`.
@@ -800,11 +1012,11 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 ### Agent Matrix
 
-| Agent Role | Responsibility |
-|---|---|
-| `APIEngineer` | FastAPI app, all routes, SSE streaming |
-| `SecurityEngineer` | Auth middleware, rate limiting |
-| `APITestEngineer` | Integration tests with httpx |
+| Agent Role         | Responsibility                         |
+|--------------------|----------------------------------------|
+| `APIEngineer`      | FastAPI app, all routes, SSE streaming |
+| `SecurityEngineer` | Auth middleware, rate limiting         |
+| `APITestEngineer`  | Integration tests with httpx           |
 
 ### Agentic Execution Brief
 
@@ -857,10 +1069,10 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 ### Agent Matrix
 
-| Agent Role | Responsibility |
-|---|---|
-| `SandboxEngineer` | `sandbox/executor.py`, `sandbox/validators.py`, Dockerfiles |
-| `SandboxTestEngineer` | Unit tests with mocked subprocess |
+| Agent Role            | Responsibility                                              |
+|-----------------------|-------------------------------------------------------------|
+| `SandboxEngineer`     | `sandbox/executor.py`, `sandbox/validators.py`, Dockerfiles |
+| `SandboxTestEngineer` | Unit tests with mocked subprocess                           |
 
 ### Agentic Execution Brief
 
@@ -897,11 +1109,11 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 ### Agent Matrix
 
-| Agent Role | Responsibility |
-|---|---|
-| `GroundTruthEngineer` | Creates 10 ground truth incidents + `eval_runner.py` |
-| `HardeningEngineer` | Docker Compose, Makefile targets, security checklist |
-| `DocumentationEngineer` | Updates `docs/README.md` registry |
+| Agent Role              | Responsibility                                       |
+|-------------------------|------------------------------------------------------|
+| `GroundTruthEngineer`   | Creates 10 ground truth incidents + `eval_runner.py` |
+| `HardeningEngineer`     | Docker Compose, Makefile targets, security checklist |
+| `DocumentationEngineer` | Updates `docs/README.md` registry                    |
 
 ### Agentic Execution Brief
 

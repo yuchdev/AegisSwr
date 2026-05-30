@@ -64,6 +64,70 @@ def test_export_help() -> None:
     assert "--to-store" in result.output
 
 
+def test_analyze_help_lists_backend_flags() -> None:
+    result = runner.invoke(app, ["analyze", "--help"])
+    assert result.exit_code == 0
+    assert "--code-provider" in result.output
+    assert "--repo" in result.output
+    assert "--log-provider" in result.output
+    assert "--log-service" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Code / Log backend wiring
+# ---------------------------------------------------------------------------
+
+
+def test_repo_flag_enables_git_code_backend(tmp_path: Path) -> None:
+    captured: dict[str, object] = {}
+
+    async def mock_run(self, source):  # type: ignore[override]
+        return _report()
+
+    def _capture_code(settings):  # type: ignore[no-untyped-def]
+        captured["enabled"] = settings.enabled
+        captured["provider"] = settings.provider
+        captured["repo_path"] = settings.repo_path
+        return None
+
+    with (
+        mock.patch(_MOCK_RUN, mock_run),
+        mock.patch("aegis_swr.backends.code.create_code_backend", _capture_code),
+    ):
+        result = runner.invoke(app, [
+            "analyze",
+            "--repo", str(tmp_path),
+            "--output", "quiet",
+            "--store", "filesystem",
+            "--store-config", str(tmp_path / "reports"),
+        ])
+
+    assert result.exit_code == 0, result.output
+    assert captured["enabled"] is True
+    assert captured["provider"] == "git"
+    assert captured["repo_path"] == str(tmp_path)
+
+
+def test_log_service_sets_metadata(tmp_path: Path) -> None:
+    captured: dict[str, object] = {}
+
+    async def mock_run(self, source):  # type: ignore[override]
+        captured["service"] = source.metadata.get("service")
+        return _report()
+
+    with mock.patch(_MOCK_RUN, mock_run):
+        result = runner.invoke(app, [
+            "analyze",
+            "--log-service", "auth-api",
+            "--output", "quiet",
+            "--store", "filesystem",
+            "--store-config", str(tmp_path / "reports"),
+        ])
+
+    assert result.exit_code == 0, result.output
+    assert captured["service"] == "auth-api"
+
+
 # ---------------------------------------------------------------------------
 # --save-config
 # ---------------------------------------------------------------------------

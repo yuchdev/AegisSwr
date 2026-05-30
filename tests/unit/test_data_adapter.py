@@ -202,6 +202,73 @@ def test_process_logs_returns_none_for_missing_path(adapter: DataAdapter) -> Non
     assert adapter._process_logs(["/nonexistent/file.log"], None) is None
 
 
+def test_process_logs_merges_extra_lines(adapter: DataAdapter) -> None:
+    incident = datetime(2026, 5, 30, 14, 2, 11)
+    extra = ["2026-05-30T14:02:13 ERROR EXTRA_MARKER from backend"]
+    summary = adapter._process_logs([], incident, extra_lines=extra)
+    assert summary is not None
+    assert "EXTRA_MARKER" in summary
+
+
+# ---------------------------------------------------------------------------
+# Stage 4: LogBackend integration
+# ---------------------------------------------------------------------------
+
+
+class _FakeLogBackend:
+    """Minimal LogBackend returning canned windowed lines."""
+
+    def __init__(self, lines: list[str]) -> None:
+        self._lines = lines
+        self.called_with: tuple = ()
+
+    async def query_window(self, service, start_time, end_time, severity_levels=None):  # type: ignore[no-untyped-def]
+        self.called_with = (service, start_time, end_time)
+        return self._lines
+
+
+class _StubLogBackend:
+    """LogBackend stub that always raises (like FluentAdapter)."""
+
+    async def query_window(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        raise NotImplementedError("stub")
+
+
+async def test_log_backend_lines_merged_into_brief(adapter: DataAdapter) -> None:
+    backend = _FakeLogBackend(["2026-05-30T14:02:13 ERROR LOGBACKEND_MARKER from fluent"])
+    source = IncidentSource(
+        mode=IncidentMode.LOG_FORENSICS,
+        incident_timestamp=datetime(2026, 5, 30, 14, 2, 11),
+        metadata={"service": "auth-api"},
+    )
+    brief = await adapter.process(source, log_backend=backend)
+    assert brief.log_summary is not None
+    assert "LOGBACKEND_MARKER" in brief.log_summary
+    assert backend.called_with[0] == "auth-api"
+
+
+async def test_log_backend_not_queried_without_service(adapter: DataAdapter) -> None:
+    backend = _FakeLogBackend(["2026-05-30T14:02:13 ERROR SHOULD_NOT_APPEAR"])
+    source = IncidentSource(
+        mode=IncidentMode.LOG_FORENSICS,
+        incident_timestamp=datetime(2026, 5, 30, 14, 2, 11),
+    )  # no metadata["service"]
+    brief = await adapter.process(source, log_backend=backend)
+    assert backend.called_with == ()
+    assert brief.log_summary is None
+
+
+async def test_log_backend_stub_degrades_gracefully(adapter: DataAdapter) -> None:
+    source = IncidentSource(
+        mode=IncidentMode.LOG_FORENSICS,
+        incident_timestamp=datetime(2026, 5, 30, 14, 2, 11),
+        metadata={"service": "auth-api"},
+    )
+    # NotImplementedError from the backend must not fail the pipeline.
+    brief = await adapter.process(source, log_backend=_StubLogBackend())
+    assert brief.log_summary is None
+
+
 def test_drain3_deduplicates_heartbeats() -> None:
     lines = ["Connection pool status OK"] * 100
     lines += [

@@ -21,7 +21,6 @@ import contextlib
 import json
 import os
 import queue
-import subprocess
 import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -33,12 +32,11 @@ from loguru import logger
 from aegis_swr.backends.debug._base import _BaseDebugBackend, normalize_address
 from aegis_swr.backends.debug._symbol_path import resolve_symbol_path
 from aegis_swr.core.data_adapter import apply_noise_filter
-from aegis_swr.core.exceptions import DebugExtractionError, PlatformNotSupportedError
+from aegis_swr.core.exceptions import DebugExtractionError
 from aegis_swr.core.fault_codes import map_windows_ntstatus
 from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, StackFrame
 
 if TYPE_CHECKING:
-    from aegis_swr.config.settings import DebugSettings
     from aegis_swr.core.schemas import IncidentSource
 
 _DEFAULT_SYMBOL_SERVER = "https://msdl.microsoft.com/download/symbols"

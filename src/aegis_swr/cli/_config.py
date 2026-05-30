@@ -27,6 +27,10 @@ ANALYZE_CONFIG_KEYS: tuple[str, ...] = (
     "ai",
     "store",
     "store_config",
+    "code_provider",
+    "repo",
+    "log_provider",
+    "log_service",
     "output",
     "severity",
 )

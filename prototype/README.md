@@ -44,7 +44,7 @@ A specialized HTTP sink that captures data "pushed" from the WinDbg JS engine vi
 Transforms technical hex dumps into human-centric intelligence.
 
 * **Gemini Backend**: Utilizes massive context windows for full-memory dumps and multi-thread analysis.
-* **OpenAI Backend**: Employs gpt-5.2's logical capabilities for precise instruction-pointer (RIP) deduction.
+* **OpenAI Backend**: Employs gpt-5.4's logical capabilities for precise instruction-pointer (RIP) deduction.
 * **Optimization**: Implements "Middle-Out" truncation to keep the most relevant stack frames while discarding redundant symbol noise.
 
 ### 2.5 Persistence Layer (`backends/store/`)

@@ -60,11 +60,13 @@ src/aegis_swr/
 │   ├── log/
 │   │   ├── __init__.py       # Factory: create_log_backend()
 │   │   ├── file_adapter.py   # Local .log / .txt files
-│   │   ├── elk_adapter.py    # Elasticsearch / ELK stack
-│   │   └── fluent_adapter.py # Fluentd / Fluent Bit
+│   │   ├── elk_adapter.py    # Elasticsearch / ELK stack (deferred)
+│   │   └── fluent_adapter.py # Fluentd / Fluent Bit (stub)
 │   └── code/
 │       ├── __init__.py       # Factory: create_code_backend()
-│       └── git_adapter.py    # Git diff / blame / commit history
+│       ├── git_adapter.py    # Git diff / blame / commit history
+│       ├── filesystem_adapter.py  # Plain source tree, no VCS (graceful degradation)
+│       └── pdb_adapter.py    # Windows PDB SrcSrv → exact build revision (Windows-only)
 │
 ├── sandbox/
 │   ├── __init__.py
@@ -336,6 +338,31 @@ class InvestigationState(TypedDict):
     error:                str | None
 ```
 
+### 4.7 Code & Log Backend Types
+
+Records returned by the `CodeBackend` (§6.5) and consumed by the Data Adapter's
+code-history stage (§5.1 Stage 8). They are plain Pydantic models so they
+serialize cleanly into the `IncidentBrief.code_history` block.
+
+```python
+class CommitRecord(BaseModel):
+    sha: str                        # Full or short SHA; "fs:" pseudo-id for FilesystemCodeAdapter
+    author: str                     # "name <email>"; "unknown" when VCS metadata is absent
+    authored_at: datetime           # UTC; file mtime for FilesystemCodeAdapter
+    message: str                    # First line / subject; "" when unavailable
+    changed_files: list[str]        # Repo-relative paths
+
+class BlameRecord(BaseModel):
+    line_number: int                # 1-based line in the file
+    sha: str                        # Commit that last touched the line; "fs:" when no VCS
+    author: str                     # "unknown" when no VCS
+    authored_at: datetime | None    # None when no VCS metadata
+    line_content: str               # Source text of the line
+```
+
+`LogBackend` (§6.4) returns plain `list[str]` log lines, so it needs no
+dedicated record type; the lines flow straight into the Stage 4 log pipeline.
+
 ---
 
 ## 5. Data Adapter Layer (`core/data_adapter.py`)
@@ -365,7 +392,12 @@ IncidentSource
     │   - Apply 8,000-char head+tail truncation (4,000 / 4,000) to remaining text
     │
     ▼ Stage 4: Log Processing
-    │   - For each log path: apply temporal window ±30 s around incident_timestamp
+    │   - Source lines from two places, then merge into one stream:
+    │       (a) each local log path in IncidentSource.log_paths (file-based), and
+    │       (b) if a LogBackend is configured AND a service name + incident_timestamp
+    │           are available: LogBackend.query_window(service, t−window, t+window,
+    │           severity_levels) — pulls lines from the log source (file/fluent/…)
+    │   - For each line: apply temporal window ±30 s around incident_timestamp
     │   - Run Drain3 log clustering on filtered lines
     │   - Deduplicate: heartbeat lines repeated >3 times become "msg (×N)"
     │   - Severity isolation: retain FATAL/CRITICAL/ERROR/WARNING; drop INFO/DEBUG
@@ -387,7 +419,8 @@ IncidentSource
     │   - Tokenize user_assumption; truncate to 500 tokens with warning
     │
     ▼ Stage 8: Code History Query (if CodeBackend configured)
-    │   - Query git history for commits in the 2-hour window before incident_timestamp
+    │   - CodeBackend.get_commits_before(repo_path, incident_timestamp, window_hours=2)
+    │     — git history for GitCodeAdapter; recently-modified files for FilesystemCodeAdapter
     │   - Extract changed files, authors, commit messages — top 5 by proximity
     │
     ▼ Stage 9: Assemble Incident Brief (dict → JSON-serializable)
@@ -438,7 +471,7 @@ Two refinements were made while implementing the Data Adapter; both are now the 
 
 2. **PII scrubbing always runs via a deterministic regex baseline**, with Presidio NER as an optional enhancement layered on top when the `pii` extra is installed. This reconciles "PII scrubbing always runs" (a security invariant) with "fail open on optional features" — emails, IPv4 addresses, AWS keys, credit-card numbers, and DB connection strings are always scrubbed even without Presidio. The PII substitution map is **never** placed in the `IncidentBrief` (it would carry the original PII into agent prompts); instead it is exposed via `DataAdapter.last_pii_substitution_map` immediately after `process()` returns, for the orchestrator to persist out-of-band (encrypted) per §13.1.
 
-3. **`process()` signature**: `async def process(source: IncidentSource, debug_backend: DebugBackend | None = None, code_backend: CodeBackend | None = None) -> IncidentBrief`. Both backends are optional so the adapter is usable in log-only mode and before Phase 4/later backends exist. The reusable noise filter is the module-level function `apply_noise_filter(text)`, which Phase 4 debug backends import directly.
+3. **`process()` signature**: `async def process(source: IncidentSource, debug_backend: DebugBackend | None = None, code_backend: CodeBackend | None = None, log_backend: LogBackend | None = None) -> IncidentBrief`. All three backends are optional so the adapter is usable in log-only mode and before Phase 4/later backends exist. `code_backend` drives Stage 8 (§6.5); `log_backend` is queried in Stage 4 (§6.4) and its lines are merged with the file-based logs before clustering. The reusable noise filter is the module-level function `apply_noise_filter(text)`, which Phase 4 debug backends import directly.
 
 4. **Token counting** uses `tiktoken` (`cl100k_base`) with an offline-safe `chars/4` fallback (`core/tokens.py`), so token budgeting never breaks in air-gapped environments.
 
@@ -503,6 +536,12 @@ These are the authoritative behaviors of the implemented AI backends:
 
 6. **SDK clients are typed as `Any`.** Each provider stores `self._client: Any = anthropic.AsyncAnthropic()` / `openai.AsyncOpenAI()` to avoid coupling to the SDKs' internal `TypedDict` parameter types under `mypy --strict`. API keys are read from the environment by the SDKs (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`).
 
+7. **Provider-aware model resolution.** `model` in `AISettings` defaults to an Anthropic name, so switching only the provider (e.g. CLI `--ai openai`) would otherwise send an Anthropic model id to OpenAI. `AISettings.resolved_model` substitutes the provider's default (`gpt-5.4` for OpenAI, `claude-sonnet-4-6` for Anthropic) **only when the configured model does not belong to the selected provider**; an explicit, provider-matching model is always respected. `_BaseAIBackend` uses `resolved_model`, so the CLI, API, and orchestrator all get this for free.
+
+8. **OpenAI reasoning-model API contract.** gpt-5-class / o-series models reject `max_tokens` and any non-default `temperature`; they require `max_completion_tokens`. `OpenAIBackend._completion_kwargs()` detects a reasoning model by name prefix and, for those, sends `max_completion_tokens` (floored at 16 000 so internal reasoning tokens don't starve the structured answer) and omits `temperature`; non-reasoning models keep `max_tokens` + `temperature`.
+
+9. **OpenAI client resilience.** A multi-agent investigation issues many sequential calls (up to `4 agents × max_debate_rounds`), so the OpenAI client is constructed with `timeout=300s` and `max_retries=4` (SDK exponential backoff on timeouts / 429 / 5xx). This prevents one transient `APITimeoutError` — observed at the `skeptic_node` during real-dump runs — from aborting the whole graph.
+
 ### 6.2 DebugBackend
 
 ```python
@@ -543,6 +582,18 @@ def create_debug_backend(config: DebugConfig) -> DebugBackend:
 - Linux/macOS: `~/.cache/aegis-swr/symbols`
 - Override with `AEGIS_SYMBOL_CACHE` environment variable.
 
+> **PDB dual-use note.** A `.pdb` (Program Database) file contains two distinct
+> information classes used at *different pipeline stages*:
+>
+> | Class | Used by | Stage | Mechanism |
+> |---|---|---|---|
+> | Address → symbol (function name, source line, type) | **Debug Backend** | Stage 2 | `cdb.exe -y {symbol_path}` resolves frames |
+> | Source Server (SrcSrv) stream → exact VCS revision built | **Code Backend §6.5.4** | Stage 8 | `pdbstr.exe -r -s:srcsrv` extracts build provenance |
+>
+> Both backends reference the same `.pdb` file; this is intentional and architecturally
+> correct — the same file is read for different purposes. The `PdbCodeAdapter` (§6.5.4)
+> is therefore not a Debug Backend concern and does not replace symbol resolution here.
+
 #### 6.2.1 As-built notes (Phase 4)
 
 Authoritative behaviors of the implemented debug backends:
@@ -553,7 +604,9 @@ Authoritative behaviors of the implemented debug backends:
 
 3. **`extract` is synchronous** (per the ABC) and the Data Adapter calls it inline. All `subprocess.run` calls use list-form argv — never `shell=True`.
 
-4. **Fault mapping.** CDB maps the `EXCEPTION_CODE` NTSTATUS hex via `map_windows_ntstatus`; GDB maps the `signal SIG*` name via a local name→number table + `map_linux_signal`; LLDB maps the `stop reason = EXC_*` name via a local name→code table + `map_macos_exception`. Unmapped indicators yield `FaultClass.UNKNOWN`.
+4. **Fault mapping.** CDB maps the fault-code NTSTATUS hex via `map_windows_ntstatus`; GDB maps the `signal SIG*` name via a local name→number table + `map_linux_signal`; LLDB maps the `stop reason = EXC_*` name via a local name→code table + `map_macos_exception`. Unmapped indicators yield `FaultClass.UNKNOWN`.
+
+   **CDB fault-code extraction (multi-key).** `!analyze -v` reports the fault code under different keys depending on the crash. `_extract_exception_code()` tries, in order: `EXCEPTION_CODE: (NTSTATUS|HRESULT) 0x…`, `ERROR_CODE: (NTSTATUS|HRESULT) 0x…`, `EXCEPTION_CODE_STR:  c0000005`, and `ExceptionCode: c0000005`, normalising to lowercase `0x…`. This was a defect ported from the prototype, which matched only `EXCEPTION_CODE:` and silently yielded `0x0 → FaultClass.UNKNOWN` for real `NULL_POINTER_WRITE` dumps (which report `ERROR_CODE` / `EXCEPTION_CODE_STR` instead). Surfaced during a real-dump reproduction run where the OS Kernel agent noted the brief listed `exception_code_raw` as `0x0` while the excerpt clearly showed `0xc0000005`.
 
 5. **Parsers are module-level functions** (`parse_cdb_frames`, `parse_gdb_frames`, `parse_lldb_frames`) so they are unit-testable in isolation. Each produces `StackFrame`s; `symbol_resolution_score = (frames with a resolved function) / (total frames)`. `apply_noise_filter` (imported from `core/data_adapter`) is applied to `raw_text_excerpt`.
 
@@ -851,7 +904,79 @@ class LogBackend(ABC):
         """Returns filtered log lines from the configured source."""
 ```
 
-Implementations: `FileAdapter`, `ELKAdapter`, `FluentAdapter`.
+The `LogBackend` is **always optional**. When configured it is queried in Data
+Adapter Stage 4 (§5.1) and its lines are merged with any file-based logs before
+clustering. `query_window` is `async` (log sources may be network-backed). Two
+adapters ship now; ELK is deferred (see §6.4.3).
+
+| Adapter | File | Source | Status |
+|---|---|---|---|
+| `FileLogAdapter` | `log/file_adapter.py` | Local `.log` / `.txt` files | Full implementation |
+| `FluentAdapter` | `log/fluent_adapter.py` | Fluentd / Fluent Bit | **Stub** (Phase-deferred) |
+| `ELKAdapter` | `log/elk_adapter.py` | Elasticsearch / ELK | Deferred — not implemented yet |
+
+#### 6.4.1 FileLogAdapter (`log/file_adapter.py`)
+
+Reads local log files and returns the lines whose parsed timestamp falls in
+`[start_time, end_time]`, optionally filtered by `severity_levels`. It is the
+default and needs no external service.
+
+- **File resolution:** the `service` argument maps to files under
+  `settings.file_root` (when set): it globs `{file_root}/{service}*.log` and
+  `{file_root}/{service}*.txt`. When `file_root` is null it falls back to the
+  `IncidentSource.log_paths` already supplied to the Data Adapter (so passing
+  `--log` files keeps working with no log provider config at all).
+- **Timestamp parse:** best-effort ISO-8601 / common syslog prefix parse per line;
+  unparseable lines are retained only when `incident_timestamp` is unknown.
+- **Severity filter:** when `severity_levels` is given, keep only lines whose
+  level token matches (case-insensitive); otherwise return all windowed lines.
+- All file reads are wrapped in `asyncio.to_thread`. Resolved paths are guarded
+  to stay within `file_root` (traversal → `ValueError`).
+
+#### 6.4.2 FluentAdapter (`log/fluent_adapter.py`) — stub
+
+Plugin backend for Fluentd / Fluent Bit, shipped as a **stub** (mirrors the
+PostgreSQL store stub, §8.4) so the factory and config can select it ahead of a
+full implementation:
+
+- Constructor stores `settings` and logs a warning that this is a stub.
+- `query_window(...)` raises `NotImplementedError("FluentAdapter is a stub. "
+  "Implement the Fluent forward/HTTP query in a future phase.")`.
+- The intended production design (documented for the future implementer): connect
+  to `fluent_host:fluent_port`, issue a tag-scoped (`fluent_tag_prefix.{service}`)
+  time-range query, and map records to log lines. No live connection is made by
+  the stub.
+
+#### 6.4.3 Factory & Configuration (`log/__init__.py`)
+
+```python
+def create_log_backend(settings: LogSettings) -> LogBackend | None:
+    if settings.provider == "file":
+        return FileLogAdapter(settings)
+    if settings.provider == "fluent":
+        return FluentAdapter(settings)          # stub
+    if settings.provider == "elk":
+        raise NotImplementedError("ELKAdapter is deferred; use 'file' or 'fluent'.")
+    raise ValueError(f"Unknown log provider: {settings.provider!r}")
+```
+
+The factory always returns an adapter for `file`/`fluent`; the Data Adapter only
+*queries* it in Stage 4 when a `service` name and `incident_timestamp` are both
+present, so configuring `provider: file` with no service simply leaves the
+file-path path (`IncidentSource.log_paths`) as the sole log source.
+
+`LogSettings` (the `backends.log` section, §11):
+
+```yaml
+backends:
+  log:
+    provider: "file"               # file | fluent  (elk deferred)
+    file_root: null                # base dir for service→file resolution (file provider)
+    default_severity_levels: ["FATAL", "CRITICAL", "ERROR", "WARNING"]
+    fluent_host: null              # fluent stub
+    fluent_port: null              # fluent stub
+    fluent_tag_prefix: null        # fluent stub
+```
 
 ### 6.5 CodeBackend
 
@@ -882,6 +1007,182 @@ class CodeBackend(ABC):
         line_range: tuple[int, int],
     ) -> list[BlameRecord]: ...
 ```
+
+The `CodeBackend` is **always optional**. It is consumed only by Data Adapter
+Stage 8 (§5.1) to attribute a crash to recent source changes. All three methods
+are **synchronous** (the Data Adapter calls them inline, consistent with
+`DebugBackend.extract`); record types are defined in §4.7. Two concrete
+adapters ship:
+
+| Adapter | File | Source of truth | When to use |
+|---|---|---|---|
+| `GitCodeAdapter` | `code/git_adapter.py` | A real Git working tree (`git log`/`diff`/`blame`) | The target service is built from a Git repo available to the analyzer host |
+| `FilesystemCodeAdapter` | `code/filesystem_adapter.py` | A plain source directory, no VCS | Vendored / exported source trees, archived snapshots, or air-gapped drops with no `.git` |
+| `PdbCodeAdapter` | `code/pdb_adapter.py` | Windows PDB Source Server (SrcSrv) stream | Windows crash where a `.pdb` with Source Server indexing is available; gives the **exact** build commit rather than a time-window guess |
+
+#### 6.5.1 GitCodeAdapter (`code/git_adapter.py`)
+
+Full Git history backend. All Git access is via `subprocess.run` with
+**list-form argv** (never `shell=True`); each call passes `cwd=repo_path` and a
+timeout (`git_timeout_seconds`, default 30).
+
+- `get_commits_before(repo_path, before, window_hours=2, limit=10)`:
+  `git log --since="{before − window_hours}" --until="{before}" --max-count={limit}
+  --date=iso-strict --name-only --pretty=format:%H%x1f%an <%ae>%x1f%aI%x1f%s%x1e`.
+  Parse the `\x1e`-delimited records (`\x1f`-delimited fields) into `CommitRecord`s;
+  the trailing newline-separated paths become `changed_files`. Newest first.
+- `get_file_diff(repo_path, file_path, commit_sha)`:
+  `git show {commit_sha} -- {file_path}` (or `git diff {sha}~1 {sha} -- {file_path}`);
+  returns the unified-diff text. Unknown SHA/path → `""`.
+- `blame(repo_path, file_path, line_range)`:
+  `git blame -L {start},{end} --line-porcelain -- {file_path}`; parse porcelain
+  blocks into `BlameRecord`s.
+- **Validation:** if `repo_path / ".git"` is absent → raise `CodeBackendError`
+  (`core/exceptions.py`, added by Step 6.1) with an actionable message. If the
+  `git` binary is missing (`FileNotFoundError`) → `CodeBackendError`. Per the
+  "fail open" rule, the Data Adapter catches `CodeBackendError` in Stage 8, logs
+  a warning, and continues with an empty `code_history`.
+- **Path safety:** `file_path` is treated as repo-relative; the resolved absolute
+  path is asserted to stay within `repo_path` (traversal → `ValueError`).
+
+#### 6.5.2 FilesystemCodeAdapter (`code/filesystem_adapter.py`)
+
+No-VCS fallback that treats a directory tree as the "repository". It degrades
+gracefully so the same `CodeBackend` contract holds without Git:
+
+- `get_commits_before(repo_path, before, window_hours=2, limit=10)`:
+  walk the tree (skipping `.git`, `node_modules`, and dot-directories), stat each
+  file, and synthesize one `CommitRecord` per file modified within the window
+  `[before − window_hours, before]`. `sha = "fs:" + sha1(relpath)[:12]`,
+  `author = "unknown"`, `authored_at = mtime (UTC)`, `message = "filesystem mtime"`,
+  `changed_files = [relpath]`. Sorted newest-mtime first, capped to `limit`.
+- `get_file_diff(repo_path, file_path, commit_sha)`: no history exists, so return
+  the **full current file contents** prefixed with a `--- (no VCS history)` header
+  rather than a real diff.
+- `blame(repo_path, file_path, line_range)`: emit one `BlameRecord` per line in
+  range with `sha="fs:…"`, `author="unknown"`, `authored_at=None`, and the line text.
+- **Path safety:** identical traversal guard to `GitCodeAdapter`.
+
+#### 6.5.3 Factory & Configuration (`code/__init__.py`)
+
+```python
+def create_code_backend(settings: CodeSettings) -> CodeBackend | None:
+    if not settings.enabled:
+        return None                      # code history disabled → Stage 8 is skipped
+    if settings.provider == "git":
+        return GitCodeAdapter(settings)
+    if settings.provider == "filesystem":
+        return FilesystemCodeAdapter(settings)
+    raise ValueError(f"Unknown code provider: {settings.provider!r}")
+```
+
+`CodeSettings` (the `backends.code` section, §11):
+
+```yaml
+backends:
+  code:
+    enabled: false                 # false → no CodeBackend; Stage 8 skipped
+    provider: "git"                # git | filesystem
+    repo_path: null                # path to the working tree / source root
+    window_hours: 2                # default look-back for get_commits_before
+    commit_limit: 10               # default max commits returned
+    git_timeout_seconds: 30        # git subprocess timeout (git provider)
+```
+
+`repo_path` may be supplied at the CLI with `--repo` (which also flips
+`enabled=true`); see §12.2.
+
+#### 6.5.4 PdbCodeAdapter (`code/pdb_adapter.py`) — Windows, Source Server indexing required
+
+The PDB Code Adapter derives source attribution from a Windows Program Database
+(`.pdb`) file rather than from the file system or a live Git working tree. Because
+the PDB's **Source Server (SrcSrv) stream** records the *exact* VCS revision that
+was compiled into each binary, this adapter eliminates the time-window heuristic
+entirely — no guessing from commit timestamps.
+
+##### Prerequisites
+
+1. The `.pdb` file must be readable (local symbol cache, symbol server download, or
+   path passed as `pdb_path`). If only an address-only PDB is present (no SrcSrv
+   stream), the adapter falls back gracefully to empty results.
+2. `pdbstr.exe` from **Debugging Tools for Windows** must be on PATH. The same
+   install that provides `cdb.exe` also ships `pdbstr.exe`, so any environment
+   that already runs `CdbBackend` qualifies. On non-Windows platforms the adapter
+   raises `CodeBackendError` immediately.
+
+##### SrcSrv stream
+
+The SrcSrv stream is a text block embedded in the PDB by source-indexing tools
+(e.g., `ssindex.cmd`, `srcsrv.dll` via build pipeline). Its key fields per entry:
+
+```
+SRCSRV: ini ------------------------------------------------
+INDEXVERSION=2
+VERCTRL=git                         # VCS type: git | tfvc | svn | ...
+SRCSRV: variables ------------------------------------------
+GITREPO=https://github.com/org/svc  # remote origin URL
+SRCSRV: source files ----------------------------------------
+db_writer.cpp*abc123def456*         # file path * VCS revision *
+pool.cpp*abc123def456*
+```
+
+##### Behaviour per method
+
+- **`get_commits_before(repo_path, before, window_hours, limit)`** — `before` and
+  `window_hours` are ignored; the PDB is the ground truth. Runs
+  `pdbstr.exe -r -p:{pdb_path} -s:srcsrv`, parses the stream, and returns a
+  single `CommitRecord` per unique revision SHA found (`author="PdbSourceServer"`,
+  `timestamp=None` coerced to the PDB file's mtime, `message="SrcSrv build revision"`).
+  If the SrcSrv stream is absent or empty → `[]`. `repo_path` is used only to
+  resolve `pdb_path` when it is not explicitly set.
+- **`get_file_diff(repo_path, file_path, commit_sha)`** — uses the SrcSrv
+  `VERCTRL`-specific extraction command (e.g., `git show {sha}:{file_path}`) or
+  falls back to `git show` when `VERCTRL=git`. Unknown VCS type → `""`.
+- **`blame(repo_path, file_path, line_range)`** — delegates to the underlying VCS
+  with the exact SHA from the SrcSrv stream. For `VERCTRL=git`: calls
+  `git blame -L {start},{end} --line-porcelain {sha} -- {file_path}`. Any git
+  failure → empty list (fail open).
+
+##### pdb_path resolution
+
+`pdb_path` is resolved in this order:
+1. Explicit `pdb_path` in `CodeBackendSettings`.
+2. Auto-resolve from `IncidentSource.dump_path` and symbol cache: replace the
+   dump's extension with `.pdb` and search the symbol cache directories.
+3. If neither yields a readable file → `CodeBackendError` (caught by Stage 8,
+   degrades to empty `code_history`).
+
+##### Factory & config additions (§6.5.3 update)
+
+```python
+if settings.provider == "pdb":
+    return PdbCodeAdapter(settings)
+```
+
+```yaml
+backends:
+  code:
+    enabled: false
+    provider: "git"          # git | filesystem | pdb
+    repo_path: null
+    pdb_path: null           # explicit PDB path; null = auto-resolve from dump
+    window_hours: 2          # used by git/filesystem; ignored by pdb
+    commit_limit: 10
+    git_timeout_seconds: 30
+    pdbstr_timeout_seconds: 15  # pdbstr.exe subprocess timeout (pdb provider)
+```
+
+`--code-provider pdb` is the corresponding CLI value; `--repo` is still accepted
+with `pdb` (provides `repo_path` for `git blame` fallback).
+
+##### Architecture note: why this belongs in Code Backend, not Debug Backend
+
+The Debug Backend reads PDB to answer: *"what is the function at 0x00007ff8?"*
+(symbol resolution, run during Stage 2). The Code Backend reads PDB to answer:
+*"what source code was compiled into this binary and at which VCS revision?"*
+(build provenance, run during Stage 8). These are orthogonal questions asked at
+different pipeline stages. The same `.pdb` file answers both; the dual reference is
+intentional and architecturally correct (see the disambiguation note in §6.2).
 
 ---
 
@@ -1264,14 +1565,22 @@ backends:
     object_store_region: "us-east-1"
 
   log:
-    provider: "file"                # file | elk | fluent
-    elk_url: null
-    fluent_host: null
-    fluent_port: null
+    provider: "file"                # file | fluent  (elk deferred)
+    file_root: null                 # base dir for service→file resolution (file provider)
+    default_severity_levels: ["FATAL", "CRITICAL", "ERROR", "WARNING"]
+    fluent_host: null               # fluent stub
+    fluent_port: null               # fluent stub
+    fluent_tag_prefix: null         # fluent stub
 
   code:
-    enabled: false
-    repo_path: null
+    enabled: false                  # false → no CodeBackend; Stage 8 skipped
+    provider: "git"                 # git | filesystem | pdb
+    repo_path: null                 # working tree / source root (git / filesystem / pdb fallback)
+    pdb_path: null                  # explicit .pdb path; null = auto-resolve from dump (pdb)
+    window_hours: 2                 # look-back for get_commits_before (git / filesystem)
+    commit_limit: 10                # default max commits returned
+    git_timeout_seconds: 30         # git subprocess timeout (git provider)
+    pdbstr_timeout_seconds: 15      # pdbstr.exe timeout (pdb provider)
 
 sandbox:
   enabled: true
@@ -1333,6 +1642,10 @@ aegis analyze \
   --ai      anthropic            # AI provider: anthropic | openai
   --store   filesystem           # storage backend: filesystem | sqlite | s3 | postgres
   --store-config ~/.aegis-swr/r  # storage config value (dir path / db path / S3 URL)
+  --code-provider none           # code backend: none | git | filesystem | pdb
+  --repo    ./service-src        # repo / source root (sets code-provider on, repo_path)
+  --log-provider file            # log backend: file | fluent
+  --log-service auth-api         # service name for LogBackend.query_window (optional)
   --output  rich                 # output format: rich | json | quiet
   --severity INFO                # log verbosity: DEBUG | INFO | WARNING | ERROR
   --config  ~/.aegis-swr/analyze.json   # load options from JSON file
@@ -1351,23 +1664,34 @@ Prototype options carried forward:
 - `--severity` (maps to log verbosity; replaces `--report-severity`)
 - `--config` / `--save-config` (JSON file round-trip)
 
+New backend options (§6.4 / §6.5):
+- `--code-provider` (maps to `CodeSettings.provider`; `none` leaves `CodeSettings.enabled=false`; valid values: `none | git | filesystem | pdb`)
+- `--repo` (maps to `CodeSettings.repo_path`; passing it implies `enabled=true` and, if `--code-provider` is omitted, defaults the provider to `git`; for `pdb` provider, `--repo` still accepted as the git fallback root for blame)
+- `--log-provider` (maps to `LogSettings.provider`)
+- `--log-service` (service name passed to `LogBackend.query_window`; when omitted, the file-path log source is used and no `query_window` call is made)
+
 ### 12.3 JSON config file (`~/.aegis-swr/analyze.json`)
 
 The config file schema exactly mirrors the `aegis analyze` CLI options:
 
 ```json
 {
-  "dump":         null,
-  "logs":         [],
-  "shots":        [],
-  "sym":          null,
-  "assume":       null,
-  "engine":       "auto",
-  "ai":           "anthropic",
-  "store":        "filesystem",
-  "store_config": null,
-  "output":       "rich",
-  "severity":     "INFO"
+  "dump":          null,
+  "logs":          [],
+  "shots":         [],
+  "sym":           null,
+  "assume":        null,
+  "engine":        "auto",
+  "ai":            "anthropic",
+  "store":         "filesystem",
+  "store_config":  null,
+  "code_provider": "none",
+  "repo":          null,
+  "pdb_path":      null,
+  "log_provider":  "file",
+  "log_service":   null,
+  "output":        "rich",
+  "severity":      "INFO"
 }
 ```
 

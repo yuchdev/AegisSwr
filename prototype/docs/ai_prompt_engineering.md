@@ -96,7 +96,7 @@ frames).
 
 | Setting | Value | Rationale |
 |---------|-------|-----------|
-| Model | `gpt-5.2` | Best reasoning for structured RCA |
+| Model | `gpt-5.4` | Best reasoning for structured RCA |
 | Timeout | `60 s` | Prevents hanging on slow API responses |
 | Truncation threshold | 10,000 chars | Balances cost and context quality |
 | Head kept | 5,000 chars | Exception code and register context |
