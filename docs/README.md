@@ -9,6 +9,7 @@ All design, planning, and analysis documents for the Aegis SWR project.
 | Document | Description |
 |----------|-------------|
 | [aegis-swr-vs-prototype.md](aegis-swr-vs-prototype.md) | End-to-end reproduction of the WinCrashAnalyzer prototype's resolution of `CrashUi.exe.1324.dmp` (deliberate NULL-pointer write) through the full Aegis SWR pipeline — CDB + OpenAI (gpt-5.4) + filesystem store. Side-by-side result comparison, the five backend-engine fixes the run surfaced, and reproduction steps. |
+| [aegis-swr-vs-prototype-variants.md](aegis-swr-vs-prototype-variants.md) | Two focused re-runs of the baseline scenario in isolation: **Variant A** (debug symbols only, `--sym c:\symbols`, no log) and **Variant B** (application logs only, `--log CrashUi.log`, no symbols). Side-by-side agent confidence scores, consensus deltas, and token costs across all three configurations (baseline / symbols-only / logs-only). |
 
 ---
 

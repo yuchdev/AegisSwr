@@ -43,13 +43,13 @@ CLI ← diagnosis string returned
 
 ## State Matrix
 
-| State        | Description                                          | Killed-During Impact                                      |
-|--------------|------------------------------------------------------|-----------------------------------------------------------|
-| `IDLE`       | Orchestrator created, no work started.               | No side effects.                                          |
-| `EXTRACTING` | `cdb.exe` / JS provider subprocess running.          | Subprocess may become a zombie; OS reaps it on process exit. |
-| `ANALYZING`  | HTTP request to AI API in flight.                    | No persistent state changed; request is simply abandoned. |
-| `STORING`    | Writing record to filesystem or SQLite.              | DB/file may have a partial record; re-run will overwrite. |
-| `COMPLETED`  | All stages finished successfully.                    | No impact; the full record is already on disk.            |
+| State        | Description                                 | Killed-During Impact                                         |
+|--------------|---------------------------------------------|--------------------------------------------------------------|
+| `IDLE`       | Orchestrator created, no work started.      | No side effects.                                             |
+| `EXTRACTING` | `cdb.exe` / JS provider subprocess running. | Subprocess may become a zombie; OS reaps it on process exit. |
+| `ANALYZING`  | HTTP request to AI API in flight.           | No persistent state changed; request is simply abandoned.    |
+| `STORING`    | Writing record to filesystem or SQLite.     | DB/file may have a partial record; re-run will overwrite.    |
+| `COMPLETED`  | All stages finished successfully.           | No impact; the full record is already on disk.               |
 
 ---
 
@@ -93,10 +93,10 @@ When symbols (PDB files) are unavailable for the target application, the analyze
 
 ## Edge-Case Mitigations
 
-| Edge Case             | Mitigation                                                               |
-|-----------------------|--------------------------------------------------------------------------|
-| CDB hangs             | Caller should use `subprocess.run(timeout=300)` inside `DebugBackend`.   |
-| Missing symbols       | `!analyze -v` output contains "unresolved"; surface as a `WARNING` log.  |
-| Massive dump output   | Stream debugger stdout line-by-line instead of `stdout.read()`.          |
-| API rate limit        | `AIBackendError` is raised; caller may wrap backend with exponential backoff. |
-| Zombie JS server      | Ensure `WinDbgServer.stop()` is called in a `finally` block or `__exit__`. |
+| Edge Case           | Mitigation                                                                    |
+|---------------------|-------------------------------------------------------------------------------|
+| CDB hangs           | Caller should use `subprocess.run(timeout=300)` inside `DebugBackend`.        |
+| Missing symbols     | `!analyze -v` output contains "unresolved"; surface as a `WARNING` log.       |
+| Massive dump output | Stream debugger stdout line-by-line instead of `stdout.read()`.               |
+| API rate limit      | `AIBackendError` is raised; caller may wrap backend with exponential backoff. |
+| Zombie JS server    | Ensure `WinDbgServer.stop()` is called in a `finally` block or `__exit__`.    |
