@@ -14,7 +14,6 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from aegis_swr.cli._config import (
     DEFAULT_CONFIG_PATH,
@@ -22,7 +21,7 @@ from aegis_swr.cli._config import (
     merge_options,
     save_analyze_config,
 )
-from aegis_swr.cli._formatters import json_formatter, rich_formatter
+from aegis_swr.cli._formatters import json_formatter, rich_formatter, stream_and_display
 from aegis_swr.cli._logging import configure_logging
 
 console = Console()
@@ -87,8 +86,13 @@ def analyze(  # noqa: PLR0913
         str, typer.Option("--output", help="Output format: rich | json | quiet.")
     ] = "rich",
     severity: Annotated[
-        str, typer.Option("--severity", help="Log verbosity: DEBUG | INFO | WARNING | ERROR.")
-    ] = "INFO",
+        str,
+        typer.Option(
+            "--severity",
+            help="Log verbosity: DEBUG | INFO | WARNING | ERROR. "
+            "Defaults to WARNING so logs do not interleave with the live display.",
+        ),
+    ] = "WARNING",
     config_path: Annotated[
         Path | None,
         typer.Option("--config", help="JSON config file (default: ~/.aegis-swr/analyze.json)."),
@@ -232,24 +236,27 @@ def analyze(  # noqa: PLR0913
         code_backend=code_backend,
     )
 
-    # Run with progress spinner.
-    report = None
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        transient=True,
-        console=console,
-    ) as progress:
-        progress.add_task(description="Analysing incident…", total=None)
-        report = asyncio.run(orch.run(source))
-
     fmt = opts.get("output", "rich")
+
+    if fmt == "quiet":
+        # No display — just run and store.
+        report = asyncio.run(orch.run(source))
+    else:
+        # For json output, stream the live display to stderr so stdout stays
+        # clean for machine parsing.
+        from aegis_swr.cli._formatters import make_console
+        stream_con = make_console(stderr=(fmt == "json"))
+        report = asyncio.run(stream_and_display(orch, source, stream_con))
+        if report is None:
+            typer.echo("Error: investigation ended without producing a report.", err=True)
+            raise typer.Exit(code=1)
+
     if fmt == "json":
         typer.echo(json_formatter(report))
-    elif fmt == "quiet":
-        pass
-    else:
-        rich_formatter(report)
+    elif fmt == "rich":
+        # Agent dialogue was already printed live; show the final conclusion +
+        # fix panels only.
+        rich_formatter(report, show_dialogue=False)
 
     if report.hitl_request:
         typer.echo(

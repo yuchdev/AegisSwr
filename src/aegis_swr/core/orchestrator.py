@@ -21,6 +21,16 @@ from aegis_swr.agents.os_kernel import OSKernelAgent
 from aegis_swr.agents.skeptic import SkepticAgent
 from aegis_swr.core.consensus import ConsensusEvaluator
 from aegis_swr.core.data_adapter import DataAdapter
+from aegis_swr.core.events import (
+    AgentSpoke,
+    ConsensusEvaluated,
+    DomainEvent,
+    EventBus,
+    EvidenceExtracted,
+    HumanInputRequired,
+    InvestigationCompleted,
+    InvestigationStarted,
+)
 from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.schemas import (
     AgentTurn,
@@ -59,8 +69,10 @@ class Orchestrator:
         vector_store: VectorStore | None = None,
         log_backend: LogBackend | None = None,
         code_backend: CodeBackend | None = None,
+        event_bus: EventBus | None = None,
     ) -> None:
         self._settings = settings
+        self._bus = event_bus or EventBus()
         self._ai = ai_backend
         self._debug = debug_backend
         self._relational = relational_store
@@ -95,30 +107,87 @@ class Orchestrator:
         final = await self._graph.ainvoke(initial)
         return self._extract_report(final)
 
+    @property
+    def events(self) -> EventBus:
+        """The bus on which this orchestrator publishes :class:`DomainEvent`s."""
+        return self._bus
+
+    async def stream_events(
+        self,
+        source: IncidentSource,
+    ) -> AsyncGenerator[DomainEvent, None]:
+        """Run the investigation, publishing and yielding neutral domain events.
+
+        Views (Rich CLI, TUI, GUI) should subscribe to :attr:`events` rather
+        than consume this generator; the yielded stream exists for drivers
+        that need the final report or a transport translation (SSE).
+        """
+        initial = self._initial_state(source)
+        started = InvestigationStarted(
+            incident_id=str(initial["incident_id"]), source=source
+        )
+        self._bus.publish(started)
+        yield started
+        async for chunk in self._graph.astream(initial, stream_mode="updates"):
+            for node_name, update in chunk.items():
+                for event in self._events_from_update(node_name, update):
+                    self._bus.publish(event)
+                    yield event
+
+    @staticmethod
+    def _events_from_update(
+        node_name: str, update: dict[str, Any]
+    ) -> list[DomainEvent]:
+        """Translate one LangGraph node update into domain events."""
+        events: list[DomainEvent] = []
+        if node_name == "data_adapter_node" and "incident_brief" in update:
+            events.append(EvidenceExtracted(brief=update["incident_brief"]))
+        history: list[dict[str, Any]] = update.get("discussion_history", [])
+        if history:
+            turn = AgentTurn.model_validate(history[-1])
+            events.append(AgentSpoke(node=node_name, turn=turn))
+        if "consensus_score" in update:
+            events.append(
+                ConsensusEvaluated(
+                    score=float(update["consensus_score"]),
+                    round_number=update.get("round_number"),
+                )
+            )
+        if update.get("result") is not None:
+            report = RCAReport.model_validate(update["result"])
+            if update.get("hitl_pending", False):
+                events.append(HumanInputRequired(report=report))
+            else:
+                events.append(InvestigationCompleted(report=report))
+        return events
+
     async def run_streaming(
         self,
         source: IncidentSource,
     ) -> AsyncGenerator[dict[str, Any], None]:
-        """Run the investigation and yield SSE-compatible event dicts per node."""
-        initial = self._initial_state(source)
-        async for chunk in self._graph.astream(initial, stream_mode="updates"):
-            for node_name, update in chunk.items():
-                history: list[dict[str, Any]] = update.get("discussion_history", [])
-                if history:
-                    last_turn = history[-1]
-                    yield {"type": "agent_turn", "node": node_name, "data": last_turn}
-                if "consensus_score" in update:
-                    yield {
-                        "type": "consensus_update",
-                        "data": {
-                            "score": update["consensus_score"],
-                            "round": update.get("round_number"),
-                        },
-                    }
-                if "result" in update and update["result"] is not None:
-                    hitl_pending = update.get("hitl_pending", False)
-                    event_type = "hitl_request" if hitl_pending else "complete"
-                    yield {"type": event_type, "data": update["result"]}
+        """Run the investigation and yield SSE-compatible event dicts.
+
+        Thin transport translation over :meth:`stream_events`; the dict shapes
+        are the public streaming API contract.
+        """
+        async for event in self.stream_events(source):
+            if isinstance(event, EvidenceExtracted):
+                yield {"type": "data_adapter_complete", "data": event.brief}
+            elif isinstance(event, AgentSpoke):
+                yield {
+                    "type": "agent_turn",
+                    "node": event.node,
+                    "data": event.turn.model_dump(mode="json"),
+                }
+            elif isinstance(event, ConsensusEvaluated):
+                yield {
+                    "type": "consensus_update",
+                    "data": {"score": event.score, "round": event.round_number},
+                }
+            elif isinstance(event, InvestigationCompleted):
+                yield {"type": "complete", "data": json.loads(event.report.model_dump_json())}
+            elif isinstance(event, HumanInputRequired):
+                yield {"type": "hitl_request", "data": json.loads(event.report.model_dump_json())}
 
     async def continue_investigation(
         self,

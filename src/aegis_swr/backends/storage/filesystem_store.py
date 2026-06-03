@@ -41,6 +41,112 @@ def _safe_path(base: Path, *parts: str) -> Path:
     return candidate
 
 
+def _report_to_markdown(report: RCAReport) -> str:
+    """Render *report* as a human-readable Markdown document."""
+    lines: list[str] = []
+
+    lines.append(f"# RCA Report — {report.incident_id}")
+    lines.append("")
+    lines.append(f"**Created:** {report.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}  ")
+    lines.append(f"**Mode:** {report.mode.value}  ")
+    if report.dump_hash:
+        lines.append(f"**Dump Hash:** `{report.dump_hash}`  ")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Root cause
+    lines.append("## Root Cause")
+    lines.append("")
+    lines.append(report.root_cause)
+    lines.append("")
+    if report.faulting_module:
+        lines.append(f"**Faulting Module:** `{report.faulting_module}`  ")
+    if report.faulting_function:
+        lines.append(f"**Faulting Function:** `{report.faulting_function}`  ")
+    conf_pct = f"{report.confidence_score:.1%}"
+    lines.append(f"**Confidence:** {conf_pct} ({report.confidence_level.value.upper()})  ")
+    if report.symbol_resolution_score is not None:
+        lines.append(f"**Symbol Resolution Score:** {report.symbol_resolution_score:.2f}  ")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Agent dialogue
+    if report.agent_dialogue:
+        lines.append("## Agent Dialogue")
+        lines.append("")
+        lines.append("| Round | Agent | Conf | Message |")
+        lines.append("|-------|-------|------|---------|")
+        for turn in report.agent_dialogue:
+            msg = turn.message.replace("\n", " ").replace("|", "\\|")
+            if len(msg) > 200:
+                msg = msg[:200] + "…"
+            conf = f"{turn.confidence_score:.0%}"
+            lines.append(f"| {turn.turn_number} | {turn.agent} | {conf} | {msg} |")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # Skeptic challenges
+    if report.skeptic_challenges:
+        lines.append("## Skeptic Challenges")
+        lines.append("")
+        for challenge in report.skeptic_challenges:
+            lines.append(f"- {challenge}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # Probabilistic fix
+    if report.probabilistic_fix:
+        fix_conf = f"{report.fix_confidence:.1%}" if report.fix_confidence is not None else "n/a"
+        lines.append(f"## Probabilistic Fix  *(confidence {fix_conf})*")
+        lines.append("")
+        lines.append("```diff")
+        lines.append(report.probabilistic_fix)
+        lines.append("```")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # Mitigation
+    if report.mitigation_instructions:
+        lines.append("## Mitigation Instructions")
+        lines.append("")
+        for i, step in enumerate(report.mitigation_instructions, 1):
+            lines.append(f"{i}. {step}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # HITL
+    if report.hitl_request:
+        lines.append("## Human Input Required")
+        lines.append("")
+        lines.append(f"**Question:** {report.hitl_request.question}")
+        lines.append("")
+        lines.append(report.hitl_request.context_summary)
+        lines.append("")
+        for item in report.hitl_request.requested_data:
+            lines.append(f"- {item}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # Metrics
+    lines.append("## Metrics")
+    lines.append("")
+    lines.append("| Metric | Value |")
+    lines.append("|--------|-------|")
+    lines.append(f"| Consensus rounds | {report.consensus_rounds} |")
+    lines.append(f"| Input tokens | {report.total_input_tokens:,} |")
+    lines.append(f"| Output tokens | {report.total_output_tokens:,} |")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
 class FilesystemStore(RelationalStore, ObjectStore):
     """JSON-file and binary-file storage; implements both ABCs."""
 
@@ -60,6 +166,8 @@ class FilesystemStore(RelationalStore, ObjectStore):
         self._reports_dir.mkdir(parents=True, exist_ok=True)
         path = _safe_path(self._reports_dir, f"{report.incident_id}.json")
         path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
+        md_path = _safe_path(self._reports_dir, f"{report.incident_id}.md")
+        md_path.write_text(_report_to_markdown(report), encoding="utf-8")
         if report.dump_hash:
             self._hash_index_dir.mkdir(parents=True, exist_ok=True)
             safe_hash = report.dump_hash.replace(":", "_")

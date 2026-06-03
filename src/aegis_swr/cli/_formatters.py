@@ -1,10 +1,21 @@
-"""CLI output formatters for RCAReport."""
+"""CLI output formatters for RCAReport.
+
+All Rich rendering lives in :mod:`aegis_swr.views.rich_view`; this module is
+the CLI-side glue: machine output (:func:`json_formatter`) and the driver
+that runs an investigation with a :class:`~aegis_swr.views.RichView` attached
+to the orchestrator's event bus (:func:`stream_and_display`).
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from aegis_swr.views.rich_view import make_console  # noqa: F401  (re-export for CLI)
+
 if TYPE_CHECKING:
-    from aegis_swr.core.schemas import RCAReport
+    from rich.console import Console
+
+    from aegis_swr.core.orchestrator import Orchestrator
+    from aegis_swr.core.schemas import IncidentSource, RCAReport
 
 
 def json_formatter(report: RCAReport) -> str:
@@ -12,77 +23,33 @@ def json_formatter(report: RCAReport) -> str:
     return report.model_dump_json(indent=2)
 
 
-def rich_formatter(report: RCAReport) -> None:
-    """Print the report as a rich terminal display."""
-    from rich.console import Console
-    from rich.panel import Panel
-    from rich.syntax import Syntax
-    from rich.table import Table
+def rich_formatter(report: RCAReport, *, show_dialogue: bool = True) -> None:
+    """Print the report as a rich terminal verdict (see views.rich_view)."""
+    from aegis_swr.views.rich_view import render_verdict
 
-    console = Console()
+    render_verdict(report, show_dialogue=show_dialogue)
 
-    # --- Conclusion panel ---------------------------------------------------
-    conf_str = f"{report.confidence_score:.0%} ({report.confidence_level.value.upper()})"
-    module_line = f"\n[dim]Module:[/dim] {report.faulting_module}" if report.faulting_module else ""
-    function_line = (
-        f"\n[dim]Function:[/dim] {report.faulting_function}" if report.faulting_function else ""
-    )
-    conclusion_body = (
-        f"[bold]{report.root_cause}[/bold]"
-        f"\n[dim]Confidence:[/dim] {conf_str}"
-        f"{module_line}{function_line}"
-    )
-    console.print(
-        Panel(
-            conclusion_body,
-            title="[bold green]Root Cause Analysis[/bold green]",
-            border_style="green",
-        )
-    )
 
-    # --- Agent dialogue table -----------------------------------------------
-    if report.agent_dialogue:
-        table = Table(title="Agent Dialogue", expand=False)
-        table.add_column("Round", style="dim", width=6)
-        table.add_column("Agent", style="bold", width=22)
-        table.add_column("Message")
-        table.add_column("Conf", style="cyan", width=6)
-        for turn in report.agent_dialogue:
-            table.add_row(
-                str(turn.turn_number),
-                turn.agent,
-                turn.message[:120] + ("…" if len(turn.message) > 120 else ""),
-                f"{turn.confidence_score:.0%}",
-            )
-        console.print(table)
+async def stream_and_display(
+    orch: Orchestrator,
+    source: IncidentSource,
+    console: Console,
+) -> RCAReport | None:
+    """Run the investigation with a live RichView attached to the event bus.
 
-    # --- Mitigation --------------------------------------------------------
-    if report.mitigation_instructions:
-        steps = "\n".join(f"  {i+1}. {s}" for i, s in enumerate(report.mitigation_instructions))
-        console.print(Panel(steps, title="Mitigation Instructions", border_style="yellow"))
+    Returns the final :class:`RCAReport` once the graph completes, or ``None``
+    if the stream ended without a result (should not happen in normal operation).
+    """
+    from aegis_swr.core.events import HumanInputRequired, InvestigationCompleted
+    from aegis_swr.views.rich_view import RichView
 
-    # --- Probabilistic fix -------------------------------------------------
-    if report.probabilistic_fix:
-        console.print(
-            Panel(
-                Syntax(report.probabilistic_fix, "diff", theme="monokai"),
-                title=(
-                    f"[bold]Probabilistic Fix[/bold]"
-                    f" (confidence {report.fix_confidence or 0:.0%})"
-                ),
-                border_style="blue",
-            )
-        )
-
-    # --- HITL request ------------------------------------------------------
-    if report.hitl_request:
-        req = report.hitl_request
-        items = "\n".join(f"  • {d}" for d in req.requested_data)
-        body = f"[bold yellow]{req.question}[/bold yellow]\n\n{req.context_summary}\n\n{items}"
-        console.print(
-            Panel(
-                body,
-                title="[bold red]Human Input Required[/bold red]",
-                border_style="red",
-            )
-        )
+    view = RichView(console)
+    detach = view.attach(orch.events)
+    report: RCAReport | None = None
+    try:
+        async for event in orch.stream_events(source):
+            if isinstance(event, (InvestigationCompleted, HumanInputRequired)):
+                report = event.report
+    finally:
+        detach()
+    return report

@@ -24,6 +24,7 @@ from aegis_swr.core.schemas import (
 runner = typer.testing.CliRunner()
 
 _MOCK_RUN = "aegis_swr.core.orchestrator.Orchestrator.run"
+_MOCK_STREAM_EVENTS = "aegis_swr.core.orchestrator.Orchestrator.stream_events"
 
 
 def _report(with_hitl: bool = False) -> RCAReport:
@@ -223,10 +224,14 @@ def test_cli_flag_overrides_config_file(tmp_path: Path) -> None:
 def test_analyze_json_output(tmp_path: Path) -> None:
     report = _report()
 
-    async def mock_run(self, source):  # type: ignore[override]
-        return report
+    # json/rich output drives the domain-event stream (live display goes to
+    # stderr); the stream must end with a completion event carrying the report.
+    from aegis_swr.core.events import InvestigationCompleted
 
-    with mock.patch(_MOCK_RUN, mock_run):
+    async def mock_stream_events(self, source):  # type: ignore[override]
+        yield InvestigationCompleted(report=report)
+
+    with mock.patch(_MOCK_STREAM_EVENTS, mock_stream_events):
         result = runner.invoke(app, [
             "analyze",
             "--output", "json",
@@ -235,7 +240,8 @@ def test_analyze_json_output(tmp_path: Path) -> None:
         ])
 
     assert result.exit_code == 0
-    parsed = json.loads(result.output)
+    # The live progress display goes to stderr; stdout carries only the JSON.
+    parsed = json.loads(result.stdout)
     assert "incident_id" in parsed
     assert parsed["root_cause"] == "UAF in serialize()"
 

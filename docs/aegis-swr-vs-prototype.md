@@ -73,38 +73,21 @@ The prototype additionally fed `CrashUi.log` and prior-report history into the p
 
 ```powershell
 $env:AEGIS_SYMBOL_CACHE = 'C:\symbols'
-.venv\Scripts\aegis.exe analyze `
-  --dump   'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' `
-  --engine cdb --ai openai `
-  --store filesystem --store-config '.\reports' `
-  --assume "There's probability that the crash was deliberately injected. Check this theory" `
-  --output json --severity INFO
+.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --engine cdb --ai openai --store filesystem --store-config '.\reports' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --severity DEBUG
 ```
 
 ### 3.3 Aegis SWR — Variant A (explicit --sym, env cleared)
 
 ```powershell
 $env:AEGIS_SYMBOL_CACHE = ''
-.venv\Scripts\aegis.exe analyze `
-  --dump   'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' `
-  --sym    'C:\symbols' `
-  --engine cdb --ai openai `
-  --store filesystem --store-config '.\reports-sym' `
-  --assume "There's probability that the crash was deliberately injected. Check this theory" `
-  --output json --severity INFO
+.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --sym 'C:\symbols' --engine cdb --ai openai --store filesystem --store-config '.\reports-sym' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --severity DEBUG
 ```
 
 ### 3.4 Aegis SWR — Variant B (--log CrashUi.log, no sym env)
 
 ```powershell
 $env:AEGIS_SYMBOL_CACHE = ''
-.venv\Scripts\aegis.exe analyze `
-  --dump   'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' `
-  --log    'C:\LBS\CrashDumps\CrashUi.log' `
-  --engine cdb --ai openai `
-  --store filesystem --store-config '.\reports-log' `
-  --assume "There's probability that the crash was deliberately injected. Check this theory" `
-  --output json --severity INFO
+.venv\Scripts\aegis.exe analyze --dump   'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --log 'C:\LBS\CrashDumps\CrashUi.log' --engine cdb --ai openai --store filesystem --store-config '.\reports-log' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --severity INFO
 ```
 
 `CrashUi.log` was generated from the plog call-sites in the source:
