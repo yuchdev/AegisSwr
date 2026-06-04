@@ -1,8 +1,15 @@
 # Aegis SWR — New Terminal UI Design
 
-**Status:** Design proposal  
-**Scope:** `src/aegis_swr/views/rich_view.py` — replaces `RichView` with `WarRoomView`  
+**Status:** Implemented (`src/aegis_swr/views/rich_view.py`)  
+**Scope:** `src/aegis_swr/views/rich_view.py` — adds `WarRoomView` alongside `RichView` (kept as a narrow-terminal fallback); `make_view` picks between them.  
 **Rich version required:** 15.x (already a dependency; uses `rich.layout.Layout`)
+
+> **Note on the verdict (§5).** The shipped verdict diverges from the original
+> proposal below: instead of the multi-panel table-and-evidence layout, the
+> final report is rendered as a single prototype-style green frame
+> (`render_verdict` → `_build_diagnosis`), subtitled with the AI model name.
+> §4–§5 and §8 have been updated to match the implementation; the multi-panel
+> sketch is retained for historical context where noted.
 
 ---
 
@@ -187,56 +194,83 @@ All animations run purely from the 12 fps `Live` refresh — no `threading.Timer
 
 ## 4. Post-Conclusion Transition
 
-When `InvestigationCompleted` or `HumanInputRequired` arrives:
+When `InvestigationCompleted` or `HumanInputRequired` arrives, the view's
+`_finalize()` runs:
 
-1. **Fill the progress bar:** `progress.update(task_id, completed=total)` — bar goes solid.
-2. **Stop the blinking cursor** in Evidence Stream — replace `▌` with a final `✔  investigation complete` line.
-3. **One final render tick** to show the filled state.
-4. **`live.stop()`** — the live block freezes in place. The terminal cursor drops below it.
-5. **`render_verdict(report, console=console)`** is called — the verdict panel is printed below the frozen live block and scrolls the terminal upward naturally.
+1. **Resolve the last consensus row** — `converged = True` on completion, `False` on HITL.
+2. **Fill the stage bar:** `_stage = _stage_total` — bar goes solid.
+3. **Stop the blinking cursor** in Evidence Stream — append a final
+   `✔  investigation complete` (or `⚠  human input required`) line; the cursor
+   is no longer drawn once `_finished` is set.
+4. **One final render tick** (`_refresh()`) to show the filled state.
+5. **`_stop_live()`** — the live block freezes in place. The terminal cursor drops below it.
+
+The view does **not** print the verdict itself. The CLI driver
+(`stream_and_display` → `commands.analyze`) owns that: after the stream ends it
+calls `render_verdict(report, console=console, model=...)`, so the verdict panel
+prints below the frozen live block and scrolls the terminal upward naturally.
+This keeps all final-report rendering on the CLI side and avoids the view
+double-printing.
 
 The result is the war-room stays visible above the verdict, giving the audience the sense that the process and its conclusion are both on screen simultaneously (until they scroll).
 
-For HITL (deadlock): same transition but the verdict panel is printed with a red border and the `Human Input Required` notice.
+For HITL (deadlock): same transition, but `render_verdict` prints a red
+`Human Input Required` panel and omits the diagnosis frame.
 
 ---
 
-## 5. Verdict Panel (post-conclusion)
+## 5. Verdict Panel (post-conclusion) — *as shipped*
 
-Printed immediately after `Live` stops. Unchanged from the current `render_verdict` function, reproduced here for completeness:
+Printed by `render_verdict(report, *, console, model, show_dialogue=False)`
+immediately after `Live` stops. A single green frame whose body is the plain
+text composed by `_build_diagnosis(report)` and whose subtitle names the model:
 
 ```
-──────────── ✔  CONSENSUS REACHED — VERDICT APPROVED BY THE PANEL ─────────────
-
-┌──────────────────────────── Root Cause Analysis ────────────────────────────┐
+┌──────────────────────── AI Root Cause Analysis ─────────────────────────────┐
 │                                                                             │
-│  Use-after-free: CImage::Load dereferences a bitmap buffer released by     │
-│  the render thread.                                                         │
+│  Root Cause Analysis                                                        │
 │                                                                             │
-│  Confidence  █████████████████████░░░ 87%  HIGH                             │
-│  Module      ImageScope.exe                                                 │
-│  Function    CImage::Load                                                   │
+│  Use-after-free in CImage::Load dereferences a freed bitmap buffer.         │
 │                                                                             │
+│  Confidence: HIGH (87%)                                                     │
+│  Faulting Module:   ImageScope.exe                                          │
+│  Faulting Function: CImage::Load                                            │
+│                                                                             │
+│  Key Evidence:                                                              │
+│    • Exception 0xC0000005 reading a freed heap block                        │
+│                                                                             │
+│  Recommended Actions:                                                       │
+│    1. Pin the buffer with shared_ptr.                                       │
+│    2. Add a regression test.                                                │
+│                                                                             │
+│  Probabilistic Fix (confidence 81%):                                        │
+│  - old                                                                      │
+│  + new                                                                      │
+│                                                                             │
+│  Resolved after 2 debate rounds.                                            │
+│                                                                  Model: …   │
 └─────────────────────────────────────────────────────────────────────────────┘
-
-                          Panel Verdict
-┌────────────────────────┬────────────────────────────────┬──────────────┐
-│ Agent                  │ Confidence                     │ Verdict      │
-├────────────────────────┼────────────────────────────────┼──────────────┤
-│ OS Kernel Agent        │ ████████████████████░░░░ 82%   │ ✔ Approved   │
-│ Code Analyst Agent     │ ███████████████████░░░░░ 78%   │ ✔ Approved   │
-│ Log Historian Agent    │ ██████████████████░░░░░░ 74%   │ ✔ Approved   │
-│ Skeptic Agent          │ ████████████████████░░░░ 85%   │ ✔ Approved   │
-└────────────────────────┴────────────────────────────────┴──────────────┘
-
-┌─────────────────────────────── Key Evidence ────────────────────────────────┐
-│   • Exception 0xC0000005 (ACCESS_VIOLATION) reading freed heap block        │
-│   • Stack frame 02 shows CImage::Load with stale this pointer               │
-│   • Render thread freed the buffer 3ms before the fault                     │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-        incident a3f21c89  ·  2 debate rounds  ·  22,354 tokens  ·  sym 92%
 ```
+
+`_build_diagnosis` rules:
+
+- Plain text only — **no** Markdown markers (`**`, `###`, fenced code blocks).
+  The panel supplies all styling.
+- `__fix__:`-prefixed evidence entries (an internal marker) are filtered out.
+- When `mitigation_instructions` is empty, a generic
+  "Review the faulting module …" recommendation is emitted so the
+  *Recommended Actions* section is never blank.
+- The *Probabilistic Fix* section is included only when `report.probabilistic_fix`
+  is set, with its `fix_confidence` shown in the header.
+
+**HITL (deadlock):** `render_verdict` prints a red `Human Input Required` panel
+carrying the question, context summary, and requested-data bullets, and the
+green diagnosis frame is **not** rendered.
+
+> *Historical:* the original proposal rendered a multi-frame verdict (separate
+> root-cause panel, per-agent approval table, key-evidence panel, and a footer
+> line). That was superseded by the single prototype-style frame above to keep
+> the CLI verdict consistent with the legacy prototype output.
 
 ---
 
@@ -269,14 +303,17 @@ ConsensusEvaluated        append "consensus Rn …"  all → STANDBY            
                           (if not converged)       (if not converged)       if not converged:
                                                    first → ANALYZING         extend total stages
 
-InvestigationCompleted    append "✔ complete"      all remain DONE          bar → full
-                                                                            live.stop()
-                                                                            render_verdict()
+InvestigationCompleted    append "✔ complete"      all → DONE               last row → converged ✔
+                          (mark converged True)                            bar → full; live.stop()
+                                                                           CLI then render_verdict()
 
-HumanInputRequired        append "⚠ HITL required" all remain as-is         bar → full
-                                                                            live.stop()
-                                                                            render_verdict()
+HumanInputRequired        append "⚠ HITL required" all remain as-is         last row → converged ✗
+                          (mark converged False)                           bar → full; live.stop()
+                                                                           CLI then render_verdict()
 ```
+
+> The view freezes the live block; the CLI driver (`stream_and_display` →
+> `commands.analyze`) calls `render_verdict(..., model=...)` afterwards.
 
 ---
 
@@ -343,12 +380,14 @@ Each agent block needs exactly 3 lines + 1 separator rule = 4 rows, × 4 agents 
 
 ### 7.6 Attachment point
 
-`stream_and_display` in `_formatters.py` swaps `RichView` → `WarRoomView`:
+`stream_and_display` in `_formatters.py` builds the view through `make_view`,
+which returns a `WarRoomView` or `RichView` depending on terminal width. Both
+expose the same `attach(bus) -> detach` interface, so the driver is agnostic:
 
 ```python
 async def stream_and_display(orch, source, console) -> RCAReport | None:
-    from aegis_swr.views.rich_view import WarRoomView
-    view = WarRoomView(console)
+    from aegis_swr.views.rich_view import make_view
+    view = make_view(console)
     detach = view.attach(orch.events)
     ...
 ```
@@ -370,13 +409,15 @@ def make_view(console: Console) -> RichView | WarRoomView:
 
 ## 8. Files Changed
 
-| File                               | Change                                                                                                                      |
-|------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
-| `src/aegis_swr/views/rich_view.py` | Add `AgentState`, `WarRoomView`, `make_view`; keep `RichView`, `render_verdict`, `make_console`                             |
-| `src/aegis_swr/cli/_formatters.py` | `stream_and_display` calls `make_view(console)` instead of `RichView(console)`                                              |
-| `tests/unit/test_views.py`         | New: unit tests for `AgentState` transitions and `WarRoomView` event handling (no screen rendering — test state not pixels) |
+| File                               | Change                                                                                                                                                |
+|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `src/aegis_swr/views/rich_view.py` | Added `SPINNER_FRAMES`, `AGENT_SEQUENCE`, `AgentState`, `WarRoomView`, `make_view`, pure helpers (`_spinner_char`, `_fmt_elapsed`, `_fmt_stamp`, `_truncate`); rewrote `render_verdict` (now `model=`) around `_build_diagnosis`; kept `RichView`, `make_console` |
+| `src/aegis_swr/views/__init__.py`  | Export `WarRoomView` and `make_view`                                                                                                                   |
+| `src/aegis_swr/cli/_formatters.py` | `stream_and_display` calls `make_view(console)`; `rich_formatter` gained a `model` argument and forwards it to `render_verdict`                        |
+| `src/aegis_swr/cli/commands.py`    | `analyze` passes `model=settings.backends.ai.resolved_model` to `rich_formatter`                                                                       |
+| `tests/unit/test_views.py`         | Unit tests for the pure helpers, `make_view` selection, `WarRoomView` event/state lifecycle, render smoke tests, and `_build_diagnosis`/`render_verdict` |
 
-No changes to `core/`, `backends/`, or `cli/commands.py`.
+No changes to `core/` or `backends/`. The only `cli/commands.py` change is threading the model name into the verdict.
 
 ---
 

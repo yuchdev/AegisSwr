@@ -23,11 +23,16 @@ def json_formatter(report: RCAReport) -> str:
     return report.model_dump_json(indent=2)
 
 
-def rich_formatter(report: RCAReport, *, show_dialogue: bool = True) -> None:
+def rich_formatter(
+    report: RCAReport,
+    *,
+    model: str = "",
+    show_dialogue: bool = True,
+) -> None:
     """Print the report as a rich terminal verdict (see views.rich_view)."""
     from aegis_swr.views.rich_view import render_verdict
 
-    render_verdict(report, show_dialogue=show_dialogue)
+    render_verdict(report, model=model, show_dialogue=show_dialogue)
 
 
 async def stream_and_display(
@@ -41,9 +46,9 @@ async def stream_and_display(
     if the stream ended without a result (should not happen in normal operation).
     """
     from aegis_swr.core.events import HumanInputRequired, InvestigationCompleted
-    from aegis_swr.views.rich_view import RichView
+    from aegis_swr.views.rich_view import make_view
 
-    view = RichView(console)
+    view = make_view(console)
     detach = view.attach(orch.events)
     report: RCAReport | None = None
     try:

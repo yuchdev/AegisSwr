@@ -256,7 +256,7 @@ def analyze(  # noqa: PLR0913
     elif fmt == "rich":
         # Agent dialogue was already printed live; show the final conclusion +
         # fix panels only.
-        rich_formatter(report, show_dialogue=False)
+        rich_formatter(report, model=settings.backends.ai.resolved_model, show_dialogue=False)
 
     if report.hitl_request:
         typer.echo(

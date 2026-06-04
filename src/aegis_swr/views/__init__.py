@@ -2,6 +2,18 @@
 
 The core never imports from this package — views are pluggable observers.
 """
-from aegis_swr.views.rich_view import RichView, make_console, render_verdict
+from aegis_swr.views.rich_view import (
+    RichView,
+    WarRoomView,
+    make_console,
+    make_view,
+    render_verdict,
+)
 
-__all__ = ["RichView", "make_console", "render_verdict"]
+__all__ = [
+    "RichView",
+    "WarRoomView",
+    "make_console",
+    "make_view",
+    "render_verdict",
+]
