@@ -39,7 +39,7 @@ def _access_violation_output() -> str:
 
 @pytest.fixture()
 def mock_dump_session(tmp_path):
-    """Create a temporary directory with a dummy .dmp file and symbol folder."""
+    """Create a temporary directory with a dummy .dmp file and symbol folder"""
     dump_file = tmp_path / "crash.dmp"
     dump_file.write_bytes(b"\x00" * 64)
     sym_dir = tmp_path / "symbols"
@@ -53,14 +53,14 @@ def mock_dump_session(tmp_path):
 
 
 def test_access_violation_asset_exists():
-    """The access_violation_cdb.txt asset must be present."""
+    """The access_violation_cdb.txt asset must be present"""
     assert ACCESS_VIOLATION_ASSET.exists(), (
         f"Missing asset: {ACCESS_VIOLATION_ASSET}"
     )
 
 
 def test_access_violation_asset_contains_exception_markers():
-    """The asset must contain the key markers expected by the CDB parser."""
+    """The asset must contain the key markers expected by the CDB parser"""
     raw = _access_violation_output()
     assert "Exception Analysis" in raw
     assert "EXCEPTION_CODE" in raw
@@ -69,19 +69,19 @@ def test_access_violation_asset_contains_exception_markers():
 
 
 def test_access_violation_asset_contains_cpp_template_chars():
-    """The asset must include C++ template characters to exercise escaping."""
+    """The asset must include C++ template characters to exercise escaping"""
     raw = _access_violation_output()
     assert "<" in raw
     assert ">" in raw
 
 
 def test_corrupt_dump_asset_exists():
-    """The corrupt_mini.dmp asset must be present."""
+    """The corrupt_mini.dmp asset must be present"""
     assert CORRUPT_DUMP_ASSET.exists(), f"Missing asset: {CORRUPT_DUMP_ASSET}"
 
 
 def test_corrupt_dump_asset_has_mdmp_header():
-    """The corrupt_mini.dmp asset must begin with the MDMP magic signature."""
+    """The corrupt_mini.dmp asset must begin with the MDMP magic signature"""
     header = CORRUPT_DUMP_ASSET.read_bytes()[:4]
     assert header == b"MDMP", f"Expected MDMP header, got {header!r}"
 
@@ -92,7 +92,7 @@ def test_corrupt_dump_asset_has_mdmp_header():
 
 
 def test_cdb_to_sqlite_pipeline(mock_dump_session, tmp_path):
-    """Verify that the CDB-to-SQLite pipeline persists exactly one record."""
+    """Verify that the CDB-to-SQLite pipeline persists exactly one record"""
     dump_file, sym_dir, _ = mock_dump_session
     db_path = str(tmp_path / "crash_reports.db")
 
@@ -119,7 +119,7 @@ def test_cdb_to_sqlite_pipeline(mock_dump_session, tmp_path):
 
 
 def test_state_machine_transitions_to_completed(mock_dump_session, tmp_path):
-    """The orchestrator must reach the COMPLETED state on a successful run."""
+    """The orchestrator must reach the COMPLETED state on a successful run"""
     dump_file, sym_dir, _ = mock_dump_session
     db_path = str(tmp_path / "crash_reports.db")
 
@@ -142,7 +142,7 @@ def test_state_machine_transitions_to_completed(mock_dump_session, tmp_path):
 
 
 def test_cpp_template_chars_forwarded_to_ai_unescaped(mock_dump_session, tmp_path):
-    """Special characters (< > &&) in C++ templates must reach the AI verbatim."""
+    """Special characters (< > &&) in C++ templates must reach the AI verbatim"""
     dump_file, sym_dir, _ = mock_dump_session
     db_path = str(tmp_path / "crash_reports.db")
 
@@ -174,7 +174,7 @@ def test_cpp_template_chars_forwarded_to_ai_unescaped(mock_dump_session, tmp_pat
 
 
 def test_ai_backend_error_still_persists_raw_data(mock_dump_session, tmp_path):
-    """If the AI stage raises AIBackendError, raw extraction data is still saved."""
+    """If the AI stage raises AIBackendError, raw extraction data is still saved"""
     dump_file, sym_dir, _ = mock_dump_session
     db_path = str(tmp_path / "crash_reports.db")
 
@@ -205,7 +205,7 @@ def test_ai_backend_error_still_persists_raw_data(mock_dump_session, tmp_path):
 
 
 def test_massive_trace_pipeline_does_not_raise(mock_dump_session, tmp_path):
-    """A very large stack trace is processed without error; storage truncates it."""
+    """A very large stack trace is processed without error; storage truncates it"""
     dump_file, sym_dir, _ = mock_dump_session
     db_path = str(tmp_path / "crash_reports.db")
 

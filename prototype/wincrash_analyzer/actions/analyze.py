@@ -1,4 +1,4 @@
-"""Analyze action: perform crash dump analysis."""
+"""Analyze action: perform crash dump analysis"""
 import logging
 from rich.console import Console
 from rich.panel import Panel

@@ -1,4 +1,4 @@
-"""Unit tests for the code backends — no network, no system git required."""
+"""Unit tests for the code backends — no network, no system git required"""
 from __future__ import annotations
 
 import os
@@ -63,7 +63,7 @@ def _blame_porcelain_fixture() -> str:
 # ---------------------------------------------------------------------------
 
 
-def test_parse_git_log_records() -> None:
+def test_parse_git_log_records():
     commits = _parse_git_log(_git_log_fixture())
     assert len(commits) == 2
     first = commits[0]
@@ -74,7 +74,7 @@ def test_parse_git_log_records() -> None:
     assert commits[1].files_changed == ["pool.py"]
 
 
-def test_parse_blame_porcelain() -> None:
+def test_parse_blame_porcelain():
     records = _parse_blame_porcelain(_blame_porcelain_fixture(), first_line=1)
     assert len(records) == 1
     rec = records[0]
@@ -102,26 +102,26 @@ def git_adapter() -> GitCodeAdapter:
 
 def test_git_get_commits_before_parses_records(
     git_adapter: GitCodeAdapter, git_repo: Path
-) -> None:
+):
     before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
     with mock.patch(_GIT_CMD, return_value=_completed(_git_log_fixture())):
         commits = git_adapter.get_commits_before(str(git_repo), before, limit=5)
     assert [c.sha for c in commits] == ["abc123", "def456"]
 
 
-def test_git_blame_parses_porcelain(git_adapter: GitCodeAdapter, git_repo: Path) -> None:
+def test_git_blame_parses_porcelain(git_adapter: GitCodeAdapter, git_repo: Path):
     with mock.patch(_GIT_CMD, return_value=_completed(_blame_porcelain_fixture())):
         records = git_adapter.blame(str(git_repo), "db_writer.py", (1, 1))
     assert records[0].author == "Alice"
 
 
-def test_git_missing_repo_raises(git_adapter: GitCodeAdapter, tmp_path: Path) -> None:
+def test_git_missing_repo_raises(git_adapter: GitCodeAdapter, tmp_path: Path):
     before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
     with pytest.raises(CodeBackendError, match="Not a git repository"):
         git_adapter.get_commits_before(str(tmp_path), before)
 
 
-def test_git_missing_binary_raises(git_adapter: GitCodeAdapter, git_repo: Path) -> None:
+def test_git_missing_binary_raises(git_adapter: GitCodeAdapter, git_repo: Path):
     before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
     with (
         mock.patch(_GIT_CMD, side_effect=FileNotFoundError("git")),
@@ -130,7 +130,7 @@ def test_git_missing_binary_raises(git_adapter: GitCodeAdapter, git_repo: Path) 
         git_adapter.get_commits_before(str(git_repo), before)
 
 
-def test_git_nonzero_exit_raises(git_adapter: GitCodeAdapter, git_repo: Path) -> None:
+def test_git_nonzero_exit_raises(git_adapter: GitCodeAdapter, git_repo: Path):
     before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
     with (
         mock.patch(_GIT_CMD, return_value=_completed(returncode=128, stderr="fatal: bad")),
@@ -139,7 +139,7 @@ def test_git_nonzero_exit_raises(git_adapter: GitCodeAdapter, git_repo: Path) ->
         git_adapter.get_commits_before(str(git_repo), before)
 
 
-def test_git_path_traversal_blocked(git_adapter: GitCodeAdapter, git_repo: Path) -> None:
+def test_git_path_traversal_blocked(git_adapter: GitCodeAdapter, git_repo: Path):
     with pytest.raises(ValueError, match="traversal"):
         git_adapter.get_file_diff(str(git_repo), "../../etc/passwd", "abc123")
 
@@ -154,13 +154,13 @@ def fs_adapter() -> FilesystemCodeAdapter:
     return FilesystemCodeAdapter(CodeBackendSettings(enabled=True, provider="filesystem"))
 
 
-def _touch(path: Path, when: datetime, content: str = "x\n") -> None:
+def _touch(path: Path, when: datetime, content: str = "x\n"):
     path.write_text(content, encoding="utf-8")
     ts = when.timestamp()
     os.utime(path, (ts, ts))
 
 
-def test_fs_commits_within_window(fs_adapter: FilesystemCodeAdapter, tmp_path: Path) -> None:
+def test_fs_commits_within_window(fs_adapter: FilesystemCodeAdapter, tmp_path: Path):
     before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
     # In-window (1h before), out-of-window (5h before).
     _touch(tmp_path / "recent.py", before - timedelta(hours=1))
@@ -177,7 +177,7 @@ def test_fs_commits_within_window(fs_adapter: FilesystemCodeAdapter, tmp_path: P
     assert all(c.author == "unknown" for c in commits)
 
 
-def test_fs_commits_respects_limit(fs_adapter: FilesystemCodeAdapter, tmp_path: Path) -> None:
+def test_fs_commits_respects_limit(fs_adapter: FilesystemCodeAdapter, tmp_path: Path):
     before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
     for i in range(5):
         _touch(tmp_path / f"f{i}.py", before - timedelta(minutes=10 * (i + 1)))
@@ -187,7 +187,7 @@ def test_fs_commits_respects_limit(fs_adapter: FilesystemCodeAdapter, tmp_path: 
 
 def test_fs_file_diff_returns_contents(
     fs_adapter: FilesystemCodeAdapter, tmp_path: Path
-) -> None:
+):
     (tmp_path / "a.py").write_text("line1\nline2\n", encoding="utf-8")
     diff = fs_adapter.get_file_diff(str(tmp_path), "a.py", "fs:whatever")
     assert "no VCS history" in diff
@@ -196,11 +196,11 @@ def test_fs_file_diff_returns_contents(
 
 def test_fs_file_diff_missing_returns_empty(
     fs_adapter: FilesystemCodeAdapter, tmp_path: Path
-) -> None:
+):
     assert fs_adapter.get_file_diff(str(tmp_path), "missing.py", "x") == ""
 
 
-def test_fs_blame_line_range(fs_adapter: FilesystemCodeAdapter, tmp_path: Path) -> None:
+def test_fs_blame_line_range(fs_adapter: FilesystemCodeAdapter, tmp_path: Path):
     (tmp_path / "a.py").write_text("l1\nl2\nl3\nl4\n", encoding="utf-8")
     records = fs_adapter.blame(str(tmp_path), "a.py", (2, 3))
     assert [r.line_number for r in records] == [2, 3]
@@ -208,7 +208,7 @@ def test_fs_blame_line_range(fs_adapter: FilesystemCodeAdapter, tmp_path: Path) 
     assert all(r.author == "unknown" for r in records)
 
 
-def test_fs_path_traversal_blocked(fs_adapter: FilesystemCodeAdapter, tmp_path: Path) -> None:
+def test_fs_path_traversal_blocked(fs_adapter: FilesystemCodeAdapter, tmp_path: Path):
     with pytest.raises(ValueError, match="traversal"):
         fs_adapter.blame(str(tmp_path), "../../etc/passwd", (1, 1))
 
@@ -218,23 +218,23 @@ def test_fs_path_traversal_blocked(fs_adapter: FilesystemCodeAdapter, tmp_path: 
 # ---------------------------------------------------------------------------
 
 
-def test_factory_disabled_returns_none() -> None:
+def test_factory_disabled_returns_none():
     assert create_code_backend(CodeBackendSettings(enabled=False)) is None
 
 
-def test_factory_git() -> None:
+def test_factory_git():
     backend = create_code_backend(CodeBackendSettings(enabled=True, provider="git"))
     assert isinstance(backend, GitCodeAdapter)
 
 
-def test_factory_filesystem() -> None:
+def test_factory_filesystem():
     backend = create_code_backend(
         CodeBackendSettings(enabled=True, provider="filesystem")
     )
     assert isinstance(backend, FilesystemCodeAdapter)
 
 
-def test_factory_unknown_provider_raises() -> None:
+def test_factory_unknown_provider_raises():
     settings = CodeBackendSettings(enabled=True)
     object.__setattr__(settings, "provider", "svn")
     with pytest.raises(ValueError, match="Unknown code provider"):

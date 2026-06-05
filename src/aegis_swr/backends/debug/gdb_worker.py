@@ -6,14 +6,12 @@ Parses ``gdb --batch`` backtraces from ELF core files and maps POSIX signals to
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 from aegis_swr.backends.debug._base import _BaseDebugBackend, normalize_address
 from aegis_swr.core.fault_codes import FaultClass, map_linux_signal
 from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, StackFrame
-
-if TYPE_CHECKING:
-    from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.core.schemas import IncidentSource
 
 # Signal name -> number (kept local so it works identically on any host OS).
 _SIGNAL_NUMBERS = {

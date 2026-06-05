@@ -1,4 +1,4 @@
-"""Tests for wincrash_analyzer actions."""
+"""Tests for wincrash_analyzer actions"""
 import pytest
 from unittest.mock import MagicMock, patch
 from argparse import Namespace

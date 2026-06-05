@@ -7,15 +7,13 @@ explicit cache-control directive is required (unlike Anthropic).
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional
 
 import openai
 from pydantic import BaseModel
 
 from aegis_swr.backends.ai._base import _BaseAIBackend
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import AISettings
+from aegis_swr.config.settings import AISettings
 
 
 def _to_openai_strict_schema(model: type[BaseModel]) -> dict[str, Any]:
@@ -26,7 +24,7 @@ def _to_openai_strict_schema(model: type[BaseModel]) -> dict[str, Any]:
     """
     schema = model.model_json_schema()
 
-    def _walk(node: Any) -> None:
+    def _walk(node: Any):
         if isinstance(node, dict):
             node.pop("default", None)
             if node.get("type") == "object" and isinstance(node.get("properties"), dict):
@@ -59,7 +57,7 @@ _MAX_RETRIES = 4
 
 
 class OpenAIBackend(_BaseAIBackend):
-    def __init__(self, settings: AISettings) -> None:
+    def __init__(self, settings: AISettings):
         super().__init__(settings)
         self._client: Any = openai.AsyncOpenAI(
             timeout=_REQUEST_TIMEOUT_SECONDS,
@@ -70,7 +68,7 @@ class OpenAIBackend(_BaseAIBackend):
         return self.model_name.startswith(_REASONING_PREFIXES)
 
     def _completion_kwargs(self) -> dict[str, Any]:
-        """Token/temperature kwargs that match the model family's API contract."""
+        """Token/temperature kwargs that match the model family's API contract"""
         if self._is_reasoning_model():
             # Default temperature only; reasoning needs room beyond the answer.
             return {
@@ -87,7 +85,7 @@ class OpenAIBackend(_BaseAIBackend):
         self,
         system_prompt: str,
         messages: list[dict[str, Any]],
-        output_schema: type[BaseModel] | None,
+        output_schema: Optional[type[BaseModel]],
     ) -> tuple[str | dict[str, Any], dict[str, int]]:
         full_messages = [{"role": "system", "content": system_prompt}, *messages]
         kwargs: dict[str, Any] = {

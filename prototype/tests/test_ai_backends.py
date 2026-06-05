@@ -1,4 +1,4 @@
-"""Tests for AI backends: factory, truncation logic, and error handling."""
+"""Tests for AI backends: factory, truncation logic, and error handling"""
 import os
 import pytest
 from unittest.mock import MagicMock, patch
@@ -91,7 +91,7 @@ def test_smart_truncate_long_input_keeps_head_and_tail():
 
 
 def test_smart_truncate_preserves_stack_text_section():
-    """The realistic_trace.txt asset is short enough to pass through unchanged."""
+    """The realistic_trace.txt asset is short enough to pass through unchanged"""
     trace = _load_asset("realistic_trace.txt")
     backend = OpenAIBackend()
     result = backend._smart_truncate(trace)
@@ -102,7 +102,7 @@ def test_smart_truncate_preserves_stack_text_section():
 
 
 def test_smart_truncate_drops_middle_symbol_noise():
-    """For a trace exceeding 10k chars, middle symbol-search lines are dropped."""
+    """For a trace exceeding 10k chars, middle symbol-search lines are dropped"""
     backend = OpenAIBackend()
     # Build a synthetic trace: exception header + symbol noise + stack frames
     header = "EXCEPTION_CODE: 0xc0000005 " + "A" * (5_000 - 28)
@@ -251,7 +251,7 @@ def test_gemini_analyze_includes_assumption(monkeypatch):
     assert "Additional User Context/Assumption:" in user_content
 
 def test_openai_rate_limit_raises_ai_backend_error(monkeypatch):
-    """A 429-equivalent error from the SDK is wrapped in AIBackendError."""
+    """A 429-equivalent error from the SDK is wrapped in AIBackendError"""
     monkeypatch.setenv("OPENAI_API_KEY", "fake-openai-key")
 
     mock_client = MagicMock()

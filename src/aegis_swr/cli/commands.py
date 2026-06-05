@@ -22,7 +22,7 @@ from aegis_swr.cli._config import (
     save_analyze_config,
 )
 from aegis_swr.cli._formatters import json_formatter, rich_formatter, stream_and_display
-from aegis_swr.cli._logging import configure_logging
+from aegis_swr.cli.aegis_logging import configure_logging
 
 console = Console()
 
@@ -105,8 +105,8 @@ def analyze(  # noqa: PLR0913
         bool,
         typer.Option("--save-config/--no-save-config", help="Save options to JSON file and exit."),
     ] = False,
-) -> None:
-    """Run analysis in-process — no API server required."""
+):
+    """Run analysis in-process — no API server required"""
     configure_logging(severity)
 
     file_config = load_analyze_config(config_path)
@@ -275,8 +275,8 @@ def analyze(  # noqa: PLR0913
         raise typer.Exit(code=1)
 
 
-def _apply_store_config(settings: object, store: str, value: str) -> None:
-    """Map --store-config value to the correct StorageSettings field."""
+def _apply_store_config(settings: object, store: str, value: str):
+    """Map --store-config value to the correct StorageSettings field"""
     from aegis_swr.config.settings import Settings
 
     assert isinstance(settings, Settings)
@@ -306,8 +306,8 @@ def export(
     to_config: Annotated[
         str | None, typer.Option("--to-config", help="Destination config value.")
     ] = None,
-) -> None:
-    """Migrate reports between storage backends."""
+):
+    """Migrate reports between storage backends"""
     from aegis_swr.backends.storage import create_storage_backends
     from aegis_swr.config.settings import Settings
 
@@ -354,7 +354,7 @@ def server(
     reload: Annotated[
         bool, typer.Option("--reload/--no-reload", help="Enable hot-reload.")
     ] = False,
-) -> None:
+):
     """Start the FastAPI API server. (Phase 8 — not yet implemented.)"""
     typer.echo(
         "API server not yet implemented — available in Phase 8.\n"
@@ -367,8 +367,8 @@ def server(
 # ---------------------------------------------------------------------------
 
 @config_app.command("show")
-def config_show() -> None:
-    """Print resolved config.yaml + env overrides (secrets redacted)."""
+def config_show():
+    """Print resolved config.yaml + env overrides (secrets redacted)"""
     from aegis_swr.config.settings import Settings
 
     settings = Settings()
@@ -379,8 +379,8 @@ def config_show() -> None:
 def config_set(
     key: Annotated[str, typer.Argument(help="Dotted key path, e.g. backends.ai.model")],
     value: Annotated[str, typer.Argument(help="New value.")],
-) -> None:
-    """Set a single value in config.yaml."""
+):
+    """Set a single value in config.yaml"""
     import yaml
 
     config_path = Path("config.yaml")

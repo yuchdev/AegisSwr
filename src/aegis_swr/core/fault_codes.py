@@ -56,15 +56,15 @@ _MACOS_EXCEPTION_MAP: dict[int, FaultClass] = {
 
 
 def map_windows_ntstatus(code: str) -> FaultClass:
-    """Map a Windows NTSTATUS/HRESULT hex string to FaultClass."""
+    """Map a Windows NTSTATUS/HRESULT hex string to FaultClass"""
     return _NTSTATUS_MAP.get(code.lower(), FaultClass.UNKNOWN)
 
 
 def map_linux_signal(signal: int) -> FaultClass:
-    """Map a Linux signal number to FaultClass."""
+    """Map a Linux signal number to FaultClass"""
     return _SIGNAL_MAP.get(signal, FaultClass.UNKNOWN)
 
 
 def map_macos_exception(code: int) -> FaultClass:
-    """Map a macOS Mach exception type to FaultClass."""
+    """Map a macOS Mach exception type to FaultClass"""
     return _MACOS_EXCEPTION_MAP.get(code, FaultClass.UNKNOWN)

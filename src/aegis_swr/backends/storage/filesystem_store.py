@@ -20,7 +20,6 @@ import asyncio
 import contextlib
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from loguru import logger
@@ -28,13 +27,11 @@ from loguru import logger
 from aegis_swr.backends.base import ObjectStore, RelationalStore
 from aegis_swr.core.exceptions import IncidentNotFoundError
 from aegis_swr.core.schemas import RCAReport
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import StorageSettings
+from aegis_swr.config.settings import StorageSettings
 
 
 def _safe_path(base: Path, *parts: str) -> Path:
-    """Resolve and validate that the joined path stays inside *base*."""
+    """Resolve and validate that the joined path stays inside *base*"""
     candidate = base.joinpath(*parts).resolve()
     if not str(candidate).startswith(str(base.resolve())):
         raise ValueError(f"Path traversal attempt: {parts!r} escapes {base}")
@@ -42,7 +39,7 @@ def _safe_path(base: Path, *parts: str) -> Path:
 
 
 def _report_to_markdown(report: RCAReport) -> str:
-    """Render *report* as a human-readable Markdown document."""
+    """Render *report* as a human-readable Markdown document"""
     lines: list[str] = []
 
     lines.append(f"# RCA Report — {report.incident_id}")
@@ -148,9 +145,9 @@ def _report_to_markdown(report: RCAReport) -> str:
 
 
 class FilesystemStore(RelationalStore, ObjectStore):
-    """JSON-file and binary-file storage; implements both ABCs."""
+    """JSON-file and binary-file storage; implements both ABCs"""
 
-    def __init__(self, settings: StorageSettings) -> None:
+    def __init__(self, settings: StorageSettings):
         self._reports_dir = Path(settings.reports_dir).expanduser()
         self._objects_dir = Path(settings.objects_dir).expanduser()
         self._hash_index_dir = self._reports_dir / "_hash_index"
@@ -159,10 +156,10 @@ class FilesystemStore(RelationalStore, ObjectStore):
     # RelationalStore
     # ------------------------------------------------------------------
 
-    async def save_report(self, report: RCAReport) -> None:
+    async def save_report(self, report: RCAReport):
         await asyncio.to_thread(self._sync_save_report, report)
 
-    def _sync_save_report(self, report: RCAReport) -> None:
+    def _sync_save_report(self, report: RCAReport):
         self._reports_dir.mkdir(parents=True, exist_ok=True)
         path = _safe_path(self._reports_dir, f"{report.incident_id}.json")
         path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
@@ -201,14 +198,14 @@ class FilesystemStore(RelationalStore, ObjectStore):
         self,
         incident_id: UUID,
         response: dict[str, object],
-    ) -> None:
+    ):
         await asyncio.to_thread(self._sync_update_hitl, incident_id, response)
 
     def _sync_update_hitl(
         self,
         incident_id: UUID,
         response: dict[str, object],
-    ) -> None:
+    ):
         path = _safe_path(self._reports_dir, f"{incident_id}.json")
         try:
             data = json.loads(path.read_text(encoding="utf-8"))

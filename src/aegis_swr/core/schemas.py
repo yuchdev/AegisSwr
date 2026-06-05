@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any, Optional, TypedDict
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -51,15 +51,15 @@ class IncidentSource(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     mode: IncidentMode
-    incident_timestamp: datetime | None = None
-    dump_path: str | None = None
-    dump_format: DumpFormat | None = None
-    dump_hash: str | None = None
+    incident_timestamp: Optional[datetime] = None
+    dump_path: Optional[str] = None
+    dump_format: Optional[DumpFormat] = None
+    dump_hash: Optional[str] = None
     log_paths: list[str] = Field(default_factory=list)
     screenshot_paths: list[str] = Field(default_factory=list)
     network_capture_paths: list[str] = Field(default_factory=list)
-    symbol_path: str | None = None
-    user_assumption: str | None = None
+    symbol_path: Optional[str] = None
+    user_assumption: Optional[str] = None
     metadata: dict[str, str] = Field(default_factory=dict)
 
 
@@ -70,10 +70,10 @@ class IncidentSource(BaseModel):
 
 class StackFrame(BaseModel):
     frame_number: int
-    module: str | None = None
-    function: str | None = None
-    source_file: str | None = None
-    source_line: int | None = None
+    module: Optional[str] = None
+    function: Optional[str] = None
+    source_file: Optional[str] = None
+    source_line: Optional[int] = None
     instruction_address: str
 
 
@@ -81,10 +81,10 @@ class DebugExtractionResult(BaseModel):
     fault_class: FaultClass
     exception_code_raw: str
     exception_address: str
-    faulting_module: str | None = None
-    faulting_function: str | None = None
+    faulting_module: Optional[str] = None
+    faulting_function: Optional[str] = None
     stack_frames: list[StackFrame] = Field(default_factory=list)
-    debug_timestamp: datetime | None = None
+    debug_timestamp: Optional[datetime] = None
     symbol_resolution_score: float = 0.0
     raw_text_excerpt: str = ""
 
@@ -96,8 +96,8 @@ class DebugExtractionResult(BaseModel):
 
 class Hypothesis(BaseModel):
     root_cause: str
-    faulting_module: str | None = None
-    faulting_function: str | None = None
+    faulting_module: Optional[str] = None
+    faulting_function: Optional[str] = None
     evidence: list[str] = Field(default_factory=list)
     confidence: float
 
@@ -134,8 +134,8 @@ class ExceptionSummary(BaseModel):
     fault_class: FaultClass
     exception_code_raw: str
     exception_address: str
-    faulting_module: str | None = None
-    faulting_function: str | None = None
+    faulting_module: Optional[str] = None
+    faulting_function: Optional[str] = None
     interpretation: str
 
 
@@ -147,19 +147,19 @@ class OSKernelOutput(BaseModel):
 
 class RCAHypothesis(BaseModel):
     root_cause: str
-    faulting_module: str | None = None
-    faulting_function: str | None = None
+    faulting_module: Optional[str] = None
+    faulting_function: Optional[str] = None
     evidence: list[str] = Field(default_factory=list)
     confidence: float
-    code_location: str | None = None
+    code_location: Optional[str] = None
 
 
 class CodeAnalystOutput(BaseModel):
     rca: RCAHypothesis
     alternative_hypotheses: list[Hypothesis] = Field(default_factory=list)
     confidence_score: float
-    probabilistic_fix: str | None = None
-    fix_language: str | None = None
+    probabilistic_fix: Optional[str] = None
+    fix_language: Optional[str] = None
 
 
 class PatternMatch(BaseModel):
@@ -169,7 +169,7 @@ class PatternMatch(BaseModel):
 
 
 class LogHistorianOutput(BaseModel):
-    pattern_match: PatternMatch | None = None
+    pattern_match: Optional[PatternMatch] = None
     confidence_adjustment: float
     updated_confidence: float
     history_note: str
@@ -181,8 +181,8 @@ class LogHistorianOutput(BaseModel):
 
 
 class ValidationResult(BaseModel):
-    passed: bool | None = None
-    exit_code: int | None = None
+    passed: Optional[bool] = None
+    exit_code: Optional[int] = None
     compiler_output: str = ""
     lint_findings: list[str] = Field(default_factory=list)
 
@@ -214,8 +214,8 @@ class BlameRecord(BaseModel):
 
 
 class UIContext(BaseModel):
-    error_message: str | None = None
-    visible_timestamp: str | None = None
+    error_message: Optional[str] = None
+    visible_timestamp: Optional[str] = None
     ui_elements: list[str] = Field(default_factory=list)
 
 
@@ -228,12 +228,12 @@ class RCAReport(BaseModel):
     incident_id: UUID = Field(default_factory=uuid4)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     mode: IncidentMode
-    dump_hash: str | None = None
-    symbol_resolution_score: float | None = None
+    dump_hash: Optional[str] = None
+    symbol_resolution_score: Optional[float] = None
 
     root_cause: str
-    faulting_module: str | None = None
-    faulting_function: str | None = None
+    faulting_module: Optional[str] = None
+    faulting_function: Optional[str] = None
     confidence_score: float
     confidence_level: ConfidenceLevel
 
@@ -244,11 +244,11 @@ class RCAReport(BaseModel):
     consensus_rounds: int
 
     mitigation_instructions: list[str] = Field(default_factory=list)
-    probabilistic_fix: str | None = None
-    fix_confidence: float | None = None
-    fix_validation_result: str | None = None
-
-    hitl_request: HITLRequest | None = None
+    probabilistic_fix: Optional[str] = None
+    fix_confidence: Optional[float] = None
+    fix_validation_result: Optional[str] = None
+    validation_detail: Optional[ValidationResult] = None
+    hitl_request: Optional[HITLRequest] = None
 
     total_input_tokens: int = 0
     total_output_tokens: int = 0
@@ -268,20 +268,20 @@ class IncidentBrief(BaseModel):
     """
 
     mode: IncidentMode
-    dump_hash: str | None = None
-    fault_class: FaultClass | None = None
-    exception_code_raw: str | None = None
-    exception_address: str | None = None
-    faulting_module: str | None = None
-    faulting_function: str | None = None
-    symbol_resolution_score: float | None = None
+    dump_hash: Optional[str] = None
+    fault_class: Optional[FaultClass] = None
+    exception_code_raw: Optional[str] = None
+    exception_address: Optional[str] = None
+    faulting_module: Optional[str] = None
+    faulting_function: Optional[str] = None
+    symbol_resolution_score: Optional[float] = None
     stack_frames: list[dict[str, Any]] = Field(default_factory=list)
-    raw_text_excerpt: str | None = None
-    log_summary: str | None = None
-    ui_context: UIContext | None = None
+    raw_text_excerpt: Optional[str] = None
+    log_summary: Optional[str] = None
+    ui_context: Optional[UIContext] = None
     code_history: list[CommitRecord] = Field(default_factory=list)
-    user_assumption: str | None = None
-    low_symbol_coverage_warning: str | None = None
+    user_assumption: Optional[str] = None
+    low_symbol_coverage_warning: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -298,10 +298,10 @@ class InvestigationState(TypedDict, total=False):
     round_number: int
     consensus_score: float
     is_converged: bool
-    primary_hypothesis: dict[str, Any] | None
-    previous_hypothesis_key: str | None   # root_cause of last round's hypothesis
+    primary_hypothesis: Optional[dict[str, Any]]
+    previous_hypothesis_key: Optional[str]   # root_cause of last round's hypothesis
     current_round_scores: dict[str, float]  # per-agent scores for the current round
     hitl_pending: bool
     token_tracker: dict[str, int]
-    result: dict[str, Any] | None          # serialised RCAReport on completion
-    error: str | None
+    result: Optional[dict[str, Any]]          # serialised RCAReport on completion
+    error: Optional[str]

@@ -18,14 +18,14 @@ class ConfigOption:
 
     @property
     def choices(self) -> Optional[List[str]]:
-        """Returns the keys of options if present, which can be used for CLI choices."""
+        """Returns the keys of options if present, which can be used for CLI choices"""
         if self.options:
             return list(self.options.keys())
         return None
 
     @property
     def cli_name(self) -> str:
-        """Returns the CLI-style name, e.g., "--report-severity"."""
+        """Returns the CLI-style name, e.g., "--report-severity"""
         return "--" + self.id.replace("_", "-")
 
 
@@ -140,7 +140,7 @@ APP_CONFIG_SCHEMA = [
 
 
 def get_option(option_id: str) -> Optional[ConfigOption]:
-    """Helper to get a ConfigOption by its id."""
+    """Helper to get a ConfigOption by its id"""
     for opt in APP_CONFIG_SCHEMA:
         if opt.id == option_id:
             return opt

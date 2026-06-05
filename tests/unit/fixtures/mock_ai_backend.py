@@ -27,7 +27,7 @@ class MockAIBackend(AIAPIBackend):
         responses: list[Any] | None = None,
         stream_tokens: list[str] | None = None,
         usage: dict[str, int] | None = None,
-    ) -> None:
+    ):
         self.model_name = "mock-model"
         self._responses: list[Any] = list(responses or [])
         self._stream_tokens: list[str] = list(stream_tokens or ["mock ", "response"])

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
@@ -70,8 +70,8 @@ class DebugSettings(BaseSettings):
     callback_timeout_seconds: int = 60
     max_faulting_frames: int = 20
     max_other_thread_frames: int = 3
-    symbol_cache: str | None = None
-    symbol_server_url: str | None = None
+    symbol_cache: Optional[str] = None
+    symbol_server_url: Optional[str] = None
 
     @field_validator("engine")
     @classmethod
@@ -92,7 +92,7 @@ class StorageSettings(BaseSettings):
     database_url: str = "postgresql+asyncpg://aegis:aegis@localhost:5432/aegis"
     object_store_url: str = "s3://aegis-raw-inputs"
     object_store_region: str = "us-east-1"
-    s3_endpoint_url: str | None = None        # MinIO / custom S3-compatible endpoint
+    s3_endpoint_url: Optional[str] = None        # MinIO / custom S3-compatible endpoint
     vector_store_url: str = "http://localhost:6333"
     vector_collection: str = "incident_history"
 
@@ -109,14 +109,14 @@ class LogBackendSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
     provider: str = "file"                  # file | fluent  (elk deferred)
-    file_root: str | None = None            # base dir for service→file resolution (file)
+    file_root: Optional[str] = None            # base dir for service→file resolution (file)
     default_severity_levels: list[str] = Field(
         default_factory=lambda: ["FATAL", "CRITICAL", "ERROR", "WARNING"]
     )
-    elk_url: str | None = None              # elk (deferred)
-    fluent_host: str | None = None          # fluent stub
-    fluent_port: int | None = None          # fluent stub
-    fluent_tag_prefix: str | None = None    # fluent stub
+    elk_url: Optional[str] = None              # elk (deferred)
+    fluent_host: Optional[str] = None          # fluent stub
+    fluent_port: Optional[int] = None          # fluent stub
+    fluent_tag_prefix: Optional[str] = None    # fluent stub
 
     @field_validator("provider")
     @classmethod
@@ -132,7 +132,7 @@ class CodeBackendSettings(BaseSettings):
 
     enabled: bool = False                   # false → no CodeBackend; Stage 8 skipped
     provider: str = "git"                   # git | filesystem
-    repo_path: str | None = None            # working tree / source root
+    repo_path: Optional[str] = None            # working tree / source root
     window_hours: int = 2                   # default look-back for get_commits_before
     commit_limit: int = 10                  # default max commits returned
     git_timeout_seconds: int = 30           # git subprocess timeout (git provider)
@@ -240,7 +240,7 @@ class AgentWeightsSettings(BaseSettings):
     )
 
     def for_fault_class(self, fault_class_value: str) -> AgentWeightEntry:
-        """Return the weight entry for a given FaultClass value string."""
+        """Return the weight entry for a given FaultClass value string"""
         return getattr(self, fault_class_value, self.unknown)
 
 
@@ -278,7 +278,7 @@ class Settings(BaseSettings):
     agent_weights: AgentWeightsSettings = Field(default_factory=AgentWeightsSettings)
 
     def redacted_dump(self) -> dict[str, Any]:
-        """Return the settings dict with secret values replaced by '***'."""
+        """Return the settings dict with secret values replaced by '***'"""
         import json
 
         raw: dict[str, Any] = json.loads(self.model_dump_json())
@@ -289,7 +289,7 @@ class Settings(BaseSettings):
 _SECRET_KEYS = {"api_key", "password", "secret", "token", "database_url"}
 
 
-def _redact_secrets(obj: Any) -> None:
+def _redact_secrets(obj: Any):
     if isinstance(obj, dict):
         for k, v in obj.items():
             if any(s in k.lower() for s in _SECRET_KEYS):

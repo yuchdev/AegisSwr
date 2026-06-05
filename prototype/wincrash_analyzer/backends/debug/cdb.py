@@ -1,4 +1,4 @@
-"""Python/subprocess CDB debugger backend."""
+"""Python/subprocess CDB debugger backend"""
 import logging
 import os
 import re

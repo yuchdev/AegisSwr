@@ -54,7 +54,7 @@ def _os_kernel_payload() -> dict[str, Any]:
 
 
 def _brief_to_messages(brief: IncidentBrief) -> list[dict[str, Any]]:
-    """Minimal stand-in for the Phase 5 agent prompt assembly."""
+    """Minimal stand-in for the Phase 5 agent prompt assembly"""
     payload = {
         "fault_class": brief.fault_class.value if brief.fault_class else None,
         "faulting_module": brief.faulting_module,
@@ -69,7 +69,7 @@ def _brief_to_messages(brief: IncidentBrief) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
-async def test_adapter_to_mock_backend_structured(settings: Settings, tmp_path: Path) -> None:
+async def test_adapter_to_mock_backend_structured(settings: Settings, tmp_path: Path):
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 64)
     source = IncidentSource(
@@ -96,7 +96,7 @@ async def test_adapter_to_mock_backend_structured(settings: Settings, tmp_path: 
     assert "alice@example.com" not in (brief.log_summary or "")
 
 
-async def test_adapter_to_mock_backend_stream(settings: Settings) -> None:
+async def test_adapter_to_mock_backend_stream(settings: Settings):
     source = IncidentSource(
         mode=IncidentMode.LOG_FORENSICS,
         incident_timestamp=datetime(2026, 5, 30, 14, 2, 11),
@@ -117,7 +117,7 @@ async def test_adapter_to_mock_backend_stream(settings: Settings) -> None:
 
 async def test_adapter_to_anthropic_backend_structured(
     settings: Settings, tmp_path: Path
-) -> None:
+):
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 64)
     source = IncidentSource(
@@ -153,7 +153,7 @@ async def test_adapter_to_anthropic_backend_structured(
 
 async def test_adapter_low_symbol_coverage_flows_to_brief(
     settings: Settings, tmp_path: Path
-) -> None:
+):
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 16)
     source = IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path=str(dump))
@@ -164,7 +164,7 @@ async def test_adapter_low_symbol_coverage_flows_to_brief(
     assert brief.low_symbol_coverage_warning == "[LOW SYMBOL COVERAGE: 20%]"
 
 
-def test_pytest_can_import_shared_fixtures() -> None:
+def test_pytest_can_import_shared_fixtures():
     # Guards the test-package import path used across unit + integration suites.
     assert MockAIBackend is not None
     assert MockDebugBackend is not None

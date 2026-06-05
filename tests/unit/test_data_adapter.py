@@ -31,7 +31,7 @@ class MockDebugBackend(DebugBackend):
     SUPPORTED_FORMATS = [DumpFormat.WINDOWS_MINIDUMP]
     SUPPORTED_PLATFORMS = ["Windows"]
 
-    def __init__(self, result: DebugExtractionResult) -> None:
+    def __init__(self, result: DebugExtractionResult):
         self._result = result
         self.extract_called = False
 
@@ -76,7 +76,7 @@ def adapter(settings: Settings) -> DataAdapter:
 # ---------------------------------------------------------------------------
 
 
-def test_hash_consistency(tmp_path: Path) -> None:
+def test_hash_consistency(tmp_path: Path):
     a = tmp_path / "a.dmp"
     b = tmp_path / "b.dmp"
     a.write_bytes(b"MDMP" + b"\x00" * 100)
@@ -84,7 +84,7 @@ def test_hash_consistency(tmp_path: Path) -> None:
     assert DataAdapter._compute_hash(a) == DataAdapter._compute_hash(b)
 
 
-def test_hash_differs_on_different_content(tmp_path: Path) -> None:
+def test_hash_differs_on_different_content(tmp_path: Path):
     a = tmp_path / "a.dmp"
     b = tmp_path / "b.dmp"
     a.write_bytes(b"MDMP" + b"\x00" * 100)
@@ -92,25 +92,25 @@ def test_hash_differs_on_different_content(tmp_path: Path) -> None:
     assert DataAdapter._compute_hash(a) != DataAdapter._compute_hash(b)
 
 
-def test_hash_has_prefix(tmp_path: Path) -> None:
+def test_hash_has_prefix(tmp_path: Path):
     f = tmp_path / "a.dmp"
     f.write_bytes(b"MDMP")
     assert DataAdapter._compute_hash(f).startswith("sha256:")
 
 
-def test_format_detection_minidump(tmp_path: Path) -> None:
+def test_format_detection_minidump(tmp_path: Path):
     f = tmp_path / "crash.dmp"
     f.write_bytes(b"MDMP\x93\xa7" + b"\x00" * 50)
     assert DataAdapter._detect_format(f) == DumpFormat.WINDOWS_MINIDUMP
 
 
-def test_format_detection_elf_core(tmp_path: Path) -> None:
+def test_format_detection_elf_core(tmp_path: Path):
     f = tmp_path / "core.1234"
     f.write_bytes(b"\x7fELF" + b"\x00" * 50)
     assert DataAdapter._detect_format(f) == DumpFormat.LINUX_CORE
 
 
-def test_format_detection_apple_crashreport(tmp_path: Path) -> None:
+def test_format_detection_apple_crashreport(tmp_path: Path):
     f = tmp_path / "crash.ips"
     f.write_bytes(b'{"app_name":"x"}')
     assert DataAdapter._detect_format(f) == DumpFormat.APPLE_CRASHREPORT
@@ -121,13 +121,13 @@ def test_format_detection_apple_crashreport(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_noise_filter_removes_dbghelp() -> None:
+def test_noise_filter_removes_dbghelp():
     raw = (FIXTURES / "sample_cdb_output.txt").read_text()
     filtered = apply_noise_filter(raw)
     assert "DBGHELP" not in filtered
 
 
-def test_noise_filter_drops_dll_load_list() -> None:
+def test_noise_filter_drops_dll_load_list():
     raw = (FIXTURES / "sample_cdb_output.txt").read_text()
     filtered = apply_noise_filter(raw)
     assert "ModuleLoad" not in filtered
@@ -136,21 +136,21 @@ def test_noise_filter_drops_dll_load_list() -> None:
     assert "db_writer::serialize" in filtered
 
 
-def test_noise_filter_replaces_fill_patterns() -> None:
+def test_noise_filter_replaces_fill_patterns():
     raw = (FIXTURES / "sample_cdb_output.txt").read_text()
     filtered = apply_noise_filter(raw)
     assert "0xCCCCCCCC" not in filtered
     assert "<fill>" in filtered
 
 
-def test_noise_filter_reduces_tokens_by_60_percent() -> None:
+def test_noise_filter_reduces_tokens_by_60_percent():
     raw = (FIXTURES / "sample_cdb_output.txt").read_text()
     filtered = apply_noise_filter(raw)
     reduction = 1 - (count_tokens(filtered) / count_tokens(raw))
     assert reduction >= 0.60, f"only reduced {reduction:.0%}"
 
 
-def test_noise_filter_truncates_to_8k() -> None:
+def test_noise_filter_truncates_to_8k():
     raw = "HEAD_MARKER\n" + ("x" * 12000) + "\nTAIL_MARKER"
     filtered = apply_noise_filter(raw)
     assert "[... middle section truncated ...]" in filtered
@@ -160,7 +160,7 @@ def test_noise_filter_truncates_to_8k() -> None:
     assert len(filtered) < 8100
 
 
-def test_noise_filter_no_truncation_when_small() -> None:
+def test_noise_filter_no_truncation_when_small():
     raw = "short text"
     assert apply_noise_filter(raw) == raw
 
@@ -170,7 +170,7 @@ def test_noise_filter_no_truncation_when_small() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_temporal_window_slices_correctly(adapter: DataAdapter) -> None:
+def test_temporal_window_slices_correctly(adapter: DataAdapter):
     incident = datetime(2026, 5, 30, 14, 2, 11)
     summary = adapter._process_logs(
         [str(FIXTURES / "sample_logs_timestamped.txt")], incident
@@ -189,7 +189,7 @@ def test_temporal_window_slices_correctly(adapter: DataAdapter) -> None:
     assert "AFTER_WINDOW_MARKER" not in summary
 
 
-def test_no_timestamp_keeps_tail(adapter: DataAdapter) -> None:
+def test_no_timestamp_keeps_tail(adapter: DataAdapter):
     # No incident timestamp → fall back to last N lines (all kept here).
     summary = adapter._process_logs(
         [str(FIXTURES / "sample_logs_timestamped.txt")], None
@@ -198,11 +198,11 @@ def test_no_timestamp_keeps_tail(adapter: DataAdapter) -> None:
     assert "AFTER_WINDOW_MARKER_2" in summary
 
 
-def test_process_logs_returns_none_for_missing_path(adapter: DataAdapter) -> None:
+def test_process_logs_returns_none_for_missing_path(adapter: DataAdapter):
     assert adapter._process_logs(["/nonexistent/file.log"], None) is None
 
 
-def test_process_logs_merges_extra_lines(adapter: DataAdapter) -> None:
+def test_process_logs_merges_extra_lines(adapter: DataAdapter):
     incident = datetime(2026, 5, 30, 14, 2, 11)
     extra = ["2026-05-30T14:02:13 ERROR EXTRA_MARKER from backend"]
     summary = adapter._process_logs([], incident, extra_lines=extra)
@@ -216,9 +216,9 @@ def test_process_logs_merges_extra_lines(adapter: DataAdapter) -> None:
 
 
 class _FakeLogBackend:
-    """Minimal LogBackend returning canned windowed lines."""
+    """Minimal LogBackend returning canned windowed lines"""
 
-    def __init__(self, lines: list[str]) -> None:
+    def __init__(self, lines: list[str]):
         self._lines = lines
         self.called_with: tuple = ()
 
@@ -228,13 +228,13 @@ class _FakeLogBackend:
 
 
 class _StubLogBackend:
-    """LogBackend stub that always raises (like FluentAdapter)."""
+    """LogBackend stub that always raises (like FluentAdapter)"""
 
     async def query_window(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         raise NotImplementedError("stub")
 
 
-async def test_log_backend_lines_merged_into_brief(adapter: DataAdapter) -> None:
+async def test_log_backend_lines_merged_into_brief(adapter: DataAdapter):
     backend = _FakeLogBackend(["2026-05-30T14:02:13 ERROR LOGBACKEND_MARKER from fluent"])
     source = IncidentSource(
         mode=IncidentMode.LOG_FORENSICS,
@@ -247,7 +247,7 @@ async def test_log_backend_lines_merged_into_brief(adapter: DataAdapter) -> None
     assert backend.called_with[0] == "auth-api"
 
 
-async def test_log_backend_not_queried_without_service(adapter: DataAdapter) -> None:
+async def test_log_backend_not_queried_without_service(adapter: DataAdapter):
     backend = _FakeLogBackend(["2026-05-30T14:02:13 ERROR SHOULD_NOT_APPEAR"])
     source = IncidentSource(
         mode=IncidentMode.LOG_FORENSICS,
@@ -258,7 +258,7 @@ async def test_log_backend_not_queried_without_service(adapter: DataAdapter) -> 
     assert brief.log_summary is None
 
 
-async def test_log_backend_stub_degrades_gracefully(adapter: DataAdapter) -> None:
+async def test_log_backend_stub_degrades_gracefully(adapter: DataAdapter):
     source = IncidentSource(
         mode=IncidentMode.LOG_FORENSICS,
         incident_timestamp=datetime(2026, 5, 30, 14, 2, 11),
@@ -269,7 +269,7 @@ async def test_log_backend_stub_degrades_gracefully(adapter: DataAdapter) -> Non
     assert brief.log_summary is None
 
 
-def test_drain3_deduplicates_heartbeats() -> None:
+def test_drain3_deduplicates_heartbeats():
     lines = ["Connection pool status OK"] * 100
     lines += [
         "ERROR database write failed on shard 7",
@@ -287,7 +287,7 @@ def test_drain3_deduplicates_heartbeats() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_pii_scrubbing_emails(adapter: DataAdapter) -> None:
+def test_pii_scrubbing_emails(adapter: DataAdapter):
     text = (FIXTURES / "sample_logs_with_pii.txt").read_text()
     state = _ScrubState()
     scrubbed = adapter._scrub_text(text, state)
@@ -296,7 +296,7 @@ def test_pii_scrubbing_emails(adapter: DataAdapter) -> None:
     assert "[REDACTED_EMAIL_1]" in scrubbed
 
 
-def test_pii_scrubbing_aws_keys(adapter: DataAdapter) -> None:
+def test_pii_scrubbing_aws_keys(adapter: DataAdapter):
     text = (FIXTURES / "sample_logs_with_pii.txt").read_text()
     state = _ScrubState()
     scrubbed = adapter._scrub_text(text, state)
@@ -304,7 +304,7 @@ def test_pii_scrubbing_aws_keys(adapter: DataAdapter) -> None:
     assert any("AWS_KEY" in token for token in state.mapping)
 
 
-def test_pii_scrubbing_ip_and_db_conn(adapter: DataAdapter) -> None:
+def test_pii_scrubbing_ip_and_db_conn(adapter: DataAdapter):
     text = (FIXTURES / "sample_logs_with_pii.txt").read_text()
     state = _ScrubState()
     scrubbed = adapter._scrub_text(text, state)
@@ -312,7 +312,7 @@ def test_pii_scrubbing_ip_and_db_conn(adapter: DataAdapter) -> None:
     assert "s3cr3tpw" not in scrubbed
 
 
-def test_pii_scrubbing_stable_tokens(adapter: DataAdapter) -> None:
+def test_pii_scrubbing_stable_tokens(adapter: DataAdapter):
     state = _ScrubState()
     scrubbed = adapter._scrub_text("ping x@y.com then x@y.com again", state)
     # Same value reuses the same token.
@@ -320,7 +320,7 @@ def test_pii_scrubbing_stable_tokens(adapter: DataAdapter) -> None:
     assert len([t for t in state.mapping if t.startswith("[REDACTED_EMAIL")]) == 1
 
 
-def test_pii_map_recovers_original(adapter: DataAdapter) -> None:
+def test_pii_map_recovers_original(adapter: DataAdapter):
     state = _ScrubState()
     adapter._scrub_text("contact alice@example.com", state)
     assert "[REDACTED_EMAIL_1]" in state.mapping
@@ -332,7 +332,7 @@ def test_pii_map_recovers_original(adapter: DataAdapter) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_assumption_token_cap(adapter: DataAdapter) -> None:
+def test_assumption_token_cap(adapter: DataAdapter):
     long_assumption = "the database connection pool was reduced yesterday " * 200
     capped = adapter._enforce_assumption_limit(long_assumption)
     limit = adapter._settings.core.user_assumption_token_limit
@@ -340,7 +340,7 @@ def test_assumption_token_cap(adapter: DataAdapter) -> None:
     assert len(capped) < len(long_assumption)
 
 
-def test_assumption_under_cap_unchanged(adapter: DataAdapter) -> None:
+def test_assumption_under_cap_unchanged(adapter: DataAdapter):
     short = "pool reduced from 10 to 5 connections"
     assert adapter._enforce_assumption_limit(short) == short
 
@@ -350,7 +350,7 @@ def test_assumption_under_cap_unchanged(adapter: DataAdapter) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_should_inject_history_module_recurrence() -> None:
+def test_should_inject_history_module_recurrence():
     brief = IncidentBrief(mode=IncidentMode.CRASH_DUMP, faulting_module="db_writer")
     recent = [
         IncidentBrief(mode=IncidentMode.CRASH_DUMP, faulting_module="db_writer"),
@@ -360,13 +360,13 @@ def test_should_inject_history_module_recurrence() -> None:
     assert DataAdapter.should_inject_history(brief, recent) is True
 
 
-def test_should_not_inject_history_when_no_recurrence() -> None:
+def test_should_not_inject_history_when_no_recurrence():
     brief = IncidentBrief(mode=IncidentMode.CRASH_DUMP, faulting_module="db_writer")
     recent = [IncidentBrief(mode=IncidentMode.CRASH_DUMP, faulting_module="other")]
     assert DataAdapter.should_inject_history(brief, recent) is False
 
 
-def test_should_not_inject_history_empty() -> None:
+def test_should_not_inject_history_empty():
     brief = IncidentBrief(mode=IncidentMode.CRASH_DUMP)
     assert DataAdapter.should_inject_history(brief, []) is False
 
@@ -376,7 +376,7 @@ def test_should_not_inject_history_empty() -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_full_pipeline_produces_brief(adapter: DataAdapter, tmp_path: Path) -> None:
+async def test_full_pipeline_produces_brief(adapter: DataAdapter, tmp_path: Path):
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 200)
     source = IncidentSource(
@@ -409,7 +409,7 @@ async def test_full_pipeline_produces_brief(adapter: DataAdapter, tmp_path: Path
     assert "pii" not in brief.model_dump()
 
 
-async def test_full_pipeline_low_symbol_warning(adapter: DataAdapter, tmp_path: Path) -> None:
+async def test_full_pipeline_low_symbol_warning(adapter: DataAdapter, tmp_path: Path):
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 10)
     extraction = _mock_extraction()
@@ -419,7 +419,7 @@ async def test_full_pipeline_low_symbol_warning(adapter: DataAdapter, tmp_path: 
     assert brief.low_symbol_coverage_warning == "[LOW SYMBOL COVERAGE: 30%]"
 
 
-async def test_full_pipeline_log_only_mode(adapter: DataAdapter) -> None:
+async def test_full_pipeline_log_only_mode(adapter: DataAdapter):
     source = IncidentSource(
         mode=IncidentMode.LOG_FORENSICS,
         incident_timestamp=datetime(2026, 5, 30, 14, 2, 11),

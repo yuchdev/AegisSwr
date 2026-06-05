@@ -223,7 +223,7 @@ def create_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser, a
     return parser, analyze_parser, export_parser
 
 
-def main() -> None:
+def main():
     """
     The main entry point for the CLI application.
     """

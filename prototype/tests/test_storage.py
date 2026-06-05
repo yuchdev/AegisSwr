@@ -1,4 +1,4 @@
-"""Data-integrity tests for the storage backends (filesystem & SQLite)."""
+"""Data-integrity tests for the storage backends (filesystem & SQLite)"""
 from __future__ import annotations
 
 import os
@@ -17,7 +17,7 @@ from wincrash_analyzer.core.exceptions import StorageBackendError
 
 @pytest.fixture()
 def sample_record():
-    """Return a minimal but valid CrashReportEntity dictionary."""
+    """Return a minimal but valid CrashReportEntity dictionary"""
     return {
         "report_id": make_report_id(),
         "timestamp": make_timestamp(),
@@ -44,7 +44,7 @@ class TestFilesystemBackend:
         assert len(files) == 1
 
     def test_round_trip(self, sample_record, tmp_path):
-        """Saved data must be retrievable and identical to the original."""
+        """Saved data must be retrievable and identical to the original"""
         backend = FilesystemBackend(output_dir=str(tmp_path))
         backend.save(sample_record)
         loaded = backend.load_all()
@@ -61,7 +61,7 @@ class TestFilesystemBackend:
         assert backend.load_all() == []
 
     def test_save_sanitizes_dump_path(self, tmp_path):
-        """Records without report_id use sanitized dump_path as file stem."""
+        """Records without report_id use sanitized dump_path as file stem"""
         record = {
             "dump_path": 'C:\\crashes\\my<bad>file.dmp',
             "ai_analysis": "ok",
@@ -75,7 +75,7 @@ class TestFilesystemBackend:
 
     @pytest.mark.skipif(os.name == "nt", reason="chmod(0o444) on a directory does not prevent file creation on Windows.")
     def test_save_readonly_dir_raises(self, sample_record, tmp_path):
-        """Writing to a read-only directory raises StorageBackendError."""
+        """Writing to a read-only directory raises StorageBackendError"""
         readonly = tmp_path / "ro"
         readonly.mkdir()
         readonly.chmod(0o444)
@@ -98,7 +98,7 @@ class TestSQLiteBackend:
         assert backend.save(sample_record) is True
 
     def test_round_trip(self, sample_record, tmp_path):
-        """Saved data must be retrievable and ai_analysis must match exactly."""
+        """Saved data must be retrievable and ai_analysis must match exactly"""
         db = str(tmp_path / "test.db")
         backend = SQLiteBackend(db_path=db)
         backend.save(sample_record)
@@ -115,7 +115,7 @@ class TestSQLiteBackend:
         assert len(backend.load_all()) == 2
 
     def test_dump_name_stored(self, sample_record, tmp_path):
-        """The dump_path should be stored in the record."""
+        """The dump_path should be stored in the record"""
         db = str(tmp_path / "test.db")
         backend = SQLiteBackend(db_path=db)
         backend.save(sample_record)
@@ -123,7 +123,7 @@ class TestSQLiteBackend:
         assert rows[0]["dump_path"] == sample_record["dump_path"]
 
     def test_record_integrity(self, sample_record, tmp_path):
-        """The stored JSON must contain all fields of the original record."""
+        """The stored JSON must contain all fields of the original record"""
         db = str(tmp_path / "test.db")
         backend = SQLiteBackend(db_path=db)
         backend.save(sample_record)

@@ -13,14 +13,12 @@ See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §6.4.2.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from loguru import logger
 
 from aegis_swr.backends.base import LogBackend
 
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import LogBackendSettings
+from aegis_swr.config.settings import LogBackendSettings
 
 _MSG = (
     "FluentAdapter is a stub. "
@@ -29,9 +27,9 @@ _MSG = (
 
 
 class FluentAdapter(LogBackend):
-    """Fluent backend stub — ``query_window`` raises ``NotImplementedError``."""
+    """Fluent backend stub — ``query_window`` raises ``NotImplementedError``"""
 
-    def __init__(self, settings: LogBackendSettings) -> None:
+    def __init__(self, settings: LogBackendSettings):
         self._settings = settings
         logger.warning("FluentAdapter is a stub and does not query any log source.")
 

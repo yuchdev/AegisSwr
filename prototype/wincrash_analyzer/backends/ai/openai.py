@@ -1,4 +1,4 @@
-"""OpenAI-specific AI backend implementation."""
+"""OpenAI-specific AI backend implementation"""
 from openai import OpenAI
 
 from wincrash_analyzer.backends.ai.base import AIBackendBase

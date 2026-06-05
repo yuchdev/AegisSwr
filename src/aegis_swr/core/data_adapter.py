@@ -23,7 +23,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional
 
 from loguru import logger
 
@@ -35,10 +35,8 @@ from aegis_swr.core.schemas import (
     UIContext,
 )
 from aegis_swr.core.tokens import count_tokens, truncate_to_tokens
-
-if TYPE_CHECKING:
-    from aegis_swr.backends.base import CodeBackend, DebugBackend, LogBackend
-    from aegis_swr.config.settings import Settings
+from aegis_swr.backends.base import CodeBackend, DebugBackend, LogBackend
+from aegis_swr.config.settings import Settings
 
 
 # ---------------------------------------------------------------------------
@@ -101,8 +99,8 @@ _LOG_TOKEN_BUDGET = 2000
 _NO_TIMESTAMP_TAIL = 500
 
 
-def _parse_timestamp(line: str, reference: datetime) -> datetime | None:
-    """Extract a timestamp from a log line, anchored to the incident date."""
+def _parse_timestamp(line: str, reference: datetime) -> Optional[datetime]:
+    """Extract a timestamp from a log line, anchored to the incident date"""
     iso = _ISO_TS_RE.search(line)
     if iso:
         try:
@@ -129,7 +127,7 @@ def _severity_rank(line: str) -> int:
     return _SEVERITY_RANK[match.group(1).upper()]
 
 
-def _severity_token(line: str) -> str | None:
+def _severity_token(line: str) -> Optional[str]:
     """Return the uppercased severity token in *line*, or None if none is present.
 
     Reused by ``FileLogAdapter`` so the severity vocabulary stays in one place.
@@ -160,9 +158,9 @@ _PII_RULES: list[tuple[str, re.Pattern[str]]] = [
 
 
 class _ScrubState:
-    """Accumulates a stable substitution map across multiple scrubbed fields."""
+    """Accumulates a stable substitution map across multiple scrubbed fields"""
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.mapping: dict[str, str] = {}  # token -> original value
         self._counters: dict[str, int] = defaultdict(int)
         self._reverse: dict[tuple[str, str], str] = {}  # (label, value) -> token
@@ -186,7 +184,7 @@ class DataAdapter:
     and persist it out-of-band; it is intentionally never part of the brief.
     """
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings):
         self._settings = settings
         self.last_pii_substitution_map: dict[str, str] = {}
 
@@ -195,9 +193,9 @@ class DataAdapter:
     async def process(
         self,
         source: IncidentSource,
-        debug_backend: DebugBackend | None = None,
-        code_backend: CodeBackend | None = None,
-        log_backend: LogBackend | None = None,
+        debug_backend: Optional[DebugBackend] = None,
+        code_backend: Optional[CodeBackend] = None,
+        log_backend: Optional[LogBackend] = None,
     ) -> IncidentBrief:
         scrub = _ScrubState()
 
@@ -218,9 +216,10 @@ class DataAdapter:
         exception_address = None
         faulting_module = None
         faulting_function = None
-        symbol_score: float | None = None
+        symbol_score: Optional[float] = None
+        exception_code: Optional[str] = None
+        raw_excerpt: Optional[str] = None
         stack_frames: list[dict[str, Any]] = []
-        raw_excerpt: str | None = None
 
         if debug_backend is not None and source.dump_path:
             extraction = debug_backend.extract(source, source.symbol_path)
@@ -315,9 +314,9 @@ class DataAdapter:
     def _process_logs(
         self,
         log_paths: list[str],
-        incident_ts: datetime | None,
-        extra_lines: list[str] | None = None,
-    ) -> str | None:
+        incident_ts: Optional[datetime],
+        extra_lines: Optional[list[str]] = None,
+    ) -> Optional[str]:
         raw: list[str] = []
         for raw_path in log_paths:
             path = Path(raw_path)
@@ -417,7 +416,7 @@ class DataAdapter:
     # -- Stage 5 -----------------------------------------------------------
 
     @staticmethod
-    def _process_screenshots(screenshot_paths: list[str]) -> UIContext | None:
+    def _process_screenshots(screenshot_paths: list[str]) -> Optional[UIContext]:
         if not screenshot_paths:
             return None
         try:
@@ -469,7 +468,7 @@ class DataAdapter:
 
     @staticmethod
     def _presidio_enhance(text: str, state: _ScrubState) -> str:
-        """Optional NER pass to catch entities the regex baseline misses."""
+        """Optional NER pass to catch entities the regex baseline misses"""
         try:
             from presidio_analyzer import AnalyzerEngine
         except ImportError:
@@ -504,9 +503,9 @@ class DataAdapter:
     async def _query_log_backend(
         self,
         source: IncidentSource,
-        log_backend: LogBackend | None,
+        log_backend: Optional[LogBackend],
     ) -> list[str]:
-        """Pull windowed log lines from a LogBackend (fail open on any error)."""
+        """Pull windowed log lines from a LogBackend (fail open on any error)"""
         if log_backend is None or source.incident_timestamp is None:
             return []
         service = source.metadata.get("service")
@@ -533,7 +532,7 @@ class DataAdapter:
     @staticmethod
     def _query_code_history(
         source: IncidentSource,
-        code_backend: CodeBackend | None,
+        code_backend: Optional[CodeBackend],
     ) -> list[CommitRecord]:
         if code_backend is None or source.incident_timestamp is None:
             return []
@@ -558,7 +557,7 @@ class DataAdapter:
         brief: IncidentBrief,
         recent: list[IncidentBrief],
     ) -> bool:
-        """Conditional history-injection rule (design spec §5.3)."""
+        """Conditional history-injection rule (design spec §5.3)"""
         if not recent:
             return False
         module = brief.faulting_module

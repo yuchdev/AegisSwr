@@ -1,4 +1,4 @@
-"""Unit tests for the EventBus and orchestrator domain-event emission."""
+"""Unit tests for the EventBus and orchestrator domain-event emission"""
 from __future__ import annotations
 
 from aegis_swr.config.settings import Settings
@@ -26,7 +26,7 @@ def _turn(agent: str = "OS Kernel Agent") -> AgentTurn:
     return AgentTurn(agent=agent, turn_number=1, message="m", confidence_score=0.8)
 
 
-def test_subscribe_exact_type_receives_event() -> None:
+def test_subscribe_exact_type_receives_event():
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(AgentSpoke, received.append)
@@ -37,7 +37,7 @@ def test_subscribe_exact_type_receives_event() -> None:
     assert received == [event]
 
 
-def test_subscribe_base_class_receives_all_events() -> None:
+def test_subscribe_base_class_receives_all_events():
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(DomainEvent, received.append)
@@ -48,7 +48,7 @@ def test_subscribe_base_class_receives_all_events() -> None:
     assert len(received) == 2
 
 
-def test_subscriber_does_not_receive_unrelated_events() -> None:
+def test_subscriber_does_not_receive_unrelated_events():
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(EvidenceExtracted, received.append)
@@ -58,7 +58,7 @@ def test_subscriber_does_not_receive_unrelated_events() -> None:
     assert received == []
 
 
-def test_unsubscribe_stops_delivery() -> None:
+def test_unsubscribe_stops_delivery():
     bus = EventBus()
     received: list[DomainEvent] = []
     unsubscribe = bus.subscribe(ConsensusEvaluated, received.append)
@@ -70,11 +70,11 @@ def test_unsubscribe_stops_delivery() -> None:
     assert len(received) == 1
 
 
-def test_failing_subscriber_does_not_break_others() -> None:
+def test_failing_subscriber_does_not_break_others():
     bus = EventBus()
     received: list[DomainEvent] = []
 
-    def _broken(event: DomainEvent) -> None:
+    def _broken(event: DomainEvent):
         raise RuntimeError("view crashed")
 
     bus.subscribe(ConsensusEvaluated, _broken)
@@ -94,7 +94,7 @@ def _log_only_source() -> IncidentSource:
     return IncidentSource(mode=IncidentMode.LOG_FORENSICS)
 
 
-async def test_orchestrator_publishes_events_to_bus(settings: Settings) -> None:
+async def test_orchestrator_publishes_events_to_bus(settings: Settings):
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(DomainEvent, received.append)
@@ -113,7 +113,7 @@ async def test_orchestrator_publishes_events_to_bus(settings: Settings) -> None:
     assert types[-1] is InvestigationCompleted
 
 
-async def test_orchestrator_publishes_hitl_on_deadlock(settings: Settings) -> None:
+async def test_orchestrator_publishes_hitl_on_deadlock(settings: Settings):
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(DomainEvent, received.append)

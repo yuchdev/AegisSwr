@@ -1,4 +1,4 @@
-"""Cross-platform symbol cache directory resolution."""
+"""Cross-platform symbol cache directory resolution"""
 from __future__ import annotations
 
 import os

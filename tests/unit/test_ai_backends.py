@@ -47,9 +47,9 @@ def _openai_response(content: str, ptok: int = 10, ctok: int = 5) -> SimpleNames
 
 
 class _FakeStreamCtx:
-    """Async context manager mimicking anthropic ``messages.stream(...)``."""
+    """Async context manager mimicking anthropic ``messages.stream(...)``"""
 
-    def __init__(self, tokens: list[str]) -> None:
+    def __init__(self, tokens: list[str]):
         self._tokens = tokens
 
     async def __aenter__(self) -> _FakeStreamCtx:
@@ -108,7 +108,7 @@ _USER = [{"role": "user", "content": "analyze this"}]
 
 async def test_anthropic_structured_output_valid(
     anthropic_backend: tuple[AnthropicBackend, Any],
-) -> None:
+):
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
         return_value=_anthropic_response([_tool_block({"root_cause": "uaf", "confidence": 0.8})])
@@ -121,7 +121,7 @@ async def test_anthropic_structured_output_valid(
 
 async def test_anthropic_sends_cache_control_and_tool(
     anthropic_backend: tuple[AnthropicBackend, Any],
-) -> None:
+):
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
         return_value=_anthropic_response([_tool_block({"root_cause": "x", "confidence": 0.5})])
@@ -135,7 +135,7 @@ async def test_anthropic_sends_cache_control_and_tool(
 
 async def test_anthropic_retry_then_valid(
     anthropic_backend: tuple[AnthropicBackend, Any],
-) -> None:
+):
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
         side_effect=[
@@ -152,7 +152,7 @@ async def test_anthropic_retry_then_valid(
 
 async def test_anthropic_raises_after_retry(
     anthropic_backend: tuple[AnthropicBackend, Any],
-) -> None:
+):
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
         return_value=_anthropic_response([_tool_block({"root_cause": "x"})])  # always invalid
@@ -164,7 +164,7 @@ async def test_anthropic_raises_after_retry(
 
 async def test_anthropic_unstructured_returns_text(
     anthropic_backend: tuple[AnthropicBackend, Any],
-) -> None:
+):
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
         return_value=_anthropic_response([_text_block("hello "), _text_block("world")])
@@ -175,7 +175,7 @@ async def test_anthropic_unstructured_returns_text(
 
 async def test_anthropic_stream_yields_tokens(
     anthropic_backend: tuple[AnthropicBackend, Any],
-) -> None:
+):
     backend, client = anthropic_backend
     client.messages.stream = mock.MagicMock(return_value=_FakeStreamCtx(["a", "b", "c"]))
     tokens = [t async for t in backend.stream("system", _USER)]
@@ -184,7 +184,7 @@ async def test_anthropic_stream_yields_tokens(
 
 async def test_anthropic_raises_when_no_tool_block(
     anthropic_backend: tuple[AnthropicBackend, Any],
-) -> None:
+):
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
         return_value=_anthropic_response([_text_block("no tool here")])
@@ -200,7 +200,7 @@ async def test_anthropic_raises_when_no_tool_block(
 
 async def test_openai_structured_output_valid(
     openai_backend: tuple[OpenAIBackend, Any],
-) -> None:
+):
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(
         return_value=_openai_response(json.dumps({"root_cause": "race", "confidence": 0.9}))
@@ -213,7 +213,7 @@ async def test_openai_structured_output_valid(
 
 async def test_openai_sends_json_schema_strict(
     openai_backend: tuple[OpenAIBackend, Any],
-) -> None:
+):
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(
         return_value=_openai_response(json.dumps({"root_cause": "x", "confidence": 0.5}))
@@ -228,7 +228,7 @@ async def test_openai_sends_json_schema_strict(
 
 async def test_openai_reasoning_model_uses_max_completion_tokens(
     openai_backend: tuple[OpenAIBackend, Any],
-) -> None:
+):
     # gpt-5.4 is a reasoning model: must use max_completion_tokens and omit
     # temperature (only the default temperature is accepted).
     backend, client = openai_backend
@@ -243,7 +243,7 @@ async def test_openai_reasoning_model_uses_max_completion_tokens(
     assert "temperature" not in kwargs
 
 
-async def test_openai_non_reasoning_model_uses_max_tokens() -> None:
+async def test_openai_non_reasoning_model_uses_max_tokens():
     settings = AISettings(provider="openai", model="gpt-4o", temperature=0.2, max_tokens=4096)
     with mock.patch("openai.AsyncOpenAI") as cls:
         client = mock.MagicMock()
@@ -261,7 +261,7 @@ async def test_openai_non_reasoning_model_uses_max_tokens() -> None:
 
 async def test_openai_retry_then_valid(
     openai_backend: tuple[OpenAIBackend, Any],
-) -> None:
+):
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(
         side_effect=[
@@ -276,7 +276,7 @@ async def test_openai_retry_then_valid(
 
 async def test_openai_raises_on_malformed_json(
     openai_backend: tuple[OpenAIBackend, Any],
-) -> None:
+):
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(
         return_value=_openai_response("not json at all")
@@ -288,7 +288,7 @@ async def test_openai_raises_on_malformed_json(
 
 async def test_openai_unstructured_returns_text(
     openai_backend: tuple[OpenAIBackend, Any],
-) -> None:
+):
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(
         return_value=_openai_response("plain answer")
@@ -299,7 +299,7 @@ async def test_openai_unstructured_returns_text(
 
 async def test_openai_stream_yields_tokens(
     openai_backend: tuple[OpenAIBackend, Any],
-) -> None:
+):
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(return_value=_openai_chunks(["x", "y"]))
     tokens = [t async for t in backend.stream("system", _USER)]
@@ -311,7 +311,7 @@ async def test_openai_stream_yields_tokens(
 # ---------------------------------------------------------------------------
 
 
-def test_openai_strict_schema_sets_additional_properties_false() -> None:
+def test_openai_strict_schema_sets_additional_properties_false():
     schema = _to_openai_strict_schema(Hypothesis)
     assert schema["additionalProperties"] is False
     assert set(schema["required"]) == set(schema["properties"].keys())
@@ -323,19 +323,19 @@ def test_openai_strict_schema_sets_additional_properties_false() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_factory_returns_anthropic() -> None:
+def test_factory_returns_anthropic():
     with mock.patch("anthropic.AsyncAnthropic"):
         backend = create_ai_backend(AISettings(provider="anthropic"))
     assert isinstance(backend, AnthropicBackend)
 
 
-def test_factory_returns_openai() -> None:
+def test_factory_returns_openai():
     with mock.patch("openai.AsyncOpenAI"):
         backend = create_ai_backend(AISettings(provider="openai", model="gpt-5.4"))
     assert isinstance(backend, OpenAIBackend)
 
 
-def test_factory_unknown_provider_raises() -> None:
+def test_factory_unknown_provider_raises():
     # Bypass AISettings validation to reach the factory's guard.
     fake = SimpleNamespace(provider="grok")
     with pytest.raises(ValueError, match="Unknown AI provider"):

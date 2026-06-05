@@ -1,4 +1,4 @@
-"""Unit tests for CrashOrchestrator (orchestrator.py) and exceptions.py."""
+"""Unit tests for CrashOrchestrator (orchestrator.py) and exceptions.py"""
 import pytest
 from unittest.mock import MagicMock
 
@@ -56,7 +56,7 @@ def test_storage_backend_error_is_wincrasherror():
 
 
 def test_mocked_pipeline_passes_raw_data_to_ai():
-    """Debugger output containing 'Access Violation' is forwarded to the AI."""
+    """Debugger output containing 'Access Violation' is forwarded to the AI"""
     debugger = MagicMock()
     ai = MagicMock()
     store = MagicMock()
@@ -90,7 +90,7 @@ def test_mocked_pipeline_passes_raw_data_to_ai():
 
 
 def test_storage_oserror_raises_storage_backend_error():
-    """An OSError from the storage backend is wrapped in StorageBackendError."""
+    """An OSError from the storage backend is wrapped in StorageBackendError"""
     debugger = MagicMock()
     ai = MagicMock()
     store = MagicMock()
@@ -113,7 +113,7 @@ def test_storage_oserror_raises_storage_backend_error():
 
 
 def test_ai_failure_persists_raw_data():
-    """When the AI backend fails, raw data is still saved to the store."""
+    """When the AI backend fails, raw data is still saved to the store"""
     debugger = MagicMock()
     ai = MagicMock()
     store = MagicMock()
@@ -141,7 +141,7 @@ def test_ai_failure_persists_raw_data():
 
 
 def test_sanitize_strips_fill_patterns():
-    """Hex fill patterns like 0xCCCCCCCC are stripped before AI inference."""
+    """Hex fill patterns like 0xCCCCCCCC are stripped before AI inference"""
     debugger = MagicMock()
     ai = MagicMock()
     store = MagicMock()

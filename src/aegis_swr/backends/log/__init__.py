@@ -5,14 +5,11 @@ Stage 4 when a service name and incident timestamp are both available.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from aegis_swr.backends.log.file_adapter import FileLogAdapter
 from aegis_swr.backends.log.fluent_adapter import FluentAdapter
 
-if TYPE_CHECKING:
-    from aegis_swr.backends.base import LogBackend
-    from aegis_swr.config.settings import LogBackendSettings
+from aegis_swr.backends.base import LogBackend
+from aegis_swr.config.settings import LogBackendSettings
 
 __all__ = [
     "FileLogAdapter",

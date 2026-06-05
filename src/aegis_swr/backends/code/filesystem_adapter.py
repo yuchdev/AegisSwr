@@ -13,30 +13,23 @@ import hashlib
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from loguru import logger
 
 from aegis_swr.backends.base import CodeBackend
 from aegis_swr.backends.code._paths import safe_repo_path
 from aegis_swr.core.schemas import BlameRecord, CommitRecord
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import CodeBackendSettings
+from aegis_swr.config.settings import CodeBackendSettings
 
 # Directories never worth walking for crash attribution.
 _PRUNE_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv"}
 
 
 class FilesystemCodeAdapter(CodeBackend):
-    """No-VCS fallback: directory walk + synthesized mtime "commits"."""
+    """No-VCS fallback: directory walk + synthesized mtime "commits"""
 
-    def __init__(self, settings: CodeBackendSettings) -> None:
+    def __init__(self, settings: CodeBackendSettings):
         self._settings = settings
-
-    # ------------------------------------------------------------------
-    # CodeBackend
-    # ------------------------------------------------------------------
 
     def get_commits_before(
         self,

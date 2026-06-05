@@ -11,12 +11,12 @@ Subscription is by event type and covers subclasses: subscribing to
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable
+from typing import Any, Callable
 
 from loguru import logger
 
-if TYPE_CHECKING:
-    from aegis_swr.core.schemas import AgentTurn, IncidentSource, RCAReport
+from aegis_swr.core.schemas import AgentTurn, IncidentSource, RCAReport
+
 
 # ---------------------------------------------------------------------------
 # Domain events
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class DomainEvent:
-    """Base class for all investigation events."""
+    """Base class for all investigation events"""
 
 
 @dataclass(frozen=True)
@@ -36,14 +36,14 @@ class InvestigationStarted(DomainEvent):
 
 @dataclass(frozen=True)
 class EvidenceExtracted(DomainEvent):
-    """Data Adapter finished: the incident brief is ready for the panel."""
+    """Data Adapter finished: the incident brief is ready for the panel"""
 
     brief: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class AgentSpoke(DomainEvent):
-    """One agent completed its turn in the current debate round."""
+    """One agent completed its turn in the current debate round"""
 
     node: str
     turn: AgentTurn
@@ -51,7 +51,7 @@ class AgentSpoke(DomainEvent):
 
 @dataclass(frozen=True)
 class ConsensusEvaluated(DomainEvent):
-    """Weighted consensus computed after a full debate round."""
+    """Weighted consensus computed after a full debate round"""
 
     score: float
     round_number: int | None = None
@@ -59,14 +59,14 @@ class ConsensusEvaluated(DomainEvent):
 
 @dataclass(frozen=True)
 class InvestigationCompleted(DomainEvent):
-    """The panel converged; the final report is available."""
+    """The panel converged; the final report is available"""
 
     report: RCAReport
 
 
 @dataclass(frozen=True)
 class HumanInputRequired(DomainEvent):
-    """Debate limit reached without consensus; the report carries a HITL request."""
+    """Debate limit reached without consensus; the report carries a HITL request"""
 
     report: RCAReport
 
@@ -86,7 +86,7 @@ class EventBus:
     investigation itself.
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._subscribers: dict[type[DomainEvent], list[Subscriber]] = {}
 
     def subscribe(
@@ -100,7 +100,7 @@ class EventBus:
         """
         self._subscribers.setdefault(event_type, []).append(callback)
 
-        def _unsubscribe() -> None:
+        def _unsubscribe():
             try:
                 self._subscribers[event_type].remove(callback)
             except (KeyError, ValueError):
@@ -108,8 +108,8 @@ class EventBus:
 
         return _unsubscribe
 
-    def publish(self, event: DomainEvent) -> None:
-        """Deliver *event* to every subscriber of its type or any base type."""
+    def publish(self, event: DomainEvent):
+        """Deliver *event* to every subscriber of its type or any base type"""
         for event_type in type(event).__mro__:
             if not issubclass(event_type, DomainEvent):
                 break

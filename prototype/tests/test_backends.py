@@ -1,4 +1,4 @@
-"""Tests for backend factories and abstract base classes."""
+"""Tests for backend factories and abstract base classes"""
 import pytest
 
 from wincrash_analyzer.backends.ai.factory import create_ai_backend

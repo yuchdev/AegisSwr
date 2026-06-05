@@ -1,4 +1,4 @@
-"""Gemini-specific AI backend implementation."""
+"""Gemini-specific AI backend implementation"""
 import google.generativeai as genai
 
 from wincrash_analyzer.backends.ai.base import AIBackendBase

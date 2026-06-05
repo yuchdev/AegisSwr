@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional
 
 from langgraph.graph import END, START, StateGraph
 from loguru import logger
@@ -42,35 +42,34 @@ from aegis_swr.core.schemas import (
     RCAReport,
 )
 
-if TYPE_CHECKING:
-    from aegis_swr.backends.base import (
-        AIAPIBackend,
-        CodeBackend,
-        DebugBackend,
-        LogBackend,
-        ObjectStore,
-        RelationalStore,
-        VectorStore,
-    )
-    from aegis_swr.config.settings import Settings
-    from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.backends.base import (
+    AIAPIBackend,
+    CodeBackend,
+    DebugBackend,
+    LogBackend,
+    ObjectStore,
+    RelationalStore,
+    VectorStore,
+)
+from aegis_swr.config.settings import Settings
+from aegis_swr.core.schemas import IncidentSource
 
 
 class Orchestrator:
-    """Assembles and drives the Synthetic War Room state graph."""
+    """Assembles and drives the Synthetic War Room state graph"""
 
     def __init__(
         self,
         settings: Settings,
         ai_backend: AIAPIBackend,
-        debug_backend: DebugBackend | None = None,
-        relational_store: RelationalStore | None = None,
-        object_store: ObjectStore | None = None,
-        vector_store: VectorStore | None = None,
-        log_backend: LogBackend | None = None,
-        code_backend: CodeBackend | None = None,
-        event_bus: EventBus | None = None,
-    ) -> None:
+        debug_backend: Optional[DebugBackend] = None,
+        relational_store: Optional[RelationalStore] = None,
+        object_store: Optional[ObjectStore] = None,
+        vector_store: Optional[VectorStore] = None,
+        log_backend: Optional[LogBackend] = None,
+        code_backend: Optional[CodeBackend] = None,
+        event_bus: Optional[EventBus] = None,
+    ):
         self._settings = settings
         self._bus = event_bus or EventBus()
         self._ai = ai_backend
@@ -95,7 +94,7 @@ class Orchestrator:
     # ------------------------------------------------------------------
 
     async def run(self, source: IncidentSource) -> RCAReport:
-        """Run the full investigation pipeline and return the final report."""
+        """Run the full investigation pipeline and return the final report"""
         # Deduplication gate — return cached report when available.
         if self._relational and source.dump_hash:
             cached = await self._relational.find_by_hash(source.dump_hash)
@@ -109,7 +108,7 @@ class Orchestrator:
 
     @property
     def events(self) -> EventBus:
-        """The bus on which this orchestrator publishes :class:`DomainEvent`s."""
+        """The bus on which this orchestrator publishes :class:`DomainEvent`s"""
         return self._bus
 
     async def stream_events(
@@ -138,7 +137,7 @@ class Orchestrator:
     def _events_from_update(
         node_name: str, update: dict[str, Any]
     ) -> list[DomainEvent]:
-        """Translate one LangGraph node update into domain events."""
+        """Translate one LangGraph node update into domain events"""
         events: list[DomainEvent] = []
         if node_name == "data_adapter_node" and "incident_brief" in update:
             events.append(EvidenceExtracted(brief=update["incident_brief"]))
@@ -194,7 +193,7 @@ class Orchestrator:
         incident_id: str,
         user_data: dict[str, Any],
     ) -> RCAReport:
-        """Resume a HITL-pending investigation with data supplied by the user."""
+        """Resume a HITL-pending investigation with data supplied by the user"""
         raise NotImplementedError(
             "continue_investigation requires Phase 6 storage backends. "
             "Implement after PostgresStore is available."
@@ -398,7 +397,7 @@ class Orchestrator:
         alt_hypotheses: list[Hypothesis] = []
         skeptic_challenges: list[str] = []
         mitigation: list[str] = []
-        probabilistic_fix: str | None = None
+        probabilistic_fix: Optional[str] = None
         for turn in history:
             if turn.agent == "Skeptic Agent":
                 for h in turn.hypotheses:
@@ -417,7 +416,7 @@ class Orchestrator:
         tracker = state.get("token_tracker") or {}
         rounds_completed = max(1, (state.get("round_number") or 2) - 1)
 
-        hitl_request: HITLRequest | None = None
+        hitl_request: Optional[HITLRequest] = None
         if hitl_pending:
             hitl_request = HITLRequest(
                 question=(

@@ -1,15 +1,12 @@
-"""Log Historian Agent — historical pattern correlator."""
+"""Log Historian Agent — historical pattern correlator"""
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
 
 from aegis_swr.agents.base import BaseAgent
 from aegis_swr.core.schemas import AgentTurn, LogHistorianOutput
-
-if TYPE_CHECKING:
-    from aegis_swr.backends.base import VectorStore
-    from aegis_swr.core.schemas import InvestigationState
+from aegis_swr.backends.base import VectorStore
+from aegis_swr.core.schemas import InvestigationState
 
 _SYSTEM_PROMPT = """\
 You are a production incident historian. You analyze temporal log patterns, \
@@ -61,7 +58,7 @@ class LogHistorianAgent(BaseAgent):
                             "confidence": inc.confidence_score,
                         }
                     )
-            except Exception:  # noqa: BLE001 — vector store may not be ready yet
+            except Exception:
                 pass
 
         # Find the Code Analyst output for this round.

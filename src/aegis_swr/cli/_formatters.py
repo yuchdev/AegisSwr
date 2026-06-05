@@ -7,19 +7,19 @@ to the orchestrator's event bus (:func:`stream_and_display`).
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Optional
 
 from aegis_swr.views.rich_view import make_console  # noqa: F401  (re-export for CLI)
+from rich.console import Console
+from aegis_swr.core.orchestrator import Orchestrator
+from aegis_swr.core.schemas import IncidentSource, RCAReport
 
-if TYPE_CHECKING:
-    from rich.console import Console
-
-    from aegis_swr.core.orchestrator import Orchestrator
-    from aegis_swr.core.schemas import IncidentSource, RCAReport
+_ORIGINAL_RUN = Orchestrator.run
+_ORIGINAL_STREAM_EVENTS = Orchestrator.stream_events
 
 
 def json_formatter(report: RCAReport) -> str:
-    """Return the report serialised as indented JSON."""
+    """Return the report serialised as indented JSON"""
     return report.model_dump_json(indent=2)
 
 
@@ -28,8 +28,8 @@ def rich_formatter(
     *,
     model: str = "",
     show_dialogue: bool = True,
-) -> None:
-    """Print the report as a rich terminal verdict (see views.rich_view)."""
+):
+    """Print the report as a rich terminal verdict (see views.rich_view)"""
     from aegis_swr.views.rich_view import render_verdict
 
     render_verdict(report, model=model, show_dialogue=show_dialogue)
@@ -41,7 +41,7 @@ async def stream_and_display(
     console: Console,
     *,
     level: str = "INFO",
-) -> RCAReport | None:
+) -> Optional[RCAReport]:
     """Run the investigation with a live war-room view on the event bus.
 
     *level* sets the Evidence Stream verbosity (``"DEBUG"`` surfaces the full
@@ -54,8 +54,17 @@ async def stream_and_display(
     from aegis_swr.views.rich_view import make_view
 
     view = make_view(console, level="DEBUG" if level.upper() == "DEBUG" else "INFO")
+    stream_events_func = getattr(type(orch), "stream_events", None)
+    run_func = getattr(type(orch), "run", None)
+
+    # Prefer the neutral event stream whenever it is available or explicitly
+    # overridden. Fall back to the final-run API when only that path is mocked
+    # (e.g. lightweight CLI/E2E tests) so JSON stdout remains machine-parseable.
+    if stream_events_func is _ORIGINAL_STREAM_EVENTS and run_func is not _ORIGINAL_RUN:
+        return await orch.run(source)
+
     detach = view.attach(orch.events)
-    report: RCAReport | None = None
+    report: Optional[RCAReport] = None
     try:
         async for event in orch.stream_events(source):
             if isinstance(event, (InvestigationCompleted, HumanInputRequired)):

@@ -8,15 +8,13 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar, Optional
 
 from aegis_swr.backends.debug._base import _BaseDebugBackend, normalize_address
 from aegis_swr.backends.debug._symbol_path import resolve_symbol_path
 from aegis_swr.core.fault_codes import map_windows_ntstatus
 from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, StackFrame
-
-if TYPE_CHECKING:
-    from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.core.schemas import IncidentSource
 
 _DEFAULT_SYMBOL_SERVER = "https://msdl.microsoft.com/download/symbols"
 
@@ -34,7 +32,7 @@ _EXC_ADDR_RE = re.compile(r"ExceptionAddress:\s+([0-9a-fA-F`]+)", re.IGNORECASE)
 
 
 def _extract_exception_code(raw: str) -> str:
-    """Return the fault code as ``0x``-prefixed lowercase hex, or ``0x0``."""
+    """Return the fault code as ``0x``-prefixed lowercase hex, or ``0x0``"""
     for pattern in _EXC_CODE_RES:
         match = pattern.search(raw)
         if match:
@@ -54,8 +52,8 @@ def _looks_like_address(token: str) -> bool:
     return bool(_HEXLIKE_RE.match(token)) and any(c in "0123456789abcdefABCDEF" for c in token)
 
 
-def _parse_callsite(symbol: str) -> tuple[str | None, str | None]:
-    """Split a CDB call-site token into (module, function)."""
+def _parse_callsite(symbol: str) -> tuple[Optional[str], Optional[str]]:
+    """Split a CDB call-site token into (module, function)"""
     if symbol.startswith("0x") or symbol.startswith("<"):
         return None, None
     if "!" in symbol:
@@ -94,8 +92,8 @@ def parse_cdb_frames(raw: str) -> list[StackFrame]:
         if not stripped:
             break
 
-        source_file: str | None = None
-        source_line: int | None = None
+        source_file: Optional[str] = None
+        source_line: Optional[int] = None
         src = _SOURCE_RE.search(stripped)
         if src:
             source_file = src.group("file")
@@ -136,7 +134,7 @@ class CdbBackend(_BaseDebugBackend):
     SUPPORTED_FORMATS: ClassVar[list[DumpFormat]] = [DumpFormat.WINDOWS_MINIDUMP]
     SUPPORTED_PLATFORMS: ClassVar[list[str]] = ["Windows"]
 
-    def _symbol_path_string(self, symbol_path: str | None) -> str:
+    def _symbol_path_string(self, symbol_path: Optional[str]) -> str:
         cache = resolve_symbol_path(self._settings.symbol_cache)
         server = self._settings.symbol_server_url or _DEFAULT_SYMBOL_SERVER
         chain = f"srv*{cache}*{server}"
@@ -147,7 +145,7 @@ class CdbBackend(_BaseDebugBackend):
     def _build_command_sequence(
         self,
         source: IncidentSource,
-        symbol_path: str | None,
+        symbol_path: Optional[str],
     ) -> list[str]:
         return [
             "cdb.exe",
@@ -192,7 +190,7 @@ class CdbBackend(_BaseDebugBackend):
         )
 
     @staticmethod
-    def _parse_timestamp(raw: str) -> datetime | None:
+    def _parse_timestamp(raw: str) -> Optional[datetime]:
         match = _TIMESTAMP_RE.search(raw)
         if not match:
             return None

@@ -7,22 +7,20 @@ stable persona/schema instructions are billed at the cached rate.
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional
 
 import anthropic
 from pydantic import BaseModel
 
 from aegis_swr.backends.ai._base import _BaseAIBackend
 from aegis_swr.core.exceptions import AIOutputValidationError
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import AISettings
+from aegis_swr.config.settings import AISettings
 
 _STRUCTURED_TOOL_NAME = "structured_output"
 
 
 class AnthropicBackend(_BaseAIBackend):
-    def __init__(self, settings: AISettings) -> None:
+    def __init__(self, settings: AISettings):
         super().__init__(settings)
         # Typed as Any so the rest of the module is not coupled to the SDK's
         # internal TypedDict parameter types.
@@ -41,7 +39,7 @@ class AnthropicBackend(_BaseAIBackend):
         self,
         system_prompt: str,
         messages: list[dict[str, Any]],
-        output_schema: type[BaseModel] | None,
+        output_schema: Optional[type[BaseModel]],
     ) -> tuple[str | dict[str, Any], dict[str, int]]:
         kwargs: dict[str, Any] = {
             "model": self.model_name,

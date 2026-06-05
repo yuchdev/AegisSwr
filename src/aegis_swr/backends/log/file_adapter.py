@@ -11,15 +11,12 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from loguru import logger
 
 from aegis_swr.backends.base import LogBackend
 from aegis_swr.core.data_adapter import _parse_timestamp, _severity_token
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import LogBackendSettings
+from aegis_swr.config.settings import LogBackendSettings
 
 
 def _safe_under(base: Path, candidate: Path) -> bool:
@@ -27,9 +24,9 @@ def _safe_under(base: Path, candidate: Path) -> bool:
 
 
 class FileLogAdapter(LogBackend):
-    """Reads windowed, severity-filtered log lines from local files."""
+    """Reads windowed, severity-filtered log lines from local files"""
 
-    def __init__(self, settings: LogBackendSettings) -> None:
+    def __init__(self, settings: LogBackendSettings):
         self._settings = settings
 
     async def query_window(

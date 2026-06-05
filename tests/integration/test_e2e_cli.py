@@ -1,4 +1,4 @@
-"""E2E integration test: runs `aegis analyze` in-process with mocked Orchestrator."""
+"""E2E integration test: runs `aegis analyze` in-process with mocked Orchestrator"""
 from __future__ import annotations
 
 import json
@@ -54,7 +54,7 @@ async def _mock_run(self: object, source: object) -> RCAReport:  # type: ignore[
 # ---------------------------------------------------------------------------
 
 
-def test_e2e_analyze_json_output(tmp_path: Path) -> None:
+def test_e2e_analyze_json_output(tmp_path: Path):
     dump = _write_dump(tmp_path)
     with mock.patch(_MOCK_RUN, _mock_run):
         result = runner.invoke(app, [
@@ -78,7 +78,7 @@ def test_e2e_analyze_json_output(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_e2e_analyze_rich_output(tmp_path: Path) -> None:
+def test_e2e_analyze_rich_output(tmp_path: Path):
     dump = _write_dump(tmp_path)
     with mock.patch(_MOCK_RUN, _mock_run):
         result = runner.invoke(app, [
@@ -98,7 +98,7 @@ def test_e2e_analyze_rich_output(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_e2e_analyze_log_only_mode(tmp_path: Path) -> None:
+def test_e2e_analyze_log_only_mode(tmp_path: Path):
     log_file = tmp_path / "app.log"
     log_file.write_text("2026-05-30T14:02:11 FATAL unhandled exception\n")
 
@@ -125,8 +125,8 @@ def test_e2e_analyze_log_only_mode(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_e2e_config_roundtrip(tmp_path: Path) -> None:
-    """Save options to JSON config, reload them, run with the stored values."""
+def test_e2e_config_roundtrip(tmp_path: Path):
+    """Save options to JSON config, reload them, run with the stored values"""
     dump = _write_dump(tmp_path)
     config_file = tmp_path / "cfg.json"
 

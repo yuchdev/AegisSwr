@@ -27,7 +27,7 @@ def _encoder() -> Any | None:
 
 
 def count_tokens(text: str) -> int:
-    """Return the token count for ``text`` (heuristic if tiktoken is unavailable)."""
+    """Return the token count for ``text`` (heuristic if tiktoken is unavailable)"""
     if not text:
         return 0
     enc = _encoder()

@@ -19,7 +19,7 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import Callable, Literal
 
 from rich.console import Console, Group, RenderableType
 from rich.layout import Layout
@@ -45,15 +45,13 @@ from aegis_swr.core.events import (
     InvestigationStarted,
 )
 from aegis_swr.core.schemas import ConfidenceLevel
-from aegis_swr.views._evidence_detail import (
+from aegis_swr.views.evidence_detail import (
     describe_log_window,
     file_properties,
     pcap_metadata,
 )
-
-if TYPE_CHECKING:
-    from aegis_swr.core.events import DomainEvent, EventBus
-    from aegis_swr.core.schemas import AgentTurn, IncidentSource, RCAReport
+from aegis_swr.core.events import DomainEvent, EventBus
+from aegis_swr.core.schemas import AgentTurn, IncidentSource, RCAReport
 
 
 def make_console(*, stderr: bool = False) -> Console:
@@ -100,12 +98,12 @@ _AGENT_ACTIVITY: dict[str, str] = {
 
 
 def _spinner_char(elapsed: float) -> str:
-    """Return the spinner frame for *elapsed* seconds (advances at ~10 Hz)."""
+    """Return the spinner frame for *elapsed* seconds (advances at ~10 Hz)"""
     return SPINNER_FRAMES[round(elapsed * 10) % len(SPINNER_FRAMES)]
 
 
 def _fmt_elapsed(seconds: float) -> str:
-    """Format *seconds* as ``H:MM:SS`` (e.g. ``0:01:42``)."""
+    """Format *seconds* as ``H:MM:SS`` (e.g. ``0:01:42``)"""
     total = int(seconds)
     h, rem = divmod(total, 3600)
     m, s = divmod(rem, 60)
@@ -113,14 +111,14 @@ def _fmt_elapsed(seconds: float) -> str:
 
 
 def _fmt_stamp(seconds: float) -> str:
-    """Format *seconds* as ``MM:SS`` for evidence line timestamps."""
+    """Format *seconds* as ``MM:SS`` for evidence line timestamps"""
     total = int(seconds)
     m, s = divmod(total, 60)
     return f"{m:02d}:{s:02d}"
 
 
 def _truncate(text: str, width: int) -> str:
-    """Clip *text* to *width* columns, appending ``…`` when shortened."""
+    """Clip *text* to *width* columns, appending ``…`` when shortened"""
     if len(text) < width:
         return text
     if width <= 1:
@@ -133,7 +131,7 @@ def _conf_color(score: float) -> str:
 
 
 def _confidence_bar(score: float, width: int = 24) -> Text:
-    """Render a unicode confidence bar: ``████████░░░░ 67%``."""
+    """Render a unicode confidence bar: ``████████░░░░ 67%``"""
     filled = max(0, min(width, round(score * width)))
     color = _conf_color(score)
     bar = Text()
@@ -144,7 +142,7 @@ def _confidence_bar(score: float, width: int = 24) -> Text:
 
 
 def _bar(ratio: float, width: int, color: str) -> Text:
-    """A plain filled/empty bar (no percent suffix)."""
+    """A plain filled/empty bar (no percent suffix)"""
     filled = max(0, min(width, round(ratio * width)))
     bar = Text()
     bar.append("█" * filled, style=color)
@@ -167,7 +165,7 @@ _DEBUG_EXCERPT_LINES = 40
 
 @dataclass
 class AgentState:
-    """Live state for one forensic agent sub-panel."""
+    """Live state for one forensic agent sub-panel"""
 
     status: Literal["STANDBY", "ANALYZING", "REVIEWING", "DONE"] = "STANDBY"
     confidence: float = 0.0
@@ -176,7 +174,7 @@ class AgentState:
 
 @dataclass
 class _EvidenceLine:
-    """One Evidence Stream entry tagged with the verbosity it belongs to."""
+    """One Evidence Stream entry tagged with the verbosity it belongs to"""
 
     level: EvidenceLevel
     text: Text
@@ -199,7 +197,7 @@ class WarRoomView:
         *,
         auto_refresh: bool = True,
         level: EvidenceLevel = "INFO",
-    ) -> None:
+    ):
         self._console = console or make_console()
         self._auto_refresh = auto_refresh
         self._level: EvidenceLevel = "DEBUG" if str(level).upper() == "DEBUG" else "INFO"
@@ -226,7 +224,7 @@ class WarRoomView:
     # -- attachment ---------------------------------------------------------
 
     def attach(self, bus: EventBus) -> Callable[[], None]:
-        """Subscribe to *bus*; returns a detach function."""
+        """Subscribe to *bus*; returns a detach function"""
         unsubscribers = [
             bus.subscribe(InvestigationStarted, self._on_started),
             bus.subscribe(EvidenceExtracted, self._on_evidence),
@@ -236,7 +234,7 @@ class WarRoomView:
             bus.subscribe(HumanInputRequired, self._on_hitl),
         ]
 
-        def _detach() -> None:
+        def _detach():
             for unsubscribe in unsubscribers:
                 unsubscribe()
             self._stop_live()
@@ -245,7 +243,7 @@ class WarRoomView:
 
     # -- event handlers -----------------------------------------------------
 
-    def _on_started(self, event: DomainEvent) -> None:
+    def _on_started(self, event: DomainEvent):
         assert isinstance(event, InvestigationStarted)
         source = event.source
         self._source = source
@@ -280,7 +278,7 @@ class WarRoomView:
         )
         self._live.start()
 
-    def _on_evidence(self, event: DomainEvent) -> None:
+    def _on_evidence(self, event: DomainEvent):
         assert isinstance(event, EvidenceExtracted)
         brief = event.brief
 
@@ -306,7 +304,7 @@ class WarRoomView:
         self._wake("OS Kernel Agent")
         self._refresh()
 
-    def _emit_debug_evidence(self, brief: dict[str, object]) -> None:
+    def _emit_debug_evidence(self, brief: dict[str, object]):
         """Append the verbose, DEBUG-only evidence metadata for one incident.
 
         Surfaces the four detailed evidence categories on top of the curated
@@ -379,7 +377,7 @@ class WarRoomView:
             for detail in _format_pcap(raw_path):
                 self._add_evidence(Text(f"    │ {detail}", style="grey62"), level="DEBUG")
 
-    def _on_agent(self, event: DomainEvent) -> None:
+    def _on_agent(self, event: DomainEvent):
         assert isinstance(event, AgentSpoke)
         turn = event.turn
 
@@ -416,7 +414,7 @@ class WarRoomView:
             self._status = "Weighing panel consensus…"
         self._refresh()
 
-    def _on_consensus(self, event: DomainEvent) -> None:
+    def _on_consensus(self, event: DomainEvent):
         assert isinstance(event, ConsensusEvaluated)
         score = event.score
         level = ConfidenceLevel.from_score(score)
@@ -437,7 +435,7 @@ class WarRoomView:
         self._advance()
         self._refresh()
 
-    def _on_completed(self, event: DomainEvent) -> None:
+    def _on_completed(self, event: DomainEvent):
         if self._consensus_history:
             self._consensus_history[-1]["converged"] = True
         for state in self._agents.values():
@@ -445,7 +443,7 @@ class WarRoomView:
         self._stamp("✔  investigation complete", style="bold green")
         self._finalize()
 
-    def _on_hitl(self, event: DomainEvent) -> None:
+    def _on_hitl(self, event: DomainEvent):
         if self._consensus_history:
             self._consensus_history[-1]["converged"] = False
         self._stamp("⚠  human input required", style="bold red")
@@ -460,12 +458,12 @@ class WarRoomView:
     def _plain(self, text: str) -> Text:
         return Text(text)
 
-    def _add_evidence(self, line: Text, *, level: EvidenceLevel = "INFO") -> None:
+    def _add_evidence(self, line: Text, *, level: EvidenceLevel = "INFO"):
         self._evidence_lines.append(_EvidenceLine(level=level, text=line))
         if len(self._evidence_lines) > self._MAX_EVIDENCE:
             del self._evidence_lines[: -self._MAX_EVIDENCE]
 
-    def _stamp(self, message: str, *, style: str = "", level: EvidenceLevel = "INFO") -> None:
+    def _stamp(self, message: str, *, style: str = "", level: EvidenceLevel = "INFO"):
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(message, style=style)
         self._add_evidence(line, level=level)
@@ -477,23 +475,23 @@ class WarRoomView:
         value_style: str,
         *,
         level: EvidenceLevel = "INFO",
-    ) -> None:
+    ):
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(f"{label:<13}", style="dim")
         line.append(value, style=value_style)
         self._add_evidence(line, level=level)
 
-    def _wake(self, name: str) -> None:
+    def _wake(self, name: str):
         state = self._agents.get(name)
         if state is not None and state.status != "DONE":
             state.status = "ANALYZING"
         self._status = _AGENT_ACTIVITY.get(name, "Deliberating…")
         self._advance()
 
-    def _advance(self) -> None:
+    def _advance(self):
         self._stage = min(self._stage + 1, self._stage_total)
 
-    def _finalize(self) -> None:
+    def _finalize(self):
         self._finished = True
         self._stage = self._stage_total
         self._refresh()
@@ -617,18 +615,18 @@ class WarRoomView:
             border_style="grey37",
         )
 
-    def _refresh(self) -> None:
+    def _refresh(self):
         if self._live is not None:
             self._live.refresh()
 
-    def _stop_live(self) -> None:
+    def _stop_live(self):
         if self._live is not None:
             self._live.stop()
             self._live = None
 
 
 def _agent_badge(status: str, elapsed: float) -> tuple[str, str, str]:
-    """Return (badge_text, style, line-marker) for an agent status."""
+    """Return (badge_text, style, line-marker) for an agent status"""
     if status == "ANALYZING":
         return "ANALYZING", "bold cyan", _spinner_char(elapsed)
     if status == "REVIEWING":
@@ -639,7 +637,7 @@ def _agent_badge(status: str, elapsed: float) -> tuple[str, str, str]:
 
 
 def _format_frame(frame: dict[str, object]) -> str:
-    """Render a stack frame with module/source detail for the DEBUG stream."""
+    """Render a stack frame with module/source detail for the DEBUG stream"""
     module = frame.get("module")
     function = frame.get("function")
     if module and function:
@@ -657,7 +655,7 @@ def _format_frame(frame: dict[str, object]) -> str:
 
 
 def _format_pcap(raw_path: str) -> list[str]:
-    """Render network-capture metadata lines for the DEBUG stream."""
+    """Render network-capture metadata lines for the DEBUG stream"""
     info = pcap_metadata(raw_path)
     if info.container != "pcap":
         return [f"{info.container}: {info.note}" if info.note else info.container]
@@ -698,7 +696,7 @@ def _consensus_row(row: dict[str, object]) -> Text:
 
 
 def _agent_trail_line(turn: AgentTurn, elapsed: float) -> Text:
-    """One compact line for a completed agent turn in the live trail."""
+    """One compact line for a completed agent turn in the live trail"""
     color = _conf_color(turn.confidence_score)
     line = Text("  ")
     line.append("✔ ", style="bold green")
@@ -710,7 +708,7 @@ def _agent_trail_line(turn: AgentTurn, elapsed: float) -> Text:
 
 
 def _turn_summary(turn: AgentTurn, limit: int = 96) -> Text:
-    """A single dim line previewing what the agent concluded."""
+    """A single dim line previewing what the agent concluded"""
     first_line = turn.message.strip().splitlines()[0] if turn.message.strip() else ""
     if len(first_line) > limit:
         first_line = first_line[: limit - 1] + "…"
@@ -735,7 +733,7 @@ class RichView:
     :class:`WarRoomView` would not fit.
     """
 
-    def __init__(self, console: Console | None = None) -> None:
+    def __init__(self, console: Console | None = None):
         self._console = console or make_console()
         self._trail: list[RenderableType] = []
         self._live: Live | None = None
@@ -748,7 +746,7 @@ class RichView:
         self._stage_started = 0.0
 
     def attach(self, bus: EventBus) -> Callable[[], None]:
-        """Subscribe to *bus*; returns a detach function."""
+        """Subscribe to *bus*; returns a detach function"""
         unsubscribers = [
             bus.subscribe(InvestigationStarted, self._on_started),
             bus.subscribe(EvidenceExtracted, self._on_evidence),
@@ -758,7 +756,7 @@ class RichView:
             bus.subscribe(HumanInputRequired, self._on_finished),
         ]
 
-        def _detach() -> None:
+        def _detach():
             for unsubscribe in unsubscribers:
                 unsubscribe()
             self._stop_live()
@@ -767,7 +765,7 @@ class RichView:
 
     # -- event handlers -----------------------------------------------------
 
-    def _on_started(self, event: DomainEvent) -> None:
+    def _on_started(self, event: DomainEvent):
         assert isinstance(event, InvestigationStarted)
         source = event.source
         target = (
@@ -808,7 +806,7 @@ class RichView:
         self._live = Live(self._render(), console=self._console, refresh_per_second=12)
         self._live.start()
 
-    def _on_evidence(self, event: DomainEvent) -> None:
+    def _on_evidence(self, event: DomainEvent):
         assert isinstance(event, EvidenceExtracted)
         brief = event.brief
         elapsed = time.monotonic() - self._stage_started
@@ -827,7 +825,7 @@ class RichView:
         self._set_status(_NEXT_STATUS["data_adapter_node"])
         self._refresh()
 
-    def _on_agent(self, event: DomainEvent) -> None:
+    def _on_agent(self, event: DomainEvent):
         assert isinstance(event, AgentSpoke)
         turn = event.turn
         elapsed = time.monotonic() - self._stage_started
@@ -847,7 +845,7 @@ class RichView:
         self._set_status(_NEXT_STATUS.get(event.node, "Deliberating…"))
         self._refresh()
 
-    def _on_consensus(self, event: DomainEvent) -> None:
+    def _on_consensus(self, event: DomainEvent):
         assert isinstance(event, ConsensusEvaluated)
         score = event.score
         level = ConfidenceLevel.from_score(score).value.upper()
@@ -861,7 +859,7 @@ class RichView:
         self._set_status("Reviewing consensus — deciding next step…")
         self._refresh()
 
-    def _on_finished(self, event: DomainEvent) -> None:
+    def _on_finished(self, event: DomainEvent):
         if self._progress is not None and self._task_id is not None:
             self._progress.update(self._task_id, completed=self._stages_total)
         self._progress = None
@@ -870,7 +868,7 @@ class RichView:
 
     # -- rendering ------------------------------------------------------------
 
-    def _set_status(self, message: str) -> None:
+    def _set_status(self, message: str):
         if self._progress is not None and self._task_id is not None:
             self._progress.update(self._task_id, description=message, advance=1)
         self._stage_started = time.monotonic()
@@ -882,11 +880,11 @@ class RichView:
             items.append(self._progress)
         return Group(*items)
 
-    def _refresh(self) -> None:
+    def _refresh(self):
         if self._live is not None:
             self._live.update(self._render())
 
-    def _stop_live(self) -> None:
+    def _stop_live(self):
         if self._live is not None:
             self._live.stop()
             self._live = None
@@ -967,7 +965,7 @@ def render_verdict(
     console: Console | None = None,
     model: str = "",
     show_dialogue: bool = False,  # noqa: ARG001 — kept for CLI signature compatibility
-) -> None:
+):
     """Print the final report as a single prototype-style verdict frame.
 
     A converged investigation renders a green ``AI Root Cause Analysis`` panel

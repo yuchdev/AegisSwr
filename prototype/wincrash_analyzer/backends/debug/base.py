@@ -1,4 +1,4 @@
-"""Abstract Base Class for debugger backends."""
+"""Abstract Base Class for debugger backends"""
 from abc import ABC, abstractmethod
 
 

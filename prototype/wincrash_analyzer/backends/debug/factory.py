@@ -1,4 +1,4 @@
-"""Factory for debugger backend instantiation."""
+"""Factory for debugger backend instantiation"""
 from wincrash_analyzer.backends.debug.base import DebugBackendBase
 from wincrash_analyzer.config import get_option
 

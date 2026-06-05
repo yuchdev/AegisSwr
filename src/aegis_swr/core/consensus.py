@@ -6,17 +6,14 @@ that agent in the current round.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import AgentWeightsSettings
-    from aegis_swr.core.fault_codes import FaultClass
+from aegis_swr.config.settings import AgentWeightsSettings
+from aegis_swr.core.fault_codes import FaultClass
 
 _AGENT_KEYS = ("os_kernel", "code_analyst", "log_historian", "skeptic")
 
 
 class ConsensusEvaluator:
-    def __init__(self, weights: AgentWeightsSettings) -> None:
+    def __init__(self, weights: AgentWeightsSettings):
         self._weights = weights
 
     def calculate(
@@ -51,7 +48,7 @@ class ConsensusEvaluator:
         threshold: float,
         same_hypothesis: bool,
     ) -> bool:
-        """Return True when the round score meets threshold on a stable hypothesis."""
+        """Return True when the round score meets threshold on a stable hypothesis"""
         return score >= threshold and same_hypothesis
 
     def is_deadlocked(
@@ -61,5 +58,5 @@ class ConsensusEvaluator:
         max_rounds: int,
         hitl_threshold: float,
     ) -> bool:
-        """Return True when we've exhausted debate rounds with insufficient confidence."""
+        """Return True when we've exhausted debate rounds with insufficient confidence"""
         return round_num >= max_rounds and score < hitl_threshold

@@ -1,14 +1,12 @@
-"""Code Analyst Agent — software architecture and logic error specialist."""
+"""Code Analyst Agent — software architecture and logic error specialist"""
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
 
 from aegis_swr.agents.base import BaseAgent
 from aegis_swr.core.schemas import AgentTurn, CodeAnalystOutput, Hypothesis
 
-if TYPE_CHECKING:
-    from aegis_swr.core.schemas import InvestigationState
+from aegis_swr.core.schemas import InvestigationState
 
 _SYSTEM_PROMPT = """\
 You are a senior software engineer specialized in debugging algorithmic flaws, \

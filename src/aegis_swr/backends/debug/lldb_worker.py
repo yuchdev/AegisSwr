@@ -6,14 +6,12 @@ and maps Mach exception types to :class:`FaultClass`.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 from aegis_swr.backends.debug._base import _BaseDebugBackend, normalize_address
 from aegis_swr.core.fault_codes import FaultClass, map_macos_exception
 from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, StackFrame
-
-if TYPE_CHECKING:
-    from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.core.schemas import IncidentSource
 
 # Mach exception name -> type code (matches fault_codes._MACOS_EXCEPTION_MAP).
 _EXCEPTION_CODES = {

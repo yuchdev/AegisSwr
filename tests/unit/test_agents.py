@@ -1,4 +1,4 @@
-"""Unit tests for the four Synthetic War Room agents."""
+"""Unit tests for the four Synthetic War Room agents"""
 from __future__ import annotations
 
 from typing import Any
@@ -115,7 +115,7 @@ def _skeptic_rejected() -> SkepticVerdict:
 # ---------------------------------------------------------------------------
 
 
-async def test_os_kernel_requests_correct_schema(settings: Settings) -> None:
+async def test_os_kernel_requests_correct_schema(settings: Settings):
     ai = MockAIBackend(responses=[_os_kernel_response()])
     agent = OSKernelAgent(ai, settings)
     turn = await agent.run(_base_state())
@@ -126,7 +126,7 @@ async def test_os_kernel_requests_correct_schema(settings: Settings) -> None:
     assert ai.calls[0]["schema"] is OSKernelOutput
 
 
-async def test_os_kernel_prepends_low_symbol_warning(settings: Settings) -> None:
+async def test_os_kernel_prepends_low_symbol_warning(settings: Settings):
     ai = MockAIBackend(responses=[_os_kernel_response()])
     agent = OSKernelAgent(ai, settings)
     state = _base_state()
@@ -136,7 +136,7 @@ async def test_os_kernel_prepends_low_symbol_warning(settings: Settings) -> None
     assert "LOW SYMBOL COVERAGE" in sent_content
 
 
-async def test_os_kernel_injects_skeptic_corrections_on_round_2(settings: Settings) -> None:
+async def test_os_kernel_injects_skeptic_corrections_on_round_2(settings: Settings):
     ai = MockAIBackend(responses=[_os_kernel_response()])
     agent = OSKernelAgent(ai, settings)
     skeptic_turn = AgentTurn(
@@ -160,7 +160,7 @@ async def test_os_kernel_injects_skeptic_corrections_on_round_2(settings: Settin
 # ---------------------------------------------------------------------------
 
 
-async def test_code_analyst_requests_correct_schema(settings: Settings) -> None:
+async def test_code_analyst_requests_correct_schema(settings: Settings):
     ai = MockAIBackend(responses=[_code_analyst_response()])
     agent = CodeAnalystAgent(ai, settings)
     os_turn = AgentTurn(
@@ -174,7 +174,7 @@ async def test_code_analyst_requests_correct_schema(settings: Settings) -> None:
     assert ai.calls[0]["schema"] is CodeAnalystOutput
 
 
-async def test_code_analyst_includes_user_assumption(settings: Settings) -> None:
+async def test_code_analyst_includes_user_assumption(settings: Settings):
     ai = MockAIBackend(responses=[_code_analyst_response()])
     agent = CodeAnalystAgent(ai, settings)
     state = _base_state()
@@ -189,7 +189,7 @@ async def test_code_analyst_includes_user_assumption(settings: Settings) -> None
 # ---------------------------------------------------------------------------
 
 
-async def test_log_historian_requests_correct_schema(settings: Settings) -> None:
+async def test_log_historian_requests_correct_schema(settings: Settings):
     ai = MockAIBackend(responses=[_log_historian_response()])
     agent = LogHistorianAgent(ai, settings)
     turn = await agent.run(_base_state())
@@ -202,7 +202,7 @@ async def test_log_historian_requests_correct_schema(settings: Settings) -> None
 # ---------------------------------------------------------------------------
 
 
-async def test_skeptic_confirmed_sets_high_confidence(settings: Settings) -> None:
+async def test_skeptic_confirmed_sets_high_confidence(settings: Settings):
     ai = MockAIBackend(responses=[_skeptic_confirmed()])
     agent = SkepticAgent(ai, settings)
     state = _base_state(
@@ -213,7 +213,7 @@ async def test_skeptic_confirmed_sets_high_confidence(settings: Settings) -> Non
     assert turn.confidence_score >= 0.65   # MEDIUM or HIGH
 
 
-async def test_skeptic_rejected_sets_low_confidence(settings: Settings) -> None:
+async def test_skeptic_rejected_sets_low_confidence(settings: Settings):
     ai = MockAIBackend(responses=[_skeptic_rejected()])
     agent = SkepticAgent(ai, settings)
     state = _base_state(
@@ -229,7 +229,7 @@ async def test_skeptic_rejected_sets_low_confidence(settings: Settings) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_skeptic_fails_prechecks_without_llm_call(settings: Settings) -> None:
+async def test_skeptic_fails_prechecks_without_llm_call(settings: Settings):
     ai = MockAIBackend()  # empty responses — any call would raise
     agent = SkepticAgent(ai, settings)
     state = _base_state(
@@ -246,7 +246,7 @@ async def test_skeptic_fails_prechecks_without_llm_call(settings: Settings) -> N
     assert len(ai.calls) == 0
 
 
-async def test_skeptic_skips_precheck_when_no_primary_hypothesis(settings: Settings) -> None:
+async def test_skeptic_skips_precheck_when_no_primary_hypothesis(settings: Settings):
     ai = MockAIBackend(responses=[_skeptic_confirmed()])
     agent = SkepticAgent(ai, settings)
     # No primary_hypothesis → pre-check cannot run → falls through to LLM.
@@ -260,7 +260,7 @@ async def test_skeptic_skips_precheck_when_no_primary_hypothesis(settings: Setti
 # ---------------------------------------------------------------------------
 
 
-async def test_token_tracker_accumulated_in_state(settings: Settings) -> None:
+async def test_token_tracker_accumulated_in_state(settings: Settings):
     ai = MockAIBackend(
         responses=[_os_kernel_response()],
         usage={"input_tokens": 300, "output_tokens": 50},

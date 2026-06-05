@@ -29,14 +29,14 @@ from aegis_swr.core.schemas import (
 # ---------------------------------------------------------------------------
 
 
-def test_incident_source_minimal() -> None:
+def test_incident_source_minimal():
     src = IncidentSource(mode=IncidentMode.CRASH_DUMP)
     assert src.mode == IncidentMode.CRASH_DUMP
     assert src.dump_path is None
     assert src.log_paths == []
 
 
-def test_incident_source_with_all_fields() -> None:
+def test_incident_source_with_all_fields():
     src = IncidentSource(
         mode=IncidentMode.LOG_FORENSICS,
         incident_timestamp=datetime(2026, 5, 30, 14, 2, 11, tzinfo=timezone.utc),
@@ -54,7 +54,7 @@ def test_incident_source_with_all_fields() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_stack_frame_resolved() -> None:
+def test_stack_frame_resolved():
     frame = StackFrame(
         frame_number=0,
         module="db_writer.dll",
@@ -66,13 +66,13 @@ def test_stack_frame_resolved() -> None:
     assert frame.function == "db_writer::serialize"
 
 
-def test_stack_frame_unresolved() -> None:
+def test_stack_frame_unresolved():
     frame = StackFrame(frame_number=1, instruction_address="0x00007ff8ab12c3f1")
     assert frame.module is None
     assert frame.function is None
 
 
-def test_debug_extraction_result_defaults() -> None:
+def test_debug_extraction_result_defaults():
     result = DebugExtractionResult(
         fault_class=FaultClass.MEMORY_ACCESS_VIOLATION,
         exception_code_raw="0xC0000005",
@@ -87,7 +87,7 @@ def test_debug_extraction_result_defaults() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_hypothesis_creation() -> None:
+def test_hypothesis_creation():
     h = Hypothesis(
         root_cause="Null pointer dereference in serialize()",
         faulting_module="db_writer.dll",
@@ -97,7 +97,7 @@ def test_hypothesis_creation() -> None:
     assert h.confidence == 0.85
 
 
-def test_agent_turn_serialization_round_trip() -> None:
+def test_agent_turn_serialization_round_trip():
     turn = AgentTurn(
         agent="OS Kernel Agent",
         turn_number=1,
@@ -116,13 +116,13 @@ def test_agent_turn_serialization_round_trip() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_skeptic_verdict_confirmed() -> None:
+def test_skeptic_verdict_confirmed():
     v = SkepticVerdict(confirmed=True, confidence=ConfidenceLevel.HIGH)
     assert v.confirmed is True
     assert v.corrections == []
 
 
-def test_skeptic_verdict_rejected() -> None:
+def test_skeptic_verdict_rejected():
     v = SkepticVerdict(
         confirmed=False,
         confidence=ConfidenceLevel.LOW,
@@ -138,7 +138,7 @@ def test_skeptic_verdict_rejected() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_hitl_request() -> None:
+def test_hitl_request():
     req = HITLRequest(
         question="Panel is split. Can you clarify the DB pool size?",
         context_summary="Two competing hypotheses at 0.41 and 0.38.",
@@ -152,7 +152,7 @@ def test_hitl_request() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_rca_report_creation() -> None:
+def test_rca_report_creation():
     report = RCAReport(
         mode=IncidentMode.CRASH_DUMP,
         root_cause="Race condition in serialize()",
@@ -165,7 +165,7 @@ def test_rca_report_creation() -> None:
     assert report.total_input_tokens == 0
 
 
-def test_rca_report_json_round_trip() -> None:
+def test_rca_report_json_round_trip():
     report = RCAReport(
         mode=IncidentMode.LOG_FORENSICS,
         root_cause="Deadlock in thread pool",
@@ -197,7 +197,7 @@ def test_rca_report_json_round_trip() -> None:
         (0.00, ConfidenceLevel.LOW),
     ],
 )
-def test_confidence_level_from_score(score: float, expected: ConfidenceLevel) -> None:
+def test_confidence_level_from_score(score: float, expected: ConfidenceLevel):
     assert ConfidenceLevel.from_score(score) == expected
 
 
@@ -216,7 +216,7 @@ def test_confidence_level_from_score(score: float, expected: ConfidenceLevel) ->
         ("0xDEADBEEF", FaultClass.UNKNOWN),
     ],
 )
-def test_map_windows_ntstatus(code: str, expected: FaultClass) -> None:
+def test_map_windows_ntstatus(code: str, expected: FaultClass):
     assert map_windows_ntstatus(code) == expected
 
 
@@ -230,7 +230,7 @@ def test_map_windows_ntstatus(code: str, expected: FaultClass) -> None:
         (99, FaultClass.UNKNOWN),
     ],
 )
-def test_map_linux_signal(signal: int, expected: FaultClass) -> None:
+def test_map_linux_signal(signal: int, expected: FaultClass):
     assert map_linux_signal(signal) == expected
 
 
@@ -243,7 +243,7 @@ def test_map_linux_signal(signal: int, expected: FaultClass) -> None:
         (99, FaultClass.UNKNOWN),
     ],
 )
-def test_map_macos_exception(code: int, expected: FaultClass) -> None:
+def test_map_macos_exception(code: int, expected: FaultClass):
     assert map_macos_exception(code) == expected
 
 
@@ -252,7 +252,7 @@ def test_map_macos_exception(code: int, expected: FaultClass) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_investigation_state_is_dict_compatible() -> None:
+def test_investigation_state_is_dict_compatible():
     state: InvestigationState = {
         "incident_id": "test-uuid",
         "discussion_history": [],
@@ -284,7 +284,7 @@ def test_investigation_state_is_dict_compatible() -> None:
         RCAReport,
     ],
 )
-def test_model_json_schema_exportable(model_cls: type) -> None:
+def test_model_json_schema_exportable(model_cls: type):
     schema = model_cls.model_json_schema()
     assert "properties" in schema
     # Round-trip through json to confirm it is serialisable

@@ -1,4 +1,4 @@
-"""Tests for the Orchestrator pipeline."""
+"""Tests for the Orchestrator pipeline"""
 from unittest.mock import MagicMock
 
 from wincrash_analyzer.core.orchestrator import Orchestrator
@@ -6,7 +6,7 @@ from wincrash_analyzer.core.data_sources import DumpSource, SymbolSource, LogSou
 
 
 def test_orchestrator_run_calls_pipeline():
-    """Verify that run() calls all three backends in order."""
+    """Verify that run() calls all three backends in order"""
     debug_backend = MagicMock()
     ai_backend = MagicMock()
     storage_backend = MagicMock()
@@ -53,7 +53,7 @@ def test_orchestrator_run_calls_pipeline():
 
 
 def test_orchestrator_with_logs(tmp_path):
-    """Verify that orchestrator includes logs in the unified context."""
+    """Verify that orchestrator includes logs in the unified context"""
     debug_backend = MagicMock()
     ai_backend = MagicMock()
     storage_backend = MagicMock()

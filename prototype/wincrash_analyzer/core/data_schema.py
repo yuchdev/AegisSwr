@@ -1,4 +1,4 @@
-"""Universal Data Schema for crash analysis records."""
+"""Universal Data Schema for crash analysis records"""
 from __future__ import annotations
 
 import uuid

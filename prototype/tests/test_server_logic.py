@@ -1,4 +1,4 @@
-"""Integration tests for the WinDbg JS callback server (windbg_server.py)."""
+"""Integration tests for the WinDbg JS callback server (windbg_server.py)"""
 from __future__ import annotations
 
 import json
@@ -23,7 +23,7 @@ _SERVER_PORT = 9991  # Dedicated port so tests don't collide with production.
 
 
 def _port_free(port: int) -> bool:
-    """Return True if *port* is not currently bound on localhost."""
+    """Return True if *port* is not currently bound on localhost"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(("127.0.0.1", port)) != 0
 
@@ -35,7 +35,7 @@ def _port_free(port: int) -> bool:
 
 @pytest.fixture(autouse=True)
 def _reset_queue():
-    """Drain the class-level queue before every test."""
+    """Drain the class-level queue before every test"""
     while not JSCallbackHandler.data_queue.empty():
         JSCallbackHandler.data_queue.get_nowait()
     yield
@@ -47,7 +47,7 @@ def _reset_queue():
 
 
 def test_mock_json_asset_exists():
-    """The mock WinDbg JSON asset must be present."""
+    """The mock WinDbg JSON asset must be present"""
     assert os.path.isfile(_MOCK_JSON_PATH), f"Missing asset: {_MOCK_JSON_PATH}"
     with open(_MOCK_JSON_PATH) as fh:
         data = json.load(fh)
@@ -56,7 +56,7 @@ def test_mock_json_asset_exists():
 
 
 def test_end_to_end_post_and_dequeue():
-    """POST the mock JSON and verify it arrives on the data queue unchanged."""
+    """POST the mock JSON and verify it arrives on the data queue unchanged"""
     httpd, data_queue = start_listening(_SERVER_PORT)
     try:
         with open(_MOCK_JSON_PATH) as fh:
@@ -79,7 +79,7 @@ def test_end_to_end_post_and_dequeue():
 
 
 def test_port_released_after_shutdown():
-    """After shutdown() + server_close() the port must become available again."""
+    """After shutdown() + server_close() the port must become available again"""
     httpd, _ = start_listening(_SERVER_PORT)
     httpd.shutdown()
     httpd.server_close()
@@ -89,7 +89,7 @@ def test_port_released_after_shutdown():
 
 
 def test_empty_post_returns_400():
-    """A POST with Content-Length: 0 must be rejected with HTTP 400."""
+    """A POST with Content-Length: 0 must be rejected with HTTP 400"""
     httpd, _ = start_listening(_SERVER_PORT)
     try:
         resp = requests.post(
@@ -105,7 +105,7 @@ def test_empty_post_returns_400():
 
 
 def test_malformed_json_still_enqueued(caplog):
-    """Malformed JSON payloads are enqueued as raw strings with a CRITICAL log."""
+    """Malformed JSON payloads are enqueued as raw strings with a CRITICAL log"""
     httpd, data_queue = start_listening(_SERVER_PORT)
     try:
         raw = b"this is not valid json {"
@@ -126,7 +126,7 @@ def test_malformed_json_still_enqueued(caplog):
 
 
 def test_windbg_server_class_start_stop():
-    """WinDbgServer.start() / stop() lifecycle smoke test."""
+    """WinDbgServer.start() / stop() lifecycle smoke test"""
     server = WinDbgServer(port=_SERVER_PORT)
     server.start()
     assert server.data_queue is not None
@@ -136,17 +136,20 @@ def test_windbg_server_class_start_stop():
 
 
 def test_windbg_server_data_queue_raises_before_start():
-    """Accessing data_queue before start() must raise RuntimeError."""
+    """Accessing data_queue before start() must raise RuntimeError"""
     server = WinDbgServer(port=_SERVER_PORT)
     with pytest.raises(RuntimeError):
         _ = server.data_queue
 
 
 def test_port_fallback_on_collision():
-    """start_listening falls back to a lower port when the preferred one is busy."""
+    """start_listening falls back to a lower port when the preferred one is busy"""
     # Occupy the preferred port.
     blocker = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    blocker.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    # On Windows, SO_REUSEADDR can allow another socket to bind the same
+    # endpoint in tests; use exclusive mode to force a real collision.
+    if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+        blocker.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
     blocker.bind(("127.0.0.1", _SERVER_PORT))
     blocker.listen(1)
     try:

@@ -1,4 +1,4 @@
-"""Reusable mock debug backend for tests (shared across unit + integration)."""
+"""Reusable mock debug backend for tests (shared across unit + integration)"""
 from __future__ import annotations
 
 from aegis_swr.backends.base import DebugBackend
@@ -15,7 +15,7 @@ class MockDebugBackend(DebugBackend):
     SUPPORTED_FORMATS = [DumpFormat.WINDOWS_MINIDUMP]
     SUPPORTED_PLATFORMS = ["Windows"]
 
-    def __init__(self, result: DebugExtractionResult) -> None:
+    def __init__(self, result: DebugExtractionResult):
         self._result = result
         self.extract_called = False
 

@@ -8,12 +8,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional
 
 from loguru import logger
-
-if TYPE_CHECKING:
-    import typer
+import typer
 
 DEFAULT_CONFIG_PATH: Path = Path("~/.aegis-swr/analyze.json").expanduser()
 
@@ -37,7 +35,7 @@ ANALYZE_CONFIG_KEYS: tuple[str, ...] = (
 )
 
 
-def load_analyze_config(path: Path | None = None) -> dict[str, Any]:
+def load_analyze_config(path: Optional[Path] = None) -> dict[str, Any]:
     """Load analyze options from a JSON file.
 
     Returns an empty dict if the file does not exist or cannot be parsed.
@@ -54,9 +52,9 @@ def load_analyze_config(path: Path | None = None) -> dict[str, Any]:
 
 def save_analyze_config(
     opts: dict[str, Any],
-    path: Path | None = None,
-) -> None:
-    """Write *opts* (filtered to known keys) to the JSON config file."""
+    path: Optional[Path] = None,
+):
+    """Write *opts* (filtered to known keys) to the JSON config file"""
     target = path or DEFAULT_CONFIG_PATH
     target.parent.mkdir(parents=True, exist_ok=True)
     filtered = {k: opts[k] for k in ANALYZE_CONFIG_KEYS if k in opts}

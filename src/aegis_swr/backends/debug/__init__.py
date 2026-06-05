@@ -1,10 +1,9 @@
-"""Debug backend factory (platform-detected, engine-selected)."""
+"""Debug backend factory (platform-detected, engine-selected)"""
 from __future__ import annotations
 
 import subprocess
 import sys
 from functools import lru_cache
-from typing import TYPE_CHECKING
 
 from aegis_swr.backends.base import DebugBackend
 from aegis_swr.backends.debug.cdb_worker import CdbBackend
@@ -12,9 +11,7 @@ from aegis_swr.backends.debug.gdb_worker import GdbBackend
 from aegis_swr.backends.debug.lldb_worker import LldbBackend
 from aegis_swr.backends.debug.windbg_js_worker import WinDbgJSBackend
 from aegis_swr.core.exceptions import PlatformNotSupportedError
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import DebugSettings
+from aegis_swr.config.settings import DebugSettings
 
 __all__ = [
     "CdbBackend",

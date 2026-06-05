@@ -1,4 +1,4 @@
-"""Unit tests for the CLI — all Orchestrator calls mocked."""
+"""Unit tests for the CLI — all Orchestrator calls mocked"""
 from __future__ import annotations
 
 import json
@@ -47,7 +47,7 @@ def _report(with_hitl: bool = False) -> RCAReport:
 # ---------------------------------------------------------------------------
 
 
-def test_analyze_help() -> None:
+def test_analyze_help():
     result = runner.invoke(app, ["analyze", "--help"])
     assert result.exit_code == 0
     assert "--dump" in result.output
@@ -58,14 +58,14 @@ def test_analyze_help() -> None:
     assert "--store" in result.output
 
 
-def test_export_help() -> None:
+def test_export_help():
     result = runner.invoke(app, ["export", "--help"])
     assert result.exit_code == 0
     assert "--store" in result.output
     assert "--to-store" in result.output
 
 
-def test_analyze_help_lists_backend_flags() -> None:
+def test_analyze_help_lists_backend_flags():
     result = runner.invoke(app, ["analyze", "--help"])
     assert result.exit_code == 0
     assert "--code-provider" in result.output
@@ -79,7 +79,7 @@ def test_analyze_help_lists_backend_flags() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_repo_flag_enables_git_code_backend(tmp_path: Path) -> None:
+def test_repo_flag_enables_git_code_backend(tmp_path: Path):
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):  # type: ignore[override]
@@ -109,7 +109,7 @@ def test_repo_flag_enables_git_code_backend(tmp_path: Path) -> None:
     assert captured["repo_path"] == str(tmp_path)
 
 
-def test_log_service_sets_metadata(tmp_path: Path) -> None:
+def test_log_service_sets_metadata(tmp_path: Path):
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):  # type: ignore[override]
@@ -134,7 +134,7 @@ def test_log_service_sets_metadata(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_save_config_writes_json(tmp_path: Path) -> None:
+def test_save_config_writes_json(tmp_path: Path):
     config_file = tmp_path / "analyze.json"
     result = runner.invoke(app, [
         "analyze",
@@ -150,7 +150,7 @@ def test_save_config_writes_json(tmp_path: Path) -> None:
     assert data["store"] == "sqlite"
 
 
-def test_save_config_default_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_save_config_default_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     config_file = tmp_path / "analyze.json"
     monkeypatch.setattr("aegis_swr.cli._config.DEFAULT_CONFIG_PATH", config_file)
     monkeypatch.setattr("aegis_swr.cli.commands.DEFAULT_CONFIG_PATH", config_file)
@@ -164,7 +164,7 @@ def test_save_config_default_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 # ---------------------------------------------------------------------------
 
 
-def test_config_file_sets_defaults(tmp_path: Path) -> None:
+def test_config_file_sets_defaults(tmp_path: Path):
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"ai": "openai", "output": "json"}))
 
@@ -191,7 +191,7 @@ def test_config_file_sets_defaults(tmp_path: Path) -> None:
     assert settings_arg.provider == "openai"
 
 
-def test_cli_flag_overrides_config_file(tmp_path: Path) -> None:
+def test_cli_flag_overrides_config_file(tmp_path: Path):
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"ai": "openai"}))
 
@@ -221,7 +221,7 @@ def test_cli_flag_overrides_config_file(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_analyze_json_output(tmp_path: Path) -> None:
+def test_analyze_json_output(tmp_path: Path):
     report = _report()
 
     # json/rich output drives the domain-event stream (live display goes to
@@ -246,7 +246,7 @@ def test_analyze_json_output(tmp_path: Path) -> None:
     assert parsed["root_cause"] == "UAF in serialize()"
 
 
-def test_analyze_hitl_exits_nonzero(tmp_path: Path) -> None:
+def test_analyze_hitl_exits_nonzero(tmp_path: Path):
     report = _report(with_hitl=True)
 
     async def mock_run(self, source):  # type: ignore[override]
@@ -268,7 +268,7 @@ def test_analyze_hitl_exits_nonzero(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_config_show_redacts_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_config_show_redacts_secrets(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-supersecret")
     result = runner.invoke(app, ["config", "show"])
     assert result.exit_code == 0
@@ -276,7 +276,7 @@ def test_config_show_redacts_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "***" in result.output
 
 
-def test_config_set_writes_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_config_set_writes_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     yaml_path = tmp_path / "config.yaml"
     yaml_path.write_text("backends:\n  ai:\n    provider: anthropic\n")
     monkeypatch.chdir(tmp_path)
@@ -292,17 +292,17 @@ def test_config_set_writes_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 # ---------------------------------------------------------------------------
 
 
-def test_load_analyze_config_missing_file(tmp_path: Path) -> None:
+def test_load_analyze_config_missing_file(tmp_path: Path):
     assert load_analyze_config(tmp_path / "nonexistent.json") == {}
 
 
-def test_load_analyze_config_malformed(tmp_path: Path) -> None:
+def test_load_analyze_config_malformed(tmp_path: Path):
     bad = tmp_path / "bad.json"
     bad.write_text("{not valid json")
     assert load_analyze_config(bad) == {}
 
 
-def test_save_and_reload_config(tmp_path: Path) -> None:
+def test_save_and_reload_config(tmp_path: Path):
     path = tmp_path / "cfg.json"
     save_analyze_config({"ai": "openai", "engine": "cdb", "dump": "/x.dmp"}, path)
     loaded = load_analyze_config(path)

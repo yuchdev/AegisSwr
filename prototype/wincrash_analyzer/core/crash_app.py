@@ -69,7 +69,7 @@ class CrashApp:
             "export": self.handle_export,
         }
 
-    def setup_logging(self, level: str = "INFO") -> None:
+    def setup_logging(self, level: str = "INFO"):
         """
         Configure rich-based logging with sensitive-data filtering.
 
@@ -178,7 +178,7 @@ class CrashApp:
                 self._apply_config(defaults_config)
             return self.parser.parse_args()
 
-    def _apply_config(self, config_data: dict) -> None:
+    def _apply_config(self, config_data: dict):
         """
         Apply configuration data from a dictionary to the argument parsers.
 
@@ -198,7 +198,7 @@ class CrashApp:
         if self.export_parser and "export" not in config_data:
             self.export_parser.set_defaults(**global_defaults)
 
-    def _save_app_config(self) -> None:
+    def _save_app_config(self):
         """
         Save the current application configuration to the default config file.
         """
@@ -229,7 +229,7 @@ class CrashApp:
             style="green"
         ))
 
-    def _finalize_config(self) -> None:
+    def _finalize_config(self):
         """
         Set default storage paths if they were not provided via CLI or config.
         """
@@ -254,7 +254,7 @@ class CrashApp:
             return os.path.join(os.getcwd(), f"{basename}.sqlite")
         return ""
 
-    def handle_analyze(self) -> None:
+    def handle_analyze(self):
         """
         Handle the 'analyze' action.
         Verifies required arguments and invokes the analysis pipeline.
@@ -269,14 +269,14 @@ class CrashApp:
         resolved_cdb = self._check_cdb(self.args.cdb_path)
         run_analyze(self.args, resolved_cdb)
 
-    def handle_export(self) -> None:
+    def handle_export(self):
         """
         Handle the 'export' action.
         Invokes the export process to migrate records between backends.
         """
         run_export(self.args)
 
-    def run(self) -> None:
+    def run(self):
         """
         Run the main application logic.
         """

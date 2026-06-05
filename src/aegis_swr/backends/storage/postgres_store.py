@@ -7,16 +7,13 @@ configured in advance without import errors.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from loguru import logger
 
 from aegis_swr.backends.base import RelationalStore
 from aegis_swr.core.schemas import RCAReport
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import StorageSettings
+from aegis_swr.config.settings import StorageSettings
 
 _MSG = (
     "PostgresStore is a stub. "
@@ -25,13 +22,13 @@ _MSG = (
 
 
 class PostgresStore(RelationalStore):
-    """PostgreSQL backend stub — all methods raise ``NotImplementedError``."""
+    """PostgreSQL backend stub — all methods raise ``NotImplementedError``"""
 
-    def __init__(self, settings: StorageSettings) -> None:
+    def __init__(self, settings: StorageSettings):
         self._settings = settings
         logger.warning("PostgresStore is a stub and does not persist any data.")
 
-    async def save_report(self, report: RCAReport) -> None:
+    async def save_report(self, report: RCAReport):
         raise NotImplementedError(_MSG)
 
     async def get_report(self, incident_id: UUID) -> RCAReport | None:
@@ -44,7 +41,7 @@ class PostgresStore(RelationalStore):
         self,
         incident_id: UUID,
         response: dict[str, object],
-    ) -> None:
+    ):
         raise NotImplementedError(_MSG)
 
     async def load_recent(self, limit: int = 100) -> list[RCAReport]:

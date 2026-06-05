@@ -12,7 +12,6 @@ from __future__ import annotations
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from loguru import logger
 
@@ -20,9 +19,7 @@ from aegis_swr.backends.base import CodeBackend
 from aegis_swr.backends.code._paths import safe_repo_path
 from aegis_swr.core.exceptions import CodeBackendError
 from aegis_swr.core.schemas import BlameRecord, CommitRecord
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import CodeBackendSettings
+from aegis_swr.config.settings import CodeBackendSettings
 
 # Record/field separators chosen to never appear in commit metadata.
 _RS = "\x1e"  # record separator (leads every commit)
@@ -31,15 +28,11 @@ _LOG_FORMAT = f"{_RS}%H{_FS}%an <%ae>{_FS}%aI{_FS}%s"
 
 
 class GitCodeAdapter(CodeBackend):
-    """Full Git history backend (``git log`` / ``git show`` / ``git blame``)."""
+    """Full Git history backend (``git log`` / ``git show`` / ``git blame``)"""
 
-    def __init__(self, settings: CodeBackendSettings) -> None:
+    def __init__(self, settings: CodeBackendSettings):
         self._settings = settings
         self._timeout = settings.git_timeout_seconds
-
-    # ------------------------------------------------------------------
-    # CodeBackend
-    # ------------------------------------------------------------------
 
     def get_commits_before(
         self,
@@ -99,7 +92,7 @@ class GitCodeAdapter(CodeBackend):
     # Internals
     # ------------------------------------------------------------------
 
-    def _assert_repo(self, repo_path: str) -> None:
+    def _assert_repo(self, repo_path: str):
         if not (Path(repo_path).expanduser() / ".git").exists():
             raise CodeBackendError(
                 f"Not a git repository (no .git directory): {repo_path!r}. "
@@ -139,7 +132,7 @@ class GitCodeAdapter(CodeBackend):
 
 
 def _parse_git_log(text: str) -> list[CommitRecord]:
-    """Parse ``git log --name-only`` output (record-separated by ``\\x1e``)."""
+    """Parse ``git log --name-only`` output (record-separated by ``\\x1e``)"""
     commits: list[CommitRecord] = []
     for chunk in text.split(_RS):
         if not chunk.strip():
@@ -165,7 +158,7 @@ def _parse_git_log(text: str) -> list[CommitRecord]:
 
 
 def _parse_blame_porcelain(text: str, first_line: int) -> list[BlameRecord]:
-    """Parse ``git blame --line-porcelain`` output into BlameRecords."""
+    """Parse ``git blame --line-porcelain`` output into BlameRecords"""
     records: list[BlameRecord] = []
     line_number = first_line
     sha = ""

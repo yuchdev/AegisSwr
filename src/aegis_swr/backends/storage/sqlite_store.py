@@ -20,7 +20,6 @@ import asyncio
 import json
 import sqlite3
 from pathlib import Path
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from loguru import logger
@@ -28,9 +27,7 @@ from loguru import logger
 from aegis_swr.backends.base import RelationalStore
 from aegis_swr.core.exceptions import IncidentNotFoundError
 from aegis_swr.core.schemas import RCAReport
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import StorageSettings
+from aegis_swr.config.settings import StorageSettings
 
 _CREATE = """
 CREATE TABLE IF NOT EXISTS reports (
@@ -55,13 +52,13 @@ VALUES (?, ?, ?, ?, ?)
 
 
 class SQLiteStore(RelationalStore):
-    """SQLite-backed report store; no external services required."""
+    """SQLite-backed report store; no external services required"""
 
-    def __init__(self, settings: StorageSettings) -> None:
+    def __init__(self, settings: StorageSettings):
         self._db_path = Path(settings.db_path).expanduser()
         self._init_db()
 
-    def _init_db(self) -> None:
+    def _init_db(self):
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(str(self._db_path), timeout=30) as conn:
             conn.execute(_CREATE)
@@ -75,10 +72,10 @@ class SQLiteStore(RelationalStore):
     # RelationalStore
     # ------------------------------------------------------------------
 
-    async def save_report(self, report: RCAReport) -> None:
+    async def save_report(self, report: RCAReport):
         await asyncio.to_thread(self._sync_save, report)
 
-    def _sync_save(self, report: RCAReport) -> None:
+    def _sync_save(self, report: RCAReport):
         row = (
             str(report.incident_id),
             report.dump_hash,
@@ -120,14 +117,14 @@ class SQLiteStore(RelationalStore):
         self,
         incident_id: UUID,
         response: dict[str, object],
-    ) -> None:
+    ):
         await asyncio.to_thread(self._sync_update_hitl, str(incident_id), response)
 
     def _sync_update_hitl(
         self,
         incident_id: str,
         response: dict[str, object],
-    ) -> None:
+    ):
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT report_json FROM reports WHERE incident_id = ?",

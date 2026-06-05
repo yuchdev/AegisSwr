@@ -25,7 +25,7 @@ import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar, Optional
 
 from loguru import logger
 
@@ -35,9 +35,7 @@ from aegis_swr.core.data_adapter import apply_noise_filter
 from aegis_swr.core.exceptions import DebugExtractionError
 from aegis_swr.core.fault_codes import map_windows_ntstatus
 from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, StackFrame
-
-if TYPE_CHECKING:
-    from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.core.schemas import IncidentSource
 
 _DEFAULT_SYMBOL_SERVER = "https://msdl.microsoft.com/download/symbols"
 _JS_ASSET_NAME = "windbg_diagnostic.js"
@@ -57,7 +55,7 @@ def _make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]:
     """
 
     class _Handler(BaseHTTPRequestHandler):
-        def do_POST(self) -> None:
+        def do_POST(self):
             try:
                 length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(length).decode("utf-8")
@@ -71,7 +69,7 @@ def _make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]:
                 self.send_response(500)
                 self.end_headers()
 
-        def log_message(self, *args: object) -> None:
+        def log_message(self, *args: object):
             pass  # suppress noisy HTTP access log lines
 
     return _Handler
@@ -84,10 +82,10 @@ class _CallbackBridge:
     available as ``self.port`` after ``__enter__``.
     """
 
-    def __init__(self, callback_timeout: int) -> None:
+    def __init__(self, callback_timeout: int):
         self._timeout = callback_timeout
         self._queue: queue.Queue[str] = queue.Queue()
-        self._server: HTTPServer | None = None
+        self._server: Optional[HTTPServer] = None
         self.port: int = 0
 
     def __enter__(self) -> _CallbackBridge:
@@ -99,7 +97,7 @@ class _CallbackBridge:
         logger.debug(f"WinDbg bridge listening on 127.0.0.1:{self.port}")
         return self
 
-    def __exit__(self, *_: object) -> None:
+    def __exit__(self, *_: object):
         if self._server is not None:
             self._server.shutdown()
             self._server.server_close()
@@ -124,7 +122,7 @@ class _CallbackBridge:
 # ---------------------------------------------------------------------------
 
 
-def _unlink_safe(path: str) -> None:
+def _unlink_safe(path: str):
     try:
         os.unlink(path)
     except OSError:
@@ -148,7 +146,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
     def extract(
         self,
         source: IncidentSource,
-        symbol_path: str | None,
+        symbol_path: Optional[str],
     ) -> DebugExtractionResult:
         self._validate(source)
         js_content = self._prepare_js_template()  # raises early if asset missing
@@ -184,7 +182,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
     def _build_command_sequence(
         self,
         source: IncidentSource,
-        symbol_path: str | None,
+        symbol_path: Optional[str],
     ) -> list[str]:
         # This method satisfies the ABC contract and is used when the base
         # template method (which we override) would call it. In practice
@@ -199,7 +197,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         return Path(__file__).parent / "assets" / _JS_ASSET_NAME
 
     def _prepare_js_template(self) -> str:
-        """Read the JS asset; raise DebugExtractionError if it is missing."""
+        """Read the JS asset; raise DebugExtractionError if it is missing"""
         path = self._asset_path()
         if not path.exists():
             raise DebugExtractionError(
@@ -209,7 +207,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         return path.read_text(encoding="utf-8")
 
     def _inject_params(self, template: str, port: int) -> str:
-        """Substitute runtime tokens into the JS template."""
+        """Substitute runtime tokens into the JS template"""
         settings = self._settings
         max_faulting = getattr(settings, "max_faulting_frames", 20)
         max_other = getattr(settings, "max_other_thread_frames", 3)
@@ -220,7 +218,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
             .replace("__MAX_OTHER_FRAMES__", str(max_other))
         )
 
-    def _symbol_path_string(self, symbol_path: str | None) -> str:
+    def _symbol_path_string(self, symbol_path: Optional[str]) -> str:
         cache = resolve_symbol_path(self._settings.symbol_cache)
         server = self._settings.symbol_server_url or _DEFAULT_SYMBOL_SERVER
         chain = f"srv*{cache}*{server}"
@@ -231,7 +229,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
     def _js_command(
         self,
         source: IncidentSource,
-        symbol_path: str | None,
+        symbol_path: Optional[str],
         tmp_js_path: str,
     ) -> list[str]:
         return [

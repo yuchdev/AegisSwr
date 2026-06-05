@@ -1,4 +1,4 @@
-"""WinDbg JS callback thread server."""
+"""WinDbg JS callback thread server"""
 from __future__ import annotations
 
 import json
@@ -21,7 +21,7 @@ class JSCallbackHandler(BaseHTTPRequestHandler):
     # Static queue shared across all handler instances and threads.
     data_queue: queue.Queue = queue.Queue()
 
-    def do_POST(self) -> None:
+    def do_POST(self):
         """
         Process an incoming crash-data payload from WinDbg.
         """
@@ -71,7 +71,7 @@ class JSCallbackHandler(BaseHTTPRequestHandler):
             self.send_response(500)
             self.end_headers()
 
-    def log_message(self, format, *args) -> None:  # noqa: A002
+    def log_message(self, format, *args):  # noqa: A002
         """
         Suppress the default per-request log lines.
 
@@ -114,7 +114,7 @@ class WinDbgServer:
     Lightweight HTTP server that receives callbacks from the WinDbg JS engine.
     """
 
-    def __init__(self, port: int = 9999) -> None:
+    def __init__(self, port: int = 9999):
         """
         Initialize the WinDbgServer.
 
@@ -136,13 +136,13 @@ class WinDbgServer:
             raise RuntimeError("Server has not been started yet.")
         return self._data_queue
 
-    def start(self) -> None:
+    def start(self):
         """
         Start the callback listener in a background thread.
         """
         self._httpd, self._data_queue = start_listening(self._port)
 
-    def stop(self) -> None:
+    def stop(self):
         """
         Stop the callback listener and release the port.
         """

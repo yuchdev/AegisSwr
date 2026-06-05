@@ -1,4 +1,4 @@
-"""Factory for storage backend instantiation."""
+"""Factory for storage backend instantiation"""
 from wincrash_analyzer.backends.store.base import StorageBackendBase
 from wincrash_analyzer.config import get_option
 
