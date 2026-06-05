@@ -188,6 +188,7 @@ class IncidentSource(BaseModel):
     dump_hash: str | None = None                # SHA-256, computed before any backend call
     log_paths: list[Path] = []
     screenshot_paths: list[Path] = []
+    network_capture_paths: list[Path] = []      # .pcap captures — metadata shown in DEBUG evidence
     symbol_path: Path | None = None
     user_assumption: str | None = None          # Capped to 500 tokens by Data Adapter
     metadata: dict[str, str] = {}               # repo tags, environment, application type
@@ -1636,6 +1637,7 @@ aegis analyze \
   --dump    ./crash.dmp          # crash dump file (magic-byte format detected)
   --log     ./app.log            # log file (repeatable — pass once per file)
   --shot    ./error.png          # screenshot (repeatable)
+  --pcap    ./traffic.pcap       # network traffic capture (repeatable; metadata shown at --severity DEBUG)
   --sym     ./symbols/           # symbol path
   --assume  "DB pool reduced"    # user context / assumption text
   --engine  auto                 # debug engine: auto | cdb | windbg_js
@@ -1654,7 +1656,12 @@ aegis analyze \
 
 **Option precedence (highest wins):** explicit CLI flag → JSON config file value → hardcoded default.
 
-`--log` and `--shot` are **repeatable**: pass each flag once per file.
+`--log`, `--shot`, and `--pcap` are **repeatable**: pass each flag once per file.
+
+`--severity DEBUG` also raises the live war-room Evidence Stream to its DEBUG
+verbosity, which surfaces detailed per-artifact metadata (textual core-dump
+analysis, ±2-minute log windows, screenshot file properties, and network-capture
+metadata). See `docs/adr/new-ui-rich-based-design.md` §2.2.1.
 
 Prototype options carried forward:
 - `--engine` (maps to `DebugSettings.engine`)

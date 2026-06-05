@@ -21,6 +21,7 @@ ANALYZE_CONFIG_KEYS: tuple[str, ...] = (
     "dump",
     "logs",
     "shots",
+    "pcaps",
     "sym",
     "assume",
     "engine",

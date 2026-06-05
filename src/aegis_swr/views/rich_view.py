@@ -45,10 +45,15 @@ from aegis_swr.core.events import (
     InvestigationStarted,
 )
 from aegis_swr.core.schemas import ConfidenceLevel
+from aegis_swr.views._evidence_detail import (
+    describe_log_window,
+    file_properties,
+    pcap_metadata,
+)
 
 if TYPE_CHECKING:
     from aegis_swr.core.events import DomainEvent, EventBus
-    from aegis_swr.core.schemas import AgentTurn, RCAReport
+    from aegis_swr.core.schemas import AgentTurn, IncidentSource, RCAReport
 
 
 def make_console(*, stderr: bool = False) -> Console:
@@ -152,6 +157,14 @@ def _bar(ratio: float, width: int, color: str) -> Text:
 # ---------------------------------------------------------------------------
 
 
+#: Evidence-stream verbosity levels.  ``INFO`` is the curated summary shown by
+#: default; ``DEBUG`` adds every detailed evidence line on top of it.
+EvidenceLevel = Literal["INFO", "DEBUG"]
+
+# How many lines of the raw core-dump analysis text to surface at DEBUG.
+_DEBUG_EXCERPT_LINES = 40
+
+
 @dataclass
 class AgentState:
     """Live state for one forensic agent sub-panel."""
@@ -159,6 +172,14 @@ class AgentState:
     status: Literal["STANDBY", "ANALYZING", "REVIEWING", "DONE"] = "STANDBY"
     confidence: float = 0.0
     finding: str = ""  # latest finding, truncated to panel width at render time
+
+
+@dataclass
+class _EvidenceLine:
+    """One Evidence Stream entry tagged with the verbosity it belongs to."""
+
+    level: EvidenceLevel
+    text: Text
 
 
 class WarRoomView:
@@ -172,9 +193,16 @@ class WarRoomView:
 
     _MAX_EVIDENCE = 500
 
-    def __init__(self, console: Console | None = None, *, auto_refresh: bool = True) -> None:
+    def __init__(
+        self,
+        console: Console | None = None,
+        *,
+        auto_refresh: bool = True,
+        level: EvidenceLevel = "INFO",
+    ) -> None:
         self._console = console or make_console()
         self._auto_refresh = auto_refresh
+        self._level: EvidenceLevel = "DEBUG" if str(level).upper() == "DEBUG" else "INFO"
         self._live: Live | None = None
 
         # ── investigation state ──
@@ -183,8 +211,9 @@ class WarRoomView:
         self._mode = ""
         self._round = 0
         self._finished = False
+        self._source: IncidentSource | None = None
 
-        self._evidence_lines: list[Text] = []
+        self._evidence_lines: list[_EvidenceLine] = []
         self._agents: dict[str, AgentState] = {}
         self._consensus_history: list[dict[str, object]] = []
 
@@ -219,6 +248,7 @@ class WarRoomView:
     def _on_started(self, event: DomainEvent) -> None:
         assert isinstance(event, InvestigationStarted)
         source = event.source
+        self._source = source
         if source.dump_path:
             self._incident_label = Path(source.dump_path).name
         elif source.log_paths:
@@ -270,8 +300,84 @@ class WarRoomView:
             func = frame.get("function") or frame.get("instruction_address") or "?"
             self._stamp_field(f"stack[{i}]", str(func), "blue")
 
+        if self._level == "DEBUG":
+            self._emit_debug_evidence(brief)
+
         self._wake("OS Kernel Agent")
         self._refresh()
+
+    def _emit_debug_evidence(self, brief: dict[str, object]) -> None:
+        """Append the verbose, DEBUG-only evidence metadata for one incident.
+
+        Surfaces the four detailed evidence categories on top of the curated
+        INFO stream: the textual core-dump analysis, the temporal window of
+        every analyzed log file, screenshot file properties, and network
+        traffic capture metadata — plus the low-level fault fields.
+        """
+        # ── very detailed fault metadata ──
+        for label, key in (
+            ("dump_hash", "dump_hash"),
+            ("exc_code", "exception_code_raw"),
+            ("exc_addr", "exception_address"),
+        ):
+            value = brief.get(key)
+            if value:
+                self._stamp_field(label, str(value), "grey70", level="DEBUG")
+
+        # Full stack beyond the INFO top-three, with module/source detail.
+        frames = brief.get("stack_frames") or []
+        for i, frame in enumerate(frames):
+            if i < 3:
+                continue
+            self._stamp_field(f"stack[{i}]", _format_frame(frame), "blue", level="DEBUG")
+
+        # ── 1. textual result of the core-dump analysis ──
+        excerpt = str(brief.get("raw_text_excerpt") or "").strip()
+        if excerpt:
+            self._stamp("core dump analysis (cdb !analyze -v):", style="dim", level="DEBUG")
+            for raw in excerpt.splitlines()[:_DEBUG_EXCERPT_LINES]:
+                self._add_evidence(Text(f"    │ {raw}", style="grey62"), level="DEBUG")
+
+        src = self._source
+        incident_ts = src.incident_timestamp if src else None
+
+        # ── 2. ±2 minute window for every analyzed log file ──
+        for raw_path in (src.log_paths if src else []):
+            props = file_properties(raw_path)
+            self._stamp_field("log", props.describe(), "cyan", level="DEBUG")
+            self._add_evidence(
+                Text(f"    │ window {describe_log_window(incident_ts)}", style="grey62"),
+                level="DEBUG",
+            )
+        summary = str(brief.get("log_summary") or "").strip()
+        if summary:
+            self._stamp_field(
+                "log_summary", f"{len(summary.splitlines())} clustered lines", "cyan",
+                level="DEBUG",
+            )
+
+        # ── 3. name and properties of every screenshot file ──
+        for raw_path in (src.screenshot_paths if src else []):
+            props = file_properties(raw_path)
+            self._stamp_field("screenshot", props.describe(), "magenta", level="DEBUG")
+        ui = brief.get("ui_context")
+        if isinstance(ui, dict):
+            elements = ui.get("ui_elements") or []
+            ocr = str(ui.get("error_message") or "")
+            self._add_evidence(
+                Text(
+                    f"    │ OCR: {len(elements)} elements, {len(ocr)} chars",
+                    style="grey62",
+                ),
+                level="DEBUG",
+            )
+
+        # ── 4. metadata of every network traffic capture ──
+        for raw_path in (src.network_capture_paths if src else []):
+            props = file_properties(raw_path)
+            self._stamp_field("netcap", props.describe(), "yellow", level="DEBUG")
+            for detail in _format_pcap(raw_path):
+                self._add_evidence(Text(f"    │ {detail}", style="grey62"), level="DEBUG")
 
     def _on_agent(self, event: DomainEvent) -> None:
         assert isinstance(event, AgentSpoke)
@@ -354,21 +460,28 @@ class WarRoomView:
     def _plain(self, text: str) -> Text:
         return Text(text)
 
-    def _add_evidence(self, line: Text) -> None:
-        self._evidence_lines.append(line)
+    def _add_evidence(self, line: Text, *, level: EvidenceLevel = "INFO") -> None:
+        self._evidence_lines.append(_EvidenceLine(level=level, text=line))
         if len(self._evidence_lines) > self._MAX_EVIDENCE:
             del self._evidence_lines[: -self._MAX_EVIDENCE]
 
-    def _stamp(self, message: str, *, style: str = "") -> None:
+    def _stamp(self, message: str, *, style: str = "", level: EvidenceLevel = "INFO") -> None:
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(message, style=style)
-        self._add_evidence(line)
+        self._add_evidence(line, level=level)
 
-    def _stamp_field(self, label: str, value: str, value_style: str) -> None:
+    def _stamp_field(
+        self,
+        label: str,
+        value: str,
+        value_style: str,
+        *,
+        level: EvidenceLevel = "INFO",
+    ) -> None:
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(f"{label:<13}", style="dim")
         line.append(value, style=value_style)
-        self._add_evidence(line)
+        self._add_evidence(line, level=level)
 
     def _wake(self, name: str) -> None:
         state = self._agents.get(name)
@@ -419,13 +532,21 @@ class WarRoomView:
         return header
 
     def _render_evidence(self) -> Panel:
+        visible = [
+            entry.text
+            for entry in self._evidence_lines
+            if entry.level == "INFO" or self._level == "DEBUG"
+        ]
         max_lines = max(1, self._console.height - 5)
-        lines = list(self._evidence_lines[-max_lines:])
+        lines = visible[-max_lines:]
         if not self._finished:
             cursor = "▌" if int(self._elapsed) % 2 == 0 else " "
-            lines.append(Text(cursor, style="cyan"))
+            lines = [*lines, Text(cursor, style="cyan")]
         body = Group(*lines) if lines else Text("")
-        return Panel(body, title="[bold]EVIDENCE STREAM[/bold]", border_style="grey37")
+        title = "[bold]EVIDENCE STREAM[/bold]"
+        if self._level == "DEBUG":
+            title += " [dim](debug)[/dim]"
+        return Panel(body, title=title, border_style="grey37")
 
     def _render_agents(self) -> Panel:
         compact = self._console.height < 36
@@ -515,6 +636,43 @@ def _agent_badge(status: str, elapsed: float) -> tuple[str, str, str]:
     if status == "DONE":
         return "DONE", "bold green", "✔"
     return "STANDBY", "dim", " "
+
+
+def _format_frame(frame: dict[str, object]) -> str:
+    """Render a stack frame with module/source detail for the DEBUG stream."""
+    module = frame.get("module")
+    function = frame.get("function")
+    if module and function:
+        name = f"{module}!{function}"
+    else:
+        name = str(function or module or frame.get("instruction_address") or "?")
+    src = frame.get("source_file")
+    if src:
+        line = frame.get("source_line")
+        name += f"  ({src}:{line})" if line else f"  ({src})"
+    addr = frame.get("instruction_address")
+    if addr and (module or function or src):
+        name += f"  @ {addr}"
+    return name
+
+
+def _format_pcap(raw_path: str) -> list[str]:
+    """Render network-capture metadata lines for the DEBUG stream."""
+    info = pcap_metadata(raw_path)
+    if info.container != "pcap":
+        return [f"{info.container}: {info.note}" if info.note else info.container]
+    lines = [
+        f"pcap v{info.version}  {info.byte_order}-endian  {info.timestamp_resolution} ts",
+        f"link-layer {info.link_type}  snaplen {info.snaplen}",
+        f"packets {info.packet_count}",
+    ]
+    if info.first_timestamp and info.last_timestamp:
+        duration = (info.last_timestamp - info.first_timestamp).total_seconds()
+        lines.append(
+            f"span {info.first_timestamp:%Y-%m-%d %H:%M:%S} → "
+            f"{info.last_timestamp:%H:%M:%S}  ({duration:.3f}s)"
+        )
+    return lines
 
 
 def _consensus_row(row: dict[str, object]) -> Text:
@@ -734,9 +892,13 @@ class RichView:
             self._live = None
 
 
-def make_view(console: Console) -> RichView | WarRoomView:
-    """Pick the war-room view on wide terminals, the trail view otherwise."""
-    return WarRoomView(console) if console.width >= 80 else RichView(console)
+def make_view(console: Console, *, level: EvidenceLevel = "INFO") -> RichView | WarRoomView:
+    """Pick the war-room view on wide terminals, the trail view otherwise.
+
+    *level* selects the Evidence Stream verbosity for the war-room view
+    (``DEBUG`` surfaces the detailed per-artifact evidence metadata).
+    """
+    return WarRoomView(console, level=level) if console.width >= 80 else RichView(console)
 
 
 # ---------------------------------------------------------------------------

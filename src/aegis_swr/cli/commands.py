@@ -51,6 +51,10 @@ def analyze(  # noqa: PLR0913
     shots: Annotated[
         list[Path] | None, typer.Option("--shot", help="Screenshot file (repeatable).")
     ] = None,
+    pcaps: Annotated[
+        list[Path] | None,
+        typer.Option("--pcap", help="Network traffic capture file, e.g. .pcap (repeatable)."),
+    ] = None,
     sym: Annotated[Path | None, typer.Option("--sym", help="Symbol path.")] = None,
     assume: Annotated[
         str | None, typer.Option("--assume", help="User context / assumption text.")
@@ -113,6 +117,7 @@ def analyze(  # noqa: PLR0913
             "dump": str(dump) if dump else None,
             "logs": [str(p) for p in (logs or [])],
             "shots": [str(p) for p in (shots or [])],
+            "pcaps": [str(p) for p in (pcaps or [])],
             "sym": str(sym) if sym else None,
             "assume": assume,
             "engine": engine,
@@ -137,6 +142,7 @@ def analyze(  # noqa: PLR0913
         dump=dump,
         logs=logs or [],
         shots=shots or [],
+        pcaps=pcaps or [],
         sym=sym,
         assume=assume,
         engine=engine,
@@ -167,6 +173,7 @@ def analyze(  # noqa: PLR0913
         dump_path=str(opts["dump"]) if opts.get("dump") else None,
         log_paths=[str(p) for p in (opts.get("logs") or [])],
         screenshot_paths=[str(p) for p in (opts.get("shots") or [])],
+        network_capture_paths=[str(p) for p in (opts.get("pcaps") or [])],
         symbol_path=str(opts["sym"]) if opts.get("sym") else None,
         user_assumption=opts.get("assume"),
         metadata=metadata,
@@ -246,7 +253,9 @@ def analyze(  # noqa: PLR0913
         # clean for machine parsing.
         from aegis_swr.cli._formatters import make_console
         stream_con = make_console(stderr=(fmt == "json"))
-        report = asyncio.run(stream_and_display(orch, source, stream_con))
+        report = asyncio.run(
+            stream_and_display(orch, source, stream_con, level=opts.get("severity", "INFO"))
+        )
         if report is None:
             typer.echo("Error: investigation ended without producing a report.", err=True)
             raise typer.Exit(code=1)

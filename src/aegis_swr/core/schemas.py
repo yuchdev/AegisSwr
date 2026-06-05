@@ -57,6 +57,7 @@ class IncidentSource(BaseModel):
     dump_hash: str | None = None
     log_paths: list[str] = Field(default_factory=list)
     screenshot_paths: list[str] = Field(default_factory=list)
+    network_capture_paths: list[str] = Field(default_factory=list)
     symbol_path: str | None = None
     user_assumption: str | None = None
     metadata: dict[str, str] = Field(default_factory=dict)

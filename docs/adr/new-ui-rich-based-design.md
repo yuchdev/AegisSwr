@@ -104,6 +104,44 @@ A scrolling chronological log. Every data point that arrives from the core gets 
 
 Each line is prefixed with `MM:SS` elapsed time (from investigation start).
 
+#### 2.2.1 Verbosity: INFO vs DEBUG
+
+Every Evidence Stream line is tagged with a verbosity level
+(`EvidenceLevel = "INFO" | "DEBUG"`). The view's `level` (default `INFO`) is set
+by `make_view(console, level=...)`, which the CLI derives from `--severity`
+(`--severity DEBUG` ⇒ `DEBUG`, anything else ⇒ `INFO`).
+
+- **INFO** — the curated summary above. Unchanged detail level. All the rows in
+  the table are INFO.
+- **DEBUG** — *everything*: the INFO rows **plus** the detailed per-artifact
+  metadata below. Detailed lines are produced only when the view is at DEBUG
+  (gated at emit time), so the INFO stream and its tests are unaffected.
+
+`_render_evidence` shows a line when `line.level == "INFO"` or the view is at
+`DEBUG`; the panel title gains a `(debug)` suffix at DEBUG.
+
+**DEBUG-only categories** (emitted by `WarRoomView._emit_debug_evidence`, sourced
+from `EvidenceExtracted.brief` and the stashed `InvestigationStarted.source`).
+Indented continuation lines are rendered with a `│` gutter:
+
+| # | Category                                   | Source                                                     | Example line(s)                                                       |
+|---|--------------------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------|
+| — | Detailed fault metadata                    | `brief["dump_hash" / "exception_code_raw" / "exception_address"]` | `00:01  dump_hash      sha256:…`                                      |
+| — | Full stack (frames 3…N)                    | `brief["stack_frames"]`                                    | `00:01  stack[3]  mod!fn  (file.c:42)  @ 0x…`                          |
+| 1 | Textual core-dump analysis                 | `brief["raw_text_excerpt"]` (cdb `!analyze -v`)            | `00:01  core dump analysis (cdb !analyze -v):` then `│ <lines>` (cap 40) |
+| 2 | ±2-minute window per analyzed log file     | `source.log_paths` + `source.incident_timestamp`           | `00:01  log  app.log  (1.2 KB, modified …)` then `│ window 14:00:11 → 14:04:11  (±2m)` |
+| 3 | Screenshot name & properties               | `source.screenshot_paths` + `brief["ui_context"]`          | `00:01  screenshot  error.png  (48 B, modified …)` then `│ OCR: 3 elements, 19 chars` |
+| 4 | Network traffic capture metadata           | `source.network_capture_paths` (parsed by `_evidence_detail.pcap_metadata`) | `00:01  netcap  traffic.pcap  (…)` then `│ pcap v2.4  little-endian  microsecond ts` / `│ link-layer ETHERNET  snaplen 65535` / `│ packets 1` / `│ span …` |
+
+The ±2-minute display window is a fixed constant (`_evidence_detail.LOG_WINDOW`),
+independent of the Data Adapter's processing window. Network captures are a new
+first-class input: `IncidentSource.network_capture_paths`, populated by the
+`aegis analyze --pcap <file>` flag (repeatable). The pcap parser walks record
+headers without reading payloads (cheap on large captures) and reports
+little/big-endian, microsecond/nanosecond resolution, link-layer type, snaplen,
+packet count, and the capture time span; pcapng files are detected but not
+deep-parsed.
+
 ### 2.3 Forensic Agents (right top quarter)
 
 One sub-panel per agent, stacked vertically inside a `Panel`. Each sub-panel is separated by a thin rule. Four agents = four sub-panels of equal height.
@@ -411,13 +449,17 @@ def make_view(console: Console) -> RichView | WarRoomView:
 
 | File                               | Change                                                                                                                                                |
 |------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `src/aegis_swr/views/rich_view.py` | Added `SPINNER_FRAMES`, `AGENT_SEQUENCE`, `AgentState`, `WarRoomView`, `make_view`, pure helpers (`_spinner_char`, `_fmt_elapsed`, `_fmt_stamp`, `_truncate`); rewrote `render_verdict` (now `model=`) around `_build_diagnosis`; kept `RichView`, `make_console` |
+| `src/aegis_swr/views/rich_view.py` | Added `SPINNER_FRAMES`, `AGENT_SEQUENCE`, `AgentState`, `WarRoomView`, `make_view`, pure helpers (`_spinner_char`, `_fmt_elapsed`, `_fmt_stamp`, `_truncate`); rewrote `render_verdict` (now `model=`) around `_build_diagnosis`; kept `RichView`, `make_console`. Evidence Stream verbosity: `EvidenceLevel`, `_EvidenceLine`, `level` on `WarRoomView`/`make_view`, `_emit_debug_evidence`, level-aware `_render_evidence` |
+| `src/aegis_swr/views/_evidence_detail.py` | **New.** Pure, UI-free helpers for the DEBUG stream: `format_size`, `FileProps`/`file_properties`, `log_window`/`describe_log_window` (`LOG_WINDOW = ±2m`), `PcapInfo`/`pcap_metadata` |
 | `src/aegis_swr/views/__init__.py`  | Export `WarRoomView` and `make_view`                                                                                                                   |
-| `src/aegis_swr/cli/_formatters.py` | `stream_and_display` calls `make_view(console)`; `rich_formatter` gained a `model` argument and forwards it to `render_verdict`                        |
-| `src/aegis_swr/cli/commands.py`    | `analyze` passes `model=settings.backends.ai.resolved_model` to `rich_formatter`                                                                       |
-| `tests/unit/test_views.py`         | Unit tests for the pure helpers, `make_view` selection, `WarRoomView` event/state lifecycle, render smoke tests, and `_build_diagnosis`/`render_verdict` |
+| `src/aegis_swr/core/schemas.py`    | Added `IncidentSource.network_capture_paths` (parallels `screenshot_paths`)                                                                            |
+| `src/aegis_swr/cli/_formatters.py` | `stream_and_display` gained `level=`, passes it to `make_view`; `rich_formatter` gained `model=` and forwards it to `render_verdict`                    |
+| `src/aegis_swr/cli/commands.py`    | `analyze` adds the `--pcap` flag → `network_capture_paths`, passes `level=--severity` to `stream_and_display` and `model=` to `rich_formatter`         |
+| `src/aegis_swr/cli/_config.py`     | `pcaps` added to `ANALYZE_CONFIG_KEYS` (config persistence)                                                                                            |
+| `tests/unit/test_views.py`         | Unit tests for the pure helpers, `make_view` selection, `WarRoomView` event/state lifecycle, render smoke tests, `_build_diagnosis`/`render_verdict`, and the INFO/DEBUG split + four DEBUG categories |
+| `tests/unit/test_evidence_detail.py` | **New.** Unit tests for `format_size`, `file_properties`, the ±2-minute window, and the pcap parser (little/big-endian, link types, pcapng, malformed) |
 
-No changes to `core/` or `backends/`. The only `cli/commands.py` change is threading the model name into the verdict.
+No changes to `backends/`. The `core/schemas.py` change is an additive optional field; the `cli/` changes thread the model name, the `--pcap` input, and the DEBUG verbosity through to the view.
 
 ---
 

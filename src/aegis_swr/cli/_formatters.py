@@ -39,16 +39,21 @@ async def stream_and_display(
     orch: Orchestrator,
     source: IncidentSource,
     console: Console,
+    *,
+    level: str = "INFO",
 ) -> RCAReport | None:
-    """Run the investigation with a live RichView attached to the event bus.
+    """Run the investigation with a live war-room view on the event bus.
 
-    Returns the final :class:`RCAReport` once the graph completes, or ``None``
-    if the stream ended without a result (should not happen in normal operation).
+    *level* sets the Evidence Stream verbosity (``"DEBUG"`` surfaces the full
+    per-artifact evidence metadata; anything else stays at the ``INFO``
+    summary).  Returns the final :class:`RCAReport` once the graph completes,
+    or ``None`` if the stream ended without a result (should not happen in
+    normal operation).
     """
     from aegis_swr.core.events import HumanInputRequired, InvestigationCompleted
     from aegis_swr.views.rich_view import make_view
 
-    view = make_view(console)
+    view = make_view(console, level="DEBUG" if level.upper() == "DEBUG" else "INFO")
     detach = view.attach(orch.events)
     report: RCAReport | None = None
     try:
