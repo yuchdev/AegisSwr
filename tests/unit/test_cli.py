@@ -78,6 +78,29 @@ def test_analyze_help():
     assert "--store" in result.output
 
 
+def test_root_help_is_recursive():
+    """Root --help expands every subcommand and all their CLI options."""
+    result = runner.invoke(app, ["--help"])
+    assert result.exit_code == 0
+    out = result.output
+    # Top-level command summary is still present.
+    for command in ("analyze", "export", "server", "config"):
+        assert command in out
+    # analyze options.
+    for opt in ("--dump", "--sym", "--ai", "--store", "--save-config", "--severity"):
+        assert opt in out, f"missing analyze option {opt}"
+    # export options (distinct from analyze) prove its subparser was expanded.
+    assert "--to-store" in out
+    assert "--to-config" in out
+    # server options.
+    assert "--host" in out
+    assert "--port" in out
+    # Nested config subcommands and their arguments.
+    assert "config show" in out
+    assert "config set" in out
+    assert "KEY VALUE" in out
+
+
 def test_export_help():
     result = runner.invoke(app, ["export", "--help"])
     assert result.exit_code == 0

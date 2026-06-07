@@ -12,8 +12,10 @@ import json
 from pathlib import Path
 from typing import Annotated
 
+import click
 import typer
 from rich.console import Console
+from typer.core import TyperGroup
 
 from aegis_swr.cli._config import (
     DEFAULT_CONFIG_PATH,
@@ -27,8 +29,46 @@ from aegis_swr.cli.aegis_logging import configure_logging
 
 console = Console()
 
+
+class FullHelpGroup(TyperGroup):
+    """Root command group whose ``--help`` documents the *entire* app.
+
+    Click/Typer only list the top-level commands and global options at the root.
+    After that summary this group walks the command tree depth-first and prints
+    the full help — usage, description, and every CLI option — for each
+    subcommand and nested subcommand, so a single ``aegis --help`` (or
+    ``python -m aegis_swr.cli --help``) shows all subparsers, subcommands, and
+    options at once.
+    """
+
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        super().format_help(ctx, formatter)  # the usual top-level summary
+        _echo_subcommands_help(self, ctx)
+
+
+def _echo_subcommands_help(group: TyperGroup, parent_ctx: click.Context) -> None:
+    """Depth-first print the full help of every subcommand under *group*."""
+    for name in group.list_commands(parent_ctx):
+        cmd = group.get_command(parent_ctx, name)
+        if cmd is None or getattr(cmd, "hidden", False):
+            continue
+        sub_ctx = click.Context(cmd, info_name=name, parent=parent_ctx)
+        typer.echo()
+        typer.echo("=" * 78)
+        typer.echo(f"  {sub_ctx.command_path}")
+        typer.echo("=" * 78)
+        # get_help() renders the command's own help; for rich Typer commands it
+        # prints as a side effect and returns "" (echoing it adds a blank line).
+        typer.echo(cmd.get_help(sub_ctx))
+        # Recurse into nested groups (e.g. ``config``), detected by duck typing
+        # since Typer groups subclass Command, not click.Group.
+        if hasattr(cmd, "list_commands"):
+            _echo_subcommands_help(cmd, sub_ctx)
+
+
 app = typer.Typer(
     name="aegis",
+    cls=FullHelpGroup,
     help="Aegis SWR — production forensics platform.",
     no_args_is_help=True,
 )
