@@ -43,6 +43,26 @@ def _report(with_hitl: bool = False) -> RCAReport:
 
 
 # ---------------------------------------------------------------------------
+# Module entry point
+# ---------------------------------------------------------------------------
+
+
+def test_python_m_entry_point_runs():
+    """``python -m aegis_swr.cli`` launches the same Typer app as ``aegis``."""
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-m", "aegis_swr.cli", "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "analyze" in result.stdout
+    assert "Usage:" in result.stdout
+
+
+# ---------------------------------------------------------------------------
 # Help
 # ---------------------------------------------------------------------------
 
