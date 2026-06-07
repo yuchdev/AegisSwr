@@ -174,10 +174,87 @@ class AgentState:
 
 @dataclass
 class _EvidenceLine:
-    """One Evidence Stream entry tagged with the verbosity it belongs to"""
+    """One stream entry tagged with the verbosity it belongs to"""
 
     level: EvidenceLevel
     text: Text
+
+
+class _StreamLog:
+    """A capped, time-revealed line buffer rendered as a scrolling tail.
+
+    Backs both the Evidence Stream and the Investigation Process conversation.
+    A line is appended the instant its event fires, so the buffer is the full
+    record (the same data persisted to the report files).  The display reveals
+    those lines at a fixed cadence (:attr:`reveal_interval`) and shows only the
+    trailing window, so new lines stream in at the bottom and old ones scroll
+    off the top once they exceed the visible height.  The user never scrolls
+    back in the UI — the complete trail lives in the report.
+    """
+
+    def __init__(self, *, max_lines: int, reveal_interval: float):
+        self._lines: list[_EvidenceLine] = []
+        self._max_lines = max_lines
+        self._reveal_interval = reveal_interval
+        self._revealed = 0
+        self._last_reveal = 0.0
+
+    @property
+    def lines(self) -> list[_EvidenceLine]:
+        """The full (capped) record — every line ever appended, in order"""
+        return self._lines
+
+    def reset(self, now: float):
+        """Clear the buffer for a fresh run, anchoring the reveal clock"""
+        self._lines = []
+        self._revealed = 0
+        self._last_reveal = now
+
+    def append(self, text: Text, *, level: EvidenceLevel = "INFO"):
+        self._lines.append(_EvidenceLine(level=level, text=text))
+        overflow = len(self._lines) - self._max_lines
+        if overflow > 0:
+            del self._lines[:overflow]
+            # The reveal pointer indexes into the buffer; drop it by the same
+            # amount so trimmed-off lines do not shift what is shown.
+            self._revealed = max(0, self._revealed - overflow)
+
+    def reveal_all(self):
+        """Surface every buffered line at once (used when the run freezes)"""
+        self._revealed = len(self._lines)
+
+    def _advance(self, now: float, *, finished: bool):
+        total = len(self._lines)
+        if finished:
+            self._revealed = total
+            return
+        if self._revealed >= total:
+            # Caught up — keep the clock current so the next burst of lines
+            # streams in fresh rather than appearing instantly.
+            self._last_reveal = now
+            return
+        due = int((now - self._last_reveal) / self._reveal_interval)
+        if due > 0:
+            self._revealed = min(total, self._revealed + due)
+            self._last_reveal += due * self._reveal_interval
+
+    def visible(
+        self,
+        *,
+        now: float,
+        finished: bool,
+        level: EvidenceLevel,
+        max_lines: int,
+    ) -> list[Text]:
+        """Advance the reveal clock and return the trailing visible lines"""
+        self._advance(now, finished=finished)
+        revealed = self._lines[: self._revealed]
+        shown = [
+            entry.text
+            for entry in revealed
+            if entry.level == "INFO" or level == "DEBUG"
+        ]
+        return shown[-max_lines:]
 
 
 class WarRoomView:
@@ -190,6 +267,13 @@ class WarRoomView:
     """
 
     _MAX_EVIDENCE = 500
+
+    #: Seconds between revealing one buffered line to the display.  Lines are
+    #: appended to the backing :class:`_StreamLog` the instant their event
+    #: fires, but surfaced at this cadence so they appear to stream in and
+    #: scroll past in real time rather than dumping at once.  At the 12 fps
+    #: ``Live`` refresh this works out to ~14 lines/second.
+    _REVEAL_INTERVAL = 0.07
 
     def __init__(
         self,
@@ -211,7 +295,15 @@ class WarRoomView:
         self._finished = False
         self._source: IncidentSource | None = None
 
-        self._evidence_lines: list[_EvidenceLine] = []
+        # Two scrolling logs: extracted artifacts (Evidence Stream) and the
+        # agent deliberation (Investigation Process).  Each keeps the full
+        # record and reveals it gradually as a scrolling tail.
+        self._evidence_log = _StreamLog(
+            max_lines=self._MAX_EVIDENCE, reveal_interval=self._REVEAL_INTERVAL
+        )
+        self._process_log = _StreamLog(
+            max_lines=self._MAX_EVIDENCE, reveal_interval=self._REVEAL_INTERVAL
+        )
         self._agents: dict[str, AgentState] = {}
         self._consensus_history: list[dict[str, object]] = []
 
@@ -219,7 +311,6 @@ class WarRoomView:
         self._status = ""
         self._stage = 0
         self._stage_total = 7
-        self._stage_notes: list[str] = []
 
     # -- attachment ---------------------------------------------------------
 
@@ -259,12 +350,12 @@ class WarRoomView:
         self._start = time.monotonic()
         self._round = 1
         self._finished = False
-        self._evidence_lines = []
+        self._evidence_log.reset(self._start)
+        self._process_log.reset(self._start)
         self._agents = {name: AgentState() for _, name in AGENT_SEQUENCE}
         self._consensus_history = []
         self._stage = 0
         self._stage_total = 7
-        self._stage_notes = []
         self._status = "Extracting evidence from crash artifacts…"
 
         self._stamp("CDB extraction started…", style="dim")
@@ -389,22 +480,28 @@ class WarRoomView:
             self._round = turn.turn_number
             self._stage_total += 5  # 4 agent turns + 1 consensus check
             note = f"threshold not reached — re-deliberating round {self._round}"
-            self._stamp(note, style="dim italic")
-            self._stage_notes.append(f"{_fmt_stamp(self._elapsed)}  {note}")
+            self._stamp_process(note, style="dim italic")
 
         name = _NODE_TO_AGENT.get(event.node)
-        finding = turn.message.strip().splitlines()[0] if turn.message.strip() else ""
+        message = turn.message.strip()
+        finding = message.splitlines()[0] if message else ""
         if name and name in self._agents:
             state = self._agents[name]
             state.status = "DONE"
             state.confidence = turn.confidence_score
             state.finding = finding
 
+        # Agent communication is process, not evidence: it goes to the
+        # Investigation Process conversation log.
         short = (name or turn.agent).removesuffix(" Agent")
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(f"{short} » ", style="bold")
         line.append(finding, style="italic")
-        self._add_evidence(line)
+        self._add_process(line)
+        # DEBUG surfaces the agent's full reasoning, not just the headline.
+        if self._level == "DEBUG":
+            for extra in message.splitlines()[1:]:
+                self._add_process(Text(f"    │ {extra}", style="grey62"), level="DEBUG")
         self._advance()
 
         nxt = _NEXT_AGENT.get(name) if name else None
@@ -426,7 +523,7 @@ class WarRoomView:
         line.append(f"consensus R{self._round}  ", style="bold")
         line.append(f"{score:.0%}  ", style=f"bold {_conf_color(score)}")
         line.append(level.value.upper(), style=_conf_color(score))
-        self._add_evidence(line)
+        self._add_process(line)
 
         # Next round (if any) reassigns agents; reset them to standby.
         for state in self._agents.values():
@@ -440,13 +537,13 @@ class WarRoomView:
             self._consensus_history[-1]["converged"] = True
         for state in self._agents.values():
             state.status = "DONE"
-        self._stamp("✔  investigation complete", style="bold green")
+        self._stamp_process("✔  investigation complete", style="bold green")
         self._finalize()
 
     def _on_hitl(self, event: DomainEvent):
         if self._consensus_history:
             self._consensus_history[-1]["converged"] = False
-        self._stamp("⚠  human input required", style="bold red")
+        self._stamp_process("⚠  human input required", style="bold red")
         self._finalize()
 
     # -- state helpers ------------------------------------------------------
@@ -459,14 +556,22 @@ class WarRoomView:
         return Text(text)
 
     def _add_evidence(self, line: Text, *, level: EvidenceLevel = "INFO"):
-        self._evidence_lines.append(_EvidenceLine(level=level, text=line))
-        if len(self._evidence_lines) > self._MAX_EVIDENCE:
-            del self._evidence_lines[: -self._MAX_EVIDENCE]
+        self._evidence_log.append(line, level=level)
+
+    def _add_process(self, line: Text, *, level: EvidenceLevel = "INFO"):
+        self._process_log.append(line, level=level)
 
     def _stamp(self, message: str, *, style: str = "", level: EvidenceLevel = "INFO"):
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(message, style=style)
         self._add_evidence(line, level=level)
+
+    def _stamp_process(
+        self, message: str, *, style: str = "", level: EvidenceLevel = "INFO"
+    ):
+        line = Text(f"{_fmt_stamp(self._elapsed)}  ")
+        line.append(message, style=style)
+        self._add_process(line, level=level)
 
     def _stamp_field(
         self,
@@ -494,6 +599,11 @@ class WarRoomView:
     def _finalize(self):
         self._finished = True
         self._stage = self._stage_total
+        # The Live block is about to freeze: surface any still-buffered lines
+        # at once so both final tails (including the completion marker in the
+        # conversation log) are shown.
+        self._evidence_log.reveal_all()
+        self._process_log.reveal_all()
         self._refresh()
         self._stop_live()
 
@@ -530,13 +640,13 @@ class WarRoomView:
         return header
 
     def _render_evidence(self) -> Panel:
-        visible = [
-            entry.text
-            for entry in self._evidence_lines
-            if entry.level == "INFO" or self._level == "DEBUG"
-        ]
         max_lines = max(1, self._console.height - 5)
-        lines = visible[-max_lines:]
+        lines = self._evidence_log.visible(
+            now=time.monotonic(),
+            finished=self._finished,
+            level=self._level,
+            max_lines=max_lines,
+        )
         if not self._finished:
             cursor = "▌" if int(self._elapsed) % 2 == 0 else " "
             lines = [*lines, Text(cursor, style="cyan")]
@@ -577,11 +687,22 @@ class WarRoomView:
             border_style="grey37",
         )
 
+    def _process_inner_height(self) -> int:
+        """Approximate the Investigation Process pane's inner content height.
+
+        The pane is the lower half of the right column (below the 1-row
+        header), inside a bordered ``Panel``.  Used to tail the conversation
+        log so the newest deliberation lines are never clipped off the bottom.
+        """
+        body = max(1, self._console.height - 1)  # below the header row
+        pane = max(1, body // 2)  # right column splits agents / process evenly
+        return max(1, pane - 2)  # minus the panel's top and bottom borders
+
     def _render_process(self) -> Panel:
         elapsed = self._elapsed
         sections: list[RenderableType] = []
 
-        # Section 1 — waiting animation (spinner + stage bar).
+        # Section 1 — live activity (spinner + stage bar).
         spin = "✔" if self._finished else _spinner_char(elapsed)
         status = "Investigation complete" if self._finished else self._status
         head = Text()
@@ -595,23 +716,29 @@ class WarRoomView:
         bar.append(f"  {self._stage}/{self._stage_total}  ", style="dim")
         bar.append(_fmt_elapsed(elapsed), style="dim")
         sections.append(bar)
+        sections.append(Text())
 
-        # Section 2 — consensus history.
-        if self._consensus_history:
-            sections.append(Text())
-            sections.append(Text("Consensus history", style="bold"))
-            for row in self._consensus_history:
-                sections.append(_consensus_row(row))
-
-        # Section 3 — recent stage notes (overflow).
-        if self._stage_notes:
-            sections.append(Text())
-            for note in self._stage_notes[-3:]:
-                sections.append(Text(note, style="dim"))
+        # Section 2 — agent deliberation (scrolling conversation log).  Agent
+        # findings and consensus checks are the *process* of investigation, not
+        # evidence; newest lines sit at the bottom and older ones scroll off the
+        # top once they exceed the pane.  The full transcript lives in the
+        # report files.  One row is held back as a clipping safety margin.
+        convo_max = max(1, self._process_inner_height() - len(sections) - 1)
+        convo = self._process_log.visible(
+            now=time.monotonic(),
+            finished=self._finished,
+            level=self._level,
+            max_lines=convo_max,
+        )
+        if convo:
+            sections.extend(convo)
+        else:
+            sections.append(Text("Awaiting panel deliberation…", style="dim italic"))
 
         return Panel(
             Group(*sections),
             title="[bold]INVESTIGATION PROCESS[/bold]",
+            subtitle=f"Round {self._round}",
             border_style="grey37",
         )
 
@@ -671,23 +798,6 @@ def _format_pcap(raw_path: str) -> list[str]:
             f"{info.last_timestamp:%H:%M:%S}  ({duration:.3f}s)"
         )
     return lines
-
-
-def _consensus_row(row: dict[str, object]) -> Text:
-    score = float(row["score"])  # type: ignore[arg-type]
-    converged = row["converged"]
-    level = ConfidenceLevel.from_score(score).value.upper()
-    line = Text(f"R{row['round']}  ")
-    line.append_text(_bar(score, 14, _conf_color(score)))
-    line.append(f"  {score:.0%}  ", style=f"bold {_conf_color(score)}")
-    line.append(f"{level:<6}", style=_conf_color(score))
-    if converged is True:
-        line.append(" ✔", style="green")
-    elif converged is False:
-        line.append(" ✗", style="red")
-    else:
-        line.append(" …", style="dim")
-    return line
 
 
 # ---------------------------------------------------------------------------

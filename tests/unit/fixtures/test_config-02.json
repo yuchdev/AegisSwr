@@ -1,0 +1,8 @@
+{
+  "logs": [
+    "C:/logs/app.log",
+    "C:/logs/render.log"
+  ],
+  "ai": "anthropic",
+  "severity": "INFO"
+}

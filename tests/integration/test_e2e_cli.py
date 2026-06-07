@@ -66,11 +66,12 @@ def test_e2e_analyze_json_output(tmp_path: Path):
         ])
 
     assert result.exit_code == 0, result.output
+    # stdout carries only the locator; the report body lives in the result file.
     data = json.loads(result.output)
-    assert "incident_id" in data
-    assert data["root_cause"] == "Race condition in serialize() exposes use-after-free."
-    assert data["faulting_module"] == "db_writer"
-    assert data["confidence_score"] == 0.91
+    assert data["incident_id"]
+    assert data["status"] == "complete"
+    assert data["report_path"].endswith(f"{data['incident_id']}.json")
+    assert "Race condition" not in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -91,6 +92,10 @@ def test_e2e_analyze_rich_output(tmp_path: Path):
 
     assert result.exit_code == 0
     assert "Race condition" in result.output
+    # The verdict is shown, then a pointer to the saved result file — but the
+    # raw report JSON is never dumped to stdout.
+    assert "Report saved:" in result.output
+    assert '"incident_id"' not in result.output
 
 
 # ---------------------------------------------------------------------------

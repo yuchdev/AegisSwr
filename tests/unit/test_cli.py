@@ -191,6 +191,29 @@ def test_config_file_sets_defaults(tmp_path: Path):
     assert settings_arg.provider == "openai"
 
 
+def test_cli_reads_settings_from_config_asset(tmp_path: Path):
+    """A config.json fixture is read and applied end-to-end through the CLI."""
+    captured: dict[str, object] = {}
+
+    async def mock_run(self, source):  # type: ignore[override]
+        captured["logs"] = list(source.log_paths)
+        return _report()
+
+    asset = Path(__file__).parent / "fixtures" / "test_config-02.json"
+    with mock.patch(_MOCK_RUN, mock_run):
+        result = runner.invoke(app, [
+            "analyze",
+            "--config", str(asset),
+            "--output", "quiet",
+            "--store", "filesystem",
+            "--store-config", str(tmp_path / "reports"),
+        ])
+
+    assert result.exit_code == 0, result.output
+    # The log paths declared in config.json flowed into the IncidentSource.
+    assert captured["logs"] == ["C:/logs/app.log", "C:/logs/render.log"]
+
+
 def test_cli_flag_overrides_config_file(tmp_path: Path):
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"ai": "openai"}))
@@ -240,10 +263,13 @@ def test_analyze_json_output(tmp_path: Path):
         ])
 
     assert result.exit_code == 0
-    # The live progress display goes to stderr; stdout carries only the JSON.
+    # The full report is written exclusively to the result file; stdout carries
+    # only a machine-readable locator (never the report body).
     parsed = json.loads(result.stdout)
-    assert "incident_id" in parsed
-    assert parsed["root_cause"] == "UAF in serialize()"
+    assert parsed["incident_id"]
+    assert parsed["status"] == "complete"
+    assert parsed["report_path"].endswith(f"{parsed['incident_id']}.json")
+    assert "UAF in serialize()" not in result.stdout
 
 
 def test_analyze_hitl_exits_nonzero(tmp_path: Path):

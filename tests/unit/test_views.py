@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import struct
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -105,7 +106,11 @@ def _run_round(bus: EventBus, turn_number: int, confidence: float):
 
 
 def _evidence_text(view: WarRoomView) -> str:
-    return " | ".join(entry.text.plain for entry in view._evidence_lines)
+    return " | ".join(entry.text.plain for entry in view._evidence_log.lines)
+
+
+def _process_text(view: WarRoomView) -> str:
+    return " | ".join(entry.text.plain for entry in view._process_log.lines)
 
 
 # ---------------------------------------------------------------------------
@@ -219,7 +224,9 @@ def test_agent_spoke_marks_done_and_wakes_next():
     assert view._agents["OS Kernel Agent"].finding == "UAF on freed heap page"
     # Next agent in sequence woken.
     assert view._agents["Code Analyst Agent"].status == "ANALYZING"
-    assert "OS Kernel » UAF on freed heap page" in _evidence_text(view)
+    # Agent communication is process, not evidence.
+    assert "OS Kernel » UAF on freed heap page" in _process_text(view)
+    assert "OS Kernel »" not in _evidence_text(view)
     view._stop_live()
 
 
@@ -250,7 +257,8 @@ def test_consensus_appends_row_and_resets_agents():
     assert view._consensus_history[0]["round"] == 1
     assert view._consensus_history[0]["score"] == 0.61
     assert view._consensus_history[0]["converged"] is None
-    assert "consensus R1" in _evidence_text(view)
+    assert "consensus R1" in _process_text(view)
+    assert "consensus R1" not in _evidence_text(view)
     view._stop_live()
 
 
@@ -270,9 +278,9 @@ def test_full_two_round_run_resolves_convergence_markers():
     assert view._round == 2
     assert [r["converged"] for r in view._consensus_history] == [False, True]
     assert all(s.status == "DONE" for s in view._agents.values())
-    assert "investigation complete" in _evidence_text(view)
+    assert "investigation complete" in _process_text(view)
     # A re-deliberation note was recorded when round 2 began.
-    assert "re-deliberating" in _evidence_text(view)
+    assert "re-deliberating" in _process_text(view)
     view._stop_live()
 
 
@@ -288,7 +296,7 @@ def test_hitl_finish_marks_no_convergence():
 
     assert view._finished is True
     assert view._consensus_history[0]["converged"] is False
-    assert "human input required" in _evidence_text(view)
+    assert "human input required" in _process_text(view)
     view._stop_live()
 
 
@@ -299,8 +307,175 @@ def test_evidence_stream_is_capped():
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     for _ in range(view._MAX_EVIDENCE + 50):
         view._add_evidence(view._plain("noise"))
-    assert len(view._evidence_lines) == view._MAX_EVIDENCE
+    assert len(view._evidence_log.lines) == view._MAX_EVIDENCE
     view._stop_live()
+
+
+def test_process_log_is_capped():
+    view = WarRoomView(_headless_console(), auto_refresh=False)
+    bus = EventBus()
+    view.attach(bus)
+    bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    for _ in range(view._MAX_EVIDENCE + 50):
+        view._add_process(view._plain("chatter"))
+    assert len(view._process_log.lines) == view._MAX_EVIDENCE
+    view._stop_live()
+
+
+def test_capping_keeps_reveal_pointer_in_bounds():
+    # Trimming the front of the buffer must not leave the reveal pointer past
+    # the lines that remain.
+    view = WarRoomView(_headless_console(), auto_refresh=False)
+    bus = EventBus()
+    view.attach(bus)
+    bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    view._evidence_log._revealed = 10
+    for _ in range(view._MAX_EVIDENCE + 50):
+        view._add_evidence(view._plain("noise"))
+    assert view._evidence_log._revealed <= len(view._evidence_log.lines)
+    view._stop_live()
+
+
+# ---------------------------------------------------------------------------
+# Streaming reveal (scroll in real time, oldest off the top)
+# ---------------------------------------------------------------------------
+
+
+def test_evidence_reveals_gradually_not_all_at_once():
+    # A burst of lines must not all surface in a single frame — they stream in.
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
+    _start(view, _crash_source())
+    log = view._evidence_log
+    total = len(log.lines)
+    assert total > 1
+    # Reset the reveal clock to "now" so no time has elapsed for this frame.
+    log._revealed = 0
+    log._last_reveal = time.monotonic()
+    view._render_evidence()
+    assert log._revealed < total
+    view._stop_live()
+
+
+def test_evidence_reveal_catches_up_over_time():
+    # Once enough time passes the whole buffer is surfaced.
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
+    _start(view, _crash_source())
+    log = view._evidence_log
+    total = len(log.lines)
+    log._revealed = 0
+    log._last_reveal = time.monotonic() - 1000  # far in the past
+    view._render_evidence()
+    assert log._revealed == total
+    view._stop_live()
+
+
+def test_finish_reveals_both_buffers():
+    # Freezing the Live block must flush every buffered line in both logs so
+    # the final tails (including the completion marker) are visible even if
+    # pacing was still behind.
+    view = WarRoomView(_headless_console(), auto_refresh=False)
+    bus = EventBus()
+    view.attach(bus)
+    bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _run_round(bus, turn_number=1, confidence=0.8)
+    view._evidence_log._revealed = 0  # pretend pacing fell behind
+    view._process_log._revealed = 0
+    bus.publish(InvestigationCompleted(report=_report()))
+    assert view._evidence_log._revealed == len(view._evidence_log.lines)
+    assert view._process_log._revealed == len(view._process_log.lines)
+    view._stop_live()
+
+
+# ---------------------------------------------------------------------------
+# Investigation Process — agent conversation (process, not evidence)
+# ---------------------------------------------------------------------------
+
+
+def test_conversation_lives_in_process_not_evidence():
+    view = WarRoomView(_headless_console(), auto_refresh=False)
+    bus = EventBus()
+    view.attach(bus)
+    bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _run_round(bus, turn_number=1, confidence=0.8)
+    bus.publish(ConsensusEvaluated(score=0.87, round_number=2))
+
+    process = _process_text(view)
+    evidence = _evidence_text(view)
+    # Every agent's communication and the consensus check are in the process.
+    for _, name in AGENT_SEQUENCE:
+        short = name.removesuffix(" Agent")
+        assert f"{short} »" in process
+    assert "consensus R1" in process
+    # …and none of it leaked into the evidence stream.
+    assert "»" not in evidence
+    assert "consensus" not in evidence
+    # The evidence stream still carries the extracted artifacts.
+    assert "ACCESS_VIOLATION" in evidence
+    view._stop_live()
+
+
+def test_process_conversation_reveals_gradually():
+    # The conversation scrolls in like the evidence stream — not all at once.
+    view = WarRoomView(_headless_console(), auto_refresh=False)
+    bus = EventBus()
+    view.attach(bus)
+    bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    _run_round(bus, turn_number=1, confidence=0.8)
+    log = view._process_log
+    total = len(log.lines)
+    assert total > 1
+    log._revealed = 0
+    log._last_reveal = time.monotonic()
+    view._render_process()
+    assert log._revealed < total
+    view._stop_live()
+
+
+def test_debug_surfaces_full_agent_message_in_process():
+    multiline = "headline finding\nsupporting detail one\nsupporting detail two"
+    # INFO keeps only the headline …
+    info = WarRoomView(_headless_console(), auto_refresh=False)
+    bus = EventBus()
+    info.attach(bus)
+    bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    bus.publish(
+        AgentSpoke(
+            node="os_kernel_node",
+            turn=AgentTurn(
+                agent="OS Kernel Agent",
+                turn_number=1,
+                message=multiline,
+                confidence_score=0.8,
+            ),
+        )
+    )
+    assert "headline finding" in _process_text(info)
+    assert "supporting detail two" not in _process_text(info)
+    info._stop_live()
+
+    # … DEBUG surfaces the agent's full reasoning.
+    debug = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
+    bus2 = EventBus()
+    debug.attach(bus2)
+    bus2.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    bus2.publish(
+        AgentSpoke(
+            node="os_kernel_node",
+            turn=AgentTurn(
+                agent="OS Kernel Agent",
+                turn_number=1,
+                message=multiline,
+                confidence_score=0.8,
+            ),
+        )
+    )
+    text = _process_text(debug)
+    assert "headline finding" in text
+    assert "supporting detail one" in text
+    assert "supporting detail two" in text
+    debug._stop_live()
 
 
 # ---------------------------------------------------------------------------
@@ -353,7 +528,7 @@ def test_info_level_omits_debug_detail():
     assert "EXCEPTION_ANALYSIS" not in text
     assert "stack[3]" not in text
     assert "should_not_appear" not in text
-    assert all(entry.level == "INFO" for entry in view._evidence_lines)
+    assert all(entry.level == "INFO" for entry in view._evidence_log.lines)
     view._stop_live()
 
 
@@ -370,7 +545,7 @@ def test_debug_level_shows_core_dump_text_and_full_stack():
     # Full stack beyond the INFO top-three.
     assert "stack[3]" in text
     assert "should_not_appear" in text
-    assert any(entry.level == "DEBUG" for entry in view._evidence_lines)
+    assert any(entry.level == "DEBUG" for entry in view._evidence_log.lines)
     view._stop_live()
 
 

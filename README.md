@@ -97,6 +97,19 @@ poetry run aegis analyze \
 
 ```
 
+#### Configuration: CLI + config file
+
+Startup options can be supplied two ways, and both share one schema
+(`AnalyzeConfig` — the single source of truth for every setting key):
+
+1. **CLI flags** — `aegis analyze --ai openai …`
+2. **JSON config file** — `~/.local/share/aegis/config.json` (override with `--config PATH`)
+
+When both are present the file is applied first and explicit CLI flags are
+layered on top — `defaults < config.json < CLI`. Copy
+[`config.example.json`](config.example.json) to the default path to get started,
+or run `aegis analyze … --save-config` to write your current flags there.
+
 ### The Output Payload
 
 The platform processes the inputs through the **Data Adapter**, runs the agentic debate loop, and returns a structured JSON response:

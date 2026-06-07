@@ -1,9 +1,9 @@
 """Aegis SWR command-line interface.
 
 Options can be given as explicit CLI flags or read from a JSON config file
-(default path: ``~/.aegis-swr/analyze.json``).  An explicit flag always wins
-over a JSON value, which wins over the hardcoded default — the same precedence
-chain as the prototype's ``--config-file`` / ``--save-config`` pattern.
+(default path: ``~/.local/share/aegis/config.json``).  Both sources share one
+schema (:class:`~aegis_swr.cli._config.AnalyzeConfig`): the file is applied
+first and explicit CLI flags are layered on top — defaults < config.json < CLI.
 """
 from __future__ import annotations
 
@@ -17,11 +17,12 @@ from rich.console import Console
 
 from aegis_swr.cli._config import (
     DEFAULT_CONFIG_PATH,
+    AnalyzeConfig,
+    collect_cli_overrides,
     load_analyze_config,
-    merge_options,
     save_analyze_config,
 )
-from aegis_swr.cli._formatters import json_formatter, rich_formatter, stream_and_display
+from aegis_swr.cli._formatters import rich_formatter, stream_and_display
 from aegis_swr.cli.aegis_logging import configure_logging
 
 console = Console()
@@ -99,7 +100,10 @@ def analyze(  # noqa: PLR0913
     ] = "WARNING",
     config_path: Annotated[
         Path | None,
-        typer.Option("--config", help="JSON config file (default: ~/.aegis-swr/analyze.json)."),
+        typer.Option(
+            "--config",
+            help="JSON config file (default: ~/.local/share/aegis/config.json).",
+        ),
     ] = None,
     save_config: Annotated[
         bool,
@@ -107,75 +111,66 @@ def analyze(  # noqa: PLR0913
     ] = False,
 ):
     """Run analysis in-process — no API server required"""
+    # Bootstrap logging at the CLI severity so config-loading warnings surface;
+    # the effective level is re-applied from the merged config below.
     configure_logging(severity)
 
-    file_config = load_analyze_config(config_path)
+    # Normalise every CLI value into the shared config dict shape (Paths → str)
+    # so both sources — config.json and the CLI — speak the same JSON dialect.
+    cli_values: dict[str, object] = {
+        "dump": str(dump) if dump else None,
+        "logs": [str(p) for p in (logs or [])],
+        "shots": [str(p) for p in (shots or [])],
+        "pcaps": [str(p) for p in (pcaps or [])],
+        "sym": str(sym) if sym else None,
+        "assume": assume,
+        "engine": engine,
+        "ai": ai,
+        "store": store,
+        "store_config": store_config,
+        "code_provider": code_provider,
+        "repo": str(repo) if repo else None,
+        "log_provider": log_provider,
+        "log_service": log_service,
+        "output": output,
+        "severity": severity,
+    }
 
-    # If --save-config: write current CLI values (no merge needed) and exit.
+    # If --save-config: persist the current CLI values and exit.
     if save_config:
-        opts_to_save = {
-            "dump": str(dump) if dump else None,
-            "logs": [str(p) for p in (logs or [])],
-            "shots": [str(p) for p in (shots or [])],
-            "pcaps": [str(p) for p in (pcaps or [])],
-            "sym": str(sym) if sym else None,
-            "assume": assume,
-            "engine": engine,
-            "ai": ai,
-            "store": store,
-            "store_config": store_config,
-            "code_provider": code_provider,
-            "repo": str(repo) if repo else None,
-            "log_provider": log_provider,
-            "log_service": log_service,
-            "output": output,
-            "severity": severity,
-        }
         target = config_path or DEFAULT_CONFIG_PATH
-        save_analyze_config(opts_to_save, target)
+        save_analyze_config(cli_values, target)
         console.print(f"[green]Config saved to:[/green] {target}")
         raise typer.Exit()
 
-    opts = merge_options(
-        file_config,
-        ctx,
-        dump=dump,
-        logs=logs or [],
-        shots=shots or [],
-        pcaps=pcaps or [],
-        sym=sym,
-        assume=assume,
-        engine=engine,
-        ai=ai,
-        store=store,
-        store_config=store_config,
-        code_provider=code_provider,
-        repo=repo,
-        log_provider=log_provider,
-        log_service=log_service,
-        output=output,
-        severity=severity,
-    )
+    # config.json first, explicit CLI flags atop. AnalyzeConfig is the single
+    # source of truth for the keys; both sources feed it the same dict shape.
+    file_config = load_analyze_config(config_path)
+    overrides = collect_cli_overrides(ctx, cli_values)
+    config = AnalyzeConfig.merge(file_config, overrides)
+
+    # Re-apply logging at the effective severity (config.json may set it).
+    configure_logging(config.severity)
 
     # Build IncidentSource. The code backend reads metadata["repo_path"]; the log
     # backend reads metadata["service"] (Data Adapter stages 8 and 4).
     from aegis_swr.core.schemas import IncidentMode, IncidentSource
 
     metadata: dict[str, str] = {}
-    if opts.get("repo"):
-        metadata["repo_path"] = str(opts["repo"])
-    if opts.get("log_service"):
-        metadata["service"] = str(opts["log_service"])
+    if config.repo:
+        metadata["repo_path"] = config.repo
+    if config.log_service:
+        metadata["service"] = config.log_service
 
-    mode = IncidentMode.CRASH_DUMP if opts.get("dump") else IncidentMode.LOG_FORENSICS
+    mode = IncidentMode.CRASH_DUMP if config.dump else IncidentMode.LOG_FORENSICS
     source = IncidentSource(
         mode=mode,
-        dump_path=str(opts["dump"]) if opts.get("dump") else None,
-        log_paths=[str(p) for p in (opts.get("logs") or [])],
-        screenshot_paths=[str(p) for p in (opts.get("shots") or [])],
-        network_capture_paths=[str(p) for p in (opts.get("pcaps") or [])],
-        symbol_path=str(opts["sym"]) if opts.get("sym") else None,
-        user_assumption=opts.get("assume"),
+        dump_path=config.dump,
+        log_paths=list(config.logs),
+        screenshot_paths=list(config.shots),
+        network_capture_paths=list(config.pcaps),
+        symbol_path=config.sym,
+        user_assumption=config.assume,
         metadata=metadata,
     )
 
@@ -183,18 +178,18 @@ def analyze(  # noqa: PLR0913
     from aegis_swr.config.settings import Settings
 
     settings = Settings()
-    settings.backends.ai.provider = opts["ai"]
-    settings.backends.debug.engine = opts["engine"]
-    settings.backends.storage.provider = opts["store"]
-    if opts.get("store_config"):
-        _apply_store_config(settings, opts["store"], opts["store_config"])
+    settings.backends.ai.provider = config.ai
+    settings.backends.debug.engine = config.engine
+    settings.backends.storage.provider = config.store
+    if config.store_config:
+        _apply_store_config(settings, config.store, config.store_config)
 
     # Code backend: --repo implies enabled; default provider to git unless one
     # was explicitly requested via --code-provider.
-    code_provider_opt = opts.get("code_provider") or "none"
-    if opts.get("repo"):
+    code_provider_opt = config.code_provider or "none"
+    if config.repo:
         settings.backends.code.enabled = True
-        settings.backends.code.repo_path = str(opts["repo"])
+        settings.backends.code.repo_path = config.repo
         settings.backends.code.provider = (
             "git" if code_provider_opt == "none" else code_provider_opt
         )
@@ -204,7 +199,7 @@ def analyze(  # noqa: PLR0913
             settings.backends.code.provider = code_provider_opt
 
     # Log backend provider.
-    settings.backends.log.provider = opts.get("log_provider") or "file"
+    settings.backends.log.provider = config.log_provider or "file"
 
     # Create backends.
     from aegis_swr.backends.ai import create_ai_backend
@@ -243,29 +238,54 @@ def analyze(  # noqa: PLR0913
         code_backend=code_backend,
     )
 
-    fmt = opts.get("output", "rich")
+    fmt = config.output
 
     if fmt == "quiet":
         # No display — just run and store.
         report = asyncio.run(orch.run(source))
     else:
-        # For json output, stream the live display to stderr so stdout stays
-        # clean for machine parsing.
+        # For json output, stream the live display to stderr so stdout carries
+        # only the machine-readable locator.
         from aegis_swr.cli._formatters import make_console
         stream_con = make_console(stderr=(fmt == "json"))
         report = asyncio.run(
-            stream_and_display(orch, source, stream_con, level=opts.get("severity", "INFO"))
+            stream_and_display(orch, source, stream_con, level=config.severity)
         )
         if report is None:
             typer.echo("Error: investigation ended without producing a report.", err=True)
             raise typer.Exit(code=1)
 
-    if fmt == "json":
-        typer.echo(json_formatter(report))
-    elif fmt == "rich":
+    # The full report is persisted *exclusively* as a result file by the storage
+    # backend — it is never dumped to stdout, regardless of --output or
+    # --severity. We only surface where to find it.
+    saved_path = _report_file_path(settings, str(report.incident_id))
+
+    if fmt == "rich":
         # Agent dialogue was already printed live; show the final conclusion +
-        # fix panels only.
+        # fix panels, then point to the saved result file.
         rich_formatter(report, model=settings.backends.ai.resolved_model, show_dialogue=False)
+        if saved_path is not None:
+            console.print(f"[green]Report saved:[/green] {saved_path}")
+        else:
+            console.print(
+                f"[green]Report stored in the {settings.backends.storage.provider} "
+                f"store[/green] (incident {report.incident_id})"
+            )
+    elif fmt == "json":
+        # Machine-readable *locator* only — not the report body, which lives in
+        # the result file. Lets scripts find the saved report on stdout.
+        typer.echo(
+            json.dumps(
+                {
+                    "incident_id": str(report.incident_id),
+                    "mode": report.mode.value,
+                    "status": "hitl_required" if report.hitl_request else "complete",
+                    "storage": settings.backends.storage.provider,
+                    "report_path": str(saved_path) if saved_path else None,
+                },
+                indent=2,
+            )
+        )
 
     if report.hitl_request:
         typer.echo(
@@ -273,6 +293,21 @@ def analyze(  # noqa: PLR0913
             err=True,
         )
         raise typer.Exit(code=1)
+
+
+def _report_file_path(settings: object, incident_id: str) -> Path | None:
+    """Path of the saved report file for filesystem storage, else ``None``.
+
+    Other backends (sqlite / s3 / postgres) have no single result file, so the
+    caller falls back to naming the store instead.
+    """
+    from aegis_swr.config.settings import Settings
+
+    assert isinstance(settings, Settings)
+    storage = settings.backends.storage
+    if storage.provider == "filesystem":
+        return Path(storage.reports_dir).expanduser() / f"{incident_id}.json"
+    return None
 
 
 def _apply_store_config(settings: object, store: str, value: str):

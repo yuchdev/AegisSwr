@@ -1650,11 +1650,11 @@ aegis analyze \
   --log-service auth-api         # service name for LogBackend.query_window (optional)
   --output  rich                 # output format: rich | json | quiet
   --severity INFO                # log verbosity: DEBUG | INFO | WARNING | ERROR
-  --config  ~/.aegis-swr/analyze.json   # load options from JSON file
+  --config  ~/.local/share/aegis/config.json   # load options from JSON file
   --save-config                  # save current effective options to JSON file, then exit
 ```
 
-**Option precedence (highest wins):** explicit CLI flag → JSON config file value → hardcoded default.
+**Option precedence (highest wins):** explicit CLI flag → JSON config file value → hardcoded default. The config file is applied first and explicit CLI flags are layered on top (`defaults < config.json < CLI`).
 
 `--log`, `--shot`, and `--pcap` are **repeatable**: pass each flag once per file.
 
@@ -1677,15 +1677,22 @@ New backend options (§6.4 / §6.5):
 - `--log-provider` (maps to `LogSettings.provider`)
 - `--log-service` (service name passed to `LogBackend.query_window`; when omitted, the file-path log source is used and no `query_window` call is made)
 
-### 12.3 JSON config file (`~/.aegis-swr/analyze.json`)
+### 12.3 JSON config file (`~/.local/share/aegis/config.json`)
 
-The config file schema exactly mirrors the `aegis analyze` CLI options:
+There are two ways to configure `aegis analyze` startup options — the CLI and a
+JSON config file — and **both deserialize into the same schema**,
+`AnalyzeConfig` (`cli/_config.py`). That dataclass is the *single source of
+truth* for the option keys, their types, and their defaults: the CLI option
+names, the JSON keys, and the persisted file all derive from it, so there is no
+second list of names to keep in sync. The keys mirror the `aegis analyze` CLI
+options exactly:
 
 ```json
 {
   "dump":          null,
   "logs":          [],
   "shots":         [],
+  "pcaps":         [],
   "sym":           null,
   "assume":        null,
   "engine":        "auto",
@@ -1694,17 +1701,21 @@ The config file schema exactly mirrors the `aegis analyze` CLI options:
   "store_config":  null,
   "code_provider": "none",
   "repo":          null,
-  "pdb_path":      null,
   "log_provider":  "file",
   "log_service":   null,
   "output":        "rich",
-  "severity":      "INFO"
+  "severity":      "WARNING"
 }
 ```
 
-The default path is `~/.aegis-swr/analyze.json`. An alternate path is given with `--config PATH`.
+The default path is `~/.local/share/aegis/config.json` (override with
+`--config PATH`). When both sources are present the file is loaded first and
+explicit CLI flags are applied on top (`defaults < config.json < CLI`). Unknown
+keys in the file are ignored with a warning (typo protection). A ready-to-copy
+template lives at [`config.example.json`](../../config.example.json).
 
-`--save-config` writes the current effective options (CLI flags merged over any loaded JSON values) to the config file and exits without running analysis. This matches the prototype's `--save-config` behaviour.
+`--save-config` writes the current effective options (CLI flags merged over any
+loaded JSON values) to the config file and exits without running analysis.
 
 ### 12.4 `aegis export` — migrate records between stores
 
@@ -1720,8 +1731,8 @@ Reads all reports from the source `RelationalStore` via `load_recent(limit=None)
 
 ### 12.5 Output formatters (`cli/_formatters.py`)
 
-- **`rich_formatter(report)`** — `rich.panel` summary (root cause, confidence level, agent dialogue timeline, mitigation instructions, optional code diff). Progress spinner shown during analysis.
-- **`json_formatter(report)`** — `report.model_dump_json(indent=2)` written to stdout.
+- **`rich`** — live war-room display, then a `rich.panel` verdict summary (root cause, confidence level, mitigation, optional fix), followed by a `Report saved: <path>` pointer.
+- **`json`** — stdout carries only a machine-readable **locator** (`incident_id`, `mode`, `status`, `storage`, `report_path`) so scripts can find the saved file; the full report body is **never** dumped to stdout (regardless of `--severity`). The report itself is written exclusively as the result file by the storage backend.
 - **`quiet`** — exit code 0 (success) / 1 (HITL or low confidence); no stdout output.
 
 ### 12.6 Files

@@ -1,0 +1,7 @@
+{
+  "ai": "openai",
+  "store": "filesystem",
+  "store_config": "C:/data/reports",
+  "verbosity": "loud",
+  "engien": "cdb"
+}

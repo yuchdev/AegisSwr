@@ -86,9 +86,13 @@ Single line, rendered by `Layout` with `size=1`.
 
 ### 2.2 Evidence Stream (left half)
 
-A scrolling chronological log. Every data point that arrives from the core gets a timestamped line appended to an internal list. On each render tick the last `max_visible` lines are shown, where `max_visible = panel_inner_height`. Because `Layout` constrains height, old lines naturally disappear off the top — a simulated scroll.
+A scrolling chronological log. Every data point that arrives from the core gets a timestamped line appended to an internal list (`_evidence_lines`) the instant its event fires — this buffer is the complete record (capped at 500 and saved in full to the report files; the user cannot scroll it back in the UI).
+
+**Streaming reveal.** The display does *not* show the whole buffer immediately. A reveal pointer (`_revealed`) is advanced on every render tick at `_REVEAL_INTERVAL` (0.07 s ≈ 14 lines/s), so artifacts appear to *decipher in* one after another and scroll past in real time rather than dumping all at once — important at `DEBUG`, where one `EvidenceExtracted` event can buffer dozens of detailed lines. Only the revealed prefix is rendered; of that, the last `max_visible` lines are shown (`max_visible = panel_inner_height`). Because `Layout` constrains height, old lines disappear off the top. On `_finalize` the pointer jumps to the end so the frozen frame shows the complete tail (including the completion marker). When the buffer is trimmed at the 500-line cap, `_revealed` is decremented by the same amount so it keeps indexing the right lines.
 
 **Cursor animation:** a blinking block `▌` (alternates `▌` / ` ` at 1 Hz using `time.monotonic()`) is appended as the last line while the investigation is live. It disappears on completion.
+
+The Evidence Stream carries **only extracted artifacts** — the data the Data Adapter pulled out of the incident. Agent communication (findings, consensus, re-deliberation, the completion marker) is *not* evidence; it is the process of investigation and lives in the [Investigation Process](#24-investigation-process-right-bottom-quarter) conversation log instead.
 
 **Line categories and styles:**
 
@@ -98,9 +102,6 @@ A scrolling chronological log. Every data point that arrives from the core gets 
 | Fault data     | `EvidenceExtracted` fields                               | `00:01  fault_class   ACCESS_VIOLATION` | label `dim`, value `bold magenta`   |
 | Stack frame    | `EvidenceExtracted.brief["stack_frames"]`                | `00:01  stack[0]  CImage::Load+0x3f`    | `blue`                              |
 | Symbol warning | `EvidenceExtracted.brief["low_symbol_coverage_warning"]` | `00:01  ⚠ low symbol coverage`          | `bold yellow`                       |
-| Agent finding  | `AgentSpoke`                                             | `00:32  OS Kernel » UAF on freed heap`  | agent name `bold`, finding `italic` |
-| Consensus      | `ConsensusEvaluated`                                     | `01:30  consensus R1  61%  MEDIUM`      | color from confidence level         |
-| Status note    | internal                                                 | `01:30  threshold not reached; R2…`     | `dim italic`                        |
 
 Each line is prefixed with `MM:SS` elapsed time (from investigation start).
 
@@ -174,45 +175,30 @@ Actually, because we only receive an event *after* an agent finishes (the LangGr
 
 ### 2.4 Investigation Process (right bottom quarter)
 
-Three sections stacked vertically:
+Two sections stacked vertically: a fixed live-activity meter on top, then the scrolling agent-conversation log filling the rest.
 
-**Section 1 — Waiting animation (spinner + stage bar)**
+**Section 1 — Live activity (spinner + stage bar)**
 
 ```
 ⠼ Skeptic Agent is stress-testing the hypothesis…
 ████████████████████░░░  9/12   0:01:48
 ```
 
-Uses a `rich.progress.Progress` instance (same as current `RichView`) with:
-- `SpinnerColumn("dots", style="cyan")`
-- `TextColumn("[cyan]{task.description}")`
-- `BarColumn(bar_width=26, complete_style="cyan", pulse_style="cyan")`
-- `TextColumn("[dim]{task.completed}/{task.total}")`
-- `TimeElapsedColumn()`
+A spinner + status line and a stage progress bar (`_bar(ratio, …)`, `completed/total`, elapsed). When the investigation finishes the spinner becomes `✔`, the status reads *Investigation complete*, and the bar fills solid. The pane subtitle shows the current `Round N`.
 
-When the investigation finishes the task is advanced to `completed=total` and the bar fills solid.
+**Section 2 — Agent conversation (scrolling deliberation log)**
 
-**Section 2 — Consensus history**
+The agent-to-agent communication — *the process of the investigation, not evidence*. Backed by the same `_StreamLog` as the Evidence Stream, so it behaves identically: each message is appended to the full record the instant its event fires, revealed at `_REVEAL_INTERVAL`, and shown as a trailing window. New lines appear at the bottom; older ones scroll off the top once they exceed the pane height (tailed to `_process_inner_height()` with a one-row clipping margin). The complete transcript lives in the report files; the user never scrolls it back in the UI.
 
-One compact row per completed round:
+| Category        | Trigger                       | Example line                            | Style                               |
+|-----------------|-------------------------------|-----------------------------------------|-------------------------------------|
+| Agent finding   | `AgentSpoke` (first message line) | `00:32  OS Kernel » UAF on freed heap`  | agent name `bold`, finding `italic` |
+| Agent reasoning | `AgentSpoke` (DEBUG only)     | `        │ supporting detail…`          | `grey62`, gutter — full message     |
+| Consensus       | `ConsensusEvaluated`          | `01:30  consensus R1  61%  MEDIUM`      | color from confidence level         |
+| Re-deliberation | new round began (internal)    | `01:30  threshold not reached — re-deliberating round 2` | `dim italic`     |
+| Completion      | `InvestigationCompleted` / `HumanInputRequired` | `02:10  ✔  investigation complete` | `bold green` / `bold red` |
 
-```
-Consensus history
-R1  ████████████░░░░  61%  MEDIUM  ✗  (did not converge)
-R2  ████████████████████░░  87%  HIGH  ✔  (converged)
-```
-
-`✗` in red for rounds that didn't converge; `✔` in green for the convergence round.  
-Bar color follows `_conf_color`: green ≥80%, yellow ≥50%, red below.
-
-**Section 3 — Stage log (overflow area)**
-
-Any remaining height below sections 1 and 2 shows the last few status transitions in dim text:
-
-```
-01:30  threshold not reached — continuing to round 2
-01:48  OS Kernel Agent responding…
-```
+At `DEBUG` the conversation is more verbose: each agent's full multi-line message is surfaced (gutter-prefixed continuation lines), not just the headline. `_consensus_history` state is still tracked for convergence bookkeeping (`✔`/`✗` on each round), but is no longer drawn as a separate block — convergence is conveyed inline by the re-deliberation and completion lines.
 
 ---
 
@@ -223,6 +209,7 @@ Any remaining height below sections 1 and 2 shows the last few status transition
 | Spinning cursor (active agent) | `itertools.cycle(["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"])` advanced on each render tick | Forensic Agents — active agent row |
 | Stage progress bar pulse       | `BarColumn(pulse_style="cyan")` — pulses while `completed < total`                        | Investigation Process section 1    |
 | Blinking evidence cursor       | `▌` vs ` ` toggled by `int(elapsed) % 2`                                                  | Evidence Stream last line          |
+| Streaming line reveal          | `_revealed` pointer advanced by `(now − _last_reveal) / _REVEAL_INTERVAL` each tick       | Evidence Stream — lines scroll in  |
 | Elapsed clock                  | `TimeElapsedColumn()` inside `Progress`                                                   | Investigation Process section 1    |
 | Header clock                   | `f"{int(elapsed)//60:02d}:{int(elapsed)%60:02d}"` formatted in `_render()`                | Header bar                         |
 
@@ -314,40 +301,42 @@ green diagnosis frame is **not** rendered.
 
 ## 6. Event → Widget Mapping
 
+Evidence Stream receives only `EvidenceExtracted` artifacts (and the start marker); all agent communication is routed to the Investigation Process conversation log.
+
 ```
 DomainEvent               Evidence Stream          Forensic Agents          Investigation Process
 ──────────────────────────────────────────────────────────────────────────────────────────────
-InvestigationStarted      append "CDB started"     all → STANDBY            spinner starts
-                          stamp start time          round = 1                stage 0/7
+InvestigationStarted      append "CDB started"     all → STANDBY            spinner starts; stage 0/7
+                          stamp start time          round = 1
 
 EvidenceExtracted         append fault lines        first agent → ANALYZING  advance to stage 1
                           append stack frames       (OS Kernel)              status: "OS Kernel…"
                           append sym warning?
 
-AgentSpoke(os_kernel)     append "OS Kernel »…"    os_kernel → DONE         advance stage
+AgentSpoke(os_kernel)     —                        os_kernel → DONE         append "OS Kernel »…"; advance
                                                    code_analyst → ANALYZING  status: "Code Analyst…"
 
-AgentSpoke(code_analyst)  append "Code Analyst »…" code_analyst → DONE      advance stage
+AgentSpoke(code_analyst)  —                        code_analyst → DONE      append "Code Analyst »…"; advance
                                                    log_historian → ANALYZING status: "Log Historian…"
 
-AgentSpoke(log_historian) append "Log Historian »…"log_historian → DONE     advance stage
+AgentSpoke(log_historian) —                        log_historian → DONE     append "Log Historian »…"; advance
                                                    skeptic → ANALYZING       status: "Skeptic…"
 
-AgentSpoke(skeptic)       append "Skeptic »…"      skeptic → DONE           advance stage
+AgentSpoke(skeptic)       —                        skeptic → DONE           append "Skeptic »…"; advance
                                                                              status: "Weighing…"
+                          (a new round also appends "re-deliberating Rn …" to the conversation)
 
-ConsensusEvaluated        append "consensus Rn …"  all → STANDBY            advance stage
-                          append "threshold …"     round += 1               add consensus row
-                          (if not converged)       (if not converged)       if not converged:
-                                                   first → ANALYZING         extend total stages
+ConsensusEvaluated        —                        all → STANDBY            append "consensus Rn …"; advance
+                                                   round += 1 (if not conv.) track converged; if not
+                                                   first → ANALYZING         converged extend total stages
 
-InvestigationCompleted    append "✔ complete"      all → DONE               last row → converged ✔
-                          (mark converged True)                            bar → full; live.stop()
-                                                                           CLI then render_verdict()
+InvestigationCompleted    —                        all → DONE               append "✔ complete"; converged ✔
+                          (mark converged True)                            reveal both logs; bar full
+                                                                           live.stop(); CLI render_verdict()
 
-HumanInputRequired        append "⚠ HITL required" all remain as-is         last row → converged ✗
-                          (mark converged False)                           bar → full; live.stop()
-                                                                           CLI then render_verdict()
+HumanInputRequired        —                        all remain as-is         append "⚠ HITL required"; conv. ✗
+                          (mark converged False)                           reveal both logs; bar full
+                                                                           live.stop(); CLI render_verdict()
 ```
 
 > The view freezes the live block; the CLI driver (`stream_and_display` →
