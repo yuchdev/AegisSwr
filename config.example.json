@@ -1,0 +1,18 @@
+{
+  "dump": null,
+  "logs": [],
+  "shots": [],
+  "pcaps": [],
+  "sym": null,
+  "assume": null,
+  "engine": "auto",
+  "ai": "anthropic",
+  "store": "filesystem",
+  "store_config": null,
+  "code_provider": "none",
+  "repo": null,
+  "log_provider": "file",
+  "log_service": null,
+  "output": "rich",
+  "severity": "WARNING"
+}
