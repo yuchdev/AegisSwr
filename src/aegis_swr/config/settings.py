@@ -1,13 +1,87 @@
 from __future__ import annotations
 
+"""Configuration settings and runtime configuration sources.
+
+This module defines the structured settings used across the Aegis SWR
+prototype. Settings are modelled with Pydantic / pydantic-settings as
+``BaseSettings`` subclasses so they may be loaded from (in priority order):
+
+- explicit constructor kwargs
+- environment variables prefixed with ``AEGIS__`` (nested using ``__``)
+- JSON files under the XDG-style runtime state directory (see ``CONFIG_DIR``)
+
+The file also provides a small custom settings source that merges two JSON
+files: ``config.json`` (runtime configuration sections) and ``agents.json``
+(agent-weight matrix). Missing or malformed JSON files are tolerated and
+simply ignored, leaving the model defaults intact.
+"""
+
+import json
 from pathlib import Path
 from typing import Any, Optional
 
 from pydantic import Field, field_validator
+from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+
+"""Canonical config directory - the single home of both ``config.json`` (this
+module's runtime settings) and ``agents.json`` (the weight matrix).  Lives
+under XDG state so it is the *same* path the CLI reads and writes; the two
+used to disagree (``share/aegis`` vs ``share/aegis-swr``), which silently
+stopped ``config.json`` from overriding the storage defaults.
+"""
+CONFIG_DIR = Path("~/.local/state/.aegis-swr").expanduser()
+
+"""Backwards-compatible alias; ``CONFIG_DIR`` is the preferred name."""
+DATA_DIR = CONFIG_DIR
+
+"""Runtime settings file (``core`` / ``backends`` / ``sandbox`` / ``api``). It is
+the *same* file the CLI uses for the flat ``aegis analyze`` keys; those keys
+are not fields of :class:`Settings` and are dropped via ``extra="ignore"``.
+"""
+CONFIG_JSON = CONFIG_DIR / "config.json"
+
+"""The canonical config-file path, re-exported for the CLI layer so both halves
+of the app resolve the *same* file.
+"""
+DEFAULT_CONFIG_PATH = CONFIG_JSON
+
+"""Per-fault-class agent weight matrix, mounted under the ``agent_weights`` key."""
+AGENTS_JSON = CONFIG_DIR / "agents.json"
+
+"""Keywords for sensitive fields in the runtime settings file."""
+_SECRET_KEYS = {"api_key", "password", "secret", "token", "database_url"}
 
 
 class CoreSettings(BaseSettings):
+    """General pipeline tuning and safety thresholds.
+
+    Core application behavior flags and numeric thresholds that control how
+    the multi-agent reasoning and analysis pipeline runs. Values here are
+    intentionally conservative defaults suitable for local development and can
+    be overridden via env vars or the JSON config file.
+
+    Fields
+    ------
+    max_debate_rounds: int
+        Maximum number of iterative debate/consensus rounds performed by the
+        agent ensemble during analysis.
+    consensus_threshold: float
+        Confidence threshold (0..1) required for a consensus decision to be
+        accepted without Human-in-the-Loop (HITL) review.
+    hitl_confidence_threshold: float
+        If a result's confidence is below this value, the system will route the
+        case for human review.
+    log_window_seconds: int
+        Time window (seconds) used when extracting recent log lines for
+        contextual evidence.
+    user_assumption_token_limit: int
+        Soft limit on tokens used to capture user-provided assumptions.
+    stack_frames_limit: int
+        Maximum number of stack frames to include when serializing a stack
+        trace for AI analysis.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
     max_debate_rounds: int = 4
@@ -20,10 +94,19 @@ class CoreSettings(BaseSettings):
 
 _ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-4-6"
 _OPENAI_DEFAULT_MODEL = "gpt-5.4"
-_OPENAI_MODEL_PREFIXES = ("gpt-", "o1", "o3", "o4")
+_OPENAI_MODEL_PREFIXES = ("gpt-",)
 
 
 class AISettings(BaseSettings):
+    """AI backend configuration.
+
+    Controls which AI provider and model are used and common model-level
+    parameters. The ``resolved_model`` property reconciles the configured
+    model string with the selected provider, returning a provider-appropriate
+    model name even when the user left the model value at the other provider's
+    default.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
     provider: str = "anthropic"
@@ -42,14 +125,12 @@ class AISettings(BaseSettings):
 
     @property
     def resolved_model(self) -> str:
-        """The model to send, reconciled with ``provider``.
+        """Return a provider-correct model name.
 
-        ``model`` defaults to an Anthropic name. When the provider is switched to
-        OpenAI (e.g. ``--ai openai``) without also overriding the model, the
-        configured Anthropic name would be rejected by the OpenAI API. This
-        substitutes the provider's default model whenever the configured name does
-        not belong to the selected provider; an explicit, provider-matching model
-        is always respected.
+        If the configured ``model`` string does not look like one belonging to
+        the chosen ``provider``, a sensible default for that provider is
+        returned. This avoids accidental API rejections when switching providers
+        but keeping the other provider's default model name.
         """
         if self.provider == "openai":
             if self.model.startswith(_OPENAI_MODEL_PREFIXES):
@@ -63,9 +144,17 @@ class AISettings(BaseSettings):
 
 
 class DebugSettings(BaseSettings):
+    """Settings for debug-engine selection and timeouts.
+
+    The debug backends are responsible for extracting crash context from
+    .dmp files. These settings choose which engine to prefer and tune timeouts
+    and frame limits when walking stacks.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
-    engine: str = "auto"                   # "auto" | "cdb" | "windbg_js"
+    # "auto" | "cdb" | "windbg_js"
+    engine: str = "auto"
     timeout_seconds: int = 300
     callback_timeout_seconds: int = 60
     max_faulting_frames: int = 20
@@ -83,12 +172,28 @@ class DebugSettings(BaseSettings):
 
 
 class StorageSettings(BaseSettings):
+    """Storage backend configuration.
+
+    Selects which storage provider is used for reports and binary objects and
+    supplies provider-specific defaults for file paths and connection URLs.
+    Supported ``provider`` values include: ``filesystem``, ``sqlite``, ``s3``,
+    and ``postgres``.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
-    provider: str = "filesystem"              # filesystem | sqlite | s3 | postgres
-    reports_dir: str = "~/.aegis-swr/reports" # filesystem: report JSON files
-    objects_dir: str = "~/.aegis-swr/objects" # filesystem: raw binary artifacts
-    db_path: str = "~/.aegis-swr/reports.db"  # sqlite: database file
+    # filesystem | sqlite | s3 | postgres
+    provider: str = "filesystem"
+
+    # filesystem: report JSON files
+    reports_dir: str = "~/.local/share/.aegis-swr/reports"
+
+    # filesystem: raw binary artifacts
+    objects_dir: str = "~/.local/share/.aegis-swr/objects"
+
+    # sqlite: database file
+    db_path: str = "~/.local/db/.aegis-swr/reports.db"
+
     database_url: str = "postgresql+asyncpg://aegis:aegis@localhost:5432/aegis"
     object_store_url: str = "s3://aegis-raw-inputs"
     object_store_region: str = "us-east-1"
@@ -106,6 +211,13 @@ class StorageSettings(BaseSettings):
 
 
 class LogBackendSettings(BaseSettings):
+    """Logging backend configuration.
+
+    Provides a small surface for selecting how historical logs are read. The
+    default provider is ``file`` which reads logs from local files; a
+    lightweight Fluent-forwarder option is also present for test harnesses.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
     provider: str = "file"                  # file | fluent  (elk deferred)
@@ -128,11 +240,19 @@ class LogBackendSettings(BaseSettings):
 
 
 class CodeBackendSettings(BaseSettings):
+    """Configuration for the optional source-code backend.
+
+    When enabled, a CodeBackend can query a repository (git or filesystem)
+    to provide recent commits and file contents that help the AI reason about
+    code-level causes. Defaults disable this behavior so the core pipeline
+    can run without a source tree.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
     enabled: bool = False                   # false → no CodeBackend; Stage 8 skipped
     provider: str = "git"                   # git | filesystem
-    repo_path: Optional[str] = None            # working tree / source root
+    repo_path: Optional[str] = None         # working tree / source root
     window_hours: int = 2                   # default look-back for get_commits_before
     commit_limit: int = 10                  # default max commits returned
     git_timeout_seconds: int = 30           # git subprocess timeout (git provider)
@@ -147,6 +267,13 @@ class CodeBackendSettings(BaseSettings):
 
 
 class BackendsSettings(BaseSettings):
+    """Container for all backend-specific settings.
+
+    This groups the various backend configuration sections under a single
+    namespace; each attribute is itself a Pydantic settings model with its
+    own defaults and validation.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
     ai: AISettings = Field(default_factory=AISettings)
@@ -157,6 +284,13 @@ class BackendsSettings(BaseSettings):
 
 
 class SandboxSettings(BaseSettings):
+    """Sandbox execution policy for running untrusted analysis helpers.
+
+    When the analysis pipeline needs to execute helper code (e.g., any code
+    instrumented during debugging), the sandbox settings control whether a
+    restricted runtime is used and its resource limits.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
     enabled: bool = True
@@ -167,6 +301,12 @@ class SandboxSettings(BaseSettings):
 
 
 class APISettings(BaseSettings):
+    """HTTP API server configuration.
+
+    Controls host/port and simple auth/rate-limiting options for the built-in
+    HTTP API used by the GUI/CLI to query analysis results.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
     host: str = "0.0.0.0"
@@ -177,6 +317,13 @@ class APISettings(BaseSettings):
 
 
 class AgentWeightEntry(BaseSettings):
+    """A per-agent weight vector used when combining agent opinions.
+
+    Each entry contains normalized weights (floats) assigned to the logical
+    agents that participate in the ensemble. These weights are used during
+    consensus and scoring to bias the influence of different agent roles.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
     os_kernel: float = 0.30
@@ -186,6 +333,13 @@ class AgentWeightEntry(BaseSettings):
 
 
 class AgentWeightsSettings(BaseSettings):
+    """Per-fault-class agent weight matrix.
+
+    Provides default AgentWeightEntry objects for known fault classes and an
+    ``unknown`` fallback. The :meth:`for_fault_class` helper returns the
+    appropriate weight vector for a string-valued FaultClass.
+    """
+
     model_config = SettingsConfigDict(extra="ignore")
 
     memory_access_violation: AgentWeightEntry = Field(
@@ -240,16 +394,75 @@ class AgentWeightsSettings(BaseSettings):
     )
 
     def for_fault_class(self, fault_class_value: str) -> AgentWeightEntry:
-        """Return the weight entry for a given FaultClass value string"""
+        """Return the weight entry for a given FaultClass value string.
+
+        If the provided string does not match a known attribute, the ``unknown``
+        fallback entry is returned. This method accepts the FaultClass value
+        directly (for convenience when deserializing external inputs).
+        """
         return getattr(self, fault_class_value, self.unknown)
 
 
-_YAML_FILE = Path(__file__).parent.parent.parent.parent / "config.yaml"
+def _read_json_object(path: Path) -> dict[str, Any]:
+    """Read a JSON object from the path.
+
+    The function tolerates missing files and malformed JSON. In either case an
+    empty dictionary is returned so that callers can merge optional JSON files
+    without rising on startup.
+    """
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+class AegisJsonSettingsSource(PydanticBaseSettingsSource):
+    """Settings source backed by the two JSON files under :data:`DATA_DIR`.
+
+    ``config.json`` supplies the top-level runtime sections; ``agents.json``
+    supplies the weight matrix and is mounted under the ``agent_weights`` key.
+    A bad or missing file never aborts startup - it simply contributes nothing,
+    leaving the dataclass defaults in force.
+    """
+
+    def __init__(self, settings_cls: type[BaseSettings]) -> None:
+        super().__init__(settings_cls)
+        data = dict(_read_json_object(CONFIG_JSON))
+        agents = _read_json_object(AGENTS_JSON)
+        if agents:
+            data["agent_weights"] = agents
+        self._data = data
+
+    def get_field_value(
+        self, field: FieldInfo, field_name: str
+    ) -> tuple[Any, str, bool]:
+        """Return the value for *field_name* from the merged JSON data.
+
+        This method implements the small adapter interface expected by
+        pydantic-settings so the JSON data participates in settings
+        resolution. The returned triple is ``(value, source_name, should_call)``
+        - here we return ``False`` for ``should_call`` because the value is
+        already resolved.
+        """
+        return self._data.get(field_name), field_name, False
+
+    def __call__(self) -> dict[str, Any]:
+        return self._data
 
 
 class Settings(BaseSettings):
+    """Top-level application settings.
+
+    This is the primary settings class consumers should instantiate. It
+    aggregates the core, backends, sandbox, api and agent-weight sections and
+    wires in the custom JSON settings source so that ``config.json`` and
+    ``agents.json`` are read automatically.
+    """
+
     model_config = SettingsConfigDict(
-        yaml_file=str(_YAML_FILE),
         env_prefix="AEGIS__",
         env_nested_delimiter="__",
         extra="ignore",
@@ -264,12 +477,18 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        from pydantic_settings import YamlConfigSettingsSource
+        """Customize the settings source precedence.
 
-        sources: list[PydanticBaseSettingsSource] = [init_settings, env_settings]
-        if _YAML_FILE.exists():
-            sources.append(YamlConfigSettingsSource(settings_cls))
-        return tuple(sources)
+        Return an ordered tuple of settings sources. Sources earlier in the
+        tuple take precedence over later ones. The ordering implemented here is:
+
+        1. Explicit ``init`` kwargs passed to the Settings constructor
+        2. Environment variables prefixed ``AEGIS__``
+        3. JSON files under ``CONFIG_DIR`` (``config.json`` and
+           ``agents.json`` merged by :class:`AegisJsonSettingsSource`)
+        """
+        # Precedence (high → low): explicit init kwargs > AEGIS__* env > JSON.
+        return init_settings, env_settings, AegisJsonSettingsSource(settings_cls)
 
     core: CoreSettings = Field(default_factory=CoreSettings)
     backends: BackendsSettings = Field(default_factory=BackendsSettings)
@@ -286,10 +505,14 @@ class Settings(BaseSettings):
         return raw
 
 
-_SECRET_KEYS = {"api_key", "password", "secret", "token", "database_url"}
-
-
 def _redact_secrets(obj: Any):
+    """Recursively redact known secret keys in a mapping or sequence.
+
+    Mutates the provided structure in-place. Any dict key that contains one of
+    the substrings in ``_SECRET_KEYS`` (case-insensitive) will have its value
+    replaced with the literal string ``"***"``. Lists are traversed
+     recursively, so secrets nested inside sequences will also be redacted.
+    """
     if isinstance(obj, dict):
         for k, v in obj.items():
             if any(s in k.lower() for s in _SECRET_KEYS):

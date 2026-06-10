@@ -7,6 +7,7 @@ unit-tested in isolation; :mod:`aegis_swr.views.rich_view` formats their output
 into styled lines.
 """
 from __future__ import annotations
+from typing import Optional
 
 import struct
 from dataclasses import dataclass
@@ -60,8 +61,8 @@ class FileProps:
 
     name: str
     exists: bool
-    size: int | None = None
-    modified: datetime | None = None
+    size: Optional[int] = None
+    modified: Optional[datetime] = None
 
     def describe(self) -> str:
         """One-line ``name  (1.2 KB, modified 2026-06-04 14:02:11)``"""
@@ -92,9 +93,9 @@ def file_properties(raw_path: str) -> FileProps:
 
 
 def log_window(
-    incident_ts: datetime | None,
+    incident_ts: Optional[datetime],
     window: timedelta = LOG_WINDOW,
-) -> tuple[datetime, datetime] | None:
+) -> Optional[tuple[datetime, datetime]]:
     """Return the ``[incident - window, incident + window]`` span, or None.
 
     None means there is no incident timestamp to anchor the window to.
@@ -105,13 +106,13 @@ def log_window(
 
 
 def describe_log_window(
-    incident_ts: datetime | None,
+    incident_ts: Optional[datetime],
     window: timedelta = LOG_WINDOW,
 ) -> str:
     """Human-readable temporal window, e.g. ``14:00:11 → 14:04:11 (±2m)``"""
     span = log_window(incident_ts, window)
     if span is None:
-        return "no incident timestamp — fell back to last 500 lines"
+        return "no incident timestamp - fell back to last 500 lines"
     start, end = span
     minutes = int(window.total_seconds() // 60)
     return f"{start:%H:%M:%S} → {end:%H:%M:%S}  (±{minutes}m)"
@@ -123,15 +124,15 @@ class PcapInfo:
 
     name: str
     container: str  # "pcap" | "pcapng" | "unknown"
-    byte_order: str | None = None
-    timestamp_resolution: str | None = None
-    version: str | None = None
-    snaplen: int | None = None
-    link_type: str | None = None
-    packet_count: int | None = None
-    first_timestamp: datetime | None = None
-    last_timestamp: datetime | None = None
-    note: str | None = None
+    byte_order: Optional[str] = None
+    timestamp_resolution: Optional[str] = None
+    version: Optional[str] = None
+    snaplen: Optional[int] = None
+    link_type: Optional[str] = None
+    packet_count: Optional[int] = None
+    first_timestamp: Optional[datetime] = None
+    last_timestamp: Optional[datetime] = None
+    note: Optional[str] = None
 
 
 def _pcap_timestamp(sec: int, sub: int, resolution: str) -> datetime:
@@ -174,8 +175,8 @@ def pcap_metadata(raw_path: str, *, max_packets: int = 5_000_000) -> PcapInfo:
             link_type = _LINK_TYPES.get(network, f"LINKTYPE_{network}")
 
             count = 0
-            first_ts: datetime | None = None
-            last_ts: datetime | None = None
+            first_ts: Optional[datetime] = None
+            last_ts: Optional[datetime] = None
             while count < max_packets:
                 rec = handle.read(16)
                 if len(rec) < 16:

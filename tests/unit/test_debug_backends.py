@@ -79,7 +79,7 @@ def test_cdb_extracts_stack_frames(debug_settings: DebugSettings, dump_path: str
     top = result.stack_frames[0]
     assert top.module == "db_writer"
     assert top.function == "db_writer::serialize"
-    # Frame 3 in the fixture is a garbage (0xCCCCCCCC) frame — unresolved.
+    # Frame 3 in the fixture is a garbage (0xCCCCCCCC) frame - unresolved.
     assert result.stack_frames[3].function is None
     assert result.stack_frames[3].module is None
 
@@ -202,7 +202,7 @@ def test_gdb_parses_frames(debug_settings: DebugSettings, dump_path: str):
     assert len(result.stack_frames) == 5
     assert result.faulting_function == "db_writer::serialize"
     assert result.stack_frames[0].source_line == 142
-    # frame #3 is "?? ()" — unresolved.
+    # frame #3 is "?? ()" - unresolved.
     assert result.stack_frames[3].function is None
     assert result.symbol_resolution_score == pytest.approx(0.8)
 
@@ -238,7 +238,7 @@ def test_lldb_parses_frames(debug_settings: DebugSettings, dump_path: str):
     assert result.faulting_module == "libdbwriter.dylib"
     assert result.faulting_function == "db_writer::serialize"
     assert result.stack_frames[0].source_line == 142
-    # frame #4 has no module backtick — unresolved.
+    # frame #4 has no module backtick - unresolved.
     assert result.stack_frames[4].function is None
     assert result.symbol_resolution_score == pytest.approx(0.8)
 
@@ -318,7 +318,7 @@ def test_resolve_symbol_path_env_override(monkeypatch: pytest.MonkeyPatch):
 
 
 # ---------------------------------------------------------------------------
-# WinDbgJSBackend — callback bridge unit tests (real sockets, no subprocess)
+# WinDbgJSBackend - callback bridge unit tests (real sockets, no subprocess)
 # ---------------------------------------------------------------------------
 
 
@@ -376,7 +376,7 @@ def test_callback_bridge_timeout_raises():
 
 
 # ---------------------------------------------------------------------------
-# WinDbgJSBackend — backend tests (subprocess + bridge mocked)
+# WinDbgJSBackend - backend tests (subprocess + bridge mocked)
 # ---------------------------------------------------------------------------
 
 
@@ -496,7 +496,7 @@ def test_windbg_js_inject_params_substitutes_all_tokens(
 
 
 # ---------------------------------------------------------------------------
-# Factory — Windows engine selection
+# Factory - Windows engine selection
 # ---------------------------------------------------------------------------
 
 

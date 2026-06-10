@@ -7,7 +7,7 @@
 | Attribute | Detail |
 |-----------|--------|
 | **Files** | `backends/debug/cdb.py:26`, `backends/debug/js_provider.py:146`, `core/crash_app.py:89–130` |
-| **Nature** | External CLI binary — part of "Debugging Tools for Windows" (WinDbg package). Invoked via `subprocess.run` to open `.dmp` files and execute debugger commands. |
+| **Nature** | External CLI binary - part of "Debugging Tools for Windows" (WinDbg package). Invoked via `subprocess.run` to open `.dmp` files and execute debugger commands. |
 | **Hardcoded values** | Default path `"cdb.exe"` (assumes PATH); watchdog timeout `300 s` (`cdb.py:34`) |
 
 ### Cross-Platform Replacement Strategy
@@ -37,7 +37,7 @@ Factory function in `backends/debug/__init__.py` selects implementation via `pla
 - Replace with `pathlib.Path` resolved to a platform-appropriate cache directory:
   - Windows: `%LOCALAPPDATA%\AegisSWR\symbols`
   - Linux/macOS: `~/.cache/aegis-swr/symbols`
-- Symbol server URL (`msdl.microsoft.com`) is already Windows-specific — on other platforms, use LLDB/GDB's own symbol server protocol or Breakpad symbol files.
+- Symbol server URL (`msdl.microsoft.com`) is already Windows-specific - on other platforms, use LLDB/GDB's own symbol server protocol or Breakpad symbol files.
 - Extract `WINCRASH_SYMBOL_CACHE` env var override into a universal `AEGIS_SYMBOL_CACHE` variable.
 
 ---
@@ -53,7 +53,7 @@ Factory function in `backends/debug/__init__.py` selects implementation via `pla
 
 - Broaden `SourceCollection` (`core/data_sources.py`) to accept multiple dump formats: `.dmp` (Windows minidump), `.core` (Linux ELF core), `.ips`/`.crash` (Apple crashreport), `.rpt` (Breakpad).
 - Format detection by magic bytes rather than extension.
-- Each `DebugBackend` implementation declares `SUPPORTED_FORMATS: list[str]` — the factory checks compatibility.
+- Each `DebugBackend` implementation declares `SUPPORTED_FORMATS: list[str]` - the factory checks compatibility.
 
 ---
 
@@ -80,7 +80,7 @@ Factory function in `backends/debug/__init__.py` selects implementation via `pla
 | Attribute | Detail |
 |-----------|--------|
 | **File** | `backends/debug/js_provider.py:38–40` |
-| **Nature** | The JS template queries `host.currentSession`, `process.LastEvent.Attributes.Exception`, and `host.namespace.Debugger.Sessions` — these are WinDbg Debugger Data Model (DDM) objects. |
+| **Nature** | The JS template queries `host.currentSession`, `process.LastEvent.Attributes.Exception`, and `host.namespace.Debugger.Sessions` - these are WinDbg Debugger Data Model (DDM) objects. |
 
 ### Cross-Platform Replacement Strategy
 
@@ -108,7 +108,7 @@ Linux signal      SIGSEGV(11) → FaultClass.MEMORY_ACCESS_VIOLATION
 macOS exception   EXC_BAD_ACCESS(1) → FaultClass.MEMORY_ACCESS_VIOLATION
 ```
 
-Each `DebugBackend` maps its native fault indicator to a `FaultClass` enum. The AI backend and prompts use `FaultClass` values — never raw hex or OS signal numbers.
+Each `DebugBackend` maps its native fault indicator to a `FaultClass` enum. The AI backend and prompts use `FaultClass` values - never raw hex or OS signal numbers.
 
 ---
 
@@ -121,7 +121,7 @@ Each `DebugBackend` maps its native fault indicator to a `FaultClass` enum. The 
 
 ### Cross-Platform Replacement Strategy
 
-- On GDB/LLDB-based platforms, use their native Python API directly — no HTTP bridge needed. Data is returned synchronously via Python calls.
+- On GDB/LLDB-based platforms, use their native Python API directly - no HTTP bridge needed. Data is returned synchronously via Python calls.
 - If a bridge pattern is still useful (e.g., for isolation), use Unix domain sockets (Linux/macOS) or named pipes (Windows) instead of TCP, to avoid firewall / port collision issues.
 
 ---
@@ -150,11 +150,11 @@ Each `DebugBackend` implementation defines its own `_build_command_sequence()` m
 
 | Component | Scope | Abstraction Effort |
 |-----------|-------|--------------------|
-| `cdb.exe` invocation | `backends/debug/cdb.py` | Medium — implement `GdbBackend`, `LldbBackend`; update factory |
-| `c:\symbols` path | `cdb.py`, `config/` | Low — `pathlib` + env var |
-| `.dmp` extension check | `cli.py`, `data_sources.py` | Low — magic-byte format detection |
-| `ActiveXObject` COM | `js_provider.py` | Low — scope backend to Windows; provide GDB/LLDB Python equivalents |
-| WinDbg DDM queries | `js_provider.py` | High — requires per-platform native API integration |
-| NTSTATUS hex codes | `cdb.py`, prompts, test assets | Low — centralized `FaultClass` enum |
-| TCP HTTP bridge | `windbg_server.py` | Medium — only needed on Windows; replace with direct Python API elsewhere |
-| CDB command sequences | `cdb.py` | Medium — per-backend `_build_command_sequence()` |
+| `cdb.exe` invocation | `backends/debug/cdb.py` | Medium - implement `GdbBackend`, `LldbBackend`; update factory |
+| `c:\symbols` path | `cdb.py`, `config/` | Low - `pathlib` + env var |
+| `.dmp` extension check | `cli.py`, `data_sources.py` | Low - magic-byte format detection |
+| `ActiveXObject` COM | `js_provider.py` | Low - scope backend to Windows; provide GDB/LLDB Python equivalents |
+| WinDbg DDM queries | `js_provider.py` | High - requires per-platform native API integration |
+| NTSTATUS hex codes | `cdb.py`, prompts, test assets | Low - centralized `FaultClass` enum |
+| TCP HTTP bridge | `windbg_server.py` | Medium - only needed on Windows; replace with direct Python API elsewhere |
+| CDB command sequences | `cdb.py` | Medium - per-backend `_build_command_sequence()` |

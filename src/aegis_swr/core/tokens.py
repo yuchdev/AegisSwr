@@ -1,29 +1,24 @@
 """Token counting utilities with an offline-safe fallback.
 
-tiktoken is a hard dependency, but its encoding files are fetched from the
+The tiktoken is a hard dependency, but its encoding files are fetched from the
 network on first use and cached. In air-gapped or sandboxed environments that
-fetch can fail; in that case we fall back to a conservative chars/4 heuristic so
+fetch can fail; in that case we fall back to a conservative chars/4 heuristic, so
 the pipeline never breaks on token accounting alone.
 """
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Any
+from typing import Any, Optional
 
-from loguru import logger
+import tiktoken
 
 _CHARS_PER_TOKEN = 4
 
 
 @lru_cache(maxsize=1)
-def _encoder() -> Any | None:
-    try:
-        import tiktoken
-
-        return tiktoken.get_encoding("cl100k_base")
-    except Exception as exc:  # pragma: no cover - depends on network/runtime
-        logger.warning(f"tiktoken encoding unavailable ({exc}); using chars/4 heuristic")
-        return None
+def _encoder() -> Optional[Any]:
+    """Return a tiktoken encoding instance of the most common CL100K base model."""
+    return tiktoken.get_encoding("cl100k_base")
 
 
 def count_tokens(text: str) -> int:

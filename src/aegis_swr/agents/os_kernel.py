@@ -1,4 +1,4 @@
-"""OS Kernel Agent — system-environment specialist"""
+"""OS Kernel Agent - system-environment specialist"""
 from __future__ import annotations
 
 import json

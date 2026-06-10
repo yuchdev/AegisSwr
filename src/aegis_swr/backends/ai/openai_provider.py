@@ -43,7 +43,7 @@ def _to_openai_strict_schema(model: type[BaseModel]) -> dict[str, Any]:
 # Reasoning models (gpt-5 family, o-series) reject `max_tokens` and any
 # non-default `temperature`; they require `max_completion_tokens`. Their
 # completion budget is also shared with internal reasoning tokens, so a small
-# cap can starve the visible answer — give structured output ample headroom.
+# cap can starve the visible answer - give structured output ample headroom.
 _REASONING_PREFIXES = ("gpt-5", "o1", "o3", "o4")
 _REASONING_MIN_COMPLETION_TOKENS = 16000
 

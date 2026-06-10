@@ -7,6 +7,7 @@ falls inside the requested window, optionally filtered by severity. The
 See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §6.4.1.
 """
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 from datetime import datetime
@@ -34,7 +35,7 @@ class FileLogAdapter(LogBackend):
         service: str,
         start_time: datetime,
         end_time: datetime,
-        severity_levels: list[str] | None = None,
+        severity_levels: Optional[list[str]] = None,
     ) -> list[str]:
         return await asyncio.to_thread(
             self._sync_query, service, start_time, end_time, severity_levels
@@ -45,7 +46,7 @@ class FileLogAdapter(LogBackend):
         service: str,
         start_time: datetime,
         end_time: datetime,
-        severity_levels: list[str] | None,
+        severity_levels: Optional[list[str]],
     ) -> list[str]:
         files = self._resolve_files(service)
         if not files:

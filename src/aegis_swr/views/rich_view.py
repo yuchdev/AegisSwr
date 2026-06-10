@@ -3,11 +3,11 @@
 Two views subscribe to the core :class:`~aegis_swr.core.events.EventBus` and
 render an investigation live:
 
-* :class:`WarRoomView` — a full-screen, three-pane "Synthetic War Room"
+* :class:`WarRoomView` - a full-screen, three-pane "Synthetic War Room"
   (Evidence Stream | Forensic Agents / Investigation Process) built on
   :class:`rich.layout.Layout` inside a :class:`rich.live.Live`. See
   ``docs/adr/new-ui-rich-based-design.md``.
-* :class:`RichView` — a simpler single-column trail, kept as a fallback for
+* :class:`RichView` - a simpler single-column trail, kept as a fallback for
   narrow terminals.
 
 :func:`make_view` selects between them by terminal width.
@@ -19,11 +19,14 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Callable, Literal, Optional
 
 from rich.console import Console, Group, RenderableType
+from rich.json import JSON
 from rich.layout import Layout
 from rich.live import Live
+from rich.markdown import Markdown
+from rich.padding import Padding
 from rich.panel import Panel
 from rich.progress import (
     BarColumn,
@@ -35,6 +38,7 @@ from rich.progress import (
 )
 from rich.rule import Rule
 from rich.text import Text
+from rich.theme import Theme
 
 from aegis_swr.core.events import (
     AgentSpoke,
@@ -83,7 +87,7 @@ AGENT_SEQUENCE: list[tuple[str, str]] = [
 
 # node → name and name → "the next agent to wake" derived from the sequence.
 _NODE_TO_AGENT: dict[str, str] = {node: name for node, name in AGENT_SEQUENCE}
-_NEXT_AGENT: dict[str, str | None] = {
+_NEXT_AGENT: dict[str, Optional[str]] = {
     name: (AGENT_SEQUENCE[i + 1][1] if i + 1 < len(AGENT_SEQUENCE) else None)
     for i, (_, name) in enumerate(AGENT_SEQUENCE)
 }
@@ -155,12 +159,44 @@ def _bar(ratio: float, width: int, color: str) -> Text:
 # ---------------------------------------------------------------------------
 
 
-#: Evidence-stream verbosity levels.  ``INFO`` is the curated summary shown by
-#: default; ``DEBUG`` adds every detailed evidence line on top of it.
-EvidenceLevel = Literal["INFO", "DEBUG"]
+#: Evidence-stream verbosity levels, least → most verbose.  ``INFO`` is the
+#: curated summary shown by default; ``DEBUG`` adds every detailed evidence line
+#: on top of it; ``TRACE`` additionally surfaces the *full* debugger ``!analyze``
+#: output instead of a capped excerpt.
+EvidenceLevel = Literal["INFO", "DEBUG", "TRACE"]
 
-# How many lines of the raw core-dump analysis text to surface at DEBUG.
+#: Rank of each level (higher == more verbose).  A buffered line tagged at level
+#: *L* is shown when the active display level's rank is ``>=`` rank(*L*).
+_LEVEL_RANK: dict[str, int] = {"INFO": 0, "DEBUG": 1, "TRACE": 2}
+
+
+def _normalize_evidence_level(level: object) -> EvidenceLevel:
+    """Coerce an arbitrary severity string to a known ``EvidenceLevel``.
+
+    Logging-only levels (``WARNING`` / ``ERROR``) and anything unrecognised fall
+    back to the ``INFO`` summary stream.
+    """
+    candidate = str(level).upper()
+    return candidate if candidate in _LEVEL_RANK else "INFO"  # type: ignore[return-value]
+
+
+# How many lines of the raw core-dump analysis text to surface at DEBUG.  TRACE
+# lifts this cap and streams the whole filtered ``!analyze -v`` output.
 _DEBUG_EXCERPT_LINES = 40
+
+#: Left indent (columns) for sub-detail evidence/process lines.
+_SUBDETAIL_INDENT = 2
+
+
+def _subdetail(body: Text, *, left: int = _SUBDETAIL_INDENT) -> Padding:
+    """Wrap a sub-detail line in a plain left indent (no vertical gutter).
+
+    The gutter character used to be baked into the line text (``"    │ …"``),
+    so when a long line wrapped, the continuation row had no gutter and crossed
+    it. ``Padding`` indents *every* wrapped row uniformly and draws no bar, so
+    long lines wrap cleanly inside the panel border.
+    """
+    return Padding(body, (0, 0, 0, left))
 
 
 @dataclass
@@ -177,7 +213,7 @@ class _EvidenceLine:
     """One stream entry tagged with the verbosity it belongs to"""
 
     level: EvidenceLevel
-    text: Text
+    text: RenderableType
 
 
 class _StreamLog:
@@ -189,7 +225,7 @@ class _StreamLog:
     those lines at a fixed cadence (:attr:`reveal_interval`) and shows only the
     trailing window, so new lines stream in at the bottom and old ones scroll
     off the top once they exceed the visible height.  The user never scrolls
-    back in the UI — the complete trail lives in the report.
+    back in the UI - the complete trail lives in the report.
     """
 
     def __init__(self, *, max_lines: int, reveal_interval: float):
@@ -201,7 +237,7 @@ class _StreamLog:
 
     @property
     def lines(self) -> list[_EvidenceLine]:
-        """The full (capped) record — every line ever appended, in order"""
+        """The full (capped) record - every line ever appended, in order"""
         return self._lines
 
     def reset(self, now: float):
@@ -210,7 +246,7 @@ class _StreamLog:
         self._revealed = 0
         self._last_reveal = now
 
-    def append(self, text: Text, *, level: EvidenceLevel = "INFO"):
+    def append(self, text: RenderableType, *, level: EvidenceLevel = "INFO"):
         self._lines.append(_EvidenceLine(level=level, text=text))
         overflow = len(self._lines) - self._max_lines
         if overflow > 0:
@@ -229,7 +265,7 @@ class _StreamLog:
             self._revealed = total
             return
         if self._revealed >= total:
-            # Caught up — keep the clock current so the next burst of lines
+            # Caught up - keep the clock current so the next burst of lines
             # streams in fresh rather than appearing instantly.
             self._last_reveal = now
             return
@@ -245,14 +281,15 @@ class _StreamLog:
         finished: bool,
         level: EvidenceLevel,
         max_lines: int,
-    ) -> list[Text]:
+    ) -> list[RenderableType]:
         """Advance the reveal clock and return the trailing visible lines"""
         self._advance(now, finished=finished)
         revealed = self._lines[: self._revealed]
+        threshold = _LEVEL_RANK.get(level, 0)
         shown = [
             entry.text
             for entry in revealed
-            if entry.level == "INFO" or level == "DEBUG"
+            if _LEVEL_RANK.get(entry.level, 0) <= threshold
         ]
         return shown[-max_lines:]
 
@@ -277,15 +314,15 @@ class WarRoomView:
 
     def __init__(
         self,
-        console: Console | None = None,
+        console: Optional[Console] = None,
         *,
         auto_refresh: bool = True,
-        level: EvidenceLevel = "INFO",
+        level: str = "INFO",
     ):
         self._console = console or make_console()
         self._auto_refresh = auto_refresh
-        self._level: EvidenceLevel = "DEBUG" if str(level).upper() == "DEBUG" else "INFO"
-        self._live: Live | None = None
+        self._level: EvidenceLevel = _normalize_evidence_level(level)
+        self._live: Optional[Live] = None
 
         # ── investigation state ──
         self._start = 0.0
@@ -293,7 +330,7 @@ class WarRoomView:
         self._mode = ""
         self._round = 0
         self._finished = False
-        self._source: IncidentSource | None = None
+        self._source: Optional[IncidentSource] = None
 
         # Two scrolling logs: extracted artifacts (Evidence Stream) and the
         # agent deliberation (Investigation Process).  Each keeps the full
@@ -389,19 +426,23 @@ class WarRoomView:
             func = frame.get("function") or frame.get("instruction_address") or "?"
             self._stamp_field(f"stack[{i}]", str(func), "blue")
 
-        if self._level == "DEBUG":
+        if self._level in ("DEBUG", "TRACE"):
             self._emit_debug_evidence(brief)
 
         self._wake("OS Kernel Agent")
         self._refresh()
 
     def _emit_debug_evidence(self, brief: dict[str, object]):
-        """Append the verbose, DEBUG-only evidence metadata for one incident.
+        """Append the verbose DEBUG/TRACE evidence metadata for one incident.
 
         Surfaces the four detailed evidence categories on top of the curated
         INFO stream: the textual core-dump analysis, the temporal window of
         every analyzed log file, screenshot file properties, and network
-        traffic capture metadata — plus the low-level fault fields.
+        traffic capture metadata - plus the low-level fault fields.
+
+        At ``DEBUG`` the core-dump analysis is capped at
+        :data:`_DEBUG_EXCERPT_LINES`; at ``TRACE`` the *full* ``!analyze -v``
+        output is streamed.
         """
         # ── very detailed fault metadata ──
         for label, key in (
@@ -421,11 +462,19 @@ class WarRoomView:
             self._stamp_field(f"stack[{i}]", _format_frame(frame), "blue", level="DEBUG")
 
         # ── 1. textual result of the core-dump analysis ──
+        # DEBUG shows a capped excerpt; TRACE streams the full analyze output.
         excerpt = str(brief.get("raw_text_excerpt") or "").strip()
         if excerpt:
-            self._stamp("core dump analysis (cdb !analyze -v):", style="dim", level="DEBUG")
-            for raw in excerpt.splitlines()[:_DEBUG_EXCERPT_LINES]:
-                self._add_evidence(Text(f"    │ {raw}", style="grey62"), level="DEBUG")
+            detail: EvidenceLevel = "TRACE" if self._level == "TRACE" else "DEBUG"
+            analysis_lines = excerpt.splitlines()
+            if detail == "TRACE":
+                header = "core dump analysis (cdb !analyze -v, full):"
+            else:
+                header = "core dump analysis (cdb !analyze -v):"
+                analysis_lines = analysis_lines[:_DEBUG_EXCERPT_LINES]
+            self._stamp(header, style="dim", level=detail)
+            for raw in analysis_lines:
+                self._add_evidence(_subdetail(Text(raw, style="grey62")), level=detail)
 
         src = self._source
         incident_ts = src.incident_timestamp if src else None
@@ -435,7 +484,9 @@ class WarRoomView:
             props = file_properties(raw_path)
             self._stamp_field("log", props.describe(), "cyan", level="DEBUG")
             self._add_evidence(
-                Text(f"    │ window {describe_log_window(incident_ts)}", style="grey62"),
+                _subdetail(
+                    Text(f"window {describe_log_window(incident_ts)}", style="grey62")
+                ),
                 level="DEBUG",
             )
         summary = str(brief.get("log_summary") or "").strip()
@@ -454,9 +505,11 @@ class WarRoomView:
             elements = ui.get("ui_elements") or []
             ocr = str(ui.get("error_message") or "")
             self._add_evidence(
-                Text(
-                    f"    │ OCR: {len(elements)} elements, {len(ocr)} chars",
-                    style="grey62",
+                _subdetail(
+                    Text(
+                        f"OCR: {len(elements)} elements, {len(ocr)} chars",
+                        style="grey62",
+                    )
                 ),
                 level="DEBUG",
             )
@@ -466,7 +519,7 @@ class WarRoomView:
             props = file_properties(raw_path)
             self._stamp_field("netcap", props.describe(), "yellow", level="DEBUG")
             for detail in _format_pcap(raw_path):
-                self._add_evidence(Text(f"    │ {detail}", style="grey62"), level="DEBUG")
+                self._add_evidence(_subdetail(Text(detail, style="grey62")), level="DEBUG")
 
     def _on_agent(self, event: DomainEvent):
         assert isinstance(event, AgentSpoke)
@@ -479,7 +532,7 @@ class WarRoomView:
                 self._consensus_history[-1]["converged"] = False
             self._round = turn.turn_number
             self._stage_total += 5  # 4 agent turns + 1 consensus check
-            note = f"threshold not reached — re-deliberating round {self._round}"
+            note = f"threshold not reached - re-deliberating round {self._round}"
             self._stamp_process(note, style="dim italic")
 
         name = _NODE_TO_AGENT.get(event.node)
@@ -498,10 +551,10 @@ class WarRoomView:
         line.append(f"{short} » ", style="bold")
         line.append(finding, style="italic")
         self._add_process(line)
-        # DEBUG surfaces the agent's full reasoning, not just the headline.
-        if self._level == "DEBUG":
+        # DEBUG/TRACE surface the agent's full reasoning, not just the headline.
+        if self._level in ("DEBUG", "TRACE"):
             for extra in message.splitlines()[1:]:
-                self._add_process(Text(f"    │ {extra}", style="grey62"), level="DEBUG")
+                self._add_process(_subdetail(Text(extra, style="grey62")), level="DEBUG")
         self._advance()
 
         nxt = _NEXT_AGENT.get(name) if name else None
@@ -528,7 +581,7 @@ class WarRoomView:
         # Next round (if any) reassigns agents; reset them to standby.
         for state in self._agents.values():
             state.status = "STANDBY"
-        self._status = "Reviewing consensus — deciding next step…"
+        self._status = "Reviewing consensus - deciding next step…"
         self._advance()
         self._refresh()
 
@@ -555,10 +608,10 @@ class WarRoomView:
     def _plain(self, text: str) -> Text:
         return Text(text)
 
-    def _add_evidence(self, line: Text, *, level: EvidenceLevel = "INFO"):
+    def _add_evidence(self, line: RenderableType, *, level: EvidenceLevel = "INFO"):
         self._evidence_log.append(line, level=level)
 
-    def _add_process(self, line: Text, *, level: EvidenceLevel = "INFO"):
+    def _add_process(self, line: RenderableType, *, level: EvidenceLevel = "INFO"):
         self._process_log.append(line, level=level)
 
     def _stamp(self, message: str, *, style: str = "", level: EvidenceLevel = "INFO"):
@@ -639,21 +692,63 @@ class WarRoomView:
         header.append(f"R{self._round}", style=round_style)
         return header
 
+    def _rendered_rows(self, renderable: RenderableType, width: int) -> int:
+        """Number of visual rows *renderable* occupies when wrapped to *width*."""
+        options = self._console.options.update(width=max(1, width))
+        return max(1, len(self._console.render_lines(renderable, options, pad=False)))
+
+    def _fit_tail(
+        self, lines: list[RenderableType], *, width: int, height: int
+    ) -> list[RenderableType]:
+        """Return the trailing *lines* whose wrapped heights fit within *height*.
+
+        Bottom-anchored: accumulates from the newest line backwards until the
+        next line would overflow. Selecting by *rendered* height (not logical
+        line count) means wrapped lines no longer push the panel past its region
+        and get cropped off the bottom - so the end of the stream is always the
+        last thing shown.
+        """
+        selected: list[RenderableType] = []
+        used = 0
+        for renderable in reversed(lines):
+            rows = self._rendered_rows(renderable, width)
+            if selected and used + rows > height:
+                break
+            selected.append(renderable)
+            used += rows
+            if used >= height:
+                break
+        selected.reverse()
+        return selected
+
+    def _evidence_inner(self) -> tuple[int, int]:
+        """Inner (content) width and height of the Evidence Stream panel.
+
+        Evidence is the left half of the body (below the 1-row header), inside a
+        bordered Panel with the default ``(0, 1)`` padding.
+        """
+        inner_h = max(1, self._console.height - 1 - 2)   # header row, panel borders
+        inner_w = max(10, self._console.width // 2 - 4)  # 2 border + 2 padding cols
+        return inner_w, inner_h
+
     def _render_evidence(self) -> Panel:
-        max_lines = max(1, self._console.height - 5)
-        lines = self._evidence_log.visible(
+        inner_w, inner_h = self._evidence_inner()
+        revealed = self._evidence_log.visible(
             now=time.monotonic(),
             finished=self._finished,
             level=self._level,
-            max_lines=max_lines,
+            max_lines=self._MAX_EVIDENCE,
         )
+        # While running, reserve the bottom row for the streaming cursor.
+        budget = max(1, inner_h - (0 if self._finished else 1))
+        lines = self._fit_tail(revealed, width=inner_w, height=budget)
         if not self._finished:
             cursor = "▌" if int(self._elapsed) % 2 == 0 else " "
             lines = [*lines, Text(cursor, style="cyan")]
         body = Group(*lines) if lines else Text("")
         title = "[bold]EVIDENCE STREAM[/bold]"
-        if self._level == "DEBUG":
-            title += " [dim](debug)[/dim]"
+        if self._level != "INFO":
+            title += f" [dim]({self._level.lower()})[/dim]"
         return Panel(body, title=title, border_style="grey37")
 
     def _render_agents(self) -> Panel:
@@ -677,7 +772,7 @@ class WarRoomView:
             blocks.append(Text("  ").append_text(_confidence_bar(state.confidence, 20)))
 
             if not compact:
-                finding = _truncate(state.finding, finding_width) if state.finding else "—"
+                finding = _truncate(state.finding, finding_width) if state.finding else "-"
                 blocks.append(Text(f"  {finding}", style="italic grey70"))
 
         return Panel(
@@ -687,22 +782,25 @@ class WarRoomView:
             border_style="grey37",
         )
 
-    def _process_inner_height(self) -> int:
-        """Approximate the Investigation Process pane's inner content height.
+    def _process_inner(self) -> tuple[int, int]:
+        """Inner (content) width and height of the Investigation Process panel.
 
         The pane is the lower half of the right column (below the 1-row
-        header), inside a bordered ``Panel``.  Used to tail the conversation
-        log so the newest deliberation lines are never clipped off the bottom.
+        header), inside a bordered ``Panel`` with the default ``(0, 1)``
+        padding.  Used to tail the conversation log so the newest deliberation
+        lines are never clipped off the bottom.
         """
         body = max(1, self._console.height - 1)  # below the header row
         pane = max(1, body // 2)  # right column splits agents / process evenly
-        return max(1, pane - 2)  # minus the panel's top and bottom borders
+        inner_h = max(1, pane - 2)  # minus the panel's top and bottom borders
+        inner_w = max(10, self._console.width // 2 - 4)  # 2 border + 2 padding cols
+        return inner_w, inner_h
 
     def _render_process(self) -> Panel:
         elapsed = self._elapsed
         sections: list[RenderableType] = []
 
-        # Section 1 — live activity (spinner + stage bar).
+        # Section 1 - live activity (spinner + stage bar).
         spin = "✔" if self._finished else _spinner_char(elapsed)
         status = "Investigation complete" if self._finished else self._status
         head = Text()
@@ -718,20 +816,24 @@ class WarRoomView:
         sections.append(bar)
         sections.append(Text())
 
-        # Section 2 — agent deliberation (scrolling conversation log).  Agent
+        # Section 2 - agent deliberation (scrolling conversation log).  Agent
         # findings and consensus checks are the *process* of investigation, not
         # evidence; newest lines sit at the bottom and older ones scroll off the
         # top once they exceed the pane.  The full transcript lives in the
         # report files.  One row is held back as a clipping safety margin.
-        convo_max = max(1, self._process_inner_height() - len(sections) - 1)
+        inner_w, inner_h = self._process_inner()
+        used = sum(self._rendered_rows(section, inner_w) for section in sections)
         convo = self._process_log.visible(
             now=time.monotonic(),
             finished=self._finished,
             level=self._level,
-            max_lines=convo_max,
+            max_lines=self._MAX_EVIDENCE,
         )
-        if convo:
-            sections.extend(convo)
+        # One row held back as a clipping safety margin; fit by rendered height
+        # so wrapped deliberation lines are not cropped off the bottom.
+        fitted = self._fit_tail(convo, width=inner_w, height=max(1, inner_h - used - 1))
+        if fitted:
+            sections.extend(fitted)
         else:
             sections.append(Text("Awaiting panel deliberation…", style="dim italic"))
 
@@ -826,7 +928,7 @@ def _turn_summary(turn: AgentTurn, limit: int = 96) -> Text:
 
 
 # What the waiting line says while each upcoming stage runs.  Keyed by the
-# node that just COMPLETED — the value describes who speaks next.
+# node that just COMPLETED - the value describes who speaks next.
 _NEXT_STATUS: dict[str, str] = {
     "data_adapter_node": "OS Kernel Agent is analyzing the exception…",
     "os_kernel_node": "Code Analyst Agent is tracing the faulting code…",
@@ -843,12 +945,12 @@ class RichView:
     :class:`WarRoomView` would not fit.
     """
 
-    def __init__(self, console: Console | None = None):
+    def __init__(self, console: Optional[Console] = None):
         self._console = console or make_console()
         self._trail: list[RenderableType] = []
-        self._live: Live | None = None
-        self._progress: Progress | None = None
-        self._task_id: TaskID | None = None
+        self._live: Optional[Live] = None
+        self._progress: Optional[Progress] = None
+        self._task_id: Optional[TaskID] = None
         # Stages in round 1: evidence, 4 agent turns, consensus check, verdict.
         # Each extra debate round adds 4 agent turns + 1 consensus check.
         self._stages_total = 7
@@ -892,7 +994,7 @@ class RichView:
         self._console.print(
             Panel(
                 header,
-                title="[bold cyan]AEGIS SWR — Synthetic War Room[/bold cyan]",
+                title="[bold cyan]AEGIS SWR - Synthetic War Room[/bold cyan]",
                 border_style="cyan",
             )
         )
@@ -947,7 +1049,7 @@ class RichView:
                 self._progress.update(self._task_id, total=self._stages_total)
             self._last_round = turn.turn_number
             self._trail.append(
-                Rule(f"Round {turn.turn_number} — panel deliberation", style="dim")
+                Rule(f"Round {turn.turn_number} - panel deliberation", style="dim")
             )
 
         self._trail.append(_agent_trail_line(turn, elapsed))
@@ -966,7 +1068,7 @@ class RichView:
         line.append_text(_confidence_bar(score))
         line.append(f"  {level}", style=f"bold {color}")
         self._trail.append(line)
-        self._set_status("Reviewing consensus — deciding next step…")
+        self._set_status("Reviewing consensus - deciding next step…")
         self._refresh()
 
     def _on_finished(self, event: DomainEvent):
@@ -1000,11 +1102,13 @@ class RichView:
             self._live = None
 
 
-def make_view(console: Console, *, level: EvidenceLevel = "INFO") -> RichView | WarRoomView:
+def make_view(console: Console, *, level: str = "INFO") -> RichView | WarRoomView:
     """Pick the war-room view on wide terminals, the trail view otherwise.
 
     *level* selects the Evidence Stream verbosity for the war-room view
-    (``DEBUG`` surfaces the detailed per-artifact evidence metadata).
+    (``DEBUG`` surfaces the detailed per-artifact evidence metadata; ``TRACE``
+    additionally streams the full debugger ``!analyze`` output). Unrecognised
+    values fall back to ``INFO``.
     """
     return WarRoomView(console, level=level) if console.width >= 80 else RichView(console)
 
@@ -1014,73 +1118,173 @@ def make_view(console: Console, *, level: EvidenceLevel = "INFO") -> RichView | 
 # ---------------------------------------------------------------------------
 
 
-def _build_diagnosis(report: RCAReport) -> str:
-    """Compose the plain-text RCA shown inside the verdict panel.
+#: Theme pushed onto the console while the verdict frame renders, so the
+#: Markdown headings, lists, and inline code pick up the green house palette
+#: instead of rich's default magenta/blue. Restored immediately afterwards so
+#: the live war-room styling is untouched.
+_REPORT_THEME = Theme(
+    {
+        "markdown.h1": "bold green",
+        "markdown.h2": "bold green",
+        "markdown.h3": "bold bright_cyan",
+        "markdown.h4": "bold bright_cyan",
+        "markdown.item.bullet": "bold green",
+        "markdown.item.number": "bold green",
+        "markdown.code": "bold yellow",
+    }
+)
 
-    Mirrors the prototype's single-block diagnosis: human-readable prose with
-    labelled sections and no Markdown markup (the panel supplies the styling).
+
+def _final_findings(report: RCAReport) -> list[AgentTurn]:
+    """The last turn each forensic agent took, in panel-speaking order.
+
+    The panel's detailed reasoning is the substance of the report, but it only
+    streams transiently through the Investigation Process pane during the live
+    run.  The full prose survives in :attr:`RCAReport.agent_dialogue`; here we
+    keep the *final* turn per agent (its most refined position after any
+    re-deliberation) so the verdict frame can reproduce that reasoning instead
+    of discarding it.
+    """
+    latest: dict[str, AgentTurn] = {}
+    for turn in report.agent_dialogue:
+        prior = latest.get(turn.agent)
+        if prior is None or turn.turn_number >= prior.turn_number:
+            latest[turn.agent] = turn
+
+    order = {name: i for i, (_, name) in enumerate(AGENT_SEQUENCE)}
+    return sorted(latest.values(), key=lambda t: order.get(t.agent, len(order)))
+
+
+def _build_diagnosis(report: RCAReport) -> str:
+    """Compose the Markdown RCA body rendered inside the verdict frame.
+
+    Aegis SWR has no single "report" field, so the human-readable report is
+    organised here from the whole analysis result - the converged conclusion,
+    the supporting evidence, each agent's detailed reasoning, the dissenting
+    alternatives and skeptic challenges, the implicated module, and the
+    recommended actions - laid out in the same Markdown sections as the
+    prototype's ``root-cause-analysis.txt`` so the verdict frame can colour
+    headings, lists, and inline code.
     """
     level = report.confidence_level.value.upper()
-    lines: list[str] = []
+    rounds = report.consensus_rounds
+    md: list[str] = []
 
-    lines.append("Root Cause Analysis")
-    lines.append("")
-    lines.append(report.root_cause.strip())
-    lines.append("")
-    lines.append(f"Confidence: {level} ({report.confidence_score:.0%})")
-
-    if report.faulting_module:
-        lines.append(f"Faulting Module:   {report.faulting_module}")
-    if report.faulting_function:
-        lines.append(f"Faulting Function: {report.faulting_function}")
+    md.append("## Root Cause Analysis (RCA)")
+    md.append("")
+    md.append(f"**Conclusion:** {report.root_cause.strip()}")
+    md.append("")
+    md.append(
+        f"**Confidence:** {level} ({report.confidence_score:.0%}) - resolved after "
+        f"{rounds} debate round{'s' if rounds != 1 else ''}."
+    )
 
     evidence = [
         e for e in report.primary_hypothesis.evidence if not e.startswith("__fix__:")
     ]
     if evidence:
-        lines.append("")
-        lines.append("Key Evidence:")
-        lines.extend(f"  • {item}" for item in evidence)
+        md.append("")
+        md.append("### Evidence")
+        md.extend(f"- {item}" for item in evidence)
 
-    lines.append("")
-    lines.append("Recommended Actions:")
+    findings = _final_findings(report)
+    if findings:
+        md.append("")
+        md.append("### Panel Findings")
+        for turn in findings:
+            md.append("")
+            md.append(f"**{turn.agent}** - {turn.confidence_score:.0%} confident")
+            md.append("")
+            md.append(turn.message.strip())
+
+    if report.alternative_hypotheses:
+        md.append("")
+        md.append("### Alternative Hypotheses")
+        md.extend(
+            f"- {alt.root_cause.strip()} ({alt.confidence:.0%})"
+            for alt in report.alternative_hypotheses
+        )
+
+    if report.skeptic_challenges:
+        md.append("")
+        md.append("### Skeptic Challenges")
+        md.extend(f"- {item}" for item in report.skeptic_challenges)
+
+    if report.faulting_module or report.faulting_function or report.dump_hash:
+        md.append("")
+        md.append("---")
+        md.append("")
+        md.append("## Faulting Module")
+        if report.faulting_module:
+            md.append(f"- **Module:** `{report.faulting_module}`")
+        if report.faulting_function:
+            md.append(f"- **Function:** `{report.faulting_function}`")
+        if report.dump_hash:
+            md.append(f"- **Dump hash:** `{report.dump_hash}`")
+        if report.symbol_resolution_score is not None:
+            md.append(
+                f"- **Symbol coverage:** {report.symbol_resolution_score:.0%}"
+            )
+
+    md.append("")
+    md.append("---")
+    md.append("")
+    md.append("## Recommendation")
     if report.mitigation_instructions:
-        lines.extend(
-            f"  {i}. {step}"
+        md.extend(
+            f"{i}. {step}"
             for i, step in enumerate(report.mitigation_instructions, start=1)
         )
     else:
         target = report.faulting_module or "the implicated component"
-        lines.append(
-            f"  • Review the faulting module {target} and add defensive checks "
+        md.append(
+            f"1. Review the faulting module `{target}` and add defensive checks "
             "around the faulting code path."
         )
 
     if report.probabilistic_fix:
         conf = report.fix_confidence or 0.0
-        lines.append("")
-        lines.append(f"Probabilistic Fix (confidence {conf:.0%}):")
-        lines.append(report.probabilistic_fix.strip())
+        md.append("")
+        md.append(f"### Probabilistic Fix - confidence {conf:.0%}")
+        md.append("```diff")
+        md.append(report.probabilistic_fix.strip())
+        md.append("```")
 
-    rounds = report.consensus_rounds
-    lines.append("")
-    lines.append(f"Resolved after {rounds} debate round{'s' if rounds != 1 else ''}.")
+    return "\n".join(md)
 
-    return "\n".join(lines)
+
+def _incident_record(report: RCAReport) -> dict[str, object]:
+    """The short machine-readable record stamped at the foot of the frame.
+
+    Keyed by incident id so the printed frame carries the same handle used to
+    look the report up in storage; the few extra fields make the JSON a usable
+    at-a-glance summary without duplicating the prose above.
+    """
+    record: dict[str, object] = {
+        "incident_id": str(report.incident_id),
+        "confidence": round(report.confidence_score, 2),
+    }
+    if report.faulting_module:
+        record["faulting_module"] = report.faulting_module
+    if report.dump_hash:
+        record["dump_hash"] = report.dump_hash
+    return record
 
 
 def render_verdict(
     report: RCAReport,
     *,
-    console: Console | None = None,
+    console: Optional[Console] = None,
     model: str = "",
-    show_dialogue: bool = False,  # noqa: ARG001 — kept for CLI signature compatibility
+    show_dialogue: bool = False,  # noqa: ARG001 - kept for CLI signature compatibility
 ):
     """Print the final report as a single prototype-style verdict frame.
 
-    A converged investigation renders a green ``AI Root Cause Analysis`` panel
-    subtitled with the model name.  A deadlock (HITL) renders a red
-    ``Human Input Required`` panel instead and omits the diagnosis.
+    A converged investigation renders a green ``Root Cause Analysis Report``
+    panel: the Markdown diagnosis with coloured headings, then a short JSON
+    incident record stamped at the foot of the same frame.  A deadlock (HITL)
+    renders a red ``Human Input Required`` panel instead and omits the
+    diagnosis.
     """
     console = console or make_console()
     console.print()
@@ -1106,12 +1310,21 @@ def render_verdict(
         )
         return
 
-    console.print(
-        Panel(
-            Text(_build_diagnosis(report)),
-            title="[bold green]AI Root Cause Analysis[/bold green]",
-            subtitle=f"Model: {model}" if model else None,
-            border_style="green",
-            padding=(1, 2),
-        )
+    frame = Group(
+        Markdown(_build_diagnosis(report)),
+        Text(),
+        Rule("Incident Record", style="green"),
+        JSON.from_data(_incident_record(report)),
     )
+    panel = Panel(
+        frame,
+        title="[bold green]Root Cause Analysis Report[/bold green]",
+        subtitle=f"Model: {model}" if model else None,
+        border_style="green",
+        padding=(1, 2),
+    )
+    console.push_theme(_REPORT_THEME)
+    try:
+        console.print(panel)
+    finally:
+        console.pop_theme()

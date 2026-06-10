@@ -1,4 +1,4 @@
-"""Unit tests for the code backends — no network, no system git required"""
+"""Unit tests for the code backends - no network, no system git required"""
 from __future__ import annotations
 
 import os

@@ -1,8 +1,8 @@
-"""Unit tests for all four storage backends — no external services required"""
+"""Unit tests for all four storage backends - no external services required"""
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 from unittest import mock
 from uuid import uuid4
 
@@ -29,7 +29,7 @@ from aegis_swr.core.schemas import (
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _report(dump_hash: str | None = None) -> RCAReport:
+def _report(dump_hash: Optional[str] = None) -> RCAReport:
     return RCAReport(
         mode=IncidentMode.CRASH_DUMP,
         dump_hash=dump_hash or f"sha256:{uuid4().hex}",
@@ -179,7 +179,7 @@ async def test_sqlite_update_hitl_response(sq_store: SQLiteStore):
 
 
 # ---------------------------------------------------------------------------
-# S3Store — mocked boto3
+# S3Store - mocked boto3
 # ---------------------------------------------------------------------------
 
 
@@ -278,7 +278,7 @@ async def test_s3_upload_raw_get_raw(s3_store: S3Store):
 
 
 # ---------------------------------------------------------------------------
-# PostgresStore — stub
+# PostgresStore - stub
 # ---------------------------------------------------------------------------
 
 

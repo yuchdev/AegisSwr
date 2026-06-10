@@ -6,6 +6,7 @@ Each concrete worker implements ``_build_command_sequence`` (its debugger argv)
 and ``_parse`` (its debugger-output parser).
 """
 from __future__ import annotations
+from typing import Optional
 
 import subprocess
 from abc import abstractmethod
@@ -30,7 +31,7 @@ class _BaseDebugBackend(DebugBackend):
     def extract(
         self,
         source: IncidentSource,
-        symbol_path: str | None,
+        symbol_path: Optional[str],
     ) -> DebugExtractionResult:
         self._validate(source)
         command = self._build_command_sequence(source, symbol_path)

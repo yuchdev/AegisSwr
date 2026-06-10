@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 
 from datetime import datetime
 from pathlib import Path
@@ -35,12 +36,12 @@ class MockDebugBackend(DebugBackend):
         self._result = result
         self.extract_called = False
 
-    def extract(self, source: IncidentSource, symbol_path: str | None) -> DebugExtractionResult:
+    def extract(self, source: IncidentSource, symbol_path: Optional[str]) -> DebugExtractionResult:
         self.extract_called = True
         return self._result
 
     def _build_command_sequence(
-        self, source: IncidentSource, symbol_path: str | None
+        self, source: IncidentSource, symbol_path: Optional[str]
     ) -> list[str]:
         return ["mock"]
 

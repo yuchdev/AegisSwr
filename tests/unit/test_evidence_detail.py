@@ -5,6 +5,7 @@ human file sizes, filesystem properties, the ±2-minute log window, and the
 libpcap header parser (little/big-endian, pcapng detection, malformed input).
 """
 from __future__ import annotations
+from typing import Optional
 
 import struct
 from datetime import datetime, timedelta, timezone
@@ -95,7 +96,7 @@ def _write_pcap(
     endian: str = "<",
     nanosecond: bool = False,
     link_type: int = 1,
-    packets: list[tuple[int, int, bytes]] | None = None,
+    packets: Optional[list[tuple[int, int, bytes]]] = None,
 ) -> Path:
     """Write a minimal but valid libpcap file with *packets* records"""
     if nanosecond:

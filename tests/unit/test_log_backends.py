@@ -1,4 +1,4 @@
-"""Unit tests for the log backends — no network, no Fluent service required"""
+"""Unit tests for the log backends - no network, no Fluent service required"""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -96,7 +96,7 @@ async def test_file_service_traversal_blocked(
 
 
 # ---------------------------------------------------------------------------
-# FluentAdapter — stub
+# FluentAdapter - stub
 # ---------------------------------------------------------------------------
 
 

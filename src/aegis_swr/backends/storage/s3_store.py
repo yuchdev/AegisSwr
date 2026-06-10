@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
-from typing import Any
+from typing import Any, Optional
 from uuid import UUID
 
 from loguru import logger
@@ -60,7 +60,7 @@ class S3Store(RelationalStore, ObjectStore):
             ContentType="application/json",
         )
 
-    def _get_text(self, key: str) -> str | None:
+    def _get_text(self, key: str) -> Optional[str]:
         try:
             resp = self._client.get_object(Bucket=self._bucket, Key=key)
             raw: str = resp["Body"].read().decode("utf-8")
@@ -104,17 +104,17 @@ class S3Store(RelationalStore, ObjectStore):
             self._put_text(f"hash-index/{report.dump_hash}", str(report.incident_id))
         logger.debug(f"S3Store: saved report {report.incident_id}")
 
-    async def get_report(self, incident_id: UUID) -> RCAReport | None:
+    async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_get_report, incident_id)
 
-    def _sync_get_report(self, incident_id: UUID) -> RCAReport | None:
+    def _sync_get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         text = self._get_text(f"reports/{incident_id}.json")
         return RCAReport.model_validate_json(text) if text else None
 
-    async def find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_find_by_hash, dump_hash)
 
-    def _sync_find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    def _sync_find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         incident_id_text = self._get_text(f"hash-index/{dump_hash}")
         if not incident_id_text:
             return None

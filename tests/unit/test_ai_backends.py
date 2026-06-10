@@ -102,7 +102,7 @@ _USER = [{"role": "user", "content": "analyze this"}]
 
 
 # ---------------------------------------------------------------------------
-# Anthropic — structured output
+# Anthropic - structured output
 # ---------------------------------------------------------------------------
 
 
@@ -194,7 +194,7 @@ async def test_anthropic_raises_when_no_tool_block(
 
 
 # ---------------------------------------------------------------------------
-# OpenAI — structured output
+# OpenAI - structured output
 # ---------------------------------------------------------------------------
 
 

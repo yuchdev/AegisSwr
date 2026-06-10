@@ -1,16 +1,16 @@
 """Aegis SWR command-line interface.
 
 Options can be given as explicit CLI flags or read from a JSON config file
-(default path: ``~/.local/share/aegis/config.json``).  Both sources share one
+(default path: ``~/.local/state/.aegis-swr/config.json``).  Both sources share one
 schema (:class:`~aegis_swr.cli._config.AnalyzeConfig`): the file is applied
-first and explicit CLI flags are layered on top — defaults < config.json < CLI.
+first and explicit CLI flags are layered on top - defaults < config.json < CLI.
 """
 from __future__ import annotations
 
 import asyncio
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 import click
 import typer
@@ -24,7 +24,7 @@ from aegis_swr.cli._config import (
     load_analyze_config,
     save_analyze_config,
 )
-from aegis_swr.cli._formatters import rich_formatter, stream_and_display
+from aegis_swr.cli._formatters import json_formatter, rich_formatter, stream_and_display
 from aegis_swr.cli.aegis_logging import configure_logging
 
 console = Console()
@@ -35,7 +35,7 @@ class FullHelpGroup(TyperGroup):
 
     Click/Typer only list the top-level commands and global options at the root.
     After that summary this group walks the command tree depth-first and prints
-    the full help — usage, description, and every CLI option — for each
+    the full help - usage, description, and every CLI option - for each
     subcommand and nested subcommand, so a single ``aegis --help`` (or
     ``python -m aegis_swr.cli --help``) shows all subparsers, subcommands, and
     options at once.
@@ -69,10 +69,10 @@ def _echo_subcommands_help(group: TyperGroup, parent_ctx: click.Context) -> None
 app = typer.Typer(
     name="aegis",
     cls=FullHelpGroup,
-    help="Aegis SWR — production forensics platform.",
+    help="Aegis SWR - production forensics platform.",
     no_args_is_help=True,
 )
-config_app = typer.Typer(help="Manage config.yaml settings.")
+config_app = typer.Typer(help="Manage runtime settings in ~/.local/state/.aegis-swr/config.json.")
 app.add_typer(config_app, name="config")
 
 
@@ -84,21 +84,21 @@ app.add_typer(config_app, name="config")
 def analyze(  # noqa: PLR0913
     ctx: typer.Context,
     dump: Annotated[
-        Path | None, typer.Option("--dump", help="Crash dump file (.dmp / .core / .ips).")
+        Optional[Path], typer.Option("--dump", help="Crash dump file (.dmp / .core / .ips).")
     ] = None,
     logs: Annotated[
-        list[Path] | None, typer.Option("--log", help="Log file (repeatable).")
+        Optional[list[Path]], typer.Option("--log", help="Log file (repeatable).")
     ] = None,
     shots: Annotated[
-        list[Path] | None, typer.Option("--shot", help="Screenshot file (repeatable).")
+        Optional[list[Path]], typer.Option("--shot", help="Screenshot file (repeatable).")
     ] = None,
     pcaps: Annotated[
-        list[Path] | None,
+        Optional[list[Path]],
         typer.Option("--pcap", help="Network traffic capture file, e.g. .pcap (repeatable)."),
     ] = None,
-    sym: Annotated[Path | None, typer.Option("--sym", help="Symbol path.")] = None,
+    sym: Annotated[Optional[Path], typer.Option("--sym", help="Symbol path.")] = None,
     assume: Annotated[
-        str | None, typer.Option("--assume", help="User context / assumption text.")
+        Optional[str], typer.Option("--assume", help="User context / assumption text.")
     ] = None,
     engine: Annotated[
         str, typer.Option("--engine", help="Debug engine: auto | cdb | windbg_js.")
@@ -111,38 +111,54 @@ def analyze(  # noqa: PLR0913
         typer.Option("--store", help="Storage backend: filesystem | sqlite | s3 | postgres."),
     ] = "filesystem",
     store_config: Annotated[
-        str | None, typer.Option("--store-config", help="Storage config value (path / bucket URL).")
+        Optional[str], typer.Option("--store-config", help="Storage config value (path / bucket URL).")
     ] = None,
     code_provider: Annotated[
         str, typer.Option("--code-provider", help="Code backend: none | git | filesystem.")
     ] = "none",
     repo: Annotated[
-        Path | None,
+        Optional[Path],
         typer.Option("--repo", help="Repo / source root (enables the code backend)."),
     ] = None,
     log_provider: Annotated[
         str, typer.Option("--log-provider", help="Log backend: file | fluent.")
     ] = "file",
     log_service: Annotated[
-        str | None,
+        Optional[str],
         typer.Option("--log-service", help="Service name for LogBackend.query_window."),
     ] = None,
     output: Annotated[
-        str, typer.Option("--output", help="Output format: rich | json | quiet.")
-    ] = "rich",
-    severity: Annotated[
         str,
         typer.Option(
-            "--severity",
-            help="Log verbosity: DEBUG | INFO | WARNING | ERROR. "
-            "Defaults to WARNING so logs do not interleave with the live display.",
+            "--output",
+            help="Output format: rich | json | json-full | quiet. "
+            "'json' prints a locator pointing at the saved report; "
+            "'json-full' prints the full report JSON to stdout instead.",
+        ),
+    ] = "rich",
+    log_severity: Annotated[
+        str,
+        typer.Option(
+            "--log-severity",
+            help="Log verbosity: TRACE | DEBUG | INFO | WARNING | ERROR. "
+            "DEBUG adds per-artifact evidence to the stream; TRACE additionally "
+            "streams the full debugger !analyze output.",
         ),
     ] = "WARNING",
+    log_dir: Annotated[
+        Optional[str],
+        typer.Option(
+            "--log-dir",
+            help="Directory for the classic application log file "
+            "(default: ~/.local/state/aegis-swr/logs). The rotating "
+            "aegis-swr.log is written here at the chosen --log-severity.",
+        ),
+    ] = None,
     config_path: Annotated[
-        Path | None,
+        Optional[Path],
         typer.Option(
             "--config",
-            help="JSON config file (default: ~/.local/share/aegis/config.json).",
+            help="JSON config file (default: ~/.local/state/.aegis-swr/config.json).",
         ),
     ] = None,
     save_config: Annotated[
@@ -150,13 +166,13 @@ def analyze(  # noqa: PLR0913
         typer.Option("--save-config/--no-save-config", help="Save options to JSON file and exit."),
     ] = False,
 ):
-    """Run analysis in-process — no API server required"""
+    """Run analysis in-process - no API server required"""
     # Bootstrap logging at the CLI severity so config-loading warnings surface;
-    # the effective level is re-applied from the merged config below.
-    configure_logging(severity)
+    # the effective level and log file are re-applied from the merged config below.
+    configure_logging(log_severity)
 
     # Normalise every CLI value into the shared config dict shape (Paths → str)
-    # so both sources — config.json and the CLI — speak the same JSON dialect.
+    # so both sources - config.json and the CLI - speak the same JSON dialect.
     cli_values: dict[str, object] = {
         "dump": str(dump) if dump else None,
         "logs": [str(p) for p in (logs or [])],
@@ -173,7 +189,8 @@ def analyze(  # noqa: PLR0913
         "log_provider": log_provider,
         "log_service": log_service,
         "output": output,
-        "severity": severity,
+        "log_severity": log_severity,
+        "log_dir": log_dir,
     }
 
     # If --save-config: persist the current CLI values and exit.
@@ -189,8 +206,9 @@ def analyze(  # noqa: PLR0913
     overrides = collect_cli_overrides(ctx, cli_values)
     config = AnalyzeConfig.merge(file_config, overrides)
 
-    # Re-apply logging at the effective severity (config.json may set it).
-    configure_logging(config.severity)
+    # Re-apply logging at the effective severity and log directory (config.json
+    # may set either). This is where the classic log file starts being written.
+    configure_logging(config.log_severity, log_dir=config.log_dir)
 
     # Build IncidentSource. The code backend reads metadata["repo_path"]; the log
     # backend reads metadata["service"] (Data Adapter stages 8 and 4).
@@ -281,23 +299,23 @@ def analyze(  # noqa: PLR0913
     fmt = config.output
 
     if fmt == "quiet":
-        # No display — just run and store.
+        # No display - just run and store.
         report = asyncio.run(orch.run(source))
     else:
-        # For json output, stream the live display to stderr so stdout carries
-        # only the machine-readable locator.
+        # For json / json-full output, stream the live display to stderr so
+        # stdout carries only the machine-readable payload.
         from aegis_swr.cli._formatters import make_console
-        stream_con = make_console(stderr=(fmt == "json"))
+        stream_con = make_console(stderr=(fmt in ("json", "json-full")))
         report = asyncio.run(
-            stream_and_display(orch, source, stream_con, level=config.severity)
+            stream_and_display(orch, source, stream_con, level=config.log_severity)
         )
         if report is None:
             typer.echo("Error: investigation ended without producing a report.", err=True)
             raise typer.Exit(code=1)
 
-    # The full report is persisted *exclusively* as a result file by the storage
-    # backend — it is never dumped to stdout, regardless of --output or
-    # --severity. We only surface where to find it.
+    # The full report is persisted as a result file by the storage backend. The
+    # 'rich' and 'json' formats only surface where to find it; 'json-full' is
+    # the one mode that also dumps the complete report body to stdout.
     saved_path = _report_file_path(settings, str(report.incident_id))
 
     if fmt == "rich":
@@ -312,7 +330,7 @@ def analyze(  # noqa: PLR0913
                 f"store[/green] (incident {report.incident_id})"
             )
     elif fmt == "json":
-        # Machine-readable *locator* only — not the report body, which lives in
+        # Machine-readable *locator* only - not the report body, which lives in
         # the result file. Lets scripts find the saved report on stdout.
         typer.echo(
             json.dumps(
@@ -326,6 +344,9 @@ def analyze(  # noqa: PLR0913
                 indent=2,
             )
         )
+    elif fmt == "json-full":
+        # The complete report body on stdout, in place of the locator.
+        typer.echo(json_formatter(report))
 
     if report.hitl_request:
         typer.echo(
@@ -335,7 +356,7 @@ def analyze(  # noqa: PLR0913
         raise typer.Exit(code=1)
 
 
-def _report_file_path(settings: object, incident_id: str) -> Path | None:
+def _report_file_path(settings: object, incident_id: str) -> Optional[Path]:
     """Path of the saved report file for filesystem storage, else ``None``.
 
     Other backends (sqlite / s3 / postgres) have no single result file, so the
@@ -373,13 +394,13 @@ def export(
         str, typer.Option("--store", help="Source storage backend.")
     ] = "filesystem",
     store_config: Annotated[
-        str | None, typer.Option("--store-config", help="Source config value.")
+        Optional[str], typer.Option("--store-config", help="Source config value.")
     ] = None,
     to_store: Annotated[
         str, typer.Option("--to-store", help="Destination storage backend.")
     ] = "filesystem",
     to_config: Annotated[
-        str | None, typer.Option("--to-config", help="Destination config value.")
+        Optional[str], typer.Option("--to-config", help="Destination config value.")
     ] = None,
 ):
     """Migrate reports between storage backends"""
@@ -430,9 +451,9 @@ def server(
         bool, typer.Option("--reload/--no-reload", help="Enable hot-reload.")
     ] = False,
 ):
-    """Start the FastAPI API server. (Phase 8 — not yet implemented.)"""
+    """Start the FastAPI API server. (Phase 8 - not yet implemented.)"""
     typer.echo(
-        "API server not yet implemented — available in Phase 8.\n"
+        "API server not yet implemented - available in Phase 8.\n"
         f"Configured for {host}:{port} (reload={reload})."
     )
 
@@ -443,7 +464,7 @@ def server(
 
 @config_app.command("show")
 def config_show():
-    """Print resolved config.yaml + env overrides (secrets redacted)"""
+    """Print resolved config.json + env overrides (secrets redacted)"""
     from aegis_swr.config.settings import Settings
 
     settings = Settings()
@@ -455,14 +476,14 @@ def config_set(
     key: Annotated[str, typer.Argument(help="Dotted key path, e.g. backends.ai.model")],
     value: Annotated[str, typer.Argument(help="New value.")],
 ):
-    """Set a single value in config.yaml"""
-    import yaml
-
-    config_path = Path("config.yaml")
+    """Set a single value in ~/.local/state/.aegis-swr/config.json"""
+    config_path = DEFAULT_CONFIG_PATH
     if config_path.exists():
-        with config_path.open(encoding="utf-8") as fh:
-            loaded = yaml.safe_load(fh)
-            data: dict[str, object] = loaded if isinstance(loaded, dict) else {}
+        try:
+            loaded = json.loads(config_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            loaded = {}
+        data: dict[str, object] = loaded if isinstance(loaded, dict) else {}
     else:
         data = {}
 
@@ -470,9 +491,12 @@ def config_set(
     node: dict[str, object] = data
     for part in parts[:-1]:
         child = node.setdefault(part, {})
-        node = child if isinstance(child, dict) else {}
+        if not isinstance(child, dict):
+            child = {}
+            node[part] = child
+        node = child
     node[parts[-1]] = value
 
-    with config_path.open("w", encoding="utf-8") as fh:
-        yaml.dump(data, fh, default_flow_style=False, allow_unicode=True)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     typer.echo(f"Set {key} = {value!r} in {config_path}")

@@ -8,6 +8,7 @@ failures to :class:`CodeBackendError`.
 See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §6.5.1.
 """
 from __future__ import annotations
+from typing import Optional
 
 import subprocess
 from datetime import datetime, timedelta
@@ -163,7 +164,7 @@ def _parse_blame_porcelain(text: str, first_line: int) -> list[BlameRecord]:
     line_number = first_line
     sha = ""
     author = "unknown"
-    ts: datetime | None = None
+    ts: Optional[datetime] = None
     for raw in text.splitlines():
         if raw.startswith("\t"):
             # The content line terminates a porcelain block.

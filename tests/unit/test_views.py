@@ -2,8 +2,8 @@
 
 These exercise ``WarRoomView`` by driving a real ``EventBus`` with a headless
 ``Console`` (``StringIO`` file, ``auto_refresh=False`` so no background thread)
-and asserting on the view's internal state — agent lifecycle, consensus
-history, evidence stream contents — plus the pure formatting helpers.
+and asserting on the view's internal state - agent lifecycle, consensus
+history, evidence stream contents - plus the pure formatting helpers.
 """
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 
 from rich.console import Console
+from rich.text import Text
 
 from aegis_swr.core.events import (
     AgentSpoke,
@@ -105,12 +106,22 @@ def _run_round(bus: EventBus, turn_number: int, confidence: float):
         )
 
 
+def _plain(renderable) -> str:
+    """Plain text of a stored stream entry - a ``Text`` or a ``Padding`` of one.
+
+    Sub-detail lines are wrapped in ``rich.padding.Padding`` (indented, no
+    gutter); unwrap to reach the inner ``Text``.
+    """
+    inner = getattr(renderable, "renderable", renderable)
+    return inner.plain
+
+
 def _evidence_text(view: WarRoomView) -> str:
-    return " | ".join(entry.text.plain for entry in view._evidence_log.lines)
+    return " | ".join(_plain(entry.text) for entry in view._evidence_log.lines)
 
 
 def _process_text(view: WarRoomView) -> str:
-    return " | ".join(entry.text.plain for entry in view._process_log.lines)
+    return " | ".join(_plain(entry.text) for entry in view._process_log.lines)
 
 
 # ---------------------------------------------------------------------------
@@ -342,7 +353,7 @@ def test_capping_keeps_reveal_pointer_in_bounds():
 
 
 def test_evidence_reveals_gradually_not_all_at_once():
-    # A burst of lines must not all surface in a single frame — they stream in.
+    # A burst of lines must not all surface in a single frame - they stream in.
     view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
     _start(view, _crash_source())
     log = view._evidence_log
@@ -388,7 +399,7 @@ def test_finish_reveals_both_buffers():
 
 
 # ---------------------------------------------------------------------------
-# Investigation Process — agent conversation (process, not evidence)
+# Investigation Process - agent conversation (process, not evidence)
 # ---------------------------------------------------------------------------
 
 
@@ -417,7 +428,7 @@ def test_conversation_lives_in_process_not_evidence():
 
 
 def test_process_conversation_reveals_gradually():
-    # The conversation scrolls in like the evidence stream — not all at once.
+    # The conversation scrolls in like the evidence stream - not all at once.
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -549,6 +560,70 @@ def test_debug_level_shows_core_dump_text_and_full_stack():
     view._stop_live()
 
 
+def _long_excerpt_brief(n: int = 50) -> dict:
+    """A brief whose core-dump analysis spans *n* lines (> the DEBUG cap)."""
+    brief = _debug_brief()
+    brief["raw_text_excerpt"] = "\n".join(f"ANALYZE_LINE_{i:02d}" for i in range(n))
+    return brief
+
+
+def _start_with(view: WarRoomView, brief: dict, source: IncidentSource):
+    bus = EventBus()
+    view.attach(bus)
+    bus.publish(InvestigationStarted(incident_id="abc", source=source))
+    bus.publish(EvidenceExtracted(brief=brief))
+
+
+def test_debug_caps_core_dump_excerpt():
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
+    _start_with(view, _long_excerpt_brief(50), _crash_source())
+    text = _evidence_text(view)
+    assert "core dump analysis (cdb !analyze -v):" in text
+    assert "ANALYZE_LINE_00" in text
+    assert "ANALYZE_LINE_39" in text     # last line within the 40-line cap
+    assert "ANALYZE_LINE_40" not in text  # capped at DEBUG
+    assert "ANALYZE_LINE_49" not in text
+    view._stop_live()
+
+
+def test_trace_streams_full_core_dump_output():
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
+    _start_with(view, _long_excerpt_brief(50), _crash_source())
+    text = _evidence_text(view)
+    # The full !analyze output - beyond the DEBUG cap - is streamed.
+    assert "core dump analysis (cdb !analyze -v, full):" in text
+    assert "ANALYZE_LINE_40" in text
+    assert "ANALYZE_LINE_49" in text
+    # Full-output lines are tagged TRACE; DEBUG metadata still surfaces.
+    assert any(entry.level == "TRACE" for entry in view._evidence_log.lines)
+    assert "sha256:abc123" in text
+    view._stop_live()
+
+
+def test_stream_log_visible_respects_level_rank():
+    from aegis_swr.views.rich_view import _StreamLog
+
+    log = _StreamLog(max_lines=100, reveal_interval=0.0)
+    log.reset(0.0)
+    log.append(Text("info-line"), level="INFO")
+    log.append(Text("debug-line"), level="DEBUG")
+    log.append(Text("trace-line"), level="TRACE")
+    log.reveal_all()
+
+    def shown(level: str) -> list[str]:
+        lines = log.visible(now=1.0, finished=True, level=level, max_lines=100)
+        return [_plain(r) for r in lines]
+
+    assert shown("INFO") == ["info-line"]
+    assert shown("DEBUG") == ["info-line", "debug-line"]
+    assert shown("TRACE") == ["info-line", "debug-line", "trace-line"]
+
+
+def test_make_view_accepts_trace_level():
+    view = make_view(_headless_console(width=120), level="TRACE")
+    assert view._level == "TRACE"
+
+
 def test_debug_level_shows_log_window(tmp_path: Path):
     log = tmp_path / "app.log"
     log.write_text("2026-06-04T14:02:11 ERROR boom\n")
@@ -640,7 +715,7 @@ def test_debug_evidence_render_does_not_raise(tmp_path: Path):
 
 
 # ---------------------------------------------------------------------------
-# Rendering smoke tests — helpers must return renderables without raising
+# Rendering smoke tests - helpers must return renderables without raising
 # ---------------------------------------------------------------------------
 
 
@@ -678,7 +753,7 @@ def test_render_agents_compact_mode_short_terminal():
 
 
 # ---------------------------------------------------------------------------
-# Final verdict — prototype-style single green frame
+# Final verdict - prototype-style single green frame
 # ---------------------------------------------------------------------------
 
 
@@ -707,16 +782,16 @@ def _full_report(*, with_fix: bool = True) -> RCAReport:
 
 def test_build_diagnosis_has_prototype_sections():
     text = _build_diagnosis(_full_report())
-    assert "Root Cause Analysis" in text
-    assert "Faulting Module" in text
-    assert "Recommended Actions" in text
+    assert "## Root Cause Analysis (RCA)" in text
+    assert "## Faulting Module" in text
+    assert "## Recommendation" in text
     # Root-cause sentence and module are present and human-readable.
     assert "Use-after-free in CImage::Load" in text
     assert "ImageScope.exe" in text
-    # Confidence narrative — plain text, no Markdown bold markers.
-    assert "HIGH (87%)" in text
+    # Confidence narrative and Markdown structure for the verdict frame.
+    assert "**Confidence:** HIGH (87%)" in text
     assert "2 debate rounds" in text
-    assert "**" not in text  # plain text, not Markdown
+    assert "**Conclusion:**" in text  # rendered as Markdown, not flat prose
 
 
 def test_build_diagnosis_filters_internal_fix_marker():
@@ -727,20 +802,64 @@ def test_build_diagnosis_filters_internal_fix_marker():
 
 def test_build_diagnosis_includes_fix_with_confidence():
     text = _build_diagnosis(_full_report(with_fix=True))
-    assert "Probabilistic Fix (confidence 81%)" in text
-    # Fix is included as plain text, not wrapped in a code fence.
+    assert "Probabilistic Fix - confidence 81%" in text
+    # Fix is rendered inside a diff code fence so it colours nicely.
     assert "+ new" in text
-    assert "```" not in text
+    assert "```diff" in text
 
 
 def test_build_diagnosis_default_recommendation_when_none():
-    report = _full_report()
+    report = _full_report(with_fix=False)
     report.mitigation_instructions = []
     text = _build_diagnosis(report)
-    assert "Recommended Actions" in text
-    # Falls back to generic guidance; no Markdown syntax.
+    assert "## Recommendation" in text
+    # Falls back to generic guidance as a numbered Markdown step.
     assert "Review the faulting module" in text
-    assert "###" not in text
+    assert "1. Review the faulting module" in text
+
+
+def test_build_diagnosis_includes_agent_reasoning():
+    # The detailed per-agent reasoning streams by transiently in the war room;
+    # the report must reproduce it instead of distilling to a one-liner.
+    report = _full_report(with_fix=False)
+    report.agent_dialogue = [
+        AgentTurn(
+            agent="OS Kernel Agent",
+            turn_number=1,
+            confidence_score=0.95,
+            message="Null-pointer write inside a UI message callback.",
+        ),
+        AgentTurn(
+            agent="Skeptic Agent",
+            turn_number=1,
+            confidence_score=0.60,
+            message="Outdated first take that should be superseded.",
+        ),
+        AgentTurn(
+            agent="Skeptic Agent",
+            turn_number=2,
+            confidence_score=0.90,
+            message="Confirmed: deliberate crash injection in the test handler.",
+        ),
+    ]
+    text = _build_diagnosis(report)
+    assert "### Panel Findings" in text
+    assert "**OS Kernel Agent** - 95% confident" in text
+    assert "Null-pointer write inside a UI message callback." in text
+    # Only the agent's final turn is kept; the superseded first take is dropped.
+    assert "Confirmed: deliberate crash injection" in text
+    assert "Outdated first take" not in text
+
+
+def test_build_diagnosis_surfaces_alternatives_and_challenges():
+    report = _full_report(with_fix=False)
+    report.alternative_hypotheses = [Hypothesis(root_cause="Heap corruption", confidence=0.2)]
+    report.skeptic_challenges = ["No recurrence evidence in the available history."]
+    text = _build_diagnosis(report)
+    assert "### Alternative Hypotheses" in text
+    assert "Heap corruption (20%)" in text
+    assert "### Skeptic Challenges" in text
+    assert "No recurrence evidence" in text
 
 
 def test_render_verdict_emits_single_green_frame():
@@ -748,10 +867,13 @@ def test_render_verdict_emits_single_green_frame():
     with con.capture() as cap:
         render_verdict(_full_report(), console=con, model="claude-opus-4-8")
     out = cap.get()
-    assert "AI Root Cause Analysis" in out
+    assert "Root Cause Analysis Report" in out
     assert "Model: claude-opus-4-8" in out
     assert "Use-after-free in CImage::Load" in out
-    assert "Recommended Actions" in out
+    assert "Recommendation" in out
+    # The short incident-id JSON record is stamped inside the same frame.
+    assert "Incident Record" in out
+    assert "incident_id" in out
 
 
 def test_render_verdict_hitl_shows_red_frame():

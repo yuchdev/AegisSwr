@@ -4,6 +4,19 @@ All design, planning, and analysis documents for the Aegis SWR project.
 
 ---
 
+## Configuration Reference (`configuration/`)
+
+User-facing reference for every CLI option and configuration field, generated
+from the source of truth in `src/aegis_swr/`.
+
+| Document                              | Description                                                                                                                                                       |
+|---------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [cli.md](configuration/cli.md)        | Every `aegis` command (`analyze`, `export`, `server`, `config show/set`) with all options, defaults, allowed values, output modes, and exit codes.                |
+| [config.md](configuration/config.md)  | The unified `~/.local/state/.aegis-swr/config.json`: flat analyze keys plus the nested `core` / `backends` / `sandbox` / `api` sections, sources, precedence, and env overrides. |
+| [agents.md](configuration/agents.md)  | The `~/.local/state/.aegis-swr/agents.json` weight matrix: the four agents, all ten fault-class keys with default weights, and how the consensus score uses them.       |
+
+---
+
 ## Architecture Decision Records (`adr/`)
 
 | Document                                                         | Description                                                                                                                                                                                                                                                                                           |
@@ -57,4 +70,4 @@ Outputs produced by the Phase 1.1 analysis run against the WinCrashAnalyzer prot
 | [prompt-heuristics.md](prototype/prompt_heuristics.md)           | All LLM system prompts, user prompt templates, regex rules, and sanitization heuristics extracted from the prototype. Sorted by troubleshooting domain and mapped to their target Aegis SWR agent.                                                                                                                        |
 | [token-waste-report.md](prototype/token_waste_report.md)         | Token efficiency audit: per-category waste estimates (worst-case ~17,440 tokens/request), comparison of prototype vs. target behavior, and 6 algorithmic guidelines for the Data Adapter layer.                                                                                                                           |
 | [gap-analysis.md](prototype/gap_analysis.md)                     | 7 conceptual gaps in the prototype (tunnel vision, no reasoning trail, no non-crash support, filename-based deduplication, no output validation, no multi-turn context, no symbol quality signal) each mapped to the Aegis SWR component that resolves it.                                                                |
-| [aegis-swr-vs-prototype.md](prototype/aegis_swr_vs_prototype.md) | End-to-end reproduction of the WinCrashAnalyzer prototype's resolution of `CrashUi.exe.1324.dmp` (deliberate NULL-pointer write) through the full Aegis SWR pipeline — CDB + OpenAI (gpt-5.4) + filesystem store. Side-by-side result comparison, the five backend-engine fixes the run surfaced, and reproduction steps. |
+| [aegis-swr-vs-prototype.md](prototype/aegis_swr_vs_prototype.md) | End-to-end reproduction of the WinCrashAnalyzer prototype's resolution of `CrashUi.exe.1324.dmp` (deliberate NULL-pointer write) through the full Aegis SWR pipeline - CDB + OpenAI (gpt-5.4) + filesystem store. Side-by-side result comparison, the five backend-engine fixes the run surfaced, and reproduction steps. |

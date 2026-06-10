@@ -19,10 +19,10 @@ Explain the Exception Code (e.g., 0xc0000005 as Null Pointer or Use-After-Free).
 
 **Extracted Heuristics:**
 - `0xC0000005` → Access Violation / Null Pointer Dereference / Use-After-Free
-- "Identify the specific function AND offset" — the offset within the faulting module is critical, not just the module name
+- "Identify the specific function AND offset" - the offset within the faulting module is critical, not just the module name
 - Exception code interpretation is a first-pass filter before deeper stack analysis
 
-**Assignment:** `OS Kernel Agent` — maps raw NTSTATUS codes to `FaultClass` enum; provides structured `ExceptionSummary` to downstream agents.
+**Assignment:** `OS Kernel Agent` - maps raw NTSTATUS codes to `FaultClass` enum; provides structured `ExceptionSummary` to downstream agents.
 
 ---
 
@@ -53,10 +53,10 @@ Root Cause Analysis (RCA), Faulting Module, and Recommendation."
 
 **Extracted Heuristics:**
 - Output MUST be structured in three named sections: `Root Cause Analysis`, `Faulting Module`, `Recommendation`
-- User assumptions are appended as a separate, labeled block — they guide but do not override the analysis
+- User assumptions are appended as a separate, labeled block - they guide but do not override the analysis
 - "Senior systems engineer" persona sets the authority level and vocabulary expected in response
 
-**Assignment:** `Code Analyst Agent` — receives `ExceptionSummary` + `StackTrace` from OS Kernel Agent; produces structured `RCAReport`.
+**Assignment:** `Code Analyst Agent` - receives `ExceptionSummary` + `StackTrace` from OS Kernel Agent; produces structured `RCAReport`.
 
 ---
 
@@ -81,11 +81,11 @@ Root Cause Analysis (RCA), Faulting Module, and Recommendation."
 
 **Extracted Heuristics:**
 - Recency bias: newest crashes are most relevant; truncate to top 5
-- Per-record context is capped at 200 characters — enough for pattern hints, not full re-analysis
+- Per-record context is capped at 200 characters - enough for pattern hints, not full re-analysis
 - History is presented as a labeled block clearly separated from the current crash data
 - Crash history provides module recurrence signal: if the same `faulting_module` appears 3 of 5 recent crashes, that is high-confidence corroboration
 
-**Assignment:** `Log Historian Agent` — maintains a rolling crash index; formats `HistorySummary` block for injection into Code Analyst Agent prompt.
+**Assignment:** `Log Historian Agent` - maintains a rolling crash index; formats `HistorySummary` block for injection into Code Analyst Agent prompt.
 
 ---
 
@@ -181,7 +181,7 @@ if sources.logs and sources.logs.exists():
 
 ---
 
-## Domain 6: Hypothesis Validation (Currently Absent — Gap)
+## Domain 6: Hypothesis Validation (Currently Absent - Gap)
 
 **Target Aegis SWR Agent:** `Skeptic Agent`
 

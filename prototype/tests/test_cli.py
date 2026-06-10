@@ -145,7 +145,7 @@ class TestCheckEnvironment:
             patch("shutil.which", return_value="/usr/bin/cdb.exe"),
             patch("subprocess.run") as mock_run,
             patch.dict(os.environ, {}, clear=True),
-            caplog.at_level(logging.WARNING, logger="wincrash_analyzer.crash_app"),
+            caplog.at_level(logging.INFO, logger="wincrash_analyzer.crash_app"),
         ):
             mock_run.return_value.returncode = 0
             # Ensure keys are not set

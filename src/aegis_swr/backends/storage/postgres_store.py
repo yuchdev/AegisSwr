@@ -1,4 +1,4 @@
-"""PostgreSQL storage backend — stub.
+"""PostgreSQL storage backend - stub.
 
 Full implementation (SQLAlchemy async + alembic migration) is deferred to a
 dedicated future phase. This stub exists so the factory can return a
@@ -6,6 +6,7 @@ dedicated future phase. This stub exists so the factory can return a
 configured in advance without import errors.
 """
 from __future__ import annotations
+from typing import Optional
 
 from uuid import UUID
 
@@ -22,7 +23,7 @@ _MSG = (
 
 
 class PostgresStore(RelationalStore):
-    """PostgreSQL backend stub — all methods raise ``NotImplementedError``"""
+    """PostgreSQL backend stub - all methods raise ``NotImplementedError``"""
 
     def __init__(self, settings: StorageSettings):
         self._settings = settings
@@ -31,10 +32,10 @@ class PostgresStore(RelationalStore):
     async def save_report(self, report: RCAReport):
         raise NotImplementedError(_MSG)
 
-    async def get_report(self, incident_id: UUID) -> RCAReport | None:
+    async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         raise NotImplementedError(_MSG)
 
-    async def find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         raise NotImplementedError(_MSG)
 
     async def update_hitl_response(

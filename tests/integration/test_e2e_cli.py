@@ -74,6 +74,28 @@ def test_e2e_analyze_json_output(tmp_path: Path):
     assert "Race condition" not in result.output
 
 
+def test_e2e_analyze_json_full_output(tmp_path: Path):
+    dump = _write_dump(tmp_path)
+    with mock.patch(_MOCK_RUN, _mock_run):
+        result = runner.invoke(app, [
+            "analyze",
+            "--dump", str(dump),
+            "--output", "json-full",
+            "--store", "filesystem",
+            "--store-config", str(tmp_path / "reports"),
+        ])
+
+    assert result.exit_code == 0, result.output
+    # json-full dumps the complete report body to stdout instead of a locator.
+    data = json.loads(result.output)
+    assert data["incident_id"]
+    assert data["root_cause"] == "Race condition in serialize() exposes use-after-free."
+    assert "primary_hypothesis" in data
+    assert "agent_dialogue" in data
+    # It is the report itself, not the locator wrapper.
+    assert "report_path" not in data
+
+
 # ---------------------------------------------------------------------------
 # Rich output
 # ---------------------------------------------------------------------------
@@ -92,10 +114,13 @@ def test_e2e_analyze_rich_output(tmp_path: Path):
 
     assert result.exit_code == 0
     assert "Race condition" in result.output
-    # The verdict is shown, then a pointer to the saved result file — but the
-    # raw report JSON is never dumped to stdout.
+    # The verdict is shown, then a pointer to the saved result file.  A short
+    # incident-id record is stamped inside the frame, but the full report JSON
+    # (hypotheses, dialogue, …) is never dumped to stdout.
     assert "Report saved:" in result.output
-    assert '"incident_id"' not in result.output
+    assert '"incident_id"' in result.output
+    assert '"primary_hypothesis"' not in result.output
+    assert '"agent_dialogue"' not in result.output
 
 
 # ---------------------------------------------------------------------------

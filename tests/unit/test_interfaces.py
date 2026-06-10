@@ -49,7 +49,7 @@ def test_base_agent_cannot_be_instantiated():
 
 def test_minimal_ai_backend_subclass():
     from collections.abc import AsyncGenerator
-    from typing import Any
+    from typing import Any, Optional
 
     from pydantic import BaseModel
 
@@ -60,7 +60,7 @@ def test_minimal_ai_backend_subclass():
             self,
             system_prompt: str,
             messages: list[dict[str, Any]],
-            output_schema: type[BaseModel] | None = None,
+            output_schema: Optional[type[BaseModel]] = None,
         ) -> BaseModel | str:
             return "ok"
 

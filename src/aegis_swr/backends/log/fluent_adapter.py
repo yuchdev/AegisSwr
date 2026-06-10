@@ -1,4 +1,4 @@
-"""Fluentd / Fluent Bit log backend — stub.
+"""Fluentd / Fluent Bit log backend - stub.
 
 Shipped as a stub (mirrors ``PostgresStore``) so the factory and config can
 select ``provider: fluent`` ahead of a full implementation.
@@ -11,6 +11,7 @@ records to log lines. The stub makes no network connection.
 See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §6.4.2.
 """
 from __future__ import annotations
+from typing import Optional
 
 from datetime import datetime
 
@@ -27,7 +28,7 @@ _MSG = (
 
 
 class FluentAdapter(LogBackend):
-    """Fluent backend stub — ``query_window`` raises ``NotImplementedError``"""
+    """Fluent backend stub - ``query_window`` raises ``NotImplementedError``"""
 
     def __init__(self, settings: LogBackendSettings):
         self._settings = settings
@@ -38,6 +39,6 @@ class FluentAdapter(LogBackend):
         service: str,
         start_time: datetime,
         end_time: datetime,
-        severity_levels: list[str] | None = None,
+        severity_levels: Optional[list[str]] = None,
     ) -> list[str]:
         raise NotImplementedError(_MSG)

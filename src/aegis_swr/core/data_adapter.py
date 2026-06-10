@@ -1,11 +1,11 @@
-"""Data Adapter — the non-LLM preprocessing pipeline.
+"""Data Adapter - the non-LLM preprocessing pipeline.
 
 Converts a raw :class:`IncidentSource` into a token-dense, PII-scrubbed
 :class:`IncidentBrief`. Runs synchronously (no LLM calls) before any agent is
 invoked. See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §5 for the stage contract.
 
 Pipeline stages:
-    1. Source validation & content hashing (SHA-256, before any backend call)
+    1. Source validation and content hashing (SHA-256, before any backend call)
     2. Dump extraction (delegated to a DebugBackend)
     3. Global noise pre-filter (DBGHELP / fill patterns / DLL list / truncate)
     4. Log processing (temporal window, Drain3 clustering, severity isolation)
@@ -17,15 +17,18 @@ Pipeline stages:
 """
 from __future__ import annotations
 
-import hashlib
 import re
+import hashlib
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
+from presidio_analyzer import AnalyzerEngine
 from loguru import logger
+import pytesseract
+from PIL import Image
 
 from aegis_swr.core.schemas import (
     CommitRecord,
@@ -78,7 +81,7 @@ def apply_noise_filter(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 _ISO_TS_RE = re.compile(r"(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})")
-_TIME_ONLY_RE = re.compile(r"\[(\d{2}):(\d{2}):(\d{2})\]")
+_TIME_ONLY_RE = re.compile(r"\[(\d{2}):(\d{2}):(\d{2})]")
 _SEVERITY_RE = re.compile(
     r"\b(TRACE|DEBUG|INFO|WARNING|WARN|ERROR|FATAL|CRITICAL)\b", re.IGNORECASE
 )
@@ -121,6 +124,10 @@ def _parse_timestamp(line: str, reference: datetime) -> Optional[datetime]:
 
 
 def _severity_rank(line: str) -> int:
+    """Return the numeric severity rank for a log line (0-5).
+
+    Higher rank indicates more severe. Returns 2 (INFO) if no severity token is found.
+    """
     match = _SEVERITY_RE.search(line)
     if not match:
         return _DEFAULT_RANK
@@ -161,11 +168,17 @@ class _ScrubState:
     """Accumulates a stable substitution map across multiple scrubbed fields"""
 
     def __init__(self):
+        """Initialize a new scrubbing state with empty mapping and counters."""
         self.mapping: dict[str, str] = {}  # token -> original value
         self._counters: dict[str, int] = defaultdict(int)
         self._reverse: dict[tuple[str, str], str] = {}  # (label, value) -> token
 
     def token_for(self, label: str, value: str) -> str:
+        """Return a stable token (e.g. [REDACTED_EMAIL_1]) for a PII value.
+
+        If the same (label, value) pair is requested again, we return the same token.
+        Maintains an internal mapping for later retrieval.
+        """
         key = (label, value)
         if key in self._reverse:
             return self._reverse[key]
@@ -185,6 +198,11 @@ class DataAdapter:
     """
 
     def __init__(self, settings: Settings):
+        """Initialize the adapter with application settings.
+
+        Args:
+            settings: Global configuration object.
+        """
         self._settings = settings
         self.last_pii_substitution_map: dict[str, str] = {}
 
@@ -197,6 +215,21 @@ class DataAdapter:
         code_backend: Optional[CodeBackend] = None,
         log_backend: Optional[LogBackend] = None,
     ) -> IncidentBrief:
+        """Run the 9-stage preprocessing pipeline on a crash incident source.
+
+        Orchestrates extraction, noise filtering, log processing, OCR, PII scrubbing,
+        token enforcement, and code history queries. The PII map is stored in
+        :attr:`last_pii_substitution_map` for out-of-band persistence.
+
+        Args:
+            source: The crash incident data (dump, logs, screenshots, etc.).
+            debug_backend: Optional backend to extract crash data. If None, skips extraction.
+            code_backend: Optional backend to retrieve code commit history.
+            log_backend: Optional backend to query structured logs.
+
+        Returns:
+            An :class:`IncidentBrief` ready for downstream agent processing.
+        """
         scrub = _ScrubState()
 
         # Stage 1: hash + format detection
@@ -286,6 +319,14 @@ class DataAdapter:
 
     @staticmethod
     def _compute_hash(path: Path) -> str:
+        """Compute the SHA-256 hash of a file in 8 KB chunks.
+
+        Args:
+            path: Path to the file to hash.
+
+        Returns:
+            Hash string prefixed with 'sha256:', e.g., 'sha256:a1b2c3...'.
+        """
         digest = hashlib.sha256()
         with path.open("rb") as handle:
             for chunk in iter(lambda: handle.read(8192), b""):
@@ -294,6 +335,17 @@ class DataAdapter:
 
     @staticmethod
     def _detect_format(path: Path) -> DumpFormat:
+        """Detect the crash dump format from file magic bytes and extension.
+
+        Checks for MDMP (Windows minidump), ELF (Linux core), or JSON-like
+        (Apple crash report) signatures. Falls back to Windows minidump if uncertain.
+
+        Args:
+            path: Path to the crash dump file.
+
+        Returns:
+            A :class:`DumpFormat` enum value.
+        """
         with path.open("rb") as handle:
             magic = handle.read(8)
         if magic[:4] == b"MDMP":
@@ -317,6 +369,21 @@ class DataAdapter:
         incident_ts: Optional[datetime],
         extra_lines: Optional[list[str]] = None,
     ) -> Optional[str]:
+        """Load, filter, cluster, and truncate log lines around the incident time.
+
+        Reads log files, applies temporal windowing, deduplicates via Drain3
+        clustering, and enforces a token budget. Gracefully handles missing files
+        and missing timestamps.
+
+        Args:
+            log_paths: Relative or absolute paths to log files.
+            incident_ts: Timestamp of the incident; used to window the logs.
+            extra_lines: Optional additional log lines (e.g., from a LogBackend).
+
+        Returns:
+            A multi-line string of filtered log lines, or None if no logs remain
+            after processing.
+        """
         raw: list[str] = []
         for raw_path in log_paths:
             path = Path(raw_path)
@@ -350,6 +417,20 @@ class DataAdapter:
         lines: list[str],
         incident_ts: datetime,
     ) -> list[str]:
+        """Filter log lines to a window around the incident time.
+
+        Lines with high severity (WARNING+) are kept within the outer window.
+        All severity levels (including INFO/DEBUG) are kept within an inner window
+        around the exact incident time. Lines without parseable timestamps are
+        always retained to avoid discarding relevant anomalies.
+
+        Args:
+            lines: Raw log lines to filter.
+            incident_ts: The incident timestamp to window around.
+
+        Returns:
+            Filtered list of log lines within the temporal window.
+        """
         window = timedelta(seconds=self._settings.core.log_window_seconds)
         inner = timedelta(seconds=_INNER_WINDOW_SECONDS)
         kept: list[str] = []
@@ -371,6 +452,18 @@ class DataAdapter:
 
     @staticmethod
     def _cluster_and_dedup(lines: list[str]) -> list[str]:
+        """Deduplicate and compress log lines using Drain3 template mining.
+
+        Groups repeated log messages into templates, emits each template once
+        with a count (e.g., "(×42)"), and keeps unique lines as-is. Falls back
+        to returning input lines unmodified if drain3 is unavailable.
+
+        Args:
+            lines: Log lines to deduplicate.
+
+        Returns:
+            Deduplicated and compressed log lines.
+        """
         try:
             from drain3 import TemplateMiner
             from drain3.template_miner_config import TemplateMinerConfig
@@ -406,6 +499,18 @@ class DataAdapter:
 
     @staticmethod
     def _enforce_log_budget(text: str) -> tuple[str, bool]:
+        """Truncate log text to stay within the token budget.
+
+        Removes oldest lines first (from the top) until the text fits within
+        the budget. Logs often precede an incident, so keeping recent lines
+        and dropping old context is intentional.
+
+        Args:
+            text: Multi-line log text.
+
+        Returns:
+            Tuple of (truncated_text, was_truncated).
+        """
         if count_tokens(text) <= _LOG_TOKEN_BUDGET:
             return text, False
         lines = text.split("\n")
@@ -417,15 +522,18 @@ class DataAdapter:
 
     @staticmethod
     def _process_screenshots(screenshot_paths: list[str]) -> Optional[UIContext]:
-        if not screenshot_paths:
-            return None
-        try:
-            import pytesseract
-            from PIL import Image
-        except ImportError:
-            logger.warning("pytesseract/Pillow unavailable; skipping screenshot OCR")
-            return None
+        """Extract and OCR text from screenshots with Tesseract and Pillow.
 
+        Processes images, filters text by confidence (>60%), and assembles a UI
+        context. Gracefully falls back to None if libraries are unavailable or
+        OCR fails on individual images.
+
+        Args:
+            screenshot_paths: Paths to screenshot files.
+
+        Returns:
+            A :class:`UIContext` with extracted text, or None if no text was found.
+        """
         words: list[str] = []
         for raw_path in screenshot_paths:
             path = Path(raw_path)
@@ -453,13 +561,45 @@ class DataAdapter:
     # -- Stage 6 -----------------------------------------------------------
 
     def _scrub_text(self, text: str, state: _ScrubState) -> str:
+        """Apply PII scrubbing: regex baseline then optional Presidio NER.
+
+        Replaces sensitive patterns (emails, database URLs, IP addresses, etc.)
+        with stable tokens (e.g., [REDACTED_EMAIL_1]). Optionally enhances
+        detection with Presidio if available.
+
+        Args:
+            text: Text to scrub.
+            state: Scrubbing state to maintain a stable token assignment.
+
+        Returns:
+            Scrubbed text with PII replaced by tokens.
+        """
         if not text:
             return text
 
-        def _make_replacer(label: str) -> Callable[[re.Match[str]], str]:
-            def _replace(match: re.Match[str]) -> str:
-                return state.token_for(label, match.group(0))
+        def _make_replacer(label_: str) -> Callable[[re.Match[str]], str]:
+            """
+            Creates a function to replace matched patterns in a string with a tokenized value derived
+            from the given label and the matched content.
 
+            :param label_: The label that used to generate the tokenized value for the matched content.
+            :return: A callable function that takes a regex match object and returns a string
+                with the tokenized value based on the provided label and matched text.
+            """
+
+            def _replace(match: re.Match[str]) -> str:
+                """
+                Replaces a matched pattern with a token generated from a specific label.
+
+                This function takes a matched string and replaces it with a token
+                generated through the provided label and current state.
+
+                :param match: A match object containing the details of the matched pattern in the input string.
+                :type match: re.Match[str]
+                :return: A string which is the token corresponding to the matched text.
+                :rtype: str
+                """
+                return state.token_for(label_, match.group(0))
             return _replace
 
         for label, pattern in _PII_RULES:
@@ -470,15 +610,10 @@ class DataAdapter:
     def _presidio_enhance(text: str, state: _ScrubState) -> str:
         """Optional NER pass to catch entities the regex baseline misses"""
         try:
-            from presidio_analyzer import AnalyzerEngine
-        except ImportError:
-            return text  # fail open; regex baseline already applied
-
-        try:
             analyzer = AnalyzerEngine()
             entities = ["PERSON", "PHONE_NUMBER", "US_SSN", "CRYPTO", "LOCATION"]
             results = analyzer.analyze(text=text, entities=entities, language="en")
-            # Replace from the end so earlier spans keep their offsets.
+            # Replace it from the end so earlier spans keep their offsets.
             for res in sorted(results, key=lambda r: r.start, reverse=True):
                 value = text[res.start : res.end]
                 token = state.token_for(res.entity_type, value)
@@ -490,6 +625,17 @@ class DataAdapter:
     # -- Stage 7 -----------------------------------------------------------
 
     def _enforce_assumption_limit(self, text: str) -> str:
+        """Truncate a user assumption to the configured token limit.
+
+        The user-provided context is often verbose; this method ensures it
+        doesn't crowd out the incident data in downstream LLM processing.
+
+        Args:
+            text: User assumption text.
+
+        Returns:
+            Text truncated to the token limit (see :attr:`Settings.core.user_assumption_token_limit`).
+        """
         limit = self._settings.core.user_assumption_token_limit
         truncated_text, was_truncated = truncate_to_tokens(text, limit)
         if was_truncated:
@@ -505,7 +651,7 @@ class DataAdapter:
         source: IncidentSource,
         log_backend: Optional[LogBackend],
     ) -> list[str]:
-        """Pull windowed log lines from a LogBackend (fail open on any error)"""
+        """Pull windowed log lines from a LogBackend (fail to open on any error)"""
         if log_backend is None or source.incident_timestamp is None:
             return []
         service = source.metadata.get("service")
@@ -523,7 +669,7 @@ class DataAdapter:
                 "LogBackend is a stub (e.g. fluent); falling back to file-based logs only."
             )
             return []
-        except Exception as exc:  # pragma: no cover - backend specific
+        except Exception as exc:  # pragma: no cover - backend-specific
             logger.warning(f"LogBackend query failed; using file logs only: {exc}")
             return []
 
@@ -534,6 +680,19 @@ class DataAdapter:
         source: IncidentSource,
         code_backend: Optional[CodeBackend],
     ) -> list[CommitRecord]:
+        """Retrieve recent commits from the source repository (before the incident).
+
+        Queries a CodeBackend for commits in a 2-hour window before the incident.
+        Gracefully returns an empty list if the backend is unavailable, repo_path
+        is missing, or the query fails.
+
+        Args:
+            source: The incident source (contains repo_path in metadata and timestamp).
+            code_backend: Optional backend to retrieve commit history. If None, returns [].
+
+        Returns:
+            List of :class:`CommitRecord` (up to 5), or empty list on failure.
+        """
         if code_backend is None or source.incident_timestamp is None:
             return []
         repo_path = source.metadata.get("repo_path")
@@ -546,7 +705,7 @@ class DataAdapter:
                 window_hours=2,
                 limit=5,
             )
-        except Exception as exc:  # pragma: no cover - backend specific
+        except Exception as exc:  # pragma: no cover - backend-specific
             logger.warning(f"Code history query failed: {exc}")
             return []
 

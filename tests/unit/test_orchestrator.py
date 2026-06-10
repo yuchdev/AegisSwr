@@ -23,7 +23,7 @@ from aegis_swr.core.schemas import (
 from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
 # ---------------------------------------------------------------------------
-# Helpers — scripted agent responses
+# Helpers - scripted agent responses
 # ---------------------------------------------------------------------------
 
 
@@ -88,7 +88,7 @@ def _log_only_source() -> IncidentSource:
 
 
 # ---------------------------------------------------------------------------
-# Full pipeline — convergence
+# Full pipeline - convergence
 # ---------------------------------------------------------------------------
 
 
@@ -132,7 +132,7 @@ async def test_skeptic_rejection_triggers_second_round(settings: Settings):
 
     assert report.consensus_rounds == 2
     assert report.hitl_request is None
-    # Round-2 OS Kernel turn was called — it's in the dialogue
+    # Round-2 OS Kernel turn was called - it's in the dialogue
     os_turns = [t for t in report.agent_dialogue if t.agent == "OS Kernel Agent"]
     assert len(os_turns) == 2
 
@@ -174,7 +174,7 @@ async def test_cache_hit_skips_analysis(settings: Settings):
     relational = mock.AsyncMock()
     relational.find_by_hash.return_value = cached_report
 
-    ai = MockAIBackend()  # No responses — any call would exhaust the queue
+    ai = MockAIBackend()  # No responses - any call would exhaust the queue
     orch = Orchestrator(settings=settings, ai_backend=ai, relational_store=relational)
 
     source = IncidentSource(

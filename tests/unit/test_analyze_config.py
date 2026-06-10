@@ -31,10 +31,14 @@ def _asset(name: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test_default_path_is_xdg_share_location():
-    # The config file lives under ~/.local/share/aegis/config.json.
+def test_default_path_is_canonical_config_location():
+    # The config file lives under ~/.local/state/.aegis-swr/config.json, and the
+    # CLI and runtime Settings must resolve the *same* file.
+    from aegis_swr.config.settings import CONFIG_JSON
+
     normalized = str(DEFAULT_CONFIG_PATH).replace("\\", "/")
-    assert normalized.endswith(".local/share/aegis/config.json")
+    assert normalized.endswith(".local/state/.aegis-swr/config.json")
+    assert DEFAULT_CONFIG_PATH == CONFIG_JSON
 
 
 def test_keys_have_no_duplicates():
@@ -49,7 +53,7 @@ def test_cli_options_match_schema_keys_exactly():
 
     Every ``aegis analyze`` option (besides the CLI-only ``--config`` and
     ``--save-config`` meta flags) must correspond to an ``AnalyzeConfig`` field,
-    and vice versa — guarding against duplicated / drifting setting names.
+    and vice versa - guarding against duplicated / drifting setting names.
     """
     from aegis_swr.cli.commands import analyze
 
@@ -75,7 +79,7 @@ def test_from_dict_reads_full_config_01():
     assert cfg.repo == "C:/src/imagescope"
     assert cfg.log_service == "render-svc"
     assert cfg.output == "json"
-    assert cfg.severity == "DEBUG"
+    assert cfg.log_severity == "DEBUG"
     # Unspecified list fields fall back to their (empty) defaults.
     assert cfg.logs == []
     assert cfg.shots == []
@@ -86,7 +90,7 @@ def test_from_dict_partial_config_02_uses_defaults():
     # Provided values.
     assert cfg.logs == ["C:/logs/app.log", "C:/logs/render.log"]
     assert cfg.ai == "anthropic"
-    assert cfg.severity == "INFO"
+    assert cfg.log_severity == "INFO"
     # Everything else stays at the schema defaults.
     assert cfg.dump is None
     assert cfg.engine == "auto"
@@ -152,12 +156,12 @@ def test_merge_cli_overrides_file():
     # … but the rest of config.json is preserved.
     assert cfg.engine == "cdb"
     assert cfg.store == "sqlite"
-    assert cfg.severity == "DEBUG"
+    assert cfg.log_severity == "DEBUG"
 
 
 def test_merge_ignores_none_cli_values():
     # Values that were not explicitly set on the CLI (None) must not clobber
-    # config.json — only real overrides count.
+    # config.json - only real overrides count.
     cfg = AnalyzeConfig.merge({"ai": "openai"}, {"ai": None, "engine": "windbg_js"})
     assert cfg.ai == "openai"
     assert cfg.engine == "windbg_js"

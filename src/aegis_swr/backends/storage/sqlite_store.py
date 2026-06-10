@@ -15,6 +15,7 @@ Schema::
     )
 """
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 import json
@@ -87,10 +88,10 @@ class SQLiteStore(RelationalStore):
             conn.execute(_UPSERT, row)
         logger.debug(f"SQLiteStore: saved report {report.incident_id}")
 
-    async def get_report(self, incident_id: UUID) -> RCAReport | None:
+    async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_get, str(incident_id))
 
-    def _sync_get(self, incident_id: str) -> RCAReport | None:
+    def _sync_get(self, incident_id: str) -> Optional[RCAReport]:
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT report_json FROM reports WHERE incident_id = ?",
@@ -100,10 +101,10 @@ class SQLiteStore(RelationalStore):
             return None
         return RCAReport.model_validate_json(row[0])
 
-    async def find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_find_by_hash, dump_hash)
 
-    def _sync_find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    def _sync_find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT report_json FROM reports WHERE dump_hash = ?",

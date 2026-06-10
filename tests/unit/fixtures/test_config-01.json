@@ -11,5 +11,5 @@
   "log_provider": "file",
   "log_service": "render-svc",
   "output": "json",
-  "severity": "DEBUG"
+  "log_severity": "DEBUG"
 }

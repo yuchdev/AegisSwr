@@ -1,4 +1,4 @@
-"""Code Analyst Agent — software architecture and logic error specialist"""
+"""Code Analyst Agent - software architecture and logic error specialist"""
 from __future__ import annotations
 
 import json

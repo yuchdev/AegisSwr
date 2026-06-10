@@ -1,4 +1,4 @@
-# Aegis SWR — Production Design Specification
+# Aegis SWR - Production Design Specification
 
 **Version:** 1.0  
 **Status:** Approved for Implementation  
@@ -9,7 +9,7 @@
 
 ## 1. Product Summary
 
-Aegis SWR (Synthetic War Room) is a production forensics platform that converts raw incident telemetry — crash dumps, log files, screenshots, metric spikes — into a structured **Investigator's Rationale (IR)**: a complete audit trail of the multi-agent debate that led to a root-cause conclusion.
+Aegis SWR (Synthetic War Room) is a production forensics platform that converts raw incident telemetry - crash dumps, log files, screenshots, metric spikes - into a structured **Investigator's Rationale (IR)**: a complete audit trail of the multi-agent debate that led to a root-cause conclusion.
 
 The distinguishing product characteristic is the **Synthetic War Room**: instead of a single LLM call that returns one answer, the platform instantiates four specialized AI agents (OS Kernel, Code Analyst, Log Historian, Skeptic) that run a controlled debate. The debate transcript, discarded hypotheses, confidence scores, and final consensus are all persisted and surfaced as structured output.
 
@@ -48,15 +48,15 @@ src/aegis_swr/
 │   │   ├── anthropic_provider.py
 │   │   └── openai_provider.py
 │   ├── debug/
-│   │   ├── __init__.py       # Factory: create_debug_backend() — platform-detected
+│   │   ├── __init__.py       # Factory: create_debug_backend() - platform-detected
 │   │   ├── cdb_worker.py     # Windows: cdb.exe
 │   │   ├── gdb_worker.py     # Linux: gdb
 │   │   └── lldb_worker.py    # macOS: lldb
 │   ├── storage/
 │   │   ├── __init__.py       # Factory: create_storage_backends()
-│   │   ├── postgres_store.py # Relational — incidents, rationale, dialogue
-│   │   ├── s3_store.py       # Object — raw .dmp, .log, .png files
-│   │   └── qdrant_store.py   # Vector — semantic incident history
+│   │   ├── postgres_store.py # Relational - incidents, rationale, dialogue
+│   │   ├── s3_store.py       # Object - raw .dmp, .log, .png files
+│   │   └── qdrant_store.py   # Vector - semantic incident history
 │   ├── log/
 │   │   ├── __init__.py       # Factory: create_log_backend()
 │   │   ├── file_adapter.py   # Local .log / .txt files
@@ -88,11 +88,11 @@ src/aegis_swr/
 │
 ├── cli/
 │   ├── __init__.py
-│   └── commands.py           # Typer CLI — analyze, server, config
+│   └── commands.py           # Typer CLI - analyze, server, config
 │
 └── config/
     ├── __init__.py
-    └── settings.py           # Pydantic Settings — reads config.yaml + env vars
+    └── settings.py           # Pydantic Settings - reads config.yaml + env vars
 ```
 
 **Project configuration** (repository root):
@@ -119,7 +119,7 @@ authors = ["Yurii Cherkasov <yurii.cherkasov@gloriumtech.com>"]
 packages = [{ include = "aegis_swr", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.12"
 fastapi = "^0.115"
 uvicorn = { version = "^0.32", extras = ["standard"] }
 typer = { version = "^0.13", extras = ["all"] }
@@ -175,20 +175,20 @@ class IncidentMode(str, Enum):
     TELEMETRY_ANOMALY = "telemetry_anomaly"  # Metric threshold breach
 
 class DumpFormat(str, Enum):
-    WINDOWS_MINIDUMP = "windows_minidump"   # .dmp — Windows MiniDumpWriteDump()
-    LINUX_CORE       = "linux_core"         # .core — ELF core dump
-    APPLE_CRASHREPORT = "apple_crashreport" # .ips / .crash — Apple CrashReporter
-    BREAKPAD         = "breakpad"           # .dmp — Google Breakpad format
+    WINDOWS_MINIDUMP = "windows_minidump"   # .dmp - Windows MiniDumpWriteDump()
+    LINUX_CORE       = "linux_core"         # .core - ELF core dump
+    APPLE_CRASHREPORT = "apple_crashreport" # .ips / .crash - Apple CrashReporter
+    BREAKPAD         = "breakpad"           # .dmp - Google Breakpad format
 
 class IncidentSource(BaseModel):
     mode: IncidentMode
-    incident_timestamp: datetime | None = None  # UTC — anchor for temporal windowing
+    incident_timestamp: datetime | None = None  # UTC - anchor for temporal windowing
     dump_path: Path | None = None
     dump_format: DumpFormat | None = None
     dump_hash: str | None = None                # SHA-256, computed before any backend call
     log_paths: list[Path] = []
     screenshot_paths: list[Path] = []
-    network_capture_paths: list[Path] = []      # .pcap captures — metadata shown in DEBUG evidence
+    network_capture_paths: list[Path] = []      # .pcap captures - metadata shown in DEBUG evidence
     symbol_path: Path | None = None
     user_assumption: str | None = None          # Capped to 500 tokens by Data Adapter
     metadata: dict[str, str] = {}               # repo tags, environment, application type
@@ -210,7 +210,7 @@ class FaultClass(str, Enum):
     UNKNOWN                  = "unknown"
 ```
 
-Each `DebugBackend` maps its platform-native fault indicator to `FaultClass`. The agent prompts use `FaultClass` names — never raw hex codes or signal numbers.
+Each `DebugBackend` maps its platform-native fault indicator to `FaultClass`. The agent prompts use `FaultClass` names - never raw hex codes or signal numbers.
 
 **Platform mapping table** (implemented in `fault_codes.py`):
 
@@ -397,7 +397,7 @@ IncidentSource
     │       (a) each local log path in IncidentSource.log_paths (file-based), and
     │       (b) if a LogBackend is configured AND a service name + incident_timestamp
     │           are available: LogBackend.query_window(service, t−window, t+window,
-    │           severity_levels) — pulls lines from the log source (file/fluent/…)
+    │           severity_levels) - pulls lines from the log source (file/fluent/…)
     │   - For each line: apply temporal window ±30 s around incident_timestamp
     │   - Run Drain3 log clustering on filtered lines
     │   - Deduplicate: heartbeat lines repeated >3 times become "msg (×N)"
@@ -421,8 +421,8 @@ IncidentSource
     │
     ▼ Stage 8: Code History Query (if CodeBackend configured)
     │   - CodeBackend.get_commits_before(repo_path, incident_timestamp, window_hours=2)
-    │     — git history for GitCodeAdapter; recently-modified files for FilesystemCodeAdapter
-    │   - Extract changed files, authors, commit messages — top 5 by proximity
+    │     - git history for GitCodeAdapter; recently-modified files for FilesystemCodeAdapter
+    │   - Extract changed files, authors, commit messages - top 5 by proximity
     │
     ▼ Stage 9: Assemble Incident Brief (dict → JSON-serializable)
     │
@@ -470,7 +470,7 @@ Two refinements were made while implementing the Data Adapter; both are now the 
 
 1. **`IncidentBrief` is a Pydantic model** (`core/schemas.py`), not a bare dict. `DataAdapter.process()` returns an `IncidentBrief`; the orchestrator serializes it with `model_dump(mode="json")` into `InvestigationState["incident_brief"]`. The JSON shape in §5.2 is unchanged.
 
-2. **PII scrubbing always runs via a deterministic regex baseline**, with Presidio NER as an optional enhancement layered on top when the `pii` extra is installed. This reconciles "PII scrubbing always runs" (a security invariant) with "fail open on optional features" — emails, IPv4 addresses, AWS keys, credit-card numbers, and DB connection strings are always scrubbed even without Presidio. The PII substitution map is **never** placed in the `IncidentBrief` (it would carry the original PII into agent prompts); instead it is exposed via `DataAdapter.last_pii_substitution_map` immediately after `process()` returns, for the orchestrator to persist out-of-band (encrypted) per §13.1.
+2. **PII scrubbing always runs via a deterministic regex baseline**, with Presidio NER as an optional enhancement layered on top when the `pii` extra is installed. This reconciles "PII scrubbing always runs" (a security invariant) with "fail open on optional features" - emails, IPv4 addresses, AWS keys, credit-card numbers, and DB connection strings are always scrubbed even without Presidio. The PII substitution map is **never** placed in the `IncidentBrief` (it would carry the original PII into agent prompts); instead it is exposed via `DataAdapter.last_pii_substitution_map` immediately after `process()` returns, for the orchestrator to persist out-of-band (encrypted) per §13.1.
 
 3. **`process()` signature**: `async def process(source: IncidentSource, debug_backend: DebugBackend | None = None, code_backend: CodeBackend | None = None, log_backend: LogBackend | None = None) -> IncidentBrief`. All three backends are optional so the adapter is usable in log-only mode and before Phase 4/later backends exist. `code_backend` drives Stage 8 (§6.5); `log_backend` is queried in Stage 4 (§6.4) and its lines are merged with the file-based logs before clustering. The reusable noise filter is the module-level function `apply_noise_filter(text)`, which Phase 4 debug backends import directly.
 
@@ -533,7 +533,7 @@ These are the authoritative behaviors of the implemented AI backends:
 
 4. **Correction retry.** On a `ValidationError`/`JSONDecodeError`, the base appends an `assistant` turn (the invalid output) plus a `user` turn naming the schema and the validation errors, then re-invokes once. A second failure raises `AIOutputValidationError`.
 
-5. **OpenAI strict schema.** `_to_openai_strict_schema()` adapts the Pydantic JSON schema to OpenAI strict rules — recursively setting `additionalProperties: false`, listing all properties as `required`, and stripping `default`. Anthropic uses the raw `model_json_schema()` as the tool `input_schema`.
+5. **OpenAI strict schema.** `_to_openai_strict_schema()` adapts the Pydantic JSON schema to OpenAI strict rules - recursively setting `additionalProperties: false`, listing all properties as `required`, and stripping `default`. Anthropic uses the raw `model_json_schema()` as the tool `input_schema`.
 
 6. **SDK clients are typed as `Any`.** Each provider stores `self._client: Any = anthropic.AsyncAnthropic()` / `openai.AsyncOpenAI()` to avoid coupling to the SDKs' internal `TypedDict` parameter types under `mypy --strict`. API keys are read from the environment by the SDKs (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`).
 
@@ -541,7 +541,7 @@ These are the authoritative behaviors of the implemented AI backends:
 
 8. **OpenAI reasoning-model API contract.** gpt-5-class / o-series models reject `max_tokens` and any non-default `temperature`; they require `max_completion_tokens`. `OpenAIBackend._completion_kwargs()` detects a reasoning model by name prefix and, for those, sends `max_completion_tokens` (floored at 16 000 so internal reasoning tokens don't starve the structured answer) and omits `temperature`; non-reasoning models keep `max_tokens` + `temperature`.
 
-9. **OpenAI client resilience.** A multi-agent investigation issues many sequential calls (up to `4 agents × max_debate_rounds`), so the OpenAI client is constructed with `timeout=300s` and `max_retries=4` (SDK exponential backoff on timeouts / 429 / 5xx). This prevents one transient `APITimeoutError` — observed at the `skeptic_node` during real-dump runs — from aborting the whole graph.
+9. **OpenAI client resilience.** A multi-agent investigation issues many sequential calls (up to `4 agents × max_debate_rounds`), so the OpenAI client is constructed with `timeout=300s` and `max_retries=4` (SDK exponential backoff on timeouts / 429 / 5xx). This prevents one transient `APITimeoutError` - observed at the `skeptic_node` during real-dump runs - from aborting the whole graph.
 
 ### 6.2 DebugBackend
 
@@ -592,7 +592,7 @@ def create_debug_backend(config: DebugConfig) -> DebugBackend:
 > | Source Server (SrcSrv) stream → exact VCS revision built | **Code Backend §6.5.4** | Stage 8 | `pdbstr.exe -r -s:srcsrv` extracts build provenance |
 >
 > Both backends reference the same `.pdb` file; this is intentional and architecturally
-> correct — the same file is read for different purposes. The `PdbCodeAdapter` (§6.5.4)
+> correct - the same file is read for different purposes. The `PdbCodeAdapter` (§6.5.4)
 > is therefore not a Debug Backend concern and does not replace symbol resolution here.
 
 #### 6.2.1 As-built notes (Phase 4)
@@ -603,7 +603,7 @@ Authoritative behaviors of the implemented debug backends:
 
 2. **Errors.** A missing/absent dump raises `DebugExtractionError`; a missing debugger binary (`FileNotFoundError`) raises `PlatformNotSupportedError`; a timeout raises `DebugExtractionError`. (`DebugExtractionError` was added to `core/exceptions.py`.)
 
-3. **`extract` is synchronous** (per the ABC) and the Data Adapter calls it inline. All `subprocess.run` calls use list-form argv — never `shell=True`.
+3. **`extract` is synchronous** (per the ABC) and the Data Adapter calls it inline. All `subprocess.run` calls use list-form argv - never `shell=True`.
 
 4. **Fault mapping.** CDB maps the fault-code NTSTATUS hex via `map_windows_ntstatus`; GDB maps the `signal SIG*` name via a local name→number table + `map_linux_signal`; LLDB maps the `stop reason = EXC_*` name via a local name→code table + `map_macos_exception`. Unmapped indicators yield `FaultClass.UNKNOWN`.
 
@@ -619,7 +619,7 @@ The WinDbg JS backend restores the `JSProviderBackend` from the prototype with s
 
 ##### Motivation
 
-`CdbBackend` extracts crash data by parsing the free-text output of `!analyze -v` — a process inherently fragile and subject to format variations across WinDbg versions. The WinDbg JavaScript engine accesses the **Debugger Data Model (DDM)** directly: it returns typed, structured JSON with no text parsing, exposes all threads (not just the faulting thread's text dump), provides module load addresses, and yields richer frame metadata (parameter values, local variable types). It is also the path toward live-process analysis (not just static dumps).
+`CdbBackend` extracts crash data by parsing the free-text output of `!analyze -v` - a process inherently fragile and subject to format variations across WinDbg versions. The WinDbg JavaScript engine accesses the **Debugger Data Model (DDM)** directly: it returns typed, structured JSON with no text parsing, exposes all threads (not just the faulting thread's text dump), provides module load addresses, and yields richer frame metadata (parameter values, local variable types). It is also the path toward live-process analysis (not just static dumps).
 
 ##### Architecture: Callback Bridge Pattern
 
@@ -664,7 +664,7 @@ class _CallbackBridge:
     def __init__(self, callback_timeout: int) -> None: ...
 
     def __enter__(self) -> _CallbackBridge: ...
-        # Binds HTTPServer to ("127.0.0.1", 0) — port 0 forces OS assignment.
+        # Binds HTTPServer to ("127.0.0.1", 0) - port 0 forces OS assignment.
         # Creates an instance-level queue.Queue[str] unique to this extraction.
         # Starts daemon thread running httpd.serve_forever().
         # self.port is set from httpd.server_address[1] after binding.
@@ -756,7 +756,7 @@ function initializeScript() {
     }
 
     var payload = JSON.stringify(result);
-    // Use MSXML2.XMLHTTP (COM automation) — the only HTTP client available
+    // Use MSXML2.XMLHTTP (COM automation) - the only HTTP client available
     // inside cdb.exe's WinDbg JS engine on Windows.
     var xhr = new ActiveXObject("MSXML2.XMLHTTP");
     xhr.open("POST", callbackUrl, false);
@@ -768,7 +768,7 @@ function initializeScript() {
 
 Substitution tokens (`__CALLBACK_URL__`, `__MAX_FAULTING_FRAMES__`, `__MAX_OTHER_FRAMES__`) are replaced by `WinDbgJSBackend._prepare_js(port, settings)` at runtime.
 
-**`ActiveXObject` note:** MSXML2.XMLHTTP is a Windows COM object and the only synchronous HTTP client usable in the cdb/WinDbg JavaScript engine. It is explicitly scoped to Windows — `WinDbgJSBackend.SUPPORTED_PLATFORMS = ["Windows"]` — so the factory never registers it on Linux/macOS.
+**`ActiveXObject` note:** MSXML2.XMLHTTP is a Windows COM object and the only synchronous HTTP client usable in the cdb/WinDbg JavaScript engine. It is explicitly scoped to Windows - `WinDbgJSBackend.SUPPORTED_PLATFORMS = ["Windows"]` - so the factory never registers it on Linux/macOS.
 
 ##### JSON Payload → `DebugExtractionResult` Mapping
 
@@ -838,12 +838,12 @@ src/aegis_swr/backends/debug/
 | Prototype issue | Production fix |
 |---|---|
 | Module-level `JSCallbackHandler.data_queue` shared across concurrent extractions | Instance-level `_CallbackBridge._queue` via `_make_handler(queue)` closure |
-| Fixed port-fallback chain (9999/9998/9997) — collides in CI | `port=0` — OS assigns an unused ephemeral port |
-| JS template embedded as a Python string — not versionable or editable | Shipped as `backends/debug/assets/windbg_diagnostic.js` |
+| Fixed port-fallback chain (9999/9998/9997) - collides in CI | `port=0` - OS assigns an unused ephemeral port |
+| JS template embedded as a Python string - not versionable or editable | Shipped as `backends/debug/assets/windbg_diagnostic.js` |
 | No `ExceptionAddress` in DDM query | `exc.Address` added to script output; maps to `exception_address` |
 | All threads returned at full depth | Faulting thread: `maxFaultingFrames`; other threads: `maxOtherFrames` (default 3) |
 | Symbol path not passed to the JS engine | CDB `-y` symbol chain includes the resolved `symbol_path_string` |
-| Raw dict return type — not a typed `DebugExtractionResult` | Full parse into `DebugExtractionResult`; no callers need to handle a dict |
+| Raw dict return type - not a typed `DebugExtractionResult` | Full parse into `DebugExtractionResult`; no callers need to handle a dict |
 | `JsProvider.dll` check by string matching in stdout | Explicit check; raises `DebugExtractionError` with actionable message |
 
 ### 6.3 StorageBackend (four concrete backends)
@@ -857,9 +857,9 @@ The ABCs defined in `backends/base.py` remain unchanged. The four concrete imple
 | `S3Store` | ✅ JSON objects in bucket | ✅ binary objects in bucket | Cloud / MinIO deployments without PostgreSQL |
 | `PostgresStore` | ✅ (stub) | ✗ | Full production with PostgreSQL (Phase 6 complete) |
 
-The `VectorStore` (Qdrant) is always a separate optional backend — not included in the four-provider selection.
+The `VectorStore` (Qdrant) is always a separate optional backend - not included in the four-provider selection.
 
-The factory `create_storage_backends(settings)` returns `(RelationalStore | None, ObjectStore | None)` — the caller (Orchestrator) handles None for either component.
+The factory `create_storage_backends(settings)` returns `(RelationalStore | None, ObjectStore | None)` - the caller (Orchestrator) handles None for either component.
 
 ```python
 class RelationalStore(ABC):
@@ -914,7 +914,7 @@ adapters ship now; ELK is deferred (see §6.4.3).
 |---|---|---|---|
 | `FileLogAdapter` | `log/file_adapter.py` | Local `.log` / `.txt` files | Full implementation |
 | `FluentAdapter` | `log/fluent_adapter.py` | Fluentd / Fluent Bit | **Stub** (Phase-deferred) |
-| `ELKAdapter` | `log/elk_adapter.py` | Elasticsearch / ELK | Deferred — not implemented yet |
+| `ELKAdapter` | `log/elk_adapter.py` | Elasticsearch / ELK | Deferred - not implemented yet |
 
 #### 6.4.1 FileLogAdapter (`log/file_adapter.py`)
 
@@ -934,7 +934,7 @@ default and needs no external service.
 - All file reads are wrapped in `asyncio.to_thread`. Resolved paths are guarded
   to stay within `file_root` (traversal → `ValueError`).
 
-#### 6.4.2 FluentAdapter (`log/fluent_adapter.py`) — stub
+#### 6.4.2 FluentAdapter (`log/fluent_adapter.py`) - stub
 
 Plugin backend for Fluentd / Fluent Bit, shipped as a **stub** (mirrors the
 PostgreSQL store stub, §8.4) so the factory and config can select it ahead of a
@@ -1093,13 +1093,13 @@ backends:
 `repo_path` may be supplied at the CLI with `--repo` (which also flips
 `enabled=true`); see §12.2.
 
-#### 6.5.4 PdbCodeAdapter (`code/pdb_adapter.py`) — Windows, Source Server indexing required
+#### 6.5.4 PdbCodeAdapter (`code/pdb_adapter.py`) - Windows, Source Server indexing required
 
 The PDB Code Adapter derives source attribution from a Windows Program Database
 (`.pdb`) file rather than from the file system or a live Git working tree. Because
 the PDB's **Source Server (SrcSrv) stream** records the *exact* VCS revision that
 was compiled into each binary, this adapter eliminates the time-window heuristic
-entirely — no guessing from commit timestamps.
+entirely - no guessing from commit timestamps.
 
 ##### Prerequisites
 
@@ -1129,17 +1129,17 @@ pool.cpp*abc123def456*
 
 ##### Behaviour per method
 
-- **`get_commits_before(repo_path, before, window_hours, limit)`** — `before` and
+- **`get_commits_before(repo_path, before, window_hours, limit)`** - `before` and
   `window_hours` are ignored; the PDB is the ground truth. Runs
   `pdbstr.exe -r -p:{pdb_path} -s:srcsrv`, parses the stream, and returns a
   single `CommitRecord` per unique revision SHA found (`author="PdbSourceServer"`,
   `timestamp=None` coerced to the PDB file's mtime, `message="SrcSrv build revision"`).
   If the SrcSrv stream is absent or empty → `[]`. `repo_path` is used only to
   resolve `pdb_path` when it is not explicitly set.
-- **`get_file_diff(repo_path, file_path, commit_sha)`** — uses the SrcSrv
+- **`get_file_diff(repo_path, file_path, commit_sha)`** - uses the SrcSrv
   `VERCTRL`-specific extraction command (e.g., `git show {sha}:{file_path}`) or
   falls back to `git show` when `VERCTRL=git`. Unknown VCS type → `""`.
-- **`blame(repo_path, file_path, line_range)`** — delegates to the underlying VCS
+- **`blame(repo_path, file_path, line_range)`** - delegates to the underlying VCS
   with the exact SHA from the SrcSrv stream. For `VERCTRL=git`: calls
   `git blame -L {start},{end} --line-porcelain {sha} -- {file_path}`. Any git
   failure → empty list (fail open).
@@ -1200,23 +1200,23 @@ START
 [data_adapter_node]     Runs the full preprocessing pipeline; produces incident_brief
   │
   ▼
-[os_kernel_node]        OS Kernel Agent — first pass; produces ExceptionSummary + Hypothesis
+[os_kernel_node]        OS Kernel Agent - first pass; produces ExceptionSummary + Hypothesis
   │
   ▼
-[code_analyst_node]     Code Analyst Agent — receives ExceptionSummary; produces RCA Hypothesis
+[code_analyst_node]     Code Analyst Agent - receives ExceptionSummary; produces RCA Hypothesis
   │
   ▼
-[log_historian_node]    Log Historian Agent — injects conditional history; updates confidence
+[log_historian_node]    Log Historian Agent - injects conditional history; updates confidence
   │
   ▼
-[skeptic_node]          Skeptic Agent — challenges current primary hypothesis
+[skeptic_node]          Skeptic Agent - challenges current primary hypothesis
   │
   ├── [if confirmed=True and consensus >= threshold] ──► [output_synthesizer_node] ──► END
   ├── [if confirmed=False and round < max_rounds]    ──► [os_kernel_node] (next round)
   └── [if confidence < 0.50 and round == max_rounds] ──► [hitl_node] ──► END
 ```
 
-The `consensus_evaluator` is called at the end of the Skeptic node. It is not a separate graph node — it is a pure function that reads the current state.
+The `consensus_evaluator` is called at the end of the Skeptic node. It is not a separate graph node - it is a pure function that reads the current state.
 
 ### 7.2 Consensus Score Formula
 
@@ -1313,12 +1313,12 @@ All sync I/O (filesystem, SQLite) is wrapped in `asyncio.to_thread` so the inter
 
 Implements both `RelationalStore` and `ObjectStore`. Evolved from the prototype's `FilesystemBackend`.
 
-**Report storage** (`reports_dir/`, default `~/.aegis-swr/reports`):
+**Report storage** (`reports_dir/`, default `~/.local/share/.aegis-swr/reports`):
 - One file per report: `{reports_dir}/{incident_id}.json`
 - Hash index for O(1) dedup: `{reports_dir}/_hash_index/{dump_hash}` (content = incident_id string)
 
-**Raw artifact storage** (`objects_dir/`, default `~/.aegis-swr/objects`):
-- `{objects_dir}/{incident_id}/{filename}` — upload/download path
+**Raw artifact storage** (`objects_dir/`, default `~/.local/share/.aegis-swr/objects`):
+- `{objects_dir}/{incident_id}/{filename}` - upload/download path
 
 **Path safety:** every resolved path is checked to remain within its root directory. Traversal attempts raise `ValueError`.
 
@@ -1345,9 +1345,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_dump_hash
     ON reports(dump_hash) WHERE dump_hash IS NOT NULL;
 ```
 
-`find_by_hash` uses a direct indexed `WHERE dump_hash = ?` query — no full-table scan.
+`find_by_hash` uses a direct indexed `WHERE dump_hash = ?` query - no full-table scan.
 `update_hitl_response` does `UPDATE reports SET report_json = ? WHERE incident_id = ?` after modifying the parsed report dict in Python.
-Default `db_path`: `~/.aegis-swr/reports.db`.
+Default `db_path`: `~/.local/db/.aegis-swr/reports.db`.
 
 ### 8.3 S3 Store (`s3_store.py`)
 
@@ -1369,7 +1369,7 @@ Implements both `RelationalStore` and `ObjectStore` via sync `boto3` wrapped in 
 **MinIO support:** `s3_endpoint_url` config key; if set, passed as `endpoint_url` to `boto3.client()`.
 **Credentials:** standard AWS env vars (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) or instance profile.
 
-### 8.4 PostgreSQL Store (`postgres_store.py`) — stub
+### 8.4 PostgreSQL Store (`postgres_store.py`) - stub
 
 Implements `RelationalStore`. All methods raise `NotImplementedError` with a message directing the developer to Phase 6. The stub exists so the factory can return it and the Orchestrator can be configured for PostgreSQL in advance.
 
@@ -1421,9 +1421,9 @@ def create_storage_backends(
 backends:
   storage:
     provider: "filesystem"             # filesystem | sqlite | s3 | postgres
-    reports_dir: "~/.aegis-swr/reports"  # filesystem
-    objects_dir: "~/.aegis-swr/objects"  # filesystem object store
-    db_path: "~/.aegis-swr/reports.db"   # sqlite
+    reports_dir: "~/.local/share/.aegis-swr/reports"  # filesystem
+    objects_dir: "~/.local/share/.aegis-swr/objects"  # filesystem object store
+    db_path: "~/.local/db/.aegis-swr/reports.db"   # sqlite
     object_store_url: "s3://aegis-raw-inputs"  # s3
     object_store_region: "us-east-1"           # s3
     s3_endpoint_url: null                      # s3 / MinIO custom endpoint
@@ -1445,7 +1445,7 @@ backends:
 
 - Content-Type: `multipart/form-data`
 - Body fields:
-  - `metadata`: JSON string — `IncidentSource` minus file paths
+  - `metadata`: JSON string - `IncidentSource` minus file paths
   - `logs`: zero or more log files (`.log`, `.txt`)
   - `crashdump`: optional binary file (`.dmp`, `.core`, `.ips`)
   - `screenshot`: optional image (`.png`, `.jpg`)
@@ -1630,27 +1630,27 @@ aegis config show                 Print resolved config.yaml + env overrides (re
 aegis config set KEY VALUE        Write a single key to config.yaml
 ```
 
-### 12.2 `aegis analyze` — full flag reference
+### 12.2 `aegis analyze` - full flag reference
 
 ```bash
 aegis analyze \
   --dump    ./crash.dmp          # crash dump file (magic-byte format detected)
-  --log     ./app.log            # log file (repeatable — pass once per file)
+  --log     ./app.log            # log file (repeatable - pass once per file)
   --shot    ./error.png          # screenshot (repeatable)
-  --pcap    ./traffic.pcap       # network traffic capture (repeatable; metadata shown at --severity DEBUG)
+  --pcap    ./traffic.pcap       # network traffic capture (repeatable; metadata shown at --log-severity DEBUG)
   --sym     ./symbols/           # symbol path
   --assume  "DB pool reduced"    # user context / assumption text
   --engine  auto                 # debug engine: auto | cdb | windbg_js
   --ai      anthropic            # AI provider: anthropic | openai
   --store   filesystem           # storage backend: filesystem | sqlite | s3 | postgres
-  --store-config ~/.aegis-swr/r  # storage config value (dir path / db path / S3 URL)
+  --store-config ~/.local/share/.aegis-swr/reports  # storage config value (dir path / db path / S3 URL)
   --code-provider none           # code backend: none | git | filesystem | pdb
   --repo    ./service-src        # repo / source root (sets code-provider on, repo_path)
   --log-provider file            # log backend: file | fluent
   --log-service auth-api         # service name for LogBackend.query_window (optional)
   --output  rich                 # output format: rich | json | quiet
-  --severity INFO                # log verbosity: DEBUG | INFO | WARNING | ERROR
-  --config  ~/.local/share/aegis/config.json   # load options from JSON file
+  --log-severity INFO                # log verbosity: TRACE | DEBUG | INFO | WARNING | ERROR (TRACE streams the full !analyze output)
+  --config  ~/.local/state/.aegis-swr/config.json   # load options from JSON file
   --save-config                  # save current effective options to JSON file, then exit
 ```
 
@@ -1658,7 +1658,7 @@ aegis analyze \
 
 `--log`, `--shot`, and `--pcap` are **repeatable**: pass each flag once per file.
 
-`--severity DEBUG` also raises the live war-room Evidence Stream to its DEBUG
+`--log-severity DEBUG` also raises the live war-room Evidence Stream to its DEBUG
 verbosity, which surfaces detailed per-artifact metadata (textual core-dump
 analysis, ±2-minute log windows, screenshot file properties, and network-capture
 metadata). See `docs/adr/new-ui-rich-based-design.md` §2.2.1.
@@ -1668,7 +1668,7 @@ Prototype options carried forward:
 - `--ai` (maps to `AISettings.provider`)
 - `--store` / `--store-config` (maps to `StorageSettings.provider` / path)
 - `--assume` (maps to `IncidentSource.user_assumption`)
-- `--severity` (maps to log verbosity; replaces `--report-severity`)
+- `--log-severity` (maps to log verbosity; replaces `--report-severity`)
 - `--config` / `--save-config` (JSON file round-trip)
 
 New backend options (§6.4 / §6.5):
@@ -1677,10 +1677,10 @@ New backend options (§6.4 / §6.5):
 - `--log-provider` (maps to `LogSettings.provider`)
 - `--log-service` (service name passed to `LogBackend.query_window`; when omitted, the file-path log source is used and no `query_window` call is made)
 
-### 12.3 JSON config file (`~/.local/share/aegis/config.json`)
+### 12.3 JSON config file (`~/.local/state/.aegis-swr/config.json`)
 
-There are two ways to configure `aegis analyze` startup options — the CLI and a
-JSON config file — and **both deserialize into the same schema**,
+There are two ways to configure `aegis analyze` startup options - the CLI and a
+JSON config file - and **both deserialize into the same schema**,
 `AnalyzeConfig` (`cli/_config.py`). That dataclass is the *single source of
 truth* for the option keys, their types, and their defaults: the CLI option
 names, the JSON keys, and the persisted file all derive from it, so there is no
@@ -1708,7 +1708,7 @@ options exactly:
 }
 ```
 
-The default path is `~/.local/share/aegis/config.json` (override with
+The default path is `~/.local/state/.aegis-swr/config.json` (override with
 `--config PATH`). When both sources are present the file is loaded first and
 explicit CLI flags are applied on top (`defaults < config.json < CLI`). Unknown
 keys in the file are ignored with a warning (typo protection). A ready-to-copy
@@ -1717,12 +1717,12 @@ template lives at [`config.example.json`](../../config.example.json).
 `--save-config` writes the current effective options (CLI flags merged over any
 loaded JSON values) to the config file and exits without running analysis.
 
-### 12.4 `aegis export` — migrate records between stores
+### 12.4 `aegis export` - migrate records between stores
 
 ```bash
 aegis export \
   --store        filesystem           # source backend
-  --store-config ~/.aegis-swr/reports \
+  --store-config ~/.local/share/.aegis-swr/reports \
   --to-store     sqlite               # destination backend
   --to-config    ~/backup/reports.db
 ```
@@ -1731,9 +1731,9 @@ Reads all reports from the source `RelationalStore` via `load_recent(limit=None)
 
 ### 12.5 Output formatters (`cli/_formatters.py`)
 
-- **`rich`** — live war-room display, then a `rich.panel` verdict summary (root cause, confidence level, mitigation, optional fix), followed by a `Report saved: <path>` pointer.
-- **`json`** — stdout carries only a machine-readable **locator** (`incident_id`, `mode`, `status`, `storage`, `report_path`) so scripts can find the saved file; the full report body is **never** dumped to stdout (regardless of `--severity`). The report itself is written exclusively as the result file by the storage backend.
-- **`quiet`** — exit code 0 (success) / 1 (HITL or low confidence); no stdout output.
+- **`rich`** - live war-room display, then a `rich.panel` verdict summary (root cause, confidence level, mitigation, optional fix), followed by a `Report saved: <path>` pointer.
+- **`json`** - stdout carries only a machine-readable **locator** (`incident_id`, `mode`, `status`, `storage`, `report_path`) so scripts can find the saved file; the full report body is **never** dumped to stdout (regardless of `--log-severity`). The report itself is written exclusively as the result file by the storage backend.
+- **`quiet`** - exit code 0 (success) / 1 (HITL or low confidence); no stdout output.
 
 ### 12.6 Files
 

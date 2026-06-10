@@ -35,7 +35,7 @@ Aegis SWR is architected as a core Python orchestration layer that exposes abstr
 
 ### Prerequisites
 
-* Python 3.10+
+* Python 3.12+
 * Docker / gVisor (for secure code patch validation steps)
 
 ### Installation
@@ -55,24 +55,31 @@ poetry install
 ```
 
 
-3. Configure your telemetry and backend providers in `config.yaml`:
-```yaml
-core:
-  max_debate_rounds: 4
-  consensus_threshold: 0.85
-
-backends:
-  ai_api:
-    provider: "anthropic"
-    endpoint: "remote-microservice" # Can point to a local instance or external API
-  debug:
-    provider: "gdb-linux"
-    symbol_server: "https://symbols.internal.net"
-  storage:
-    database_url: "postgresql://user:pass@localhost:5432/aegis"
-    object_store_url: "s3://prod-incidents"
-
+3. Configure your telemetry and backend providers. Runtime settings live in
+   `~/.local/state/.aegis-swr/config.json`; the per-fault-class agent weight matrix
+   lives alongside it in `~/.local/state/.aegis-swr/agents.json`. Seed both from the
+   templates in the repo root:
+```bash
+cp config.example.json ~/.local/state/.aegis-swr/config.json
+cp agents.example.json ~/.local/state/.aegis-swr/agents.json
 ```
+```json
+{
+  "core": { "max_debate_rounds": 4, "consensus_threshold": 0.85 },
+  "backends": {
+    "ai": { "provider": "anthropic", "model": "claude-sonnet-4-6" },
+    "debug": { "engine": "auto", "symbol_server_url": "https://symbols.internal.net" },
+    "storage": {
+      "database_url": "postgresql://user:pass@localhost:5432/aegis",
+      "object_store_url": "s3://prod-incidents"
+    }
+  }
+}
+```
+Individual keys can be edited with `aegis config set <dotted.key> <value>`
+(e.g. `aegis config set backends.ai.model claude-opus-4-8`), or overridden at
+runtime with `AEGIS__*` environment variables. `aegis config show` prints the
+resolved settings with secrets redacted.
 
 
 4. Launch the core orchestration server:
@@ -100,13 +107,13 @@ poetry run aegis analyze \
 #### Configuration: CLI + config file
 
 Startup options can be supplied two ways, and both share one schema
-(`AnalyzeConfig` — the single source of truth for every setting key):
+(`AnalyzeConfig` - the single source of truth for every setting key):
 
-1. **CLI flags** — `aegis analyze --ai openai …`
-2. **JSON config file** — `~/.local/share/aegis/config.json` (override with `--config PATH`)
+1. **CLI flags** - `aegis analyze --ai openai …`
+2. **JSON config file** - `~/.local/state/.aegis-swr/config.json` (override with `--config PATH`)
 
 When both are present the file is applied first and explicit CLI flags are
-layered on top — `defaults < config.json < CLI`. Copy
+layered on top - `defaults < config.json < CLI`. Copy
 [`config.example.json`](config.example.json) to the default path to get started,
 or run `aegis analyze … --save-config` to write your current flags there.
 

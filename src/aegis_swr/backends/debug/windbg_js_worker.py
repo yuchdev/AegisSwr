@@ -6,9 +6,9 @@ data (exception record, all thread call stacks, module addresses) and POSTs the
 result as JSON to an ephemeral local HTTP bridge started by Python.
 
 Advantages over CdbBackend:
-- Returns typed JSON — no regex parsing of ``!analyze -v`` free text.
+- Returns typed JSON - no regex parsing of ``!analyze -v`` free text.
 - All threads returned (faulting thread at full depth; others summarised).
-- ``ExceptionAddress`` from DDM ``exc.Address`` — more reliable than inferring
+- ``ExceptionAddress`` from DDM ``exc.Address`` - more reliable than inferring
   it from the top stack frame.
 - Path toward live-process attachment (not only static dump files).
 
@@ -113,7 +113,7 @@ class _CallbackBridge:
         except queue.Empty as exc:
             raise DebugExtractionError(
                 f"Timed out after {self._timeout}s waiting for WinDbg JS callback. "
-                "The script may have failed silently — check that JsProvider.dll is loaded."
+                "The script may have failed silently - check that JsProvider.dll is loaded."
             ) from exc
 
 
@@ -176,7 +176,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         return self._parse(payload, source)
 
     # ------------------------------------------------------------------
-    # ABC requirement — _build_command_sequence
+    # ABC requirement - _build_command_sequence
     # ------------------------------------------------------------------
 
     def _build_command_sequence(

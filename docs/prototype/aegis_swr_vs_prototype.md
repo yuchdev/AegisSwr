@@ -1,9 +1,9 @@
-# Aegis SWR vs. WinCrashAnalyzer Prototype — Reproduction Report
+# Aegis SWR vs. WinCrashAnalyzer Prototype - Reproduction Report
 
 **Date:** 2026-05-31
 **Subject incident:** `C:\LBS\CrashDumps\CrashUi.exe.1324.dmp` (84,359,313 bytes,
 `sha256:fc23b792c59ce7c153d439e76c9a37c5b7e48acb7ddb3815b19a8b813990b3c2`)
-**Crash timestamp:** Mon 30 Mar 2026 17:33:47 local (UTC+7) — process uptime 53 s
+**Crash timestamp:** Mon 30 Mar 2026 17:33:47 local (UTC+7) - process uptime 53 s
 **Question under test:** *"There's probability that the crash was deliberately injected. Check this theory."*
 
 ---
@@ -14,11 +14,11 @@ Run the same `CrashUi.exe.1324.dmp` through three Aegis SWR configurations, comp
 them against a single-call prototype run, and measure how each supplementary data
 source affects agent confidence and consensus:
 
-| Config | `--sym` / `AEGIS_SYMBOL_CACHE` | `--log` | Store dir |
-|--------|-------------------------------|---------|-----------|
-| **Baseline** | `AEGIS_SYMBOL_CACHE=C:\symbols` | — | `.\reports` |
-| **Variant A — explicit sym** | `--sym C:\symbols` (env cleared) | — | `.\reports-sym` |
-| **Variant B — log** | — (env cleared, local cache empty*) | `CrashUi.log` | `.\reports-log` |
+| Config                       | `--sym` / `AEGIS_SYMBOL_CACHE`      | `--log`       | Store dir       |
+|------------------------------|-------------------------------------|---------------|-----------------|
+| **Baseline**                 | `AEGIS_SYMBOL_CACHE=C:\symbols`     | -             | `.\reports`     |
+| **Variant A - explicit sym** | `--sym C:\symbols` (env cleared)    | -             | `.\reports-sym` |
+| **Variant B - log**          | - (env cleared, local cache empty*) | `CrashUi.log` | `.\reports-log` |
 
 \* Variant B: CrashUi.pdb is still found by CDB via the embedded PDB path in the binary
 (`C:\Users\atatat\Projects\wincrashdebugger\…`), so `symbol_resolution_score` remains 1.0
@@ -69,25 +69,25 @@ python.exe -m wincrash_analyzer.cli --config-file crash_analyzer_config.json
 
 The prototype additionally fed `CrashUi.log` and prior-report history into the prompt.
 
-### 3.2 Aegis SWR — Baseline
+### 3.2 Aegis SWR - Baseline
 
 ```powershell
 $env:AEGIS_SYMBOL_CACHE = 'C:\symbols'
-.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --engine cdb --ai openai --store filesystem --store-config '.\reports' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --severity DEBUG
+.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --engine cdb --ai openai --store filesystem --store-config '.\reports' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --log-severity DEBUG
 ```
 
-### 3.3 Aegis SWR — Variant A (explicit --sym, env cleared)
+### 3.3 Aegis SWR - Variant A (explicit --sym, env cleared)
 
 ```powershell
 $env:AEGIS_SYMBOL_CACHE = ''
-.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --sym 'C:\symbols' --engine cdb --ai openai --store filesystem --store-config '.\reports-sym' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --severity DEBUG
+.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --sym 'C:\symbols' --engine cdb --ai openai --store filesystem --store-config '.\reports-sym' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --log-severity DEBUG
 ```
 
-### 3.4 Aegis SWR — Variant B (--log CrashUi.log, no sym env)
+### 3.4 Aegis SWR - Variant B (--log CrashUi.log, no sym env)
 
 ```powershell
 $env:AEGIS_SYMBOL_CACHE = ''
-.venv\Scripts\aegis.exe analyze --dump   'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --log 'C:\LBS\CrashDumps\CrashUi.log' --engine cdb --ai openai --store filesystem --store-config '.\reports-log' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --severity INFO
+.venv\Scripts\aegis.exe analyze --dump   'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --log 'C:\LBS\CrashDumps\CrashUi.log' --engine cdb --ai openai --store filesystem --store-config '.\reports-log' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --log-severity INFO
 ```
 
 `CrashUi.log` was generated from the plog call-sites in the source:
@@ -101,13 +101,13 @@ $env:AEGIS_SYMBOL_CACHE = ''
 
 > **Data Adapter note (Variant B):** `source.incident_timestamp` is not back-filled from the
 > CDB extraction result, so Stage 4 logged *"No incident timestamp; falling back to last 500
-> log lines"* and included all 8 log lines unconditionally. Known limitation — see §10.3.
+> log lines"* and included all 8 log lines unconditionally. Known limitation - see §10.3.
 
 ---
 
 ## 4. Data Adapter output per configuration
 
-### 4.1 Baseline / Variant A — IncidentBrief (symbols, no log)
+### 4.1 Baseline / Variant A - IncidentBrief (symbols, no log)
 
 Stage trace:
 
@@ -141,7 +141,7 @@ Key IncidentBrief fields (Baseline / Variant A):
 }
 ```
 
-### 4.2 Variant B — IncidentBrief (log, local PDB still resolved)
+### 4.2 Variant B - IncidentBrief (log, local PDB still resolved)
 
 Stage trace:
 
@@ -175,7 +175,7 @@ Key IncidentBrief fields (Variant B):
   "faulting_module":         "CrashUi",
   "faulting_function":       "Crash_Window::on_access_violation_click",
   "symbol_resolution_score": 1.0,
-  "stack_frames":            "[ populated — CrashUi.pdb found via embedded binary path ]",
+  "stack_frames":            "[ populated - CrashUi.pdb found via embedded binary path ]",
   "log_summary":             "2026-03-30 17:33:46.801 DEBUG … Setting pointer to nullptr\n2026-03-30 17:33:46.802 INFO  … Writing to nullptr",
   "low_symbol_coverage_warning": null
 }
@@ -183,30 +183,30 @@ Key IncidentBrief fields (Variant B):
 
 ---
 
-## 5. Results — side by side
+## 5. Results - side by side
 
-| Dimension | Prototype (1 GPT call) | Baseline | Variant A | Variant B |
-|-----------|------------------------|----------|-----------|-----------|
-| Root cause | Deliberate NULL-pointer **write** | **Match** | **Match** | **Match** |
-| Faulting module | `CrashUi.exe` | `CrashUi` ✔ | `CrashUi` ✔ | `CrashUi` ✔ |
-| Faulting function | `Crash_Window::on_access_violation_click` | **Match** ✔ | **Match** ✔ | **Match** ✔ |
-| Source line | (not isolated) | `CrashUi.cpp:121` ✔ | `CrashUi.cpp:121` ✔ | `CrashUi.cpp:121` ✔ |
-| Deliberate-injection theory | Confirmed | **Match** | **Match** | **Match — log adds direct proof** |
-| `symbol_resolution_score` | n/a | **1.0** | **1.0** | **1.0** (binary PDB) |
-| `log_summary` present | n/a (via config) | null | null | **yes** |
-| OS Kernel confidence | n/a | 0.96 | 0.96 | **0.99** |
-| Code Analyst confidence | n/a | 0.97 | 0.97 | **0.99** |
-| Log Historian confidence | n/a | 0.95 | 0.95 | **1.00** |
-| Skeptic confidence | n/a | 0.90 | 0.90 | **0.90** |
-| **Weighted consensus** | implicit "high" | **0.956 (HIGH)** | **0.956 (HIGH)** | **0.9825 (HIGH)** |
-| Consensus rounds | 1 shot | 1 | 1 | 1 |
-| Input tokens | n/a | 21,534 | 20,802 | **22,078** |
-| Output tokens | n/a | 2,005 | 1,740 | 1,893 |
-| Fix confidence | prose only | **0.956** | **0.956** | **0.9825** |
+| Dimension                   | Prototype (1 GPT call)                    | Baseline            | Variant A           | Variant B                         |
+|-----------------------------|-------------------------------------------|---------------------|---------------------|-----------------------------------|
+| Root cause                  | Deliberate NULL-pointer **write**         | **Match**           | **Match**           | **Match**                         |
+| Faulting module             | `CrashUi.exe`                             | `CrashUi` ✔         | `CrashUi` ✔         | `CrashUi` ✔                       |
+| Faulting function           | `Crash_Window::on_access_violation_click` | **Match** ✔         | **Match** ✔         | **Match** ✔                       |
+| Source line                 | (not isolated)                            | `CrashUi.cpp:121` ✔ | `CrashUi.cpp:121` ✔ | `CrashUi.cpp:121` ✔               |
+| Deliberate-injection theory | Confirmed                                 | **Match**           | **Match**           | **Match - log adds direct proof** |
+| `symbol_resolution_score`   | n/a                                       | **1.0**             | **1.0**             | **1.0** (binary PDB)              |
+| `log_summary` present       | n/a (via config)                          | null                | null                | **yes**                           |
+| OS Kernel confidence        | n/a                                       | 0.96                | 0.96                | **0.99**                          |
+| Code Analyst confidence     | n/a                                       | 0.97                | 0.97                | **0.99**                          |
+| Log Historian confidence    | n/a                                       | 0.95                | 0.95                | **1.00**                          |
+| Skeptic confidence          | n/a                                       | 0.90                | 0.90                | **0.90**                          |
+| **Weighted consensus**      | implicit "high"                           | **0.956 (HIGH)**    | **0.956 (HIGH)**    | **0.9825 (HIGH)**                 |
+| Consensus rounds            | 1 shot                                    | 1                   | 1                   | 1                                 |
+| Input tokens                | n/a                                       | 21,534              | 20,802              | **22,078**                        |
+| Output tokens               | n/a                                       | 2,005               | 1,740               | 1,893                             |
+| Fix confidence              | prose only                                | **0.956**           | **0.956**           | **0.9825**                        |
 
 ---
 
-## 6. Aegis SWR output — verbatim
+## 6. Aegis SWR output - verbatim
 
 ### 6.1 Baseline primary conclusion
 
@@ -217,12 +217,12 @@ Key IncidentBrief fields (Variant B):
 
 ### 6.2 Baseline agent dialogue (round 1)
 
-| Agent | Conf | Message (verbatim summary) |
-|-------|------|---------------------------|
-| OS Kernel | 0.96 | "Write access violation mapped to a null-pointer dereference. AV.Dereference=NullPtr, AV.Fault=Write. … function named 'on_access_violation_click' strongly implying deliberate fault generation … process uptime 53 s, commit peak 189 MB … no kernel/driver/I/O involvement." |
-| Code Analyst | 0.97 | "Deliberate null-pointer write in the UI click handler … logical path: button click → constructor-installed lambda → Crash_Window::on_access_violation_click() → write to null/zero address → 0xc0000005. Source resolved to CrashUi.cpp:121." |
-| Log Historian | 0.95 | "No similar historical incidents provided … first-observed occurrence. Signature is highly specific and deterministic: NULL_POINTER_WRITE c0000005 in on_access_violation_click via button-click path. Small downward adjustment for lack of recurrence evidence." |
-| Skeptic | 0.90 | "Confirmed (high). Frame 0 is CrashUi!Crash_Window::on_access_violation_click. AV.Dereference=NullPtr, AV.Fault=Write fully consistent. … source path contains 'wincrashdebugger', executable named 'CrashUi.exe', handler literally named 'on_access_violation_click'. No evidence for external tampering, driver injection, heap poisoning, or prior corruption." |
+| Agent         | Conf | Message (verbatim summary)                                                                                                                                                                                                                                                                                                                                          |
+|---------------|------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| OS Kernel     | 0.96 | "Write access violation mapped to a null-pointer dereference. AV.Dereference=NullPtr, AV.Fault=Write. … function named 'on_access_violation_click' strongly implying deliberate fault generation … process uptime 53 s, commit peak 189 MB … no kernel/driver/I/O involvement."                                                                                     |
+| Code Analyst  | 0.97 | "Deliberate null-pointer write in the UI click handler … logical path: button click → constructor-installed lambda → Crash_Window::on_access_violation_click() → write to null/zero address → 0xc0000005. Source resolved to CrashUi.cpp:121."                                                                                                                      |
+| Log Historian | 0.95 | "No similar historical incidents provided … first-observed occurrence. Signature is highly specific and deterministic: NULL_POINTER_WRITE c0000005 in on_access_violation_click via button-click path. Small downward adjustment for lack of recurrence evidence."                                                                                                  |
+| Skeptic       | 0.90 | "Confirmed (high). Frame 0 is CrashUi!Crash_Window::on_access_violation_click. AV.Dereference=NullPtr, AV.Fault=Write fully consistent. … source path contains 'wincrashdebugger', executable named 'CrashUi.exe', handler literally named 'on_access_violation_click'. No evidence for external tampering, driver injection, heap poisoning, or prior corruption." |
 
 Weighted consensus = **0.956 (HIGH)** → converged in 1 round → Output Synthesizer.
 
@@ -247,12 +247,12 @@ Weighted consensus = **0.956 (HIGH)** → converged in 1 round → Output Synthe
 
 ### 6.4 Variant A agent dialogue (round 1)
 
-| Agent | Conf | Message (verbatim summary) |
-|-------|------|---------------------------|
-| OS Kernel | 0.96 | "Write access violation on a synchronous button-click path. … AV.Dereference=NullPtr, AV.Fault=Write. Failure bucket: NULL_POINTER_WRITE_c0000005_CrashUi.exe!Crash_Window::on_access_violation_click. Source: CrashUi.cpp:121." |
-| Code Analyst | 0.97 | "Deliberate null-pointer write … stack: ButtonWndProc → SendMessageW → wl::_wli::base_window::_window_proc → lambda in Crash_Window constructor → on_access_violation_click. Source location CrashUi.cpp line 121. No stack evidence of prior corruption." |
-| Log Historian | 0.95 | "First-observed signature in available history. Uniqueness and explicit naming suggest deliberate crash/test path. Downward adjustment for absence of recurrence evidence." |
-| Skeptic | 0.90 | "Confirmed. Frame 0 is CrashUi!Crash_Window::on_access_violation_click. Exception code 0xc0000005 specifically a null-pointer write (AV.Dereference=NullPtr, AV.Fault=Write). No evidence for external tampering." |
+| Agent         | Conf | Message (verbatim summary)                                                                                                                                                                                                                                 |
+|---------------|------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| OS Kernel     | 0.96 | "Write access violation on a synchronous button-click path. … AV.Dereference=NullPtr, AV.Fault=Write. Failure bucket: NULL_POINTER_WRITE_c0000005_CrashUi.exe!Crash_Window::on_access_violation_click. Source: CrashUi.cpp:121."                           |
+| Code Analyst  | 0.97 | "Deliberate null-pointer write … stack: ButtonWndProc → SendMessageW → wl::_wli::base_window::_window_proc → lambda in Crash_Window constructor → on_access_violation_click. Source location CrashUi.cpp line 121. No stack evidence of prior corruption." |
+| Log Historian | 0.95 | "First-observed signature in available history. Uniqueness and explicit naming suggest deliberate crash/test path. Downward adjustment for absence of recurrence evidence."                                                                                |
+| Skeptic       | 0.90 | "Confirmed. Frame 0 is CrashUi!Crash_Window::on_access_violation_click. Exception code 0xc0000005 specifically a null-pointer write (AV.Dereference=NullPtr, AV.Fault=Write). No evidence for external tampering."                                         |
 
 Weighted consensus = **0.956 (HIGH)** → converged in 1 round → Output Synthesizer.
 
@@ -285,12 +285,12 @@ Weighted consensus = **0.956 (HIGH)** → converged in 1 round → Output Synthe
 
 ### 6.7 Variant B agent dialogue (round 1)
 
-| Agent | Conf | Message (verbatim summary) |
-|-------|------|---------------------------|
-| OS Kernel | **0.99** | "… log sequence shows intentional steps: 'Setting pointer to nullptr' immediately followed by 'Writing to nullptr'. … No evidence of driver, kernel, or I/O latency involvement. No signs of resource pressure (53 s uptime, 190 MB commit)." |
-| Code Analyst | **0.99** | "Application log immediately before crash: 'Setting pointer to nullptr' → 'Writing to nullptr'. Handler registration logs show callback intentionally bound at startup. … __fix__ embeds LOG_WARN + #ifdef ENABLE_CRASH_TESTS guard." |
+| Agent         | Conf     | Message (verbatim summary)                                                                                                                                                                                                                                                                                            |
+|---------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| OS Kernel     | **0.99** | "… log sequence shows intentional steps: 'Setting pointer to nullptr' immediately followed by 'Writing to nullptr'. … No evidence of driver, kernel, or I/O latency involvement. No signs of resource pressure (53 s uptime, 190 MB commit)."                                                                         |
+| Code Analyst  | **0.99** | "Application log immediately before crash: 'Setting pointer to nullptr' → 'Writing to nullptr'. Handler registration logs show callback intentionally bound at startup. … __fix__ embeds LOG_WARN + #ifdef ENABLE_CRASH_TESTS guard."                                                                                 |
 | Log Historian | **1.00** | "No historical incidents provided. Current signature highly specific and internally consistent: deterministic NULL_POINTER_WRITE with corroborating app logs ('Setting pointer to nullptr' → 'Writing to nullptr') and direct UI button-click path. Small positive adjustment for unusually strong self-consistency." |
-| Skeptic | **0.90** | "Confirmed (high). Logs at 17:33:46.801–802 explicitly state 'Setting pointer to nullptr' and 'Writing to nullptr' immediately before crash. Handler explicitly registered at startup as a dedicated crash action. Clean button/message dispatch path through user32." |
+| Skeptic       | **0.90** | "Confirmed (high). Logs at 17:33:46.801–802 explicitly state 'Setting pointer to nullptr' and 'Writing to nullptr' immediately before crash. Handler explicitly registered at startup as a dedicated crash action. Clean button/message dispatch path through user32."                                                |
 
 Weighted consensus = **0.9825 (HIGH)** → converged in 1 round → Output Synthesizer.
 
@@ -323,7 +323,7 @@ The log evidence let the Code Analyst reconstruct the exact log calls around the
 
 ---
 
-## 7. Storage — report files
+## 7. Storage - report files
 
 ```
 .\reports\
@@ -345,7 +345,7 @@ The log evidence let the Code Analyst reconstruct the exact log calls around the
 Each hash-index file contains the `incident_id` of the single report in its store.
 Three separate store directories prevent hash-index collisions across runs (same dump hash).
 
-### 7.1 Baseline — `reports\8e77741c-fcd7-415b-9928-6c8b34a33105.json` (excerpt)
+### 7.1 Baseline - `reports\8e77741c-fcd7-415b-9928-6c8b34a33105.json` (excerpt)
 
 ```json
 {
@@ -365,7 +365,7 @@ Three separate store directories prevent hash-index collisions across runs (same
 }
 ```
 
-### 7.2 Variant A — `reports-sym\28a857c8-d24d-4d16-a7dd-61ffbcdad622.json` (excerpt)
+### 7.2 Variant A - `reports-sym\28a857c8-d24d-4d16-a7dd-61ffbcdad622.json` (excerpt)
 
 ```json
 {
@@ -385,7 +385,7 @@ Three separate store directories prevent hash-index collisions across runs (same
 }
 ```
 
-### 7.3 Variant B — `reports-log\df347dd8-6402-425f-b5ea-1efc0a239b20.json` (excerpt)
+### 7.3 Variant B - `reports-log\df347dd8-6402-425f-b5ea-1efc0a239b20.json` (excerpt)
 
 ```json
 {
@@ -409,13 +409,13 @@ Three separate store directories prevent hash-index collisions across runs (same
 
 ## 8. Engine upgrades surfaced during this run
 
-| # | Symptom | Fix | Where |
-|---|---------|-----|-------|
-| 1 | `--ai openai` sent Anthropic default model → OpenAI 404 | `AISettings.resolved_model` substitutes `gpt-5.4` only when model doesn't match provider | `config/settings.py` |
-| 2 | Reasoning models reject `max_tokens` and non-default `temperature` | `OpenAIBackend._completion_kwargs()` sends `max_completion_tokens` (16 k floor), omits `temperature` | `backends/ai/openai_provider.py` |
-| 3 | Transient `APITimeoutError` at `skeptic_node` aborted the whole graph | OpenAI client built with `timeout=300s`, `max_retries=4` | `backends/ai/openai_provider.py` |
-| 4 | Fault code mis-extracted → `FaultClass.UNKNOWN` (exception_code_raw "0x0") | `_extract_exception_code` now tries all four `!analyze -v` keys | `backends/debug/cdb_worker.py` |
-| 5 | `symbol_resolution_score = 0.0` despite perfect symbols; `stack_frames` empty | `parse_cdb_frames` rewritten for real `!analyze -v` STACK_TEXT format | `backends/debug/cdb_worker.py` |
+| # | Symptom                                                                       | Fix                                                                                                  | Where                            |
+|---|-------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|----------------------------------|
+| 1 | `--ai openai` sent Anthropic default model → OpenAI 404                       | `AISettings.resolved_model` substitutes `gpt-5.4` only when model doesn't match provider             | `config/settings.py`             |
+| 2 | Reasoning models reject `max_tokens` and non-default `temperature`            | `OpenAIBackend._completion_kwargs()` sends `max_completion_tokens` (16 k floor), omits `temperature` | `backends/ai/openai_provider.py` |
+| 3 | Transient `APITimeoutError` at `skeptic_node` aborted the whole graph         | OpenAI client built with `timeout=300s`, `max_retries=4`                                             | `backends/ai/openai_provider.py` |
+| 4 | Fault code mis-extracted → `FaultClass.UNKNOWN` (exception_code_raw "0x0")    | `_extract_exception_code` now tries all four `!analyze -v` keys                                      | `backends/debug/cdb_worker.py`   |
+| 5 | `symbol_resolution_score = 0.0` despite perfect symbols; `stack_frames` empty | `parse_cdb_frames` rewritten for real `!analyze -v` STACK_TEXT format                                | `backends/debug/cdb_worker.py`   |
 
 ---
 
@@ -423,8 +423,8 @@ Three separate store directories prevent hash-index collisions across runs (same
 
 - **Reasoning trail:** four specialist personas (OS Kernel, Code Analyst, Log Historian,
   Skeptic) with an adversarial confirmation step, instead of one opaque answer.
-- **Quantified consensus:** a weighted score per fault class — 0.956 (no log) or 0.9825
-  (with log) — with explicit convergence / HITL termination rules.
+- **Quantified consensus:** a weighted score per fault class - 0.956 (no log) or 0.9825
+  (with log) - with explicit convergence / HITL termination rules.
 - **Structured output:** typed `RCAReport` (queryable, dedup-able by `dump_hash`).
 - **Actionable fix:** a unified diff with a confidence score, ready for the secure sandbox
   validator (Phase 9). Fix confidence rises with the log (0.9825 vs 0.956) because the
@@ -449,7 +449,7 @@ Three separate store directories prevent hash-index collisions across runs (same
    (`C:\Users\atatat\Projects\wincrashdebugger\…`) automatically. `--sym` / `AEGIS_SYMBOL_CACHE`
    matters for OS symbol downloads (`kernel32.pdb`, `ntdll.pdb`, etc.) and for deployments
    where the PDB is not co-located with the dump. This is a machine-local run; a production
-   deployment from a CI artefact store would require an explicit `--sym` to replicate
+   deployment from a CI artifact store would require an explicit `--sym` to replicate
    Variant A/Variant B parity on symbol_resolution_score.
 
 4. **Variant B tokens are highest, not lowest.** The log adds ~1,300 tokens to the brief
@@ -501,7 +501,7 @@ Gate status at time of writing: **277 tests pass**, `ruff` clean, `mypy --strict
 
 1. **Dedup gate bypassed from the CLI.** `Orchestrator.run` checks
    `find_by_hash(source.dump_hash)`, but `IncidentSource.dump_hash` is `None` at
-   CLI entry — it is computed later in Data Adapter Stage 1. So every invocation
+   CLI entry - it is computed later in Data Adapter Stage 1. So every invocation
    re-analyzes. Separate `--store-config` dirs work around this for now.
 
 2. **`mitigation_instructions` is empty.** The probabilistic fix is produced but the

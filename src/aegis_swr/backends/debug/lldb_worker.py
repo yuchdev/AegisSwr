@@ -6,7 +6,7 @@ and maps Mach exception types to :class:`FaultClass`.
 from __future__ import annotations
 
 import re
-from typing import ClassVar
+from typing import ClassVar, Optional
 
 from aegis_swr.backends.debug._base import _BaseDebugBackend, normalize_address
 from aegis_swr.core.fault_codes import FaultClass, map_macos_exception
@@ -61,7 +61,7 @@ class LldbBackend(_BaseDebugBackend):
     def _build_command_sequence(
         self,
         source: IncidentSource,
-        symbol_path: str | None,
+        symbol_path: Optional[str],
     ) -> list[str]:
         return [
             "lldb",

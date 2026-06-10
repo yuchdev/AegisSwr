@@ -1,0 +1,62 @@
+{
+  "memory_access_violation": {
+    "os_kernel": 0.40,
+    "code_analyst": 0.35,
+    "log_historian": 0.15,
+    "skeptic": 0.10
+  },
+  "null_pointer_dereference": {
+    "os_kernel": 0.40,
+    "code_analyst": 0.35,
+    "log_historian": 0.15,
+    "skeptic": 0.10
+  },
+  "use_after_free": {
+    "os_kernel": 0.35,
+    "code_analyst": 0.40,
+    "log_historian": 0.15,
+    "skeptic": 0.10
+  },
+  "stack_overflow": {
+    "os_kernel": 0.45,
+    "code_analyst": 0.30,
+    "log_historian": 0.10,
+    "skeptic": 0.15
+  },
+  "integer_divide_by_zero": {
+    "os_kernel": 0.35,
+    "code_analyst": 0.40,
+    "log_historian": 0.10,
+    "skeptic": 0.15
+  },
+  "deadlock": {
+    "os_kernel": 0.35,
+    "code_analyst": 0.30,
+    "log_historian": 0.20,
+    "skeptic": 0.15
+  },
+  "assertion_failure": {
+    "os_kernel": 0.25,
+    "code_analyst": 0.45,
+    "log_historian": 0.15,
+    "skeptic": 0.15
+  },
+  "resource_exhaustion": {
+    "os_kernel": 0.35,
+    "code_analyst": 0.25,
+    "log_historian": 0.30,
+    "skeptic": 0.10
+  },
+  "unhandled_exception": {
+    "os_kernel": 0.30,
+    "code_analyst": 0.35,
+    "log_historian": 0.20,
+    "skeptic": 0.15
+  },
+  "unknown": {
+    "os_kernel": 0.30,
+    "code_analyst": 0.35,
+    "log_historian": 0.20,
+    "skeptic": 0.15
+  }
+}

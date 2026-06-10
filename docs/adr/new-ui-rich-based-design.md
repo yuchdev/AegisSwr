@@ -1,7 +1,7 @@
-# Aegis SWR — New Terminal UI Design
+# Aegis SWR - New Terminal UI Design
 
 **Status:** Implemented (`src/aegis_swr/views/rich_view.py`)  
-**Scope:** `src/aegis_swr/views/rich_view.py` — adds `WarRoomView` alongside `RichView` (kept as a narrow-terminal fallback); `make_view` picks between them.  
+**Scope:** `src/aegis_swr/views/rich_view.py` - adds `WarRoomView` alongside `RichView` (kept as a narrow-terminal fallback); `make_view` picks between them.  
 **Rich version required:** 15.x (already a dependency; uses `rich.layout.Layout`)
 
 > **Note on the verdict (§5).** The shipped verdict diverges from the original
@@ -25,7 +25,7 @@ The live investigation occupies the full terminal. Rich's `Layout` divides it in
 │  EVIDENCE STREAM                        │ ┌────────────────────────────────────────┐│
 │                                         │ │⠼ OS Kernel Agent  ANALYZING            ││
 │  00:00  CDB extraction started…         │ │  ████████████████████░░░░  82%         ││
-│  00:01  fault_class   ACCESS_VIOLATION  │ │  UAF on freed heap page — 0xC0000005   ││
+│  00:01  fault_class   ACCESS_VIOLATION  │ │  UAF on freed heap page - 0xC0000005   ││
 │  00:01  module        ImageScope.exe    │ ├────────────────────────────────────────┤│
 │  00:01  function      CImage::Load      │ │✔ Code Analyst     DONE                 ││
 │  00:01  sym_coverage  92%               │ │  ███████████████████░░░░░  78%         ││
@@ -54,7 +54,7 @@ The live investigation occupies the full terminal. Rich's `Layout` divides it in
 Layout tree
 ───────────
 root (vertical)
-  header_bar           height=1  (single line — title + incident + clock + round)
+  header_bar           height=1  (single line - title + incident + clock + round)
   body (horizontal, ratio fills remaining height)
     evidence            ratio=1   left half
     right (vertical)
@@ -86,13 +86,13 @@ Single line, rendered by `Layout` with `size=1`.
 
 ### 2.2 Evidence Stream (left half)
 
-A scrolling chronological log. Every data point that arrives from the core gets a timestamped line appended to an internal list (`_evidence_lines`) the instant its event fires — this buffer is the complete record (capped at 500 and saved in full to the report files; the user cannot scroll it back in the UI).
+A scrolling chronological log. Every data point that arrives from the core gets a timestamped line appended to an internal list (`_evidence_lines`) the instant its event fires - this buffer is the complete record (capped at 500 and saved in full to the report files; the user cannot scroll it back in the UI).
 
-**Streaming reveal.** The display does *not* show the whole buffer immediately. A reveal pointer (`_revealed`) is advanced on every render tick at `_REVEAL_INTERVAL` (0.07 s ≈ 14 lines/s), so artifacts appear to *decipher in* one after another and scroll past in real time rather than dumping all at once — important at `DEBUG`, where one `EvidenceExtracted` event can buffer dozens of detailed lines. Only the revealed prefix is rendered; of that, the last `max_visible` lines are shown (`max_visible = panel_inner_height`). Because `Layout` constrains height, old lines disappear off the top. On `_finalize` the pointer jumps to the end so the frozen frame shows the complete tail (including the completion marker). When the buffer is trimmed at the 500-line cap, `_revealed` is decremented by the same amount so it keeps indexing the right lines.
+**Streaming reveal.** The display does *not* show the whole buffer immediately. A reveal pointer (`_revealed`) is advanced on every render tick at `_REVEAL_INTERVAL` (0.07 s ≈ 14 lines/s), so artifacts appear to *decipher in* one after another and scroll past in real time rather than dumping all at once - important at `DEBUG`, where one `EvidenceExtracted` event can buffer dozens of detailed lines. Only the revealed prefix is rendered; of that, the last `max_visible` lines are shown (`max_visible = panel_inner_height`). Because `Layout` constrains height, old lines disappear off the top. On `_finalize` the pointer jumps to the end so the frozen frame shows the complete tail (including the completion marker). When the buffer is trimmed at the 500-line cap, `_revealed` is decremented by the same amount so it keeps indexing the right lines.
 
 **Cursor animation:** a blinking block `▌` (alternates `▌` / ` ` at 1 Hz using `time.monotonic()`) is appended as the last line while the investigation is live. It disappears on completion.
 
-The Evidence Stream carries **only extracted artifacts** — the data the Data Adapter pulled out of the incident. Agent communication (findings, consensus, re-deliberation, the completion marker) is *not* evidence; it is the process of investigation and lives in the [Investigation Process](#24-investigation-process-right-bottom-quarter) conversation log instead.
+The Evidence Stream carries **only extracted artifacts** - the data the Data Adapter pulled out of the incident. Agent communication (findings, consensus, re-deliberation, the completion marker) is *not* evidence; it is the process of investigation and lives in the [Investigation Process](#24-investigation-process-right-bottom-quarter) conversation log instead.
 
 **Line categories and styles:**
 
@@ -109,12 +109,12 @@ Each line is prefixed with `MM:SS` elapsed time (from investigation start).
 
 Every Evidence Stream line is tagged with a verbosity level
 (`EvidenceLevel = "INFO" | "DEBUG"`). The view's `level` (default `INFO`) is set
-by `make_view(console, level=...)`, which the CLI derives from `--severity`
-(`--severity DEBUG` ⇒ `DEBUG`, anything else ⇒ `INFO`).
+by `make_view(console, level=...)`, which the CLI derives from `--log-severity`
+(`--log-severity DEBUG` ⇒ `DEBUG`, anything else ⇒ `INFO`).
 
-- **INFO** — the curated summary above. Unchanged detail level. All the rows in
+- **INFO** - the curated summary above. Unchanged detail level. All the rows in
   the table are INFO.
-- **DEBUG** — *everything*: the INFO rows **plus** the detailed per-artifact
+- **DEBUG** - *everything*: the INFO rows **plus** the detailed per-artifact
   metadata below. Detailed lines are produced only when the view is at DEBUG
   (gated at emit time), so the INFO stream and its tests are unaffected.
 
@@ -127,8 +127,8 @@ Indented continuation lines are rendered with a `│` gutter:
 
 | # | Category                                   | Source                                                     | Example line(s)                                                       |
 |---|--------------------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------|
-| — | Detailed fault metadata                    | `brief["dump_hash" / "exception_code_raw" / "exception_address"]` | `00:01  dump_hash      sha256:…`                                      |
-| — | Full stack (frames 3…N)                    | `brief["stack_frames"]`                                    | `00:01  stack[3]  mod!fn  (file.c:42)  @ 0x…`                          |
+| - | Detailed fault metadata                    | `brief["dump_hash" / "exception_code_raw" / "exception_address"]` | `00:01  dump_hash      sha256:…`                                      |
+| - | Full stack (frames 3…N)                    | `brief["stack_frames"]`                                    | `00:01  stack[3]  mod!fn  (file.c:42)  @ 0x…`                          |
 | 1 | Textual core-dump analysis                 | `brief["raw_text_excerpt"]` (cdb `!analyze -v`)            | `00:01  core dump analysis (cdb !analyze -v):` then `│ <lines>` (cap 40) |
 | 2 | ±2-minute window per analyzed log file     | `source.log_paths` + `source.incident_timestamp`           | `00:01  log  app.log  (1.2 KB, modified …)` then `│ window 14:00:11 → 14:04:11  (±2m)` |
 | 3 | Screenshot name & properties               | `source.screenshot_paths` + `brief["ui_context"]`          | `00:01  screenshot  error.png  (48 B, modified …)` then `│ OCR: 3 elements, 19 chars` |
@@ -152,7 +152,7 @@ One sub-panel per agent, stacked vertically inside a `Panel`. Each sub-panel is 
 ```
 ⠼ OS Kernel Agent  ANALYZING                   ← line 1: spinner + name + status badge
   ████████████████████░░░░  82%                 ← line 2: confidence bar
-  UAF on freed heap page — 0xC0000005           ← line 3: latest finding (truncated)
+  UAF on freed heap page - 0xC0000005           ← line 3: latest finding (truncated)
 ```
 
 **Status badge states:**
@@ -177,7 +177,7 @@ Actually, because we only receive an event *after* an agent finishes (the LangGr
 
 Two sections stacked vertically: a fixed live-activity meter on top, then the scrolling agent-conversation log filling the rest.
 
-**Section 1 — Live activity (spinner + stage bar)**
+**Section 1 - Live activity (spinner + stage bar)**
 
 ```
 ⠼ Skeptic Agent is stress-testing the hypothesis…
@@ -186,19 +186,19 @@ Two sections stacked vertically: a fixed live-activity meter on top, then the sc
 
 A spinner + status line and a stage progress bar (`_bar(ratio, …)`, `completed/total`, elapsed). When the investigation finishes the spinner becomes `✔`, the status reads *Investigation complete*, and the bar fills solid. The pane subtitle shows the current `Round N`.
 
-**Section 2 — Agent conversation (scrolling deliberation log)**
+**Section 2 - Agent conversation (scrolling deliberation log)**
 
-The agent-to-agent communication — *the process of the investigation, not evidence*. Backed by the same `_StreamLog` as the Evidence Stream, so it behaves identically: each message is appended to the full record the instant its event fires, revealed at `_REVEAL_INTERVAL`, and shown as a trailing window. New lines appear at the bottom; older ones scroll off the top once they exceed the pane height (tailed to `_process_inner_height()` with a one-row clipping margin). The complete transcript lives in the report files; the user never scrolls it back in the UI.
+The agent-to-agent communication - *the process of the investigation, not evidence*. Backed by the same `_StreamLog` as the Evidence Stream, so it behaves identically: each message is appended to the full record the instant its event fires, revealed at `_REVEAL_INTERVAL`, and shown as a trailing window. New lines appear at the bottom; older ones scroll off the top once they exceed the pane height (tailed to `_process_inner_height()` with a one-row clipping margin). The complete transcript lives in the report files; the user never scrolls it back in the UI.
 
 | Category        | Trigger                       | Example line                            | Style                               |
 |-----------------|-------------------------------|-----------------------------------------|-------------------------------------|
 | Agent finding   | `AgentSpoke` (first message line) | `00:32  OS Kernel » UAF on freed heap`  | agent name `bold`, finding `italic` |
-| Agent reasoning | `AgentSpoke` (DEBUG only)     | `        │ supporting detail…`          | `grey62`, gutter — full message     |
+| Agent reasoning | `AgentSpoke` (DEBUG only)     | `        │ supporting detail…`          | `grey62`, gutter - full message     |
 | Consensus       | `ConsensusEvaluated`          | `01:30  consensus R1  61%  MEDIUM`      | color from confidence level         |
-| Re-deliberation | new round began (internal)    | `01:30  threshold not reached — re-deliberating round 2` | `dim italic`     |
+| Re-deliberation | new round began (internal)    | `01:30  threshold not reached - re-deliberating round 2` | `dim italic`     |
 | Completion      | `InvestigationCompleted` / `HumanInputRequired` | `02:10  ✔  investigation complete` | `bold green` / `bold red` |
 
-At `DEBUG` the conversation is more verbose: each agent's full multi-line message is surfaced (gutter-prefixed continuation lines), not just the headline. `_consensus_history` state is still tracked for convergence bookkeeping (`✔`/`✗` on each round), but is no longer drawn as a separate block — convergence is conveyed inline by the re-deliberation and completion lines.
+At `DEBUG` the conversation is more verbose: each agent's full multi-line message is surfaced (gutter-prefixed continuation lines), not just the headline. `_consensus_history` state is still tracked for convergence bookkeeping (`✔`/`✗` on each round), but is no longer drawn as a separate block - convergence is conveyed inline by the re-deliberation and completion lines.
 
 ---
 
@@ -206,14 +206,14 @@ At `DEBUG` the conversation is more verbose: each agent's full multi-line messag
 
 | Element                        | Mechanism                                                                                 | Location                           |
 |--------------------------------|-------------------------------------------------------------------------------------------|------------------------------------|
-| Spinning cursor (active agent) | `itertools.cycle(["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"])` advanced on each render tick | Forensic Agents — active agent row |
-| Stage progress bar pulse       | `BarColumn(pulse_style="cyan")` — pulses while `completed < total`                        | Investigation Process section 1    |
+| Spinning cursor (active agent) | `itertools.cycle(["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"])` advanced on each render tick | Forensic Agents - active agent row |
+| Stage progress bar pulse       | `BarColumn(pulse_style="cyan")` - pulses while `completed < total`                        | Investigation Process section 1    |
 | Blinking evidence cursor       | `▌` vs ` ` toggled by `int(elapsed) % 2`                                                  | Evidence Stream last line          |
-| Streaming line reveal          | `_revealed` pointer advanced by `(now − _last_reveal) / _REVEAL_INTERVAL` each tick       | Evidence Stream — lines scroll in  |
+| Streaming line reveal          | `_revealed` pointer advanced by `(now − _last_reveal) / _REVEAL_INTERVAL` each tick       | Evidence Stream - lines scroll in  |
 | Elapsed clock                  | `TimeElapsedColumn()` inside `Progress`                                                   | Investigation Process section 1    |
 | Header clock                   | `f"{int(elapsed)//60:02d}:{int(elapsed)%60:02d}"` formatted in `_render()`                | Header bar                         |
 
-All animations run purely from the 12 fps `Live` refresh — no `threading.Timer`, no `asyncio.sleep` in the view.
+All animations run purely from the 12 fps `Live` refresh - no `threading.Timer`, no `asyncio.sleep` in the view.
 
 ---
 
@@ -222,13 +222,13 @@ All animations run purely from the 12 fps `Live` refresh — no `threading.Timer
 When `InvestigationCompleted` or `HumanInputRequired` arrives, the view's
 `_finalize()` runs:
 
-1. **Resolve the last consensus row** — `converged = True` on completion, `False` on HITL.
-2. **Fill the stage bar:** `_stage = _stage_total` — bar goes solid.
-3. **Stop the blinking cursor** in Evidence Stream — append a final
+1. **Resolve the last consensus row** - `converged = True` on completion, `False` on HITL.
+2. **Fill the stage bar:** `_stage = _stage_total` - bar goes solid.
+3. **Stop the blinking cursor** in Evidence Stream - append a final
    `✔  investigation complete` (or `⚠  human input required`) line; the cursor
    is no longer drawn once `_finished` is set.
 4. **One final render tick** (`_refresh()`) to show the filled state.
-5. **`_stop_live()`** — the live block freezes in place. The terminal cursor drops below it.
+5. **`_stop_live()`** - the live block freezes in place. The terminal cursor drops below it.
 
 The view does **not** print the verdict itself. The CLI driver
 (`stream_and_display` → `commands.analyze`) owns that: after the stream ends it
@@ -244,7 +244,7 @@ For HITL (deadlock): same transition, but `render_verdict` prints a red
 
 ---
 
-## 5. Verdict Panel (post-conclusion) — *as shipped*
+## 5. Verdict Panel (post-conclusion) - *as shipped*
 
 Printed by `render_verdict(report, *, console, model, show_dialogue=False)`
 immediately after `Live` stops. A single green frame whose body is the plain
@@ -279,7 +279,7 @@ text composed by `_build_diagnosis(report)` and whose subtitle names the model:
 
 `_build_diagnosis` rules:
 
-- Plain text only — **no** Markdown markers (`**`, `###`, fenced code blocks).
+- Plain text only - **no** Markdown markers (`**`, `###`, fenced code blocks).
   The panel supplies all styling.
 - `__fix__:`-prefixed evidence entries (an internal marker) are filtered out.
 - When `mitigation_instructions` is empty, a generic
@@ -313,28 +313,28 @@ EvidenceExtracted         append fault lines        first agent → ANALYZING  a
                           append stack frames       (OS Kernel)              status: "OS Kernel…"
                           append sym warning?
 
-AgentSpoke(os_kernel)     —                        os_kernel → DONE         append "OS Kernel »…"; advance
+AgentSpoke(os_kernel)     -                        os_kernel → DONE         append "OS Kernel »…"; advance
                                                    code_analyst → ANALYZING  status: "Code Analyst…"
 
-AgentSpoke(code_analyst)  —                        code_analyst → DONE      append "Code Analyst »…"; advance
+AgentSpoke(code_analyst)  -                        code_analyst → DONE      append "Code Analyst »…"; advance
                                                    log_historian → ANALYZING status: "Log Historian…"
 
-AgentSpoke(log_historian) —                        log_historian → DONE     append "Log Historian »…"; advance
+AgentSpoke(log_historian) -                        log_historian → DONE     append "Log Historian »…"; advance
                                                    skeptic → ANALYZING       status: "Skeptic…"
 
-AgentSpoke(skeptic)       —                        skeptic → DONE           append "Skeptic »…"; advance
+AgentSpoke(skeptic)       -                        skeptic → DONE           append "Skeptic »…"; advance
                                                                              status: "Weighing…"
                           (a new round also appends "re-deliberating Rn …" to the conversation)
 
-ConsensusEvaluated        —                        all → STANDBY            append "consensus Rn …"; advance
+ConsensusEvaluated        -                        all → STANDBY            append "consensus Rn …"; advance
                                                    round += 1 (if not conv.) track converged; if not
                                                    first → ANALYZING         converged extend total stages
 
-InvestigationCompleted    —                        all → DONE               append "✔ complete"; converged ✔
+InvestigationCompleted    -                        all → DONE               append "✔ complete"; converged ✔
                           (mark converged True)                            reveal both logs; bar full
                                                                            live.stop(); CLI render_verdict()
 
-HumanInputRequired        —                        all remain as-is         append "⚠ HITL required"; conv. ✗
+HumanInputRequired        -                        all remain as-is         append "⚠ HITL required"; conv. ✗
                           (mark converged False)                           reveal both logs; bar full
                                                                            live.stop(); CLI render_verdict()
 ```
@@ -399,7 +399,7 @@ def _render_evidence(self) -> Panel:
     ...
 ```
 
-Because `Layout` clips its children to the allocated region, any overflow is cut automatically. We just need to avoid an unbounded `_evidence_lines` list growing forever — cap at 500 entries.
+Because `Layout` clips its children to the allocated region, any overflow is cut automatically. We just need to avoid an unbounded `_evidence_lines` list growing forever - cap at 500 entries.
 
 ### 7.5 `_render_agents` sub-panel height
 
@@ -443,7 +443,7 @@ def make_view(console: Console) -> RichView | WarRoomView:
 | `src/aegis_swr/views/__init__.py`  | Export `WarRoomView` and `make_view`                                                                                                                   |
 | `src/aegis_swr/core/schemas.py`    | Added `IncidentSource.network_capture_paths` (parallels `screenshot_paths`)                                                                            |
 | `src/aegis_swr/cli/_formatters.py` | `stream_and_display` gained `level=`, passes it to `make_view`; `rich_formatter` gained `model=` and forwards it to `render_verdict`                    |
-| `src/aegis_swr/cli/commands.py`    | `analyze` adds the `--pcap` flag → `network_capture_paths`, passes `level=--severity` to `stream_and_display` and `model=` to `rich_formatter`         |
+| `src/aegis_swr/cli/commands.py`    | `analyze` adds the `--pcap` flag → `network_capture_paths`, passes `level=--log-severity` to `stream_and_display` and `model=` to `rich_formatter`         |
 | `src/aegis_swr/cli/_config.py`     | `pcaps` added to `ANALYZE_CONFIG_KEYS` (config persistence)                                                                                            |
 | `tests/unit/test_views.py`         | Unit tests for the pure helpers, `make_view` selection, `WarRoomView` event/state lifecycle, render smoke tests, `_build_diagnosis`/`render_verdict`, and the INFO/DEBUG split + four DEBUG categories |
 | `tests/unit/test_evidence_detail.py` | **New.** Unit tests for `format_size`, `file_properties`, the ±2-minute window, and the pcap parser (little/big-endian, link types, pcapng, malformed) |

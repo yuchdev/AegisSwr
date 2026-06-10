@@ -1,4 +1,4 @@
-"""Skeptic Agent — adversarial moderator / consensus challenger"""
+"""Skeptic Agent - adversarial moderator / consensus challenger"""
 from __future__ import annotations
 from typing import Optional
 
@@ -57,7 +57,7 @@ class SkepticAgent(BaseAgent):
                         "in top 5 stack frames."
                     ],
                     corrections=[
-                        f"Re-examine the stack — '{faulting_module}' may not be "
+                        f"Re-examine the stack - '{faulting_module}' may not be "
                         "the actual faulting module. Consider the top frames: "
                         + ", ".join(
                             str(f.get("module") or "unknown") for f in frames[:5]

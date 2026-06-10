@@ -3,9 +3,9 @@
 Startup options can be supplied two ways, and both deserialize into the *same*
 dict shape and the *same* class:
 
-1. **JSON config file** — by default ``~/.local/share/aegis/config.json``
+1. **JSON config file** - by default ``~/.local/state/.aegis-swr/config.json``
    (override with ``--config PATH``). Keys mirror the CLI option names exactly.
-2. **CLI flags** — ``aegis analyze --ai openai …``.
+2. **CLI flags** - ``aegis analyze --ai openai …``.
 
 When both are present the file is applied first and explicit CLI flags are
 layered on top, so the precedence (low → high) is::
@@ -14,7 +14,7 @@ layered on top, so the precedence (low → high) is::
 
 :class:`AnalyzeConfig` is the **single source of truth** for the option keys,
 their types, and their defaults. Neither the JSON loader, the CLI, nor the merge
-keeps its own separate list of key names — they all derive from this one class.
+keeps its own separate list of key names - they all derive from this one class.
 """
 from __future__ import annotations
 
@@ -26,13 +26,26 @@ from typing import Any, Mapping, Optional
 import typer
 from loguru import logger
 
-#: Default config-file location (``--config`` overrides it).
-DEFAULT_CONFIG_PATH: Path = Path("~/.local/share/aegis/config.json").expanduser()
+#: Default config-file location (``--config`` overrides it).  Imported from the
+#: settings module so the CLI and the runtime :class:`Settings` always resolve
+#: the *same* ``config.json`` - a past divergence here (``share/aegis`` vs
+#: ``share/aegis-swr``) is what stopped the file from overriding the storage
+#: defaults.  Re-exported so existing ``from _config import DEFAULT_CONFIG_PATH``
+#: callers keep working.
+from aegis_swr.config.settings import DEFAULT_CONFIG_PATH as DEFAULT_CONFIG_PATH
+
+#: Top-level keys owned by the runtime :class:`~aegis_swr.config.settings.Settings`
+#: schema. ``config.json`` is unified - it carries both the flat analyze options
+#: *and* these nested sections - so they are expected here and ignored without a
+#: warning (unlike genuine typos in analyze keys).
+_RUNTIME_SECTION_KEYS: frozenset[str] = frozenset(
+    {"core", "backends", "sandbox", "api", "agent_weights"}
+)
 
 
 @dataclass
 class AnalyzeConfig:
-    """Deserialized ``aegis analyze`` settings — shared by both config sources.
+    """Deserialized ``aegis analyze`` settings - shared by both config sources.
 
     Field names match the ``aegis analyze`` CLI option destinations one-to-one,
     so a config.json written with those keys round-trips through the CLI without
@@ -55,11 +68,12 @@ class AnalyzeConfig:
     log_provider: str = "file"
     log_service: Optional[str] = None
     output: str = "rich"
-    severity: str = "WARNING"
+    log_severity: str = "INFO"
+    log_dir: str = "~/.local/state/aegis-swr/logs"
 
     @classmethod
     def keys(cls) -> tuple[str, ...]:
-        """Every setting key — the one authoritative list of names."""
+        """Every setting key - the one authoritative list of names."""
         return tuple(f.name for f in fields(cls))
 
     @classmethod
@@ -70,7 +84,9 @@ class AnalyzeConfig:
         slightly stale config file still loads.
         """
         known = set(cls.keys())
-        unknown = [key for key in data if key not in known]
+        unknown = [
+            key for key in data if key not in known and key not in _RUNTIME_SECTION_KEYS
+        ]
         if unknown:
             logger.warning(f"Ignoring unknown config keys: {sorted(unknown)}")
         return cls(**{k: v for k, v in data.items() if k in known and v is not None})
@@ -100,7 +116,7 @@ class AnalyzeConfig:
         return asdict(self)
 
 
-#: Backwards-compatible alias — derived from the schema, never hand-maintained.
+#: Backwards-compatible alias - derived from the schema, never hand-maintained.
 ANALYZE_CONFIG_KEYS: tuple[str, ...] = AnalyzeConfig.keys()
 
 
@@ -108,7 +124,7 @@ def load_analyze_config(path: Optional[Path] = None) -> dict[str, Any]:
     """Load raw option values from a JSON file.
 
     Returns an empty dict if the file is missing, unreadable, malformed, or not
-    a JSON object — a bad config never aborts the run.
+    a JSON object - a bad config never aborts the run.
     """
     target = path or DEFAULT_CONFIG_PATH
     if not target.exists():

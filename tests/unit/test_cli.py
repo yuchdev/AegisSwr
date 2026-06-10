@@ -1,4 +1,4 @@
-"""Unit tests for the CLI — all Orchestrator calls mocked"""
+"""Unit tests for the CLI - all Orchestrator calls mocked"""
 from __future__ import annotations
 
 import json
@@ -87,7 +87,7 @@ def test_root_help_is_recursive():
     for command in ("analyze", "export", "server", "config"):
         assert command in out
     # analyze options.
-    for opt in ("--dump", "--sym", "--ai", "--store", "--save-config", "--severity"):
+    for opt in ("--dump", "--sym", "--ai", "--store", "--save-config", "--log-severity", "--log-dir"):
         assert opt in out, f"missing analyze option {opt}"
     # export options (distinct from analyze) prove its subparser was expanded.
     assert "--to-store" in out
@@ -345,14 +345,13 @@ def test_config_show_redacts_secrets(monkeypatch: pytest.MonkeyPatch):
     assert "***" in result.output
 
 
-def test_config_set_writes_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    yaml_path = tmp_path / "config.yaml"
-    yaml_path.write_text("backends:\n  ai:\n    provider: anthropic\n")
-    monkeypatch.chdir(tmp_path)
+def test_config_set_writes_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    json_path = tmp_path / "config.json"
+    json_path.write_text('{"backends": {"ai": {"provider": "anthropic"}}}')
+    monkeypatch.setattr("aegis_swr.cli.commands.DEFAULT_CONFIG_PATH", json_path)
     result = runner.invoke(app, ["config", "set", "backends.ai.provider", "openai"])
     assert result.exit_code == 0
-    import yaml
-    data = yaml.safe_load(yaml_path.read_text())
+    data = json.loads(json_path.read_text())
     assert data["backends"]["ai"]["provider"] == "openai"
 
 

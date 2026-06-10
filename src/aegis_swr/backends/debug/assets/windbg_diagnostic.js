@@ -29,7 +29,7 @@ function initializeScript() {
     try { result.ProcessID   = process.Id;   } catch (e) {}
     try { result.ProcessName = process.Name; } catch (e) {}
 
-    // Exception record — guarded individually so a missing field never aborts
+    // Exception record - guarded individually so a missing field never aborts
     // the script and never prevents the callback POST from firing.
     try {
         var exc = process.LastEvent.Attributes.Exception;

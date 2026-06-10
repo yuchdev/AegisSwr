@@ -2,6 +2,24 @@ from enum import Enum
 
 
 class FaultClass(str, Enum):
+    """
+    Represents various types of software faults that can occur during program execution.
+
+    This enum class categorizes different classes of faults often associated with software
+    bugs or erroneous conditions. It can be used to classify and handle exceptions or
+    unexpected behaviors programmatically.
+
+    :cvar MEMORY_ACCESS_VIOLATION: Fault caused by invalid memory access.
+    :cvar NULL_POINTER_DEREFERENCE: Fault caused by dereferencing a null pointer.
+    :cvar USE_AFTER_FREE: Fault caused by accessing memory after it has been freed.
+    :cvar STACK_OVERFLOW: Fault caused by exceeding the stack size.
+    :cvar INTEGER_DIVIDE_BY_ZERO: Fault caused by dividing an integer by zero.
+    :cvar DEADLOCK: Fault caused by deadlock in concurrent programming.
+    :cvar ASSERTION_FAILURE: Fault caused by a failed assert statement.
+    :cvar UNHANDLED_EXCEPTION: Fault caused by an exception that is not caught.
+    :cvar RESOURCE_EXHAUSTION: Fault caused by depletion of system resources.
+    :cvar UNKNOWN: General fallback for an unidentified fault.
+    """
     MEMORY_ACCESS_VIOLATION = "memory_access_violation"
     NULL_POINTER_DEREFERENCE = "null_pointer_dereference"
     USE_AFTER_FREE = "use_after_free"
@@ -14,7 +32,7 @@ class FaultClass(str, Enum):
     UNKNOWN = "unknown"
 
 
-# Windows NTSTATUS / HRESULT codes → FaultClass
+"""Windows NTSTATUS / HRESULT codes → FaultClass"""
 _NTSTATUS_MAP: dict[str, FaultClass] = {
     "0xc0000005": FaultClass.MEMORY_ACCESS_VIOLATION,
     "0xc0000374": FaultClass.MEMORY_ACCESS_VIOLATION,  # heap corruption
@@ -31,7 +49,7 @@ _NTSTATUS_MAP: dict[str, FaultClass] = {
     "0xc0000008": FaultClass.UNHANDLED_EXCEPTION,      # invalid handle
 }
 
-# Linux POSIX signals → FaultClass
+"""Linux POSIX signals → FaultClass"""
 _SIGNAL_MAP: dict[int, FaultClass] = {
     4: FaultClass.UNHANDLED_EXCEPTION,   # SIGILL
     6: FaultClass.ASSERTION_FAILURE,     # SIGABRT
@@ -42,7 +60,7 @@ _SIGNAL_MAP: dict[int, FaultClass] = {
     31: FaultClass.MEMORY_ACCESS_VIOLATION, # SIGSYS
 }
 
-# macOS Mach exception types → FaultClass
+"""macOS Mach exception types → FaultClass"""
 _MACOS_EXCEPTION_MAP: dict[int, FaultClass] = {
     1: FaultClass.MEMORY_ACCESS_VIOLATION,  # EXC_BAD_ACCESS
     2: FaultClass.UNHANDLED_EXCEPTION,      # EXC_BAD_INSTRUCTION

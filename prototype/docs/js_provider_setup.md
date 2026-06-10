@@ -17,15 +17,15 @@ may be incomplete or misleading.
 
 ## How It Works
 
-1. **Server startup** — A lightweight `WinDbgServer` thread is started on
+1. **Server startup** - A lightweight `WinDbgServer` thread is started on
    `localhost:9999` (falls back to `9998` / `9997` if the port is busy).
-2. **Script generation** — A temporary `.js` file is written to the system
+2. **Script generation** - A temporary `.js` file is written to the system
    temp directory.  The file embeds the correct callback URL and symbol path.
-3. **CDB spawn** — `cdb.exe` is launched with `.scriptload <file>; q`.
-4. **Data push** — The JS script iterates `host.currentProcess.Threads`,
+3. **CDB spawn** - `cdb.exe` is launched with `.scriptload <file>; q`.
+4. **Data push** - The JS script iterates `host.currentProcess.Threads`,
    serialises up to 100 stack frames per thread, and POSTs the JSON payload
    to the waiting server via `MSXML2.XMLHTTP`.
-5. **Handshake** — The Python main thread blocks on `data_queue.get()` until
+5. **Handshake** - The Python main thread blocks on `data_queue.get()` until
    the payload arrives or the timeout (60 s) expires.
 
 ---

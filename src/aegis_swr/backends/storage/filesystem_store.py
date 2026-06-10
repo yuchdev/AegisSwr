@@ -15,6 +15,7 @@ Directory layout::
             {filename}              # raw binary artifacts
 """
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 import contextlib
@@ -42,7 +43,7 @@ def _report_to_markdown(report: RCAReport) -> str:
     """Render *report* as a human-readable Markdown document"""
     lines: list[str] = []
 
-    lines.append(f"# RCA Report — {report.incident_id}")
+    lines.append(f"# RCA Report - {report.incident_id}")
     lines.append("")
     lines.append(f"**Created:** {report.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}  ")
     lines.append(f"**Mode:** {report.mode.value}  ")
@@ -172,20 +173,20 @@ class FilesystemStore(RelationalStore, ObjectStore):
             idx_path.write_text(str(report.incident_id), encoding="utf-8")
         logger.debug(f"FilesystemStore: saved report {report.incident_id}")
 
-    async def get_report(self, incident_id: UUID) -> RCAReport | None:
+    async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_get_report, incident_id)
 
-    def _sync_get_report(self, incident_id: UUID) -> RCAReport | None:
+    def _sync_get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         try:
             path = _safe_path(self._reports_dir, f"{incident_id}.json")
             return RCAReport.model_validate_json(path.read_text(encoding="utf-8"))
         except FileNotFoundError:
             return None
 
-    async def find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_find_by_hash, dump_hash)
 
-    def _sync_find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    def _sync_find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         try:
             safe_hash = dump_hash.replace(":", "_")
             idx_path = _safe_path(self._hash_index_dir, safe_hash)

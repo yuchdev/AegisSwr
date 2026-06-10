@@ -1,5 +1,6 @@
 """Cross-platform symbol cache directory resolution"""
 from __future__ import annotations
+from typing import Optional
 
 import os
 import sys
@@ -8,7 +9,7 @@ from pathlib import Path
 _ENV_OVERRIDE = "AEGIS_SYMBOL_CACHE"
 
 
-def resolve_symbol_path(config_value: str | None) -> Path:
+def resolve_symbol_path(config_value: Optional[str]) -> Path:
     """Resolve the local symbol cache directory.
 
     Precedence: explicit config value → ``AEGIS_SYMBOL_CACHE`` env var →

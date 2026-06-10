@@ -2,7 +2,7 @@
 
 ---
 
-## Gap 1: Tunnel Vision — Single-Prompt, No Skeptic Pass
+## Gap 1: Tunnel Vision - Single-Prompt, No Skeptic Pass
 
 **Severity: Critical**
 
@@ -12,10 +12,10 @@ Every crash analysis is a single API call. The LLM receives a context block and 
 **Evidence:**
 - `backends/ai/gemini.py:70–74`: Single `generate_content()` call, no follow-up
 - `backends/ai/openai.py:72–79`: Single `create()` call, no follow-up
-- `core/orchestrator.py:82`: `return ai_backend.analyze(...)` — result stored without validation
+- `core/orchestrator.py:82`: `return ai_backend.analyze(...)` - result stored without validation
 
 ### The Problem
-The LLM's first answer is statistically influenced by the most prominent token patterns in the context window. If the DLL load list is long, the first plausible module name in that list may dominate the response — even if the actual faulting module is deeper in the stack. There is no mechanism to challenge this.
+The LLM's first answer is statistically influenced by the most prominent token patterns in the context window. If the DLL load list is long, the first plausible module name in that list may dominate the response - even if the actual faulting module is deeper in the stack. There is no mechanism to challenge this.
 
 **Specific failure mode observed in prototype test assets:** `raw_cdb_output.txt` contains 50+ DBGHELP module names before the actual `EXCEPTION_ANALYSIS` block. A prompt-unaware model may anchor on early module mentions.
 
@@ -28,7 +28,7 @@ Introduce a **Skeptic Agent** as a mandatory second pass:
 
 ---
 
-## Gap 2: No Discarded Rationale — Opaque Reasoning Trail
+## Gap 2: No Discarded Rationale - Opaque Reasoning Trail
 
 **Severity: High**
 
@@ -36,9 +36,9 @@ Introduce a **Skeptic Agent** as a mandatory second pass:
 The `ai_analysis` field in `CrashReportEntity` stores only the final AI text string. No intermediate reasoning, no alternative hypotheses considered, no rejected explanations.
 
 **Evidence:**
-- `core/data_schema.py`: `ai_analysis: str` — single string field, no structured reasoning capture
-- `backends/ai/gemini.py:74`: `return response.text` — raw string only
-- `backends/ai/openai.py:80`: `return response.choices[0].message.content` — raw string only
+- `core/data_schema.py`: `ai_analysis: str` - single string field, no structured reasoning capture
+- `backends/ai/gemini.py:74`: `return response.text` - raw string only
+- `backends/ai/openai.py:80`: `return response.choices[0].message.content` - raw string only
 
 ### The Problem
 When a user disagrees with the RCA or suspects the AI missed something, there is no audit trail to inspect. The user cannot see what alternative modules the LLM considered and dismissed, what evidence led to the conclusion, or whether the conclusion was high- or low-confidence.
@@ -65,7 +65,7 @@ This forms the **editable Investigator's Rationale** audit trail described in th
 
 ---
 
-## Gap 3: Silent Service Lockups — No Non-Crash Scenario Support
+## Gap 3: Silent Service Lockups - No Non-Crash Scenario Support
 
 **Severity: High**
 
@@ -94,7 +94,7 @@ The `Orchestrator` selects a pipeline variant based on `SourceCollection.mode`, 
 
 ---
 
-## Gap 4: Deduplication by Filename — Not by Content
+## Gap 4: Deduplication by Filename - Not by Content
 
 **Severity: Medium**
 
@@ -105,12 +105,12 @@ existing = self.storage_backend.find_report(dump_filename, self.ai_backend.model
 ```
 *Source: `core/orchestrator.py:59–62`*
 
-The `dump_hash` field exists in the schema but is computed **after** the AI analysis and stored only for later reference — not used for deduplication.
+The `dump_hash` field exists in the schema but is computed **after** the AI analysis and stored only for later reference - not used for deduplication.
 
 ### The Problem
 - Renaming a `.dmp` file causes a full re-analysis of an already-processed crash.
 - Two identical dumps at different paths are analyzed twice.
-- Switching AI backends (Gemini → OpenAI) re-analyzes the same dump — no cross-model deduplication.
+- Switching AI backends (Gemini → OpenAI) re-analyzes the same dump - no cross-model deduplication.
 
 ### Aegis SWR Solution
 - Compute `dump_hash` (SHA-256 of file content) **before** any backend call.
@@ -120,7 +120,7 @@ The `dump_hash` field exists in the schema but is computed **after** the AI anal
 
 ---
 
-## Gap 5: No Output Schema Validation — AI Response Drift
+## Gap 5: No Output Schema Validation - AI Response Drift
 
 **Severity: Medium**
 
@@ -128,12 +128,12 @@ The `dump_hash` field exists in the schema but is computed **after** the AI anal
 The OpenAI system prompt requests "Root Cause Analysis, Faulting Module, and Recommendation" sections. There is no code that verifies these sections actually appear in the response.
 
 **Evidence:**
-- `backends/ai/openai.py:80`: Returns `response.choices[0].message.content` — raw Markdown string
+- `backends/ai/openai.py:80`: Returns `response.choices[0].message.content` - raw Markdown string
 - `core/orchestrator.py:82–97`: Stores the string directly in `CrashReportEntity.ai_analysis`
 - No regex or schema check on the response structure
 
 ### The Problem
-LLMs occasionally produce responses in different formats under edge conditions (very long context, unusual crash patterns, API-side model updates). When the format drifts, the stored `ai_analysis` may be missing the `Faulting Module` section — silently, with no error raised.
+LLMs occasionally produce responses in different formats under edge conditions (very long context, unusual crash patterns, API-side model updates). When the format drifts, the stored `ai_analysis` may be missing the `Faulting Module` section - silently, with no error raised.
 
 ### Aegis SWR Solution
 - Define `RCAReport` as a JSON schema and use structured output APIs (OpenAI: `response_format={"type": "json_schema", ...}`; Gemini: `response_schema=...`).
@@ -159,7 +159,7 @@ Crash investigation is inherently iterative. The first RCA is a hypothesis. A se
 ### Aegis SWR Solution
 - Persist the `agent_dialogue_log` from the `InvestigatorsRationale` as a resumable multi-turn conversation.
 - Expose a `continue_analysis(session_id, user_question)` API that appends to the conversation and re-invokes the agent chain.
-- The GUI presents this as a chat-style interface alongside the structured RCA — the **Investigator's Rationale** panel.
+- The GUI presents this as a chat-style interface alongside the structured RCA - the **Investigator's Rationale** panel.
 
 ---
 
@@ -172,7 +172,7 @@ The debug backend runs `.reload /f /i` to force symbol loading. If symbols are u
 
 **Evidence:**
 - `cdb.py:58–63`: CDB command sequence includes `.reload /f /i` but no post-run symbol quality check
-- `docs/core_logic.md:99`: Comment notes "output contains 'unresolved'" as a known issue — no automated handling
+- `docs/core_logic.md:99`: Comment notes "output contains 'unresolved'" as a known issue - no automated handling
 
 ### The Problem
 An AI analysis of an unresolved stack trace will be significantly less accurate. The prototype gives no indication to the user that the analysis confidence is reduced.

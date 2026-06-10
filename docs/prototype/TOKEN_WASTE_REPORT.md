@@ -33,8 +33,8 @@
 | Full register dump in context | ~60 | Low |
 | Uncapped user assumption text | 0–500 (spike) | Low |
 | Fill pattern repetition | 0–200 | Low |
-| **Worst-case total per request** | **~17,440 tokens** | — |
-| **Best-case total (already handled paths)** | **~400 tokens** | — |
+| **Worst-case total per request** | **~17,440 tokens** | - |
+| **Best-case total (already handled paths)** | **~400 tokens** | - |
 
 ---
 
@@ -69,7 +69,7 @@ Apply in order before any text leaves Data Adapter:
 1. Strip `DBGHELP: .* file not found` lines
 2. Replace `0xCCCCCCCC` (and `0xDDDDDDDD`, `0xFEEEFEEE`, `0xABABABAB`, `0xBAADF00D`) with `<fill>`
 3. Drop DLL load list (all lines between `\*\*\* WARNING:` and `EXCEPTION_ANALYSIS:`)
-4. Apply head+tail truncation at 8,000 chars (4,000/4,000 split — tighter than prototype's 10k/5k/5k)
+4. Apply head+tail truncation at 8,000 chars (4,000/4,000 split - tighter than prototype's 10k/5k/5k)
 
 ### Rule 4: Prompt Caching for System Instructions
 All stable system prompts (agent role, output schema, diagnostic taxonomy) must use the provider's prompt caching API:
@@ -91,4 +91,4 @@ Request AI output as JSON with a defined schema (`RCAReport`) rather than a free
 
 ## Summary
 
-The prototype's primary token inefficiency is **passing raw debugger output to the AI without pre-extraction of structured fields**. The DLL load list and DBGHELP noise alone can contribute 1,000–4,000 wasted tokens per request — more than the actual signal content in many short stack traces. The Aegis SWR Data Adapter layer eliminates this by acting as a structured extraction pipeline, ensuring that only high-information-density, pre-validated fields reach the inference layer.
+The prototype's primary token inefficiency is **passing raw debugger output to the AI without pre-extraction of structured fields**. The DLL load list and DBGHELP noise alone can contribute 1,000–4,000 wasted tokens per request - more than the actual signal content in many short stack traces. The Aegis SWR Data Adapter layer eliminates this by acting as a structured extraction pipeline, ensuring that only high-information-density, pre-validated fields reach the inference layer.

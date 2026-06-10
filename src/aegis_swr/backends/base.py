@@ -28,7 +28,7 @@ class AIAPIBackend(ABC):
         self,
         system_prompt: str,
         messages: list[dict[str, Any]],
-        output_schema: type[BaseModel] | None = None,
+        output_schema: Optional[type[BaseModel]] = None,
     ) -> BaseModel | str:
         """Send a completion request.
 
@@ -89,7 +89,7 @@ class RelationalStore(ABC):
     async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         """Return the most recent report for the given content hash, or None.
 
-        This is the primary deduplication gate — called before any analysis begins.
+        This is the primary deduplication gate - called before any analysis begins.
         """
 
     @abstractmethod

@@ -9,11 +9,26 @@ from __future__ import annotations
 from aegis_swr.config.settings import AgentWeightsSettings
 from aegis_swr.core.fault_codes import FaultClass
 
+"""Tuple of canonical agent identifiers used to map scores and weights across the system."""
 _AGENT_KEYS = ("os_kernel", "code_analyst", "log_historian", "skeptic")
 
 
 class ConsensusEvaluator:
+    """Evaluator for weighted consensus scores in multi-agent debate rounds.
+
+    Computes a normalized confidence score across agents using domain-specific
+    authority weights (e.g., higher weight for code analysis on SEGFAULT vs.
+    memory corruption). Also provides convergence and deadlock detection logic
+    to determine when debate should terminate.
+    """
+
     def __init__(self, weights: AgentWeightsSettings):
+        """Initialize the evaluator with agent weight configuration.
+
+        Args:
+            weights: AgentWeightsSettings instance that maps fault classes to
+                per-agent domain authority weights.
+        """
         self._weights = weights
 
     def calculate(
@@ -23,8 +38,8 @@ class ConsensusEvaluator:
     ) -> float:
         """Return the weighted consensus score for *agent_scores* and *fault_class*.
 
-        *agent_scores* maps agent key (e.g. ``"os_kernel"``) to a confidence
-        score in [0.0, 1.0]. Missing agents are treated as contributing 0.0
+        *agent_scores* maps the agent key (e.g. ``"os_kernel"``) to a confidence
+        score in [0.0, 1.0]. Missing agents are treated as contributing 0.0,
         so a partial round still yields a usable score.
         """
         entry = self._weights.for_fault_class(fault_class.value)
@@ -42,17 +57,17 @@ class ConsensusEvaluator:
         )
         return weighted_sum / total_weight
 
+    @staticmethod
     def is_converged(
-        self,
         score: float,
         threshold: float,
         same_hypothesis: bool,
     ) -> bool:
-        """Return True when the round score meets threshold on a stable hypothesis"""
+        """Return True when the round score meets the threshold on a stable hypothesis"""
         return score >= threshold and same_hypothesis
 
+    @staticmethod
     def is_deadlocked(
-        self,
         score: float,
         round_num: int,
         max_rounds: int,

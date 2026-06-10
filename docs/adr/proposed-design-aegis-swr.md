@@ -57,7 +57,7 @@ The platform exposes the entire reasoning path to the human user. The UI renders
 
 > **[00:02] OS Kernel Agent:** Stack trace indicates a deadlock on Mutex `0x4A2F`. This matches the high I/O latency logged by the storage subsystem right before the crash.
 > **[00:04] Code Analyst Agent:** Counterpoint: Mutex `0x4A2F` is only held during database serialization. Look at line 142 of `db_writer.cpp`. There is a missing unlock on early return.
-> **[00:05] Skeptic Agent:** If it's a pure code bug, why has it passed CI/CD for 3 months? OS Kernel Agent is right about the latency—the code path on line 142 is *only* reached if the DB write takes longer than 500ms.
+> **[00:05] Skeptic Agent:** If it's a pure code bug, why has it passed CI/CD for 3 months? OS Kernel Agent is right about the latency-the code path on line 142 is *only* reached if the DB write takes longer than 500ms.
 > **[00:07] Consensus Reached:** A race condition triggered by high I/O latency exposes an unhandled early-return bug in `db_writer.cpp:142`.
 
 ---

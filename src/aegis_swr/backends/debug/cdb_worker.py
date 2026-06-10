@@ -70,9 +70,9 @@ def parse_cdb_frames(raw: str) -> list[StackFrame]:
 
     Handles both CDB stack formats:
 
-    * ``!analyze -v`` STACK_TEXT — ``<child-sp> <ret-addr> : <args…> : <CallSite>``
+    * ``!analyze -v`` STACK_TEXT - ``<child-sp> <ret-addr> : <args…> : <CallSite>``
       with backtick-split 64-bit addresses and colon-delimited argument columns.
-    * ``kn``/simplified — ``<n> <child-sp> <ret-addr> <CallSite> [file @ line]``.
+    * ``kn``/simplified - ``<n> <child-sp> <ret-addr> <CallSite> [file @ line]``.
 
     In both, the call site is isolated first (last colon-segment, else last
     token); the return address is the last address-looking token in the
