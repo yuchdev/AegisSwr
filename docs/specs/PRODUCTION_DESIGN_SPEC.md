@@ -1701,12 +1701,20 @@ options exactly:
   "store_config":  null,
   "code_provider": "none",
   "repo":          null,
-  "log_provider":  "file",
-  "log_service":   null,
   "output":        "rich",
-  "severity":      "WARNING"
+  "logging": {
+    "provider":  "file",
+    "service":   null,
+    "severity":  "WARNING",
+    "dir":       "~/.local/state/aegis-swr/logs"
+  }
 }
 ```
+
+The four logging options are grouped under a nested `logging` section (the `log_`
+prefix is stripped); each still maps 1:1 to a `--log-*` CLI flag. The section is
+named `logging` rather than `log` so it is not confused with the unrelated
+`backends.log` log-ingestion backend.
 
 The default path is `~/.local/state/.aegis-swr/config.json` (override with
 `--config PATH`). When both sources are present the file is loaded first and

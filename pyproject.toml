@@ -57,6 +57,37 @@ build-backend = "poetry.core.masonry.api"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+addopts = "--cov=src/aegis_swr --cov-report=html --cov-report=term-missing --cov-fail-under=85"
+
+[tool.coverage.run]
+source = ["src/aegis_swr"]
+branch = true
+parallel = true
+omit = [
+    "*/site-packages/*",
+    "*/distutils/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "@abstractmethod",
+    "pass",
+    "except ImportError",
+]
+precision = 2
+show_missing = true
+skip_covered = false
+fail_under = 85
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [tool.ruff]
 src = ["src"]

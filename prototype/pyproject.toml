@@ -26,7 +26,44 @@ classifiers = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--cov=wincrash_analyzer --cov-report=html --cov-report=term-missing --cov-fail-under=85"
+
+[tool.coverage.run]
+source = ["wincrash_analyzer"]
+branch = true
+parallel = true
+omit = [
+    "*/site-packages/*",
+    "*/distutils/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "@abstractmethod",
+    "pass",
+    "except ImportError",
+    "except ImportError:",
+]
+precision = 2
+show_missing = true
+skip_covered = false
+fail_under = 85
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [project.scripts]
 wincrash-analyzer = "wincrash_analyzer.cli:main"
