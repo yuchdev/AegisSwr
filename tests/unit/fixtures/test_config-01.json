@@ -8,8 +8,14 @@
   "store_config": "C:/data/reports.db",
   "code_provider": "git",
   "repo": "C:/src/imagescope",
-  "log_provider": "file",
-  "log_service": "render-svc",
   "output": "json",
-  "log_severity": "DEBUG"
+  "ingest": {
+    "log_source": {
+      "provider": "file",
+      "service": "render-svc"
+    }
+  },
+  "logging": {
+    "severity": "DEBUG"
+  }
 }

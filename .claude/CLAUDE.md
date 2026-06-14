@@ -127,7 +127,8 @@ on a live incident, also surface the active on-call name and open incident count
 
 Every agent action touching production data or GitHub leaves a log line under
 `.claude/logs/` (`github-actions.log`, `bash-guard.log`, `secret-scan.log`,
-`edits.log`, `tests.log`, `dep-audit.log`). Format: `<ISO-8601-UTC> <event>`.
+`edits.log`, `tests.log`, `dep-audit.log`, `doc-link-check.log`). Format:
+`<ISO-8601-UTC> <event>`.
 Log contents are git-ignored; the directory is kept via `.gitkeep`.
 
 ## 12. Recurring / scheduled work

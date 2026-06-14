@@ -2,7 +2,7 @@
 
 Converts a raw :class:`IncidentSource` into a token-dense, PII-scrubbed
 :class:`IncidentBrief`. Runs synchronously (no LLM calls) before any agent is
-invoked. See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §5 for the stage contract.
+invoked. See ``docs/specs/generic_implementation_plan.md`` Phase 2 for the stage contract.
 
 Pipeline stages:
     1. Source validation and content hashing (SHA-256, before any backend call)

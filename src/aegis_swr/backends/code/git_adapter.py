@@ -5,7 +5,7 @@ out to the ``git`` binary. All subprocess calls use list-form argv (never
 ``shell=True``), run with ``cwd=repo_path`` and a configurable timeout, and map
 failures to :class:`CodeBackendError`.
 
-See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §6.5.1.
+See ``docs/specs/generic_implementation_plan.md`` C.1. AIAPIBackend
 """
 from __future__ import annotations
 from typing import Optional

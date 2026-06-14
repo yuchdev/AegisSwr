@@ -23,7 +23,7 @@ other evidence, runs the multi-agent debate, persists the report through the
 configured storage backend, and prints where the result was saved.
 
 Options can come from two sources that share one schema
-([`AnalyzeConfig`](config.md#flat-analyze-keys)): the JSON config file is applied
+([`AnalyzeConfig`](config.md#analyze-keys)): the JSON config file is applied
 first, then explicit CLI flags on top. Precedence (low → high):
 
 ```
@@ -38,17 +38,21 @@ dataclass defaults  <  config.json  <  CLI flags
 | `--pcap`                             | path (repeatable) | `[]`                               | Network traffic capture file (e.g. `.pcap`). Repeat for multiple files.                                                              |
 | `--sym`                              | path              | `None`                             | Symbol path / symbol directory.                                                                                                      |
 | `--assume`                           | str               | `None`                             | User context / assumption text fed to the agents.                                                                                    |
-| `--engine`                           | str               | `auto`                             | Debug engine: `auto` \| `cdb` \| `windbg_js`. Overrides `backends.debug.engine`.                                                     |
-| `--ai`                               | str               | `anthropic`                        | AI provider: `anthropic` \| `openai`. Overrides `backends.ai.provider`.                                                              |
-| `--store`                            | str               | `filesystem`                       | Storage backend: `filesystem` \| `sqlite` \| `s3` \| `postgres`. Overrides `backends.storage.provider`.                              |
+| `--engine`                           | str               | `auto`                             | Debug engine: `auto` or `cdb` or `windbg_js`. Overrides `backends.debug.engine`.                                                     |
+| `--ai`                               | str               | `anthropic`                        | AI provider: `anthropic` or `openai`. Overrides `backends.ai.provider`.                                                              |
+| `--store`                            | str               | `filesystem`                       | Storage backend: `filesystem` or `sqlite` or `s3` or `postgres`. Overrides `backends.storage.provider`.                              |
 | `--store-config`                     | str               | `None`                             | Storage config value (path / bucket URL). Routed to the matching `backends.storage.*` field by `--store` (see note below).           |
-| `--code-provider`                    | str               | `none`                             | Code backend: `none` \| `git` \| `filesystem`. `none` disables the code backend (Stage 8 skipped).                                   |
+| `--code-provider`                    | str               | `none`                             | Code backend: `none` or `git` or `filesystem`. `none` disables the code backend (Stage 8 skipped).                                   |
 | `--repo`                             | path              | `None`                             | Repo / source root. Supplying it **enables** the code backend (defaulting its provider to `git`) and sets `backends.code.repo_path`. |
-| `--log-provider`                     | str               | `file`                             | Log backend: `file` \| `fluent`. Overrides `backends.log.provider`.                                                                  |
-| `--log-service`                      | str               | `None`                             | Service name passed to `LogBackend.query_window` (Data Adapter Stage 4).                                                             |
-| `--output`                           | str               | `rich`                             | Output format: `rich` \| `json` \| `quiet`. See [Output modes](#output-modes).                                                       |
-| `--log-severity`                     | str               | `INFO`                             | Log verbosity: `TRACE` \| `DEBUG` \| `INFO` \| `WARNING` \| `ERROR`. `DEBUG` adds per-artifact evidence to the stream; `TRACE` additionally streams the full debugger `!analyze` output. |
-| `--log-dir`                          | path              | `~/.local/state/aegis-swr/logs`    | Directory for the classic rotating application log file (`aegis-swr.log`), written at `--log-severity`. Overrides `log_dir`.         |
+| `--log-provider`                     | str               | `file`                             | Log-**ingestion** backend (reads the *investigated system's* logs): `file` or `fluent`. Sets `ingest.log_source.provider` → `backends.log.provider`. |
+| `--log-service`                      | str               | `None`                             | Service name for `LogBackend.query_window` (Data Adapter Stage 4). Sets `ingest.log_source.service` → `metadata["service"]`.         |
+| `--output`                           | str               | `rich`                             | Output format: `rich` or `json` or `json-full` or `quiet`. See [Output modes](#output-modes).                                       |
+| `--log-severity`                     | str               | `INFO`                             | **Application** log verbosity (Aegis's own diagnostics): `TRACE` or `DEBUG` or `INFO` or `WARNING` or `ERROR`. Maps to `logging.severity`. |
+| `--log-sink`                         | str               | `file`                             | Application log sink: `file` or `elk` or `fluent`. `elk`/`fluent` are stubs (warn + fall back to `file`). Maps to `logging.sink`.    |
+| `--log-dir`                          | path              | `~/.local/state/aegis-swr/logs`    | Directory for the rotating application log file (`aegis-swr.log`), written at `--log-severity`. Maps to `logging.dir`.               |
+| `--evidence-severity`                | str               | `INFO`                             | Evidence Stream (war-room **left** pane) verbosity: `INFO` or `TRACE`. Maps to `evidence.severity`.                                  |
+| `--process-severity`                 | str               | `INFO`                             | Investigation Process (war-room **right** pane) verbosity: `INFO` or `TRACE` (TRACE prints each agent's full reasoning). Maps to `process.severity`. |
+| `--evidence-persist` / `--no-evidence-persist` | flag    | `--no-evidence-persist`            | After the run, write the Evidence Stream to `<evidence dir>/evidence-<incident_id>.log` (war-room view only). Maps to `evidence.persist`. |
 | `--config`                           | path              | `~/.local/state/.aegis-swr/config.json` | JSON config file to load options from.                                                                                               |
 | `--save-config` / `--no-save-config` | flag              | `--no-save-config`                 | Write the current CLI options to the JSON file and exit (writes to `--config` if given, else the default path).                      |
 
@@ -60,6 +64,16 @@ depending on `--store`:
 | `filesystem` | `backends.storage.reports_dir` |
 | `sqlite` | `backends.storage.db_path` |
 | `s3` | `backends.storage.object_store_url` |
+
+**Logging channels** - the three verbosity channels are independent (the
+log-subsystem split): `--log-severity` / `--log-sink` / `--log-dir` configure Aegis's
+own **application** logging; `--evidence-severity` and `--process-severity` configure
+the two war-room panes. `--evidence-severity` and `--process-severity` accept only
+`INFO` or `TRACE` (any other value - on the CLI **or** in `config.json` - exits with
+code `2`); `--log-severity` accepts the full loguru range. `--evidence-persist` needs
+the war-room view, so it has no effect with `--output quiet` or on a narrow terminal
+(a warning is logged). `--log-provider` / `--log-service` are unrelated - they select
+the *log-ingestion* backend (`ingest.log_source`), not Aegis's own logging.
 
 ### Output modes
 
@@ -74,7 +88,9 @@ depending on `--store`:
 > Only the location is surfaced.
 
 **Exit codes** - `0` on success; `1` when human input is required
-(`report.hitl_request` set) or the investigation ended without a report.
+(`report.hitl_request` set) or the investigation ended without a report; `2` on an
+invalid logging-channel value (`--evidence-severity` / `--process-severity` not
+`INFO`/`TRACE`, or an unknown `--log-sink`).
 
 ### Examples
 
@@ -84,6 +100,11 @@ aegis analyze --dump ./CrashUi.dmp --sym ./symbols --engine cdb --ai openai --ou
 
 # Log-forensics with the git code backend enabled via --repo
 aegis analyze --log ./app.log --log-service render-svc --repo ./src
+
+# Verbose war room: full evidence detail + full agent reasoning, quiet app log,
+# and persist the evidence transcript
+aegis analyze --dump ./CrashUi.dmp --evidence-severity TRACE --process-severity TRACE \
+              --log-severity WARNING --evidence-persist
 
 # Persist current flags as the default config and exit
 aegis analyze --ai openai --engine cdb --store sqlite --save-config

@@ -3,6 +3,7 @@
 Focus: the incident/resolution JSON that the AI SDKs and httpx log as HTTP
 request/response bodies must never reach the console at Aegis's INFO level.
 """
+
 from __future__ import annotations
 
 import logging
@@ -42,9 +43,7 @@ def test_http_body_record_suppressed_at_info():
     body = '{"incident_brief": {"root_cause": "UAF"}, "resolution": "patch"}'
     # A WARNING-clamped logger does not emit INFO records.
     assert not httpx_logger.isEnabledFor(logging.INFO)
-    record = httpx_logger.makeRecord(
-        "httpx", logging.INFO, __file__, 0, body, None, None
-    )
+    record = httpx_logger.makeRecord("httpx", logging.INFO, __file__, 0, body, None, None)
     assert not httpx_logger.isEnabledFor(record.levelno)
 
 
@@ -95,3 +94,71 @@ def test_missing_log_dir_does_not_break_stderr_logging(tmp_path: Path, monkeypat
     # Should not raise.
     configure_logging("INFO", log_dir=str(tmp_path / "nope"))
     configure_logging("INFO")  # reset
+
+
+# ---------------------------------------------------------------------------
+# Application log sinks (the log-subsystem split, plan Part III - Phase E)
+# ---------------------------------------------------------------------------
+
+
+def test_file_sink_emits_no_warning(tmp_path: Path):
+    log_dir = tmp_path / "logs"
+    try:
+        configure_logging("INFO", log_dir=str(log_dir), sink="file")
+        logger.info("file sink line")
+    finally:
+        configure_logging("INFO")
+    contents = (log_dir / LOG_FILENAME).read_text(encoding="utf-8")
+    assert "file sink line" in contents
+    assert "not yet implemented" not in contents
+    assert "Unknown application log sink" not in contents
+
+
+@pytest.mark.parametrize("sink", ["elk", "fluent"])
+def test_unimplemented_sink_warns_and_falls_back_to_file(tmp_path: Path, sink: str):
+    log_dir = tmp_path / "logs"
+    try:
+        configure_logging("INFO", log_dir=str(log_dir), sink=sink)
+        logger.info("after fallback")
+    finally:
+        configure_logging("INFO")
+    contents = (log_dir / LOG_FILENAME).read_text(encoding="utf-8")
+    # The stub sink warned …
+    assert f"'{sink}' is not yet implemented" in contents
+    # … and the file sink is active as the fallback (logging is never lost).
+    assert "after fallback" in contents
+
+
+def test_unknown_sink_warns_and_falls_back_to_file(tmp_path: Path):
+    log_dir = tmp_path / "logs"
+    try:
+        configure_logging("INFO", log_dir=str(log_dir), sink="kafka")
+        logger.info("after fallback")
+    finally:
+        configure_logging("INFO")
+    contents = (log_dir / LOG_FILENAME).read_text(encoding="utf-8")
+    assert "Unknown application log sink 'kafka'" in contents
+    assert "after fallback" in contents
+
+
+def test_sink_registration_seams_return_false():
+    # Until the real emitters land, the seams report "not handled" so the caller
+    # falls back to the file/stderr sinks.
+    from aegis_swr.cli.aegis_logging import _register_elk_sink, _register_fluent_sink
+
+    assert _register_elk_sink("INFO", elk_url="http://elk:9200") is False
+    assert _register_fluent_sink("INFO", fluent_host="fluentd", fluent_port=24224) is False
+
+
+def test_file_sink_is_delayed_until_first_record(tmp_path: Path):
+    # delay=True: the directory is created, but the log file itself is not written
+    # until something is actually logged - so a quiet bootstrap leaves no empty file.
+    log_dir = tmp_path / "logs"
+    try:
+        configure_logging("INFO", log_dir=str(log_dir))
+        assert not (log_dir / LOG_FILENAME).exists()  # nothing logged yet
+        logger.warning("now it exists")
+    finally:
+        configure_logging("INFO")
+    assert (log_dir / LOG_FILENAME).exists()
+    assert "now it exists" in (log_dir / LOG_FILENAME).read_text(encoding="utf-8")

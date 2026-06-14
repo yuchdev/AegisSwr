@@ -5,6 +5,7 @@ These exercise ``WarRoomView`` by driving a real ``EventBus`` with a headless
 and asserting on the view's internal state - agent lifecycle, consensus
 history, evidence stream contents - plus the pure formatting helpers.
 """
+
 from __future__ import annotations
 
 import io
@@ -354,7 +355,7 @@ def test_capping_keeps_reveal_pointer_in_bounds():
 
 def test_evidence_reveals_gradually_not_all_at_once():
     # A burst of lines must not all surface in a single frame - they stream in.
-    view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())
     log = view._evidence_log
     total = len(log.lines)
@@ -369,7 +370,7 @@ def test_evidence_reveals_gradually_not_all_at_once():
 
 def test_evidence_reveal_catches_up_over_time():
     # Once enough time passes the whole buffer is surfaced.
-    view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())
     log = view._evidence_log
     total = len(log.lines)
@@ -444,12 +445,9 @@ def test_process_conversation_reveals_gradually():
     view._stop_live()
 
 
-def test_debug_surfaces_full_agent_message_in_process():
-    multiline = "headline finding\nsupporting detail one\nsupporting detail two"
-    # INFO keeps only the headline …
-    info = WarRoomView(_headless_console(), auto_refresh=False)
+def _publish_multiline_turn(view: WarRoomView, message: str):
     bus = EventBus()
-    info.attach(bus)
+    view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(
         AgentSpoke(
@@ -457,45 +455,43 @@ def test_debug_surfaces_full_agent_message_in_process():
             turn=AgentTurn(
                 agent="OS Kernel Agent",
                 turn_number=1,
-                message=multiline,
+                message=message,
                 confidence_score=0.8,
             ),
         )
     )
+
+
+def test_process_trace_surfaces_full_agent_reasoning():
+    multiline = "headline finding\nsupporting detail one\nsupporting detail two"
+
+    # INFO keeps only the headline …
+    info = WarRoomView(_headless_console(), auto_refresh=False)
+    _publish_multiline_turn(info, multiline)
     assert "headline finding" in _process_text(info)
     assert "supporting detail two" not in _process_text(info)
     info._stop_live()
 
-    # … DEBUG surfaces the agent's full reasoning.
-    debug = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
-    bus2 = EventBus()
-    debug.attach(bus2)
-    bus2.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
-    bus2.publish(
-        AgentSpoke(
-            node="os_kernel_node",
-            turn=AgentTurn(
-                agent="OS Kernel Agent",
-                turn_number=1,
-                message=multiline,
-                confidence_score=0.8,
-            ),
-        )
+    # … process TRACE surfaces the agent's full reasoning. Crucially this is the
+    # *process* channel - evidence stays at INFO, proving the two are independent.
+    trace = WarRoomView(
+        _headless_console(), auto_refresh=False, level="INFO", process_level="TRACE"
     )
-    text = _process_text(debug)
+    _publish_multiline_turn(trace, multiline)
+    text = _process_text(trace)
     assert "headline finding" in text
     assert "supporting detail one" in text
     assert "supporting detail two" in text
-    debug._stop_live()
+    trace._stop_live()
 
 
 # ---------------------------------------------------------------------------
-# Evidence Stream verbosity: INFO summary vs DEBUG detail
+# Evidence Stream verbosity: INFO summary vs TRACE detail
 # ---------------------------------------------------------------------------
 
 
 def _debug_brief() -> dict:
-    """An incident brief carrying the fields the DEBUG stream surfaces"""
+    """An incident brief carrying the fields the TRACE stream surfaces"""
     brief = _evidence_brief()
     brief.update(
         {
@@ -527,14 +523,14 @@ def _write_pcap(path: Path) -> Path:
     return path
 
 
-def test_info_level_omits_debug_detail():
+def test_info_level_omits_trace_detail():
     view = WarRoomView(_headless_console(), auto_refresh=False)  # default INFO
     _start(view, _crash_source())
     text = _evidence_text(view)
     # INFO summary fields remain.
     assert "ACCESS_VIOLATION" in text
     assert "stack[0]" in text
-    # DEBUG-only detail is absent.
+    # TRACE-only detail is absent.
     assert "core dump analysis" not in text
     assert "EXCEPTION_ANALYSIS" not in text
     assert "stack[3]" not in text
@@ -543,8 +539,8 @@ def test_info_level_omits_debug_detail():
     view._stop_live()
 
 
-def test_debug_level_shows_core_dump_text_and_full_stack():
-    view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
+def test_trace_level_shows_core_dump_text_and_full_stack():
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())
     text = _evidence_text(view)
     # Category 1: textual core-dump analysis.
@@ -556,12 +552,12 @@ def test_debug_level_shows_core_dump_text_and_full_stack():
     # Full stack beyond the INFO top-three.
     assert "stack[3]" in text
     assert "should_not_appear" in text
-    assert any(entry.level == "DEBUG" for entry in view._evidence_log.lines)
+    assert any(entry.level == "TRACE" for entry in view._evidence_log.lines)
     view._stop_live()
 
 
 def _long_excerpt_brief(n: int = 50) -> dict:
-    """A brief whose core-dump analysis spans *n* lines (> the DEBUG cap)."""
+    """A brief whose core-dump analysis spans *n* lines."""
     brief = _debug_brief()
     brief["raw_text_excerpt"] = "\n".join(f"ANALYZE_LINE_{i:02d}" for i in range(n))
     return brief
@@ -574,29 +570,88 @@ def _start_with(view: WarRoomView, brief: dict, source: IncidentSource):
     bus.publish(EvidenceExtracted(brief=brief))
 
 
-def test_debug_caps_core_dump_excerpt():
-    view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
-    _start_with(view, _long_excerpt_brief(50), _crash_source())
-    text = _evidence_text(view)
-    assert "core dump analysis (cdb !analyze -v):" in text
-    assert "ANALYZE_LINE_00" in text
-    assert "ANALYZE_LINE_39" in text     # last line within the 40-line cap
-    assert "ANALYZE_LINE_40" not in text  # capped at DEBUG
-    assert "ANALYZE_LINE_49" not in text
-    view._stop_live()
-
-
 def test_trace_streams_full_core_dump_output():
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start_with(view, _long_excerpt_brief(50), _crash_source())
     text = _evidence_text(view)
-    # The full !analyze output - beyond the DEBUG cap - is streamed.
-    assert "core dump analysis (cdb !analyze -v, full):" in text
+    # TRACE streams the *full* !analyze output (DEBUG collapsed into TRACE, so
+    # there is no longer a capped intermediate level).
+    assert "core dump analysis (cdb !analyze -v):" in text
+    assert "ANALYZE_LINE_00" in text
     assert "ANALYZE_LINE_40" in text
     assert "ANALYZE_LINE_49" in text
-    # Full-output lines are tagged TRACE; DEBUG metadata still surfaces.
+    # Detail lines are tagged TRACE.
     assert any(entry.level == "TRACE" for entry in view._evidence_log.lines)
     assert "sha256:abc123" in text
+    view._stop_live()
+
+
+def test_evidence_trace_does_not_surface_agent_reasoning():
+    # Evidence TRACE + process INFO: detailed evidence appears, but the agent's
+    # extra reasoning lines stay hidden - the two channels are independent.
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE", process_level="INFO")
+    bus = EventBus()
+    view.attach(bus)
+    bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    bus.publish(EvidenceExtracted(brief=_debug_brief()))
+    bus.publish(
+        AgentSpoke(
+            node="os_kernel_node",
+            turn=AgentTurn(
+                agent="OS Kernel Agent",
+                turn_number=1,
+                message="headline finding\nsecret reasoning detail",
+                confidence_score=0.8,
+            ),
+        )
+    )
+    # Evidence detail is surfaced (evidence channel is TRACE) …
+    assert "core dump analysis" in _evidence_text(view)
+    # … but the agent's extra reasoning is not (process channel is INFO).
+    assert "secret reasoning detail" not in _process_text(view)
+    view._stop_live()
+
+
+def test_evidence_transcript_trace_contains_full_record():
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
+    _start(view, _crash_source())
+    transcript = view.evidence_transcript()
+    assert "ACCESS_VIOLATION" in transcript
+    assert "core dump analysis" in transcript  # TRACE detail present
+    assert "EXCEPTION_ANALYSIS" in transcript
+    view._stop_live()
+
+
+def test_evidence_transcript_info_is_summary_only():
+    view = WarRoomView(_headless_console(), auto_refresh=False)  # default INFO
+    _start(view, _crash_source())
+    transcript = view.evidence_transcript()
+    assert "ACCESS_VIOLATION" in transcript
+    assert "core dump analysis" not in transcript  # no TRACE detail at INFO
+    view._stop_live()
+
+
+def test_persist_evidence_writes_transcript_file(tmp_path: Path):
+    from aegis_swr.cli._formatters import _persist_evidence
+
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
+    _start(view, _crash_source())
+    report = _report()
+    path = _persist_evidence(view, str(tmp_path / "evidence"), report)
+    assert path is not None and path.exists()
+    assert path.name == f"evidence-{report.incident_id}.log"
+    text = path.read_text(encoding="utf-8")
+    assert "ACCESS_VIOLATION" in text
+    assert "core dump analysis" in text
+    view._stop_live()
+
+
+def test_persist_evidence_is_noop_without_a_directory():
+    from aegis_swr.cli._formatters import _persist_evidence
+
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
+    _start(view, _crash_source())
+    assert _persist_evidence(view, None, _report()) is None
     view._stop_live()
 
 
@@ -606,7 +661,6 @@ def test_stream_log_visible_respects_level_rank():
     log = _StreamLog(max_lines=100, reveal_interval=0.0)
     log.reset(0.0)
     log.append(Text("info-line"), level="INFO")
-    log.append(Text("debug-line"), level="DEBUG")
     log.append(Text("trace-line"), level="TRACE")
     log.reveal_all()
 
@@ -614,17 +668,18 @@ def test_stream_log_visible_respects_level_rank():
         lines = log.visible(now=1.0, finished=True, level=level, max_lines=100)
         return [_plain(r) for r in lines]
 
+    # Two levels after the DEBUG->TRACE collapse: INFO shows only INFO-tagged
+    # lines; TRACE shows everything.
     assert shown("INFO") == ["info-line"]
-    assert shown("DEBUG") == ["info-line", "debug-line"]
-    assert shown("TRACE") == ["info-line", "debug-line", "trace-line"]
+    assert shown("TRACE") == ["info-line", "trace-line"]
 
 
 def test_make_view_accepts_trace_level():
     view = make_view(_headless_console(width=120), level="TRACE")
-    assert view._level == "TRACE"
+    assert view._evidence_level == "TRACE"
 
 
-def test_debug_level_shows_log_window(tmp_path: Path):
+def test_trace_level_shows_log_window(tmp_path: Path):
     log = tmp_path / "app.log"
     log.write_text("2026-06-04T14:02:11 ERROR boom\n")
     source = IncidentSource(
@@ -633,7 +688,7 @@ def test_debug_level_shows_log_window(tmp_path: Path):
         log_paths=[str(log)],
         incident_timestamp=datetime(2026, 6, 4, 14, 2, 11),
     )
-    view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, source)
     text = _evidence_text(view)
     # Category 2: ±2 minute window for the analyzed log file.
@@ -644,7 +699,7 @@ def test_debug_level_shows_log_window(tmp_path: Path):
     view._stop_live()
 
 
-def test_debug_level_shows_screenshot_properties(tmp_path: Path):
+def test_trace_level_shows_screenshot_properties(tmp_path: Path):
     shot = tmp_path / "error.png"
     shot.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 40)
     source = IncidentSource(
@@ -652,7 +707,7 @@ def test_debug_level_shows_screenshot_properties(tmp_path: Path):
         dump_path="C:/dumps/CrashUi.dmp",
         screenshot_paths=[str(shot)],
     )
-    view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, source)
     text = _evidence_text(view)
     # Category 3: screenshot name + properties + OCR summary.
@@ -663,14 +718,14 @@ def test_debug_level_shows_screenshot_properties(tmp_path: Path):
     view._stop_live()
 
 
-def test_debug_level_shows_network_capture_metadata(tmp_path: Path):
+def test_trace_level_shows_network_capture_metadata(tmp_path: Path):
     cap = _write_pcap(tmp_path / "traffic.pcap")
     source = IncidentSource(
         mode=IncidentMode.CRASH_DUMP,
         dump_path="C:/dumps/CrashUi.dmp",
         network_capture_paths=[str(cap)],
     )
-    view = WarRoomView(_headless_console(), auto_refresh=False, level="DEBUG")
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, source)
     text = _evidence_text(view)
     # Category 4: network traffic capture metadata.
@@ -682,19 +737,36 @@ def test_debug_level_shows_network_capture_metadata(tmp_path: Path):
     view._stop_live()
 
 
-def test_make_view_debug_level_sets_verbosity():
+def test_make_view_debug_collapses_to_trace():
+    # DEBUG is no longer a distinct level - it collapses into TRACE.
     view = make_view(_headless_console(width=120), level="DEBUG")
     assert isinstance(view, WarRoomView)
-    assert view._level == "DEBUG"
+    assert view._evidence_level == "TRACE"
 
 
 def test_make_view_default_level_is_info():
     view = make_view(_headless_console(width=120))
     assert isinstance(view, WarRoomView)
-    assert view._level == "INFO"
+    assert view._evidence_level == "INFO"
 
 
-def test_debug_evidence_render_does_not_raise(tmp_path: Path):
+def test_process_level_defaults_to_evidence_level():
+    # The investigation-process channel defaults to the evidence level when not
+    # supplied (log-subsystem split, plan Part III - Phase A threading).
+    view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
+    assert view._process_level == "TRACE"
+
+
+def test_make_view_threads_independent_process_level():
+    # make_view forwards an explicit process_level distinct from the evidence
+    # level; both channels are carried end-to-end without affecting each other.
+    view = make_view(_headless_console(width=120), level="INFO", process_level="TRACE")
+    assert isinstance(view, WarRoomView)
+    assert view._evidence_level == "INFO"
+    assert view._process_level == "TRACE"
+
+
+def test_trace_evidence_render_does_not_raise(tmp_path: Path):
     cap = _write_pcap(tmp_path / "traffic.pcap")
     shot = tmp_path / "error.png"
     shot.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 40)
@@ -708,7 +780,7 @@ def test_debug_evidence_render_does_not_raise(tmp_path: Path):
         network_capture_paths=[str(cap)],
         incident_timestamp=datetime(2026, 6, 4, 14, 2, 11),
     )
-    view = WarRoomView(_headless_console(height=50), auto_refresh=False, level="DEBUG")
+    view = WarRoomView(_headless_console(height=50), auto_refresh=False, level="TRACE")
     _start(view, source)
     view._console.print(view._render_evidence())
     view._stop_live()

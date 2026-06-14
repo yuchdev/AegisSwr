@@ -4,5 +4,7 @@
     "C:/logs/render.log"
   ],
   "ai": "anthropic",
-  "log_severity": "INFO"
+  "logging": {
+    "severity": "INFO"
+  }
 }

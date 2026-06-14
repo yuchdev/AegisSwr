@@ -1,30 +1,44 @@
 # Aegis SWR - Implementation Status
 
-Tracks progress against [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Updated as each phase lands.
+Tracks progress against [generic_implementation_plan.md](generic_implementation_plan.md). Updated as each phase lands.
 
-| Phase | Name | Status | Tests |
-|-------|------|--------|-------|
-| 1 | Foundation & Package Setup | ✅ Complete | `test_schemas.py`, `test_settings.py`, `test_interfaces.py` |
-| 2 | Data Adapter Layer | ✅ Complete | `test_data_adapter.py` |
-| 3 | AI Backends | ✅ Complete | `test_ai_backends.py`, `integration/test_ai_pipeline.py` |
-| 4 | Debug Backends | ✅ Complete | `test_debug_backends.py`, `integration/test_debug_pipeline.py` |
-| 5 | Multi-Agent System | ✅ Complete | `test_consensus.py`, `test_agents.py`, `test_orchestrator.py` |
-| 6 | Storage Backends | ✅ Complete (Postgres stub) | `test_storage_backends.py` |
-| 6.1 | Code Backend | 🔶 Partial (git + fs done; PDB spec'd, not built) | `test_code_backends.py` (git/fs) |
-| 6.2 | Log Backend | ⬜ Not started (spec'd) | - |
-| 7 | CLI & Local Mode | ✅ Complete | `test_cli.py`, `integration/test_e2e_cli.py` |
-| 8 | REST API Layer | ⬜ Not started | - |
-| 9 | Secure Code Sandbox | ⬜ Not started | - |
-| 10 | Testing & Hardening | ⬜ Not started | - |
+| Phase | Name                       | Status                                            | Tests                                                          |
+|-------|----------------------------|---------------------------------------------------|----------------------------------------------------------------|
+| 1     | Foundation & Package Setup | ✅ Complete                                        | `test_schemas.py`, `test_settings.py`, `test_interfaces.py`    |
+| 2     | Data Adapter Layer         | ✅ Complete                                        | `test_data_adapter.py`                                         |
+| 3     | AI Backends                | ✅ Complete                                        | `test_ai_backends.py`, `integration/test_ai_pipeline.py`       |
+| 4     | Debug Backends             | ✅ Complete                                        | `test_debug_backends.py`, `integration/test_debug_pipeline.py` |
+| 5     | Multi-Agent System         | ✅ Complete                                        | `test_consensus.py`, `test_agents.py`, `test_orchestrator.py`  |
+| 6     | Storage Backends           | ✅ Complete (Postgres stub)                        | `test_storage_backends.py`                                     |
+| 6.1   | Code Backend               | 🔶 Partial (git + fs done; PDB spec'd, not built) | `test_code_backends.py` (git/fs)                               |
+| 6.2   | Log Backend                | 🔶 Partial (file + fluent done; ELK deferred)     | `test_log_backends.py`                                         |
+| 7     | CLI & Local Mode           | ✅ Complete                                        | `test_cli.py`, `integration/test_e2e_cli.py`                   |
+| 8     | REST API Layer             | ⬜ Not started                                     | -                                                              |
+| 9     | Secure Code Sandbox        | ⬜ Not started                                     | -                                                              |
+| 10    | Testing & Hardening        | ⬜ Not started                                     | -                                                              |
 
-**Current gate status:** `mypy --strict` clean (52 files) · 276 tests passing (unit + integration). Phases 6.1 (git + filesystem adapters) and 6.2 (file + fluent adapters) partially shipped; PDB adapter spec'd, not yet implemented.
+**Current gate status:** 416 tests passing (unit + integration). Phases 6.1 (git + filesystem adapters) and 6.2 (file + fluent adapters) partially shipped; PDB adapter spec'd, not yet implemented. The **log-subsystem re-engineering** (Part III of the plan) is complete - see [below](#log-subsystem-re-engineering-).
 
-**End-to-end validation (real dump, 2026-05-31):** reproduced the prototype's resolution of `CrashUi.exe.1324.dmp` (deterministic NULL-pointer write in `CrashUi!Crash_Window::on_access_violation_click`) through the full Aegis pipeline - `CdbBackend` → `DataAdapter` → 4-agent MAS → `FilesystemStore`, with `--ai openai` (gpt-5.4). Consensus 0.97 (HIGH), converged in 1 round, and the panel additionally emitted a probabilistic-fix diff. Backend engine fixes made during this run (all in `PRODUCTION_DESIGN_SPEC.md` §6.1.1 / §6.2.1):
+**End-to-end validation (real dump, 2026-05-31):** reproduced the prototype's resolution of `CrashUi.exe.1324.dmp` (deterministic NULL-pointer write in `CrashUi!Crash_Window::on_access_violation_click`) through the full Aegis pipeline - `CdbBackend` → `DataAdapter` → 4-agent MAS → `FilesystemStore`, with `--ai openai` (gpt-5.4). Consensus 0.97 (HIGH), converged in 1 round, and the panel additionally emitted a probabilistic-fix diff. Backend engine fixes made during this run (all in [generic_implementation_plan.md](generic_implementation_plan.md) C.1 AIAPIBackend / C.2 DebugBackend):
 - `AISettings.resolved_model` - `--ai openai` now uses an OpenAI model instead of the Anthropic default.
 - `OpenAIBackend` reasoning-model contract - `max_completion_tokens` (16k floor), no `temperature`; client `timeout=300s` + `max_retries=4`.
 - `CdbBackend._extract_exception_code` - multi-key fault-code extraction (`EXCEPTION_CODE` / `ERROR_CODE` / `EXCEPTION_CODE_STR` / `ExceptionCode`); fixes a prototype-ported defect that mapped NULL_POINTER_WRITE dumps to `FaultClass.UNKNOWN`.
 
 **Test layout:** `tests/unit/` (isolated component tests, mocked SDKs), `tests/integration/` (cross-component contracts), `tests/unit/fixtures/` (shared `MockAIBackend`, `MockDebugBackend`, and data fixtures, importable as `tests.unit.fixtures.*` via `pythonpath=["."]`).
+
+---
+
+## Log subsystem re-engineering ✅
+
+Cross-cutting refactor (plan [Part III](generic_implementation_plan.md#part-iii--new-task-three-channel-logging-application--evidence--investigation-process)) that split one overloaded `--log-severity` knob into three independent channels and regrouped config.json into four nested analyze sections.
+
+- **Channels:** **application logging** (`logging.*` - severity + sink + dir), **evidence** (`evidence.*` - war-room left pane, INFO/TRACE), **investigation process** (`process.*` - war-room right pane, INFO/TRACE). Log **ingestion** moved to `ingest.log_source.*` (overrides `backends.log`).
+- **CLI:** added `--log-sink`, `--evidence-severity`, `--process-severity`, `--evidence-persist`; `--log-severity` is now application-only; `--log-provider`/`--log-service` configure `ingest.log_source`. Out-of-range stream levels / unknown sink exit `2`.
+- **Sinks:** application `file` sink implemented; `elk`/`fluent` are warn-and-fall-back stubs with `_register_*_sink` seams (real emitters are the one deferred item).
+- **Evidence persistence:** opt-in post-run transcript (`evidence-<id>.log`); war-room view + non-quiet output only (warns otherwise).
+- **Back-compat:** `_migrate_legacy` upgrades a pre-split `logging` block (provider/service → `ingest.log_source`; conflated `severity` seeds the panes) with a one-time deprecation warning.
+- **Docs/config:** `configuration/config.md` + `cli.md` rewritten; `config.example.json` and the default `config.json` use the four-section layout.
+- **Tests:** unit + mock + integration shipped per phase across `test_analyze_config.py`, `test_cli.py`, `test_logging.py`, `test_views.py`, `integration/test_e2e_cli.py`.
 
 ---
 
@@ -56,7 +70,7 @@ Delivered:
   8. Code-history query (optional `CodeBackend`)
   9. `IncidentBrief` assembly
 - `core/schemas.py` - added `IncidentBrief` model
-- Refinements recorded in [PRODUCTION_DESIGN_SPEC.md](PRODUCTION_DESIGN_SPEC.md) §5.4
+- Refinements recorded in [generic_implementation_plan.md](generic_implementation_plan.md) 5. Data Adapter Layer
 
 Test coverage (29 tests): hashing, format detection, every noise-filter rule, ≥60 % token reduction on the canonical CDB fixture, temporal windowing (inner/outer/out-of-window), Drain3 heartbeat dedup, PII scrubbing (emails/AWS keys/IPs/DB strings + stable tokens + map recovery), assumption cap, history-injection rule, and full-pipeline integration (crash-dump, low-symbol-coverage, log-only modes).
 
@@ -69,8 +83,8 @@ Delivered:
 - `backends/ai/anthropic_provider.py` - `AnthropicBackend`: tool-use structured output, mandatory `cache_control` ephemeral on the system block, `messages.stream()` token streaming
 - `backends/ai/openai_provider.py` - `OpenAIBackend`: `json_schema` strict structured output (`_to_openai_strict_schema`), `stream_options.include_usage` streaming
 - `backends/ai/__init__.py` - `create_ai_backend(settings)` factory
-- ABC change: `AIAPIBackend.stream` is now a plain `def` returning `AsyncGenerator` (see spec §6.1.1)
-- As-built decisions recorded in [PRODUCTION_DESIGN_SPEC.md](PRODUCTION_DESIGN_SPEC.md) §6.1.1
+- ABC change: `AIAPIBackend.stream` is now a plain `def` returning `AsyncGenerator` (see spec 6.1 AIAPIBackend)
+- As-built decisions recorded in [generic_implementation_plan.md](generic_implementation_plan.md) 6.1 AIAPIBackend
 
 Mock/unit coverage (`test_ai_backends.py`, 20 tests): structured-output happy path, retry-then-valid, raise-after-retry, unstructured text, streaming, cache-control + tool assertion, no-tool-block error, OpenAI strict-schema adapter, malformed-JSON handling, and the provider factory (anthropic/openai/unknown). All SDK clients patched - no network.
 
@@ -102,7 +116,7 @@ Delivered:
 - `backends/debug/_symbol_path.py` - `resolve_symbol_path` (config → `AEGIS_SYMBOL_CACHE` → platform default)
 - `backends/debug/__init__.py` - `create_debug_backend(settings, platform=None)` factory
 - `core/exceptions.py` - added `DebugExtractionError`
-- As-built decisions recorded in [PRODUCTION_DESIGN_SPEC.md](PRODUCTION_DESIGN_SPEC.md) §6.2.1
+- As-built decisions recorded in [generic_implementation_plan.md](generic_implementation_plan.md) 6.2 DebugBackend
 
 Unit coverage (`test_debug_backends.py`, 22 tests): per-backend fault-class mapping, structured field + stack-frame parsing, `symbol_resolution_score`, noise-filter application, CDB timestamp + source-line parsing, command-sequence construction, validation errors (no dump / missing file), subprocess errors (missing binary → `PlatformNotSupportedError`, timeout → `DebugExtractionError`), the platform factory (win32/linux/darwin/unsupported), and symbol-path resolution. All `subprocess.run` calls mocked - no debugger binary required.
 

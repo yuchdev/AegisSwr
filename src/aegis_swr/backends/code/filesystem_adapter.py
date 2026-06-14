@@ -5,7 +5,7 @@ contract holds without Git. Used for vendored / exported source trees, archived
 snapshots, or air-gapped drops with no ``.git``. History is synthesized from file
 modification times; blame carries no real authorship.
 
-See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §6.5.2.
+See ``docs/specs/generic_implementation_plan.md`` C.5 CodeBackend.
 """
 from __future__ import annotations
 

@@ -80,7 +80,7 @@ $env:AEGIS_SYMBOL_CACHE = 'C:\symbols'
 
 ```powershell
 $env:AEGIS_SYMBOL_CACHE = ''
-.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --sym 'C:\symbols' --engine cdb --ai openai --store filesystem --store-config '.\reports-sym' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --log-severity DEBUG
+.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --sym 'C:\symbols' --engine cdb --ai openai --store filesystem --store-config '.\reports-sym' --assume "There's probability that the crash was deliberately injected. Check this theory" --output rich --log-severity TRACE
 ```
 
 ### 3.4 Aegis SWR - Variant B (--log CrashUi.log, no sym env)

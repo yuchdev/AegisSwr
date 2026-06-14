@@ -49,7 +49,8 @@
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           { "type": "command", "command": "python .claude/hooks/post_edit_format.py" },
-          { "type": "command", "command": "python .claude/hooks/dep_audit.py" }
+          { "type": "command", "command": "python .claude/hooks/dep_audit.py" },
+          { "type": "command", "command": "python .claude/hooks/doc_link_check.py" }
         ]
       },
       {
@@ -62,7 +63,8 @@
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "python .claude/hooks/run_tests.py" }
+          { "type": "command", "command": "python .claude/hooks/run_tests.py" },
+          { "type": "command", "command": "python .claude/hooks/doc_link_check.py" }
         ]
       }
     ]

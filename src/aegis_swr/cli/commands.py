@@ -5,6 +5,7 @@ Options can be given as explicit CLI flags or read from a JSON config file
 schema (:class:`~aegis_swr.cli._config.AnalyzeConfig`): the file is applied
 first and explicit CLI flags are layered on top - defaults < config.json < CLI.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -14,6 +15,7 @@ from typing import Annotated, Optional
 
 import click
 import typer
+from loguru import logger
 from rich.console import Console
 from typer.core import TyperGroup
 
@@ -28,6 +30,36 @@ from aegis_swr.cli._formatters import json_formatter, rich_formatter, stream_and
 from aegis_swr.cli.aegis_logging import configure_logging
 
 console = Console()
+
+#: Allowed values for the war-room verbosity channels (evidence / process). The
+#: application log channel accepts the full loguru range, so it is left to loguru.
+_STREAM_LEVELS = frozenset({"INFO", "TRACE"})
+#: Allowed application log sinks (elk/fluent are stubs until a later phase).
+_LOG_SINKS = frozenset({"file", "elk", "fluent"})
+#: Default directory for the opt-in Evidence Stream transcript (--evidence-persist).
+_DEFAULT_EVIDENCE_DIR = "~/.local/state/aegis-swr/evidence"
+
+
+def _validate_log_options(config: AnalyzeConfig) -> None:
+    """Reject out-of-range logging-channel values (from CLI flags or config.json).
+
+    Evidence and Investigation-Process accept only ``INFO``/``TRACE``; the
+    application log sink must be ``file``/``elk``/``fluent``. The application
+    severity accepts the full loguru range, so it is left to loguru to validate.
+    """
+    errors: list[str] = []
+    if config.evidence_severity.upper() not in _STREAM_LEVELS:
+        errors.append(
+            f"--evidence-severity must be INFO or TRACE (got {config.evidence_severity!r})"
+        )
+    if config.process_severity.upper() not in _STREAM_LEVELS:
+        errors.append(f"--process-severity must be INFO or TRACE (got {config.process_severity!r})")
+    if config.log_sink.lower() not in _LOG_SINKS:
+        errors.append(f"--log-sink must be one of file, elk, fluent (got {config.log_sink!r})")
+    if errors:
+        for message in errors:
+            typer.echo(f"Error: {message}", err=True)
+        raise typer.Exit(code=2)
 
 
 class FullHelpGroup(TyperGroup):
@@ -80,6 +112,7 @@ app.add_typer(config_app, name="config")
 # aegis analyze
 # ---------------------------------------------------------------------------
 
+
 @app.command("analyze")
 def analyze(  # noqa: PLR0913
     ctx: typer.Context,
@@ -103,15 +136,14 @@ def analyze(  # noqa: PLR0913
     engine: Annotated[
         str, typer.Option("--engine", help="Debug engine: auto | cdb | windbg_js.")
     ] = "auto",
-    ai: Annotated[
-        str, typer.Option("--ai", help="AI provider: anthropic | openai.")
-    ] = "anthropic",
+    ai: Annotated[str, typer.Option("--ai", help="AI provider: anthropic | openai.")] = "anthropic",
     store: Annotated[
         str,
         typer.Option("--store", help="Storage backend: filesystem | sqlite | s3 | postgres."),
     ] = "filesystem",
     store_config: Annotated[
-        Optional[str], typer.Option("--store-config", help="Storage config value (path / bucket URL).")
+        Optional[str],
+        typer.Option("--store-config", help="Storage config value (path / bucket URL)."),
     ] = None,
     code_provider: Annotated[
         str, typer.Option("--code-provider", help="Code backend: none | git | filesystem.")
@@ -121,11 +153,20 @@ def analyze(  # noqa: PLR0913
         typer.Option("--repo", help="Repo / source root (enables the code backend)."),
     ] = None,
     log_provider: Annotated[
-        str, typer.Option("--log-provider", help="Log backend: file | fluent.")
+        str,
+        typer.Option(
+            "--log-provider",
+            help="Log-ingestion backend (reads the investigated system's logs): "
+            "file | fluent. Sets ingest.log_source.provider -> backends.log.provider.",
+        ),
     ] = "file",
     log_service: Annotated[
         Optional[str],
-        typer.Option("--log-service", help="Service name for LogBackend.query_window."),
+        typer.Option(
+            "--log-service",
+            help="Service name for LogBackend.query_window "
+            "(sets ingest.log_source.service -> metadata['service']).",
+        ),
     ] = None,
     output: Annotated[
         str,
@@ -140,9 +181,10 @@ def analyze(  # noqa: PLR0913
         str,
         typer.Option(
             "--log-severity",
-            help="Log verbosity: TRACE | DEBUG | INFO | WARNING | ERROR. "
-            "DEBUG adds per-artifact evidence to the stream; TRACE additionally "
-            "streams the full debugger !analyze output.",
+            help="Application log verbosity (Aegis's own diagnostics): "
+            "TRACE | DEBUG | INFO | WARNING | ERROR. The Evidence Stream and "
+            "Investigation Process panes have their own --evidence-severity / "
+            "--process-severity controls.",
         ),
     ] = "WARNING",
     log_dir: Annotated[
@@ -154,6 +196,38 @@ def analyze(  # noqa: PLR0913
             "aegis-swr.log is written here at the chosen --log-severity.",
         ),
     ] = None,
+    log_sink: Annotated[
+        str,
+        typer.Option(
+            "--log-sink",
+            help="Application log sink: file | elk | fluent. elk/fluent are not yet "
+            "implemented and fall back to the file sink (planned: later phase).",
+        ),
+    ] = "file",
+    evidence_severity: Annotated[
+        str,
+        typer.Option(
+            "--evidence-severity",
+            help="Evidence Stream (war-room left pane) verbosity: INFO | TRACE. "
+            "INFO shows the curated summary; TRACE surfaces every evidence detail.",
+        ),
+    ] = "INFO",
+    process_severity: Annotated[
+        str,
+        typer.Option(
+            "--process-severity",
+            help="Investigation Process (war-room right pane) verbosity: INFO | TRACE. "
+            "TRACE prints each agent's full reasoning, not just the headline.",
+        ),
+    ] = "INFO",
+    evidence_persist: Annotated[
+        bool,
+        typer.Option(
+            "--evidence-persist/--no-evidence-persist",
+            help="Persist the Evidence Stream to a file (off by default). Not yet "
+            "implemented; reserved for a later phase.",
+        ),
+    ] = False,
     config_path: Annotated[
         Optional[Path],
         typer.Option(
@@ -167,9 +241,14 @@ def analyze(  # noqa: PLR0913
     ] = False,
 ):
     """Run analysis in-process - no API server required"""
-    # Bootstrap logging at the CLI severity so config-loading warnings surface;
-    # the effective level and log file are re-applied from the merged config below.
-    configure_logging(log_severity)
+    # Bootstrap logging at the CLI severity with a (delayed) file sink at the
+    # resolved log dir, so warnings raised while loading config.json - e.g. an
+    # unreadable or malformed file - are captured in the log file, not just on
+    # stderr. The dir resolves to --log-dir (if given) else the schema default,
+    # which is exactly the effective dir when config.json fails to load (defaults
+    # take over). The effective level/sink/dir are re-applied from the merged
+    # config below; delay=True means a clean run leaves no empty bootstrap file.
+    configure_logging(log_severity, log_dir=(log_dir or AnalyzeConfig().log_dir))
 
     # Normalise every CLI value into the shared config dict shape (Paths → str)
     # so both sources - config.json and the CLI - speak the same JSON dialect.
@@ -191,6 +270,10 @@ def analyze(  # noqa: PLR0913
         "output": output,
         "log_severity": log_severity,
         "log_dir": log_dir,
+        "log_sink": log_sink,
+        "evidence_severity": evidence_severity,
+        "process_severity": process_severity,
+        "evidence_persist": evidence_persist,
     }
 
     # If --save-config: persist the current CLI values and exit.
@@ -206,9 +289,40 @@ def analyze(  # noqa: PLR0913
     overrides = collect_cli_overrides(ctx, cli_values)
     config = AnalyzeConfig.merge(file_config, overrides)
 
-    # Re-apply logging at the effective severity and log directory (config.json
-    # may set either). This is where the classic log file starts being written.
-    configure_logging(config.log_severity, log_dir=config.log_dir)
+    # Validate the logging channels (covers both CLI flags and config.json values).
+    _validate_log_options(config)
+
+    # Three independent logging channels (the log-subsystem split, plan Part III),
+    # each now sourced from its own config field:
+    #   - application logging   -> configure_logging (diagnostics: stderr + file)
+    #   - evidence stream       -> war-room left pane
+    #   - investigation process -> war-room right pane (agent reasoning)
+    app_severity = config.log_severity
+    evidence_severity = config.evidence_severity
+    process_severity = config.process_severity
+
+    # Evidence persistence (opt-in, D5) writes the Evidence Stream after the run.
+    # It needs a rendered stream, so it has no effect in --output quiet mode.
+    # (--log-sink is handled by configure_logging, which warns + falls back for
+    # the not-yet-implemented elk/fluent sinks.)
+    evidence_dir = config.evidence_dir or _DEFAULT_EVIDENCE_DIR
+    if config.evidence_persist and config.output == "quiet":
+        logger.warning(
+            "--evidence-persist has no effect with --output quiet (no Evidence "
+            "Stream is rendered to persist)."
+        )
+
+    # Re-apply logging at the effective severity, sink, and log directory
+    # (config.json may set any of them). This is where the diagnostic log starts
+    # being written; elk/fluent sinks warn and fall back to file/stderr for now.
+    configure_logging(
+        app_severity,
+        log_dir=config.log_dir,
+        sink=config.log_sink,
+        elk_url=config.log_elk_url,
+        fluent_host=config.log_fluent_host,
+        fluent_port=config.log_fluent_port,
+    )
 
     # Build IncidentSource. The code backend reads metadata["repo_path"]; the log
     # backend reads metadata["service"] (Data Adapter stages 8 and 4).
@@ -305,9 +419,18 @@ def analyze(  # noqa: PLR0913
         # For json / json-full output, stream the live display to stderr so
         # stdout carries only the machine-readable payload.
         from aegis_swr.cli._formatters import make_console
+
         stream_con = make_console(stderr=(fmt in ("json", "json-full")))
         report = asyncio.run(
-            stream_and_display(orch, source, stream_con, level=config.log_severity)
+            stream_and_display(
+                orch,
+                source,
+                stream_con,
+                evidence_level=evidence_severity,
+                process_level=process_severity,
+                evidence_persist=config.evidence_persist,
+                evidence_dir=evidence_dir,
+            )
         )
         if report is None:
             typer.echo("Error: investigation ended without producing a report.", err=True)
@@ -388,11 +511,10 @@ def _apply_store_config(settings: object, store: str, value: str):
 # aegis export
 # ---------------------------------------------------------------------------
 
+
 @app.command("export")
 def export(
-    store: Annotated[
-        str, typer.Option("--store", help="Source storage backend.")
-    ] = "filesystem",
+    store: Annotated[str, typer.Option("--store", help="Source storage backend.")] = "filesystem",
     store_config: Annotated[
         Optional[str], typer.Option("--store-config", help="Source config value.")
     ] = None,
@@ -443,6 +565,7 @@ def export(
 # aegis server
 # ---------------------------------------------------------------------------
 
+
 @app.command("server")
 def server(
     host: Annotated[str, typer.Option("--host", help="Bind host.")] = "0.0.0.0",
@@ -461,6 +584,7 @@ def server(
 # ---------------------------------------------------------------------------
 # aegis config show / set
 # ---------------------------------------------------------------------------
+
 
 @config_app.command("show")
 def config_show():

@@ -8,7 +8,7 @@ Intended production design (for the future implementer): connect to
 time-range query against the Fluent forward/HTTP API, and map the returned
 records to log lines. The stub makes no network connection.
 
-See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §6.4.2.
+See ``docs/specs/generic_implementation_plan.md`` C.5 CodeBackend.
 """
 from __future__ import annotations
 from typing import Optional

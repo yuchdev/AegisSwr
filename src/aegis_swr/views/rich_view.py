@@ -13,13 +13,16 @@ render an investigation live:
 :func:`make_view` selects between them by terminal width.
 :func:`render_verdict` prints the final report once the live block freezes.
 """
+
 from __future__ import annotations
 
+import io
 import os
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal, Optional
+from typing import Literal, Optional
 
 from rich.console import Console, Group, RenderableType
 from rich.json import JSON
@@ -43,19 +46,19 @@ from rich.theme import Theme
 from aegis_swr.core.events import (
     AgentSpoke,
     ConsensusEvaluated,
+    DomainEvent,
+    EventBus,
     EvidenceExtracted,
     HumanInputRequired,
     InvestigationCompleted,
     InvestigationStarted,
 )
-from aegis_swr.core.schemas import ConfidenceLevel
+from aegis_swr.core.schemas import AgentTurn, ConfidenceLevel, IncidentSource, RCAReport
 from aegis_swr.views.evidence_detail import (
     describe_log_window,
     file_properties,
     pcap_metadata,
 )
-from aegis_swr.core.events import DomainEvent, EventBus
-from aegis_swr.core.schemas import AgentTurn, IncidentSource, RCAReport
 
 
 def make_console(*, stderr: bool = False) -> Console:
@@ -159,30 +162,29 @@ def _bar(ratio: float, width: int, color: str) -> Text:
 # ---------------------------------------------------------------------------
 
 
-#: Evidence-stream verbosity levels, least → most verbose.  ``INFO`` is the
-#: curated summary shown by default; ``DEBUG`` adds every detailed evidence line
-#: on top of it; ``TRACE`` additionally surfaces the *full* debugger ``!analyze``
-#: output instead of a capped excerpt.
-EvidenceLevel = Literal["INFO", "DEBUG", "TRACE"]
+#: War-room stream verbosity levels, least → most verbose. ``INFO`` is the curated
+#: summary shown by default; ``TRACE`` surfaces every detail - the full per-artifact
+#: evidence metadata in the Evidence Stream, and each agent's full reasoning in the
+#: Investigation Process pane. The former ``DEBUG`` level is collapsed into ``TRACE``
+#: (the log-subsystem split, plan Part III - Phase D).
+EvidenceLevel = Literal["INFO", "TRACE"]
 
 #: Rank of each level (higher == more verbose).  A buffered line tagged at level
 #: *L* is shown when the active display level's rank is ``>=`` rank(*L*).
-_LEVEL_RANK: dict[str, int] = {"INFO": 0, "DEBUG": 1, "TRACE": 2}
+_LEVEL_RANK: dict[str, int] = {"INFO": 0, "TRACE": 1}
 
 
 def _normalize_evidence_level(level: object) -> EvidenceLevel:
     """Coerce an arbitrary severity string to a known ``EvidenceLevel``.
 
-    Logging-only levels (``WARNING`` / ``ERROR``) and anything unrecognised fall
-    back to the ``INFO`` summary stream.
+    ``DEBUG`` collapses into ``TRACE``; logging-only levels (``WARNING`` /
+    ``ERROR``) and anything unrecognised fall back to the ``INFO`` summary stream.
     """
     candidate = str(level).upper()
+    if candidate == "DEBUG":
+        return "TRACE"
     return candidate if candidate in _LEVEL_RANK else "INFO"  # type: ignore[return-value]
 
-
-# How many lines of the raw core-dump analysis text to surface at DEBUG.  TRACE
-# lifts this cap and streams the whole filtered ``!analyze -v`` output.
-_DEBUG_EXCERPT_LINES = 40
 
 #: Left indent (columns) for sub-detail evidence/process lines.
 _SUBDETAIL_INDENT = 2
@@ -197,6 +199,17 @@ def _subdetail(body: Text, *, left: int = _SUBDETAIL_INDENT) -> Padding:
     long lines wrap cleanly inside the panel border.
     """
     return Padding(body, (0, 0, 0, left))
+
+
+def _plain_text(renderable: RenderableType) -> str:
+    """Render *renderable* to a plain (uncoloured, unwrapped) text string.
+
+    Used to serialise the Evidence Stream to a persisted transcript: a wide,
+    no-colour capture console avoids ANSI escapes and line wrapping.
+    """
+    capture = Console(file=io.StringIO(), width=10_000, no_color=True, force_terminal=False)
+    capture.print(renderable)
+    return capture.file.getvalue().rstrip("\n")
 
 
 @dataclass
@@ -286,11 +299,7 @@ class _StreamLog:
         self._advance(now, finished=finished)
         revealed = self._lines[: self._revealed]
         threshold = _LEVEL_RANK.get(level, 0)
-        shown = [
-            entry.text
-            for entry in revealed
-            if _LEVEL_RANK.get(entry.level, 0) <= threshold
-        ]
+        shown = [entry.text for entry in revealed if _LEVEL_RANK.get(entry.level, 0) <= threshold]
         return shown[-max_lines:]
 
 
@@ -318,10 +327,18 @@ class WarRoomView:
         *,
         auto_refresh: bool = True,
         level: str = "INFO",
+        process_level: Optional[str] = None,
     ):
         self._console = console or make_console()
         self._auto_refresh = auto_refresh
-        self._level: EvidenceLevel = _normalize_evidence_level(level)
+        # Evidence Stream (left pane) verbosity.
+        self._evidence_level: EvidenceLevel = _normalize_evidence_level(level)
+        # Investigation Process (right pane) verbosity - an independent channel
+        # (log-subsystem split, plan Part III); defaults to the evidence level when
+        # not supplied. Consulted by the process-pane handlers/renderers below.
+        self._process_level: EvidenceLevel = _normalize_evidence_level(
+            process_level if process_level is not None else level
+        )
         self._live: Optional[Live] = None
 
         # ── investigation state ──
@@ -426,23 +443,20 @@ class WarRoomView:
             func = frame.get("function") or frame.get("instruction_address") or "?"
             self._stamp_field(f"stack[{i}]", str(func), "blue")
 
-        if self._level in ("DEBUG", "TRACE"):
-            self._emit_debug_evidence(brief)
+        if self._evidence_level == "TRACE":
+            self._emit_trace_evidence(brief)
 
         self._wake("OS Kernel Agent")
         self._refresh()
 
-    def _emit_debug_evidence(self, brief: dict[str, object]):
-        """Append the verbose DEBUG/TRACE evidence metadata for one incident.
+    def _emit_trace_evidence(self, brief: dict[str, object]):
+        """Append the verbose TRACE evidence metadata for one incident.
 
-        Surfaces the four detailed evidence categories on top of the curated
-        INFO stream: the textual core-dump analysis, the temporal window of
-        every analyzed log file, screenshot file properties, and network
-        traffic capture metadata - plus the low-level fault fields.
-
-        At ``DEBUG`` the core-dump analysis is capped at
-        :data:`_DEBUG_EXCERPT_LINES`; at ``TRACE`` the *full* ``!analyze -v``
-        output is streamed.
+        Surfaces the four detailed evidence categories on top of the curated INFO
+        stream: the textual core-dump analysis (the *full* ``!analyze -v`` output),
+        the temporal window of every analyzed log file, screenshot file properties,
+        and network traffic capture metadata - plus the low-level fault fields.
+        Every line is tagged ``TRACE`` so it shows only at the TRACE level.
         """
         # ── very detailed fault metadata ──
         for label, key in (
@@ -452,54 +466,46 @@ class WarRoomView:
         ):
             value = brief.get(key)
             if value:
-                self._stamp_field(label, str(value), "grey70", level="DEBUG")
+                self._stamp_field(label, str(value), "grey70", level="TRACE")
 
         # Full stack beyond the INFO top-three, with module/source detail.
         frames = brief.get("stack_frames") or []
         for i, frame in enumerate(frames):
             if i < 3:
                 continue
-            self._stamp_field(f"stack[{i}]", _format_frame(frame), "blue", level="DEBUG")
+            self._stamp_field(f"stack[{i}]", _format_frame(frame), "blue", level="TRACE")
 
-        # ── 1. textual result of the core-dump analysis ──
-        # DEBUG shows a capped excerpt; TRACE streams the full analyze output.
+        # ── 1. textual result of the core-dump analysis (full !analyze -v) ──
         excerpt = str(brief.get("raw_text_excerpt") or "").strip()
         if excerpt:
-            detail: EvidenceLevel = "TRACE" if self._level == "TRACE" else "DEBUG"
-            analysis_lines = excerpt.splitlines()
-            if detail == "TRACE":
-                header = "core dump analysis (cdb !analyze -v, full):"
-            else:
-                header = "core dump analysis (cdb !analyze -v):"
-                analysis_lines = analysis_lines[:_DEBUG_EXCERPT_LINES]
-            self._stamp(header, style="dim", level=detail)
-            for raw in analysis_lines:
-                self._add_evidence(_subdetail(Text(raw, style="grey62")), level=detail)
+            self._stamp("core dump analysis (cdb !analyze -v):", style="dim", level="TRACE")
+            for raw in excerpt.splitlines():
+                self._add_evidence(_subdetail(Text(raw, style="grey62")), level="TRACE")
 
         src = self._source
         incident_ts = src.incident_timestamp if src else None
 
         # ── 2. ±2 minute window for every analyzed log file ──
-        for raw_path in (src.log_paths if src else []):
+        for raw_path in src.log_paths if src else []:
             props = file_properties(raw_path)
-            self._stamp_field("log", props.describe(), "cyan", level="DEBUG")
+            self._stamp_field("log", props.describe(), "cyan", level="TRACE")
             self._add_evidence(
-                _subdetail(
-                    Text(f"window {describe_log_window(incident_ts)}", style="grey62")
-                ),
-                level="DEBUG",
+                _subdetail(Text(f"window {describe_log_window(incident_ts)}", style="grey62")),
+                level="TRACE",
             )
         summary = str(brief.get("log_summary") or "").strip()
         if summary:
             self._stamp_field(
-                "log_summary", f"{len(summary.splitlines())} clustered lines", "cyan",
-                level="DEBUG",
+                "log_summary",
+                f"{len(summary.splitlines())} clustered lines",
+                "cyan",
+                level="TRACE",
             )
 
         # ── 3. name and properties of every screenshot file ──
-        for raw_path in (src.screenshot_paths if src else []):
+        for raw_path in src.screenshot_paths if src else []:
             props = file_properties(raw_path)
-            self._stamp_field("screenshot", props.describe(), "magenta", level="DEBUG")
+            self._stamp_field("screenshot", props.describe(), "magenta", level="TRACE")
         ui = brief.get("ui_context")
         if isinstance(ui, dict):
             elements = ui.get("ui_elements") or []
@@ -511,15 +517,15 @@ class WarRoomView:
                         style="grey62",
                     )
                 ),
-                level="DEBUG",
+                level="TRACE",
             )
 
         # ── 4. metadata of every network traffic capture ──
-        for raw_path in (src.network_capture_paths if src else []):
+        for raw_path in src.network_capture_paths if src else []:
             props = file_properties(raw_path)
-            self._stamp_field("netcap", props.describe(), "yellow", level="DEBUG")
+            self._stamp_field("netcap", props.describe(), "yellow", level="TRACE")
             for detail in _format_pcap(raw_path):
-                self._add_evidence(_subdetail(Text(detail, style="grey62")), level="DEBUG")
+                self._add_evidence(_subdetail(Text(detail, style="grey62")), level="TRACE")
 
     def _on_agent(self, event: DomainEvent):
         assert isinstance(event, AgentSpoke)
@@ -551,10 +557,11 @@ class WarRoomView:
         line.append(f"{short} » ", style="bold")
         line.append(finding, style="italic")
         self._add_process(line)
-        # DEBUG/TRACE surface the agent's full reasoning, not just the headline.
-        if self._level in ("DEBUG", "TRACE"):
+        # At TRACE the Investigation Process pane surfaces the agent's full
+        # reasoning, not just the headline - gated by its own process channel.
+        if self._process_level == "TRACE":
             for extra in message.splitlines()[1:]:
-                self._add_process(_subdetail(Text(extra, style="grey62")), level="DEBUG")
+                self._add_process(_subdetail(Text(extra, style="grey62")), level="TRACE")
         self._advance()
 
         nxt = _NEXT_AGENT.get(name) if name else None
@@ -568,9 +575,7 @@ class WarRoomView:
         assert isinstance(event, ConsensusEvaluated)
         score = event.score
         level = ConfidenceLevel.from_score(score)
-        self._consensus_history.append(
-            {"round": self._round, "score": score, "converged": None}
-        )
+        self._consensus_history.append({"round": self._round, "score": score, "converged": None})
 
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(f"consensus R{self._round}  ", style="bold")
@@ -619,9 +624,7 @@ class WarRoomView:
         line.append(message, style=style)
         self._add_evidence(line, level=level)
 
-    def _stamp_process(
-        self, message: str, *, style: str = "", level: EvidenceLevel = "INFO"
-    ):
+    def _stamp_process(self, message: str, *, style: str = "", level: EvidenceLevel = "INFO"):
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(message, style=style)
         self._add_process(line, level=level)
@@ -659,6 +662,15 @@ class WarRoomView:
         self._process_log.reveal_all()
         self._refresh()
         self._stop_live()
+
+    def evidence_transcript(self) -> str:
+        """Plain-text record of the full Evidence Stream, for opt-in persistence.
+
+        Joins every buffered evidence line - the complete record at the active
+        verbosity (INFO summary lines, plus the TRACE detail when the evidence
+        channel is TRACE). Returns ``""`` when no evidence was captured.
+        """
+        return "\n".join(_plain_text(line.text) for line in self._evidence_log.lines)
 
     # -- rendering ----------------------------------------------------------
 
@@ -727,7 +739,7 @@ class WarRoomView:
         Evidence is the left half of the body (below the 1-row header), inside a
         bordered Panel with the default ``(0, 1)`` padding.
         """
-        inner_h = max(1, self._console.height - 1 - 2)   # header row, panel borders
+        inner_h = max(1, self._console.height - 1 - 2)  # header row, panel borders
         inner_w = max(10, self._console.width // 2 - 4)  # 2 border + 2 padding cols
         return inner_w, inner_h
 
@@ -736,7 +748,7 @@ class WarRoomView:
         revealed = self._evidence_log.visible(
             now=time.monotonic(),
             finished=self._finished,
-            level=self._level,
+            level=self._evidence_level,
             max_lines=self._MAX_EVIDENCE,
         )
         # While running, reserve the bottom row for the streaming cursor.
@@ -747,8 +759,8 @@ class WarRoomView:
             lines = [*lines, Text(cursor, style="cyan")]
         body = Group(*lines) if lines else Text("")
         title = "[bold]EVIDENCE STREAM[/bold]"
-        if self._level != "INFO":
-            title += f" [dim]({self._level.lower()})[/dim]"
+        if self._evidence_level != "INFO":
+            title += f" [dim]({self._evidence_level.lower()})[/dim]"
         return Panel(body, title=title, border_style="grey37")
 
     def _render_agents(self) -> Panel:
@@ -826,7 +838,7 @@ class WarRoomView:
         convo = self._process_log.visible(
             now=time.monotonic(),
             finished=self._finished,
-            level=self._level,
+            level=self._process_level,
             max_lines=self._MAX_EVIDENCE,
         )
         # One row held back as a clipping safety margin; fit by rendered height
@@ -1048,9 +1060,7 @@ class RichView:
                 self._stages_total += 5
                 self._progress.update(self._task_id, total=self._stages_total)
             self._last_round = turn.turn_number
-            self._trail.append(
-                Rule(f"Round {turn.turn_number} - panel deliberation", style="dim")
-            )
+            self._trail.append(Rule(f"Round {turn.turn_number} - panel deliberation", style="dim"))
 
         self._trail.append(_agent_trail_line(turn, elapsed))
         self._trail.append(_turn_summary(turn))
@@ -1102,15 +1112,23 @@ class RichView:
             self._live = None
 
 
-def make_view(console: Console, *, level: str = "INFO") -> RichView | WarRoomView:
+def make_view(
+    console: Console, *, level: str = "INFO", process_level: Optional[str] = None
+) -> RichView | WarRoomView:
     """Pick the war-room view on wide terminals, the trail view otherwise.
 
-    *level* selects the Evidence Stream verbosity for the war-room view
-    (``DEBUG`` surfaces the detailed per-artifact evidence metadata; ``TRACE``
-    additionally streams the full debugger ``!analyze`` output). Unrecognised
-    values fall back to ``INFO``.
+    *level* selects the Evidence Stream (left pane) verbosity: ``INFO`` shows the
+    curated summary; ``TRACE`` surfaces the full per-artifact evidence metadata and
+    the full debugger ``!analyze`` output. *process_level* selects the Investigation
+    Process (right pane) verbosity independently - at ``TRACE`` the agents' full
+    reasoning is shown. ``DEBUG`` collapses into ``TRACE``; unrecognised values fall
+    back to ``INFO``.
     """
-    return WarRoomView(console, level=level) if console.width >= 80 else RichView(console)
+    return (
+        WarRoomView(console, level=level, process_level=process_level)
+        if console.width >= 80
+        else RichView(console)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1179,9 +1197,7 @@ def _build_diagnosis(report: RCAReport) -> str:
         f"{rounds} debate round{'s' if rounds != 1 else ''}."
     )
 
-    evidence = [
-        e for e in report.primary_hypothesis.evidence if not e.startswith("__fix__:")
-    ]
+    evidence = [e for e in report.primary_hypothesis.evidence if not e.startswith("__fix__:")]
     if evidence:
         md.append("")
         md.append("### Evidence")
@@ -1222,19 +1238,14 @@ def _build_diagnosis(report: RCAReport) -> str:
         if report.dump_hash:
             md.append(f"- **Dump hash:** `{report.dump_hash}`")
         if report.symbol_resolution_score is not None:
-            md.append(
-                f"- **Symbol coverage:** {report.symbol_resolution_score:.0%}"
-            )
+            md.append(f"- **Symbol coverage:** {report.symbol_resolution_score:.0%}")
 
     md.append("")
     md.append("---")
     md.append("")
     md.append("## Recommendation")
     if report.mitigation_instructions:
-        md.extend(
-            f"{i}. {step}"
-            for i, step in enumerate(report.mitigation_instructions, start=1)
-        )
+        md.extend(f"{i}. {step}" for i, step in enumerate(report.mitigation_instructions, start=1))
     else:
         target = report.faulting_module or "the implicated component"
         md.append(

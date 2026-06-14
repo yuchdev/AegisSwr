@@ -4,7 +4,7 @@ Returns log lines from local ``.log`` / ``.txt`` files whose parsed timestamp
 falls inside the requested window, optionally filtered by severity. The
 ``service`` name resolves to files under ``settings.file_root`` (when set).
 
-See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §6.4.1.
+See ``docs/specs/generic_implementation_plan.md`` C.4 LogBackend
 """
 from __future__ import annotations
 from typing import Optional

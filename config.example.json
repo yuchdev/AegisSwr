@@ -11,11 +11,29 @@
   "store_config": null,
   "code_provider": "none",
   "repo": null,
-  "log_provider": "file",
-  "log_service": null,
-  "log_dir": "~/.local/state/aegis-swr/logs",
-  "log_severity": "INFO",
   "output": "rich",
+  "ingest": {
+    "log_source": {
+      "provider": "file",
+      "service": null
+    }
+  },
+  "logging": {
+    "severity": "INFO",
+    "sink": "file",
+    "dir": "~/.local/state/aegis-swr/logs",
+    "elk_url": null,
+    "fluent_host": null,
+    "fluent_port": null
+  },
+  "evidence": {
+    "severity": "INFO",
+    "persist": false,
+    "dir": null
+  },
+  "process": {
+    "severity": "INFO"
+  },
   "core": {
     "max_debate_rounds": 4,
     "consensus_threshold": 0.85,
@@ -45,7 +63,6 @@
       "provider": "filesystem",
       "reports_dir": "~/.local/state/aegis-swr/reports",
       "objects_dir": "~/.local/state/aegis-swr/objects",
-      "logs_dir": "~/.local/state/aegis-swr/logs",
       "db_path": "~/.local/db/aegis-swr/reports.db",
       "database_url": "postgresql+asyncpg://aegis:aegis@localhost:5432/aegis",
       "object_store_url": "s3://aegis-raw-inputs",
