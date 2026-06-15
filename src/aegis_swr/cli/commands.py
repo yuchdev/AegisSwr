@@ -129,7 +129,13 @@ def analyze(  # noqa: PLR0913
         Optional[list[Path]],
         typer.Option("--pcap", help="Network traffic capture file, e.g. .pcap (repeatable)."),
     ] = None,
-    sym: Annotated[Optional[Path], typer.Option("--sym", help="Symbol path.")] = None,
+    sym: Annotated[
+        Optional[list[Path]],
+        typer.Option(
+            "--sym",
+            help="Symbol search path (repeatable). Each value is appended to the debugger symbol chain.",
+        ),
+    ] = None,
     assume: Annotated[
         Optional[str], typer.Option("--assume", help="User context / assumption text.")
     ] = None,
@@ -257,7 +263,7 @@ def analyze(  # noqa: PLR0913
         "logs": [str(p) for p in (logs or [])],
         "shots": [str(p) for p in (shots or [])],
         "pcaps": [str(p) for p in (pcaps or [])],
-        "sym": str(sym) if sym else None,
+        "sym": [str(p) for p in (sym or [])],
         "assume": assume,
         "engine": engine,
         "ai": ai,

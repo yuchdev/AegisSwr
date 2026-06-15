@@ -4,6 +4,7 @@ Wraps ``cdb.exe`` (Debugging Tools for Windows). Regexes are ported from the
 WinCrashAnalyzer prototype (see docs/prototype-analysis-specs/PROMPT_HEURISTICS.md
 §4 and WIN_DEPENDENCIES.md §8).
 """
+
 from __future__ import annotations
 
 import re
@@ -13,8 +14,7 @@ from typing import ClassVar, Optional
 from aegis_swr.backends.debug._base import _BaseDebugBackend, normalize_address
 from aegis_swr.backends.debug._symbol_path import resolve_symbol_path
 from aegis_swr.core.fault_codes import map_windows_ntstatus
-from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, StackFrame
-from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, IncidentSource, StackFrame
 
 _DEFAULT_SYMBOL_SERVER = "https://msdl.microsoft.com/download/symbols"
 
@@ -39,6 +39,8 @@ def _extract_exception_code(raw: str) -> str:
             token = match.group(1).lower()
             return token if token.startswith("0x") else f"0x{token}"
     return "0x0"
+
+
 _MODULE_RE = re.compile(r"MODULE_NAME:\s+(\S+)")
 _TIMESTAMP_RE = re.compile(r"Debug session time:\s+(.*?)\s+\(UTC")
 # Optional trailing source annotation: " [c:\src\file.cpp @ 142]".
@@ -134,18 +136,16 @@ class CdbBackend(_BaseDebugBackend):
     SUPPORTED_FORMATS: ClassVar[list[DumpFormat]] = [DumpFormat.WINDOWS_MINIDUMP]
     SUPPORTED_PLATFORMS: ClassVar[list[str]] = ["Windows"]
 
-    def _symbol_path_string(self, symbol_path: Optional[str]) -> str:
+    def _symbol_path_string(self, symbol_paths: list[str]) -> str:
         cache = resolve_symbol_path(self._settings.symbol_cache)
         server = self._settings.symbol_server_url or _DEFAULT_SYMBOL_SERVER
-        chain = f"srv*{cache}*{server}"
-        if symbol_path:
-            chain = f"{chain};{symbol_path}"
-        return chain
+        parts = [f"srv*{cache}*{server}", *symbol_paths]
+        return ";".join(parts)
 
     def _build_command_sequence(
         self,
         source: IncidentSource,
-        symbol_path: Optional[str],
+        symbol_path: list[str],
     ) -> list[str]:
         return [
             "cdb.exe",

@@ -7,6 +7,7 @@ from typing import Any, ClassVar, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
+
 from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.schemas import (
     BlameRecord,
@@ -57,12 +58,14 @@ class DebugBackend(ABC):
     def extract(
         self,
         source: IncidentSource,
-        symbol_path: Optional[str],
+        symbol_path: list[str],
     ) -> DebugExtractionResult:
         """Open the dump/core file using the native debugger and extract structured fields.
 
         Maps all platform-native fault codes to FaultClass. Runs the debugger subprocess
         in a RAII context (always terminates on exception). Timeout is enforced by config.
+        Each entry in *symbol_path* is appended as a bare directory to the debugger's
+        symbol search chain (semicolon-separated after the SRV* cache entry).
         """
 
     @abstractmethod

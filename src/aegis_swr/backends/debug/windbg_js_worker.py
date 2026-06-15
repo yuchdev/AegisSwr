@@ -15,6 +15,7 @@ Advantages over CdbBackend:
 Windows-only: the JS script uses ``ActiveXObject("MSXML2.XMLHTTP")`` (COM),
 which is only available inside the cdb/WinDbg Chakra-based WScript runtime.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -34,8 +35,7 @@ from aegis_swr.backends.debug._symbol_path import resolve_symbol_path
 from aegis_swr.core.data_adapter import apply_noise_filter
 from aegis_swr.core.exceptions import DebugExtractionError
 from aegis_swr.core.fault_codes import map_windows_ntstatus
-from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, StackFrame
-from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, IncidentSource, StackFrame
 
 _DEFAULT_SYMBOL_SERVER = "https://msdl.microsoft.com/download/symbols"
 _JS_ASSET_NAME = "windbg_diagnostic.js"
@@ -146,15 +146,13 @@ class WinDbgJSBackend(_BaseDebugBackend):
     def extract(
         self,
         source: IncidentSource,
-        symbol_path: Optional[str],
+        symbol_path: list[str],
     ) -> DebugExtractionResult:
         self._validate(source)
         js_content = self._prepare_js_template()  # raises early if asset missing
 
         with contextlib.ExitStack() as stack:
-            bridge = stack.enter_context(
-                _CallbackBridge(self._settings.callback_timeout_seconds)
-            )
+            bridge = stack.enter_context(_CallbackBridge(self._settings.callback_timeout_seconds))
             js_source = self._inject_params(js_content, bridge.port)
 
             fd, tmp_path = tempfile.mkstemp(suffix=".js")
@@ -182,7 +180,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
     def _build_command_sequence(
         self,
         source: IncidentSource,
-        symbol_path: Optional[str],
+        symbol_path: list[str],
     ) -> list[str]:
         # This method satisfies the ABC contract and is used when the base
         # template method (which we override) would call it. In practice
@@ -201,8 +199,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         path = self._asset_path()
         if not path.exists():
             raise DebugExtractionError(
-                f"WinDbg JS asset not found: {path}. "
-                "Reinstall or repair the aegis-swr package."
+                f"WinDbg JS asset not found: {path}. Reinstall or repair the aegis-swr package."
             )
         return path.read_text(encoding="utf-8")
 
@@ -212,24 +209,21 @@ class WinDbgJSBackend(_BaseDebugBackend):
         max_faulting = getattr(settings, "max_faulting_frames", 20)
         max_other = getattr(settings, "max_other_thread_frames", 3)
         return (
-            template
-            .replace("__CALLBACK_URL__", f"http://127.0.0.1:{port}/")
+            template.replace("__CALLBACK_URL__", f"http://127.0.0.1:{port}/")
             .replace("__MAX_FAULTING_FRAMES__", str(max_faulting))
             .replace("__MAX_OTHER_FRAMES__", str(max_other))
         )
 
-    def _symbol_path_string(self, symbol_path: Optional[str]) -> str:
+    def _symbol_path_string(self, symbol_paths: list[str]) -> str:
         cache = resolve_symbol_path(self._settings.symbol_cache)
         server = self._settings.symbol_server_url or _DEFAULT_SYMBOL_SERVER
-        chain = f"srv*{cache}*{server}"
-        if symbol_path:
-            chain = f"{chain};{symbol_path}"
-        return chain
+        parts = [f"srv*{cache}*{server}", *symbol_paths]
+        return ";".join(parts)
 
     def _js_command(
         self,
         source: IncidentSource,
-        symbol_path: Optional[str],
+        symbol_path: list[str],
         tmp_js_path: str,
     ) -> list[str]:
         return [
@@ -246,9 +240,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         try:
             data = json.loads(raw_json)
         except json.JSONDecodeError as exc:
-            raise DebugExtractionError(
-                f"WinDbg JS callback returned invalid JSON: {exc}"
-            ) from exc
+            raise DebugExtractionError(f"WinDbg JS callback returned invalid JSON: {exc}") from exc
 
         exception_code = data.get("ExceptionCode") or "0x0"
         fault_class = map_windows_ntstatus(exception_code)

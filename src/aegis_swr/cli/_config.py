@@ -231,7 +231,7 @@ class AnalyzeConfig:
     logs: list[str] = field(default_factory=list)
     shots: list[str] = field(default_factory=list)
     pcaps: list[str] = field(default_factory=list)
-    sym: Optional[str] = None
+    sym: list[str] = field(default_factory=list)
     assume: Optional[str] = None
     engine: str = "auto"
     ai: str = "anthropic"

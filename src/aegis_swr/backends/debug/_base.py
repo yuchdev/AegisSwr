@@ -5,8 +5,8 @@ the RAII subprocess invocation with timeout, and the symbol-resolution score.
 Each concrete worker implements ``_build_command_sequence`` (its debugger argv)
 and ``_parse`` (its debugger-output parser).
 """
+
 from __future__ import annotations
-from typing import Optional
 
 import subprocess
 from abc import abstractmethod
@@ -15,11 +15,10 @@ from pathlib import Path
 from loguru import logger
 
 from aegis_swr.backends.base import DebugBackend
+from aegis_swr.config.settings import DebugSettings
 from aegis_swr.core.data_adapter import apply_noise_filter
 from aegis_swr.core.exceptions import DebugExtractionError, PlatformNotSupportedError
-from aegis_swr.core.schemas import DebugExtractionResult, StackFrame
-from aegis_swr.config.settings import DebugSettings
-from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.core.schemas import DebugExtractionResult, IncidentSource, StackFrame
 
 
 class _BaseDebugBackend(DebugBackend):
@@ -31,7 +30,7 @@ class _BaseDebugBackend(DebugBackend):
     def extract(
         self,
         source: IncidentSource,
-        symbol_path: Optional[str],
+        symbol_path: list[str],
     ) -> DebugExtractionResult:
         self._validate(source)
         command = self._build_command_sequence(source, symbol_path)
@@ -47,9 +46,7 @@ class _BaseDebugBackend(DebugBackend):
             raise DebugExtractionError(f"Dump file not found: {source.dump_path}")
         fmt = source.dump_format
         if fmt is not None and fmt not in self.SUPPORTED_FORMATS:
-            raise DebugExtractionError(
-                f"{type(self).__name__} does not support {fmt.value}"
-            )
+            raise DebugExtractionError(f"{type(self).__name__} does not support {fmt.value}")
 
     def _run(self, command: list[str]) -> str:
         try:
@@ -61,9 +58,7 @@ class _BaseDebugBackend(DebugBackend):
                 check=False,
             )
         except FileNotFoundError as exc:
-            raise PlatformNotSupportedError(
-                f"Debugger binary not found: {command[0]!r}"
-            ) from exc
+            raise PlatformNotSupportedError(f"Debugger binary not found: {command[0]!r}") from exc
         except subprocess.TimeoutExpired as exc:
             raise DebugExtractionError(
                 f"Debugger timed out after {self._settings.timeout_seconds}s"

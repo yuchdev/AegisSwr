@@ -1,4 +1,5 @@
 """Unit tests for the CDB/GDB/LLDB/WinDbgJS debug backends"""
+
 from __future__ import annotations
 
 import json
@@ -54,13 +55,11 @@ def _proc(stdout: str) -> SimpleNamespace:
 # ---------------------------------------------------------------------------
 
 
-def test_cdb_extracts_fault_class_and_fields(
-    debug_settings: DebugSettings, dump_path: str
-):
+def test_cdb_extracts_fault_class_and_fields(debug_settings: DebugSettings, dump_path: str):
     raw = (FIXTURES / "sample_cdb_output.txt").read_text()
     backend = CdbBackend(debug_settings)
     with mock.patch(_RUN, return_value=_proc(raw)):
-        result = backend.extract(_source(dump_path), None)
+        result = backend.extract(_source(dump_path), [])
 
     assert result.fault_class == FaultClass.MEMORY_ACCESS_VIOLATION
     assert result.exception_code_raw == "0xc0000005"
@@ -73,7 +72,7 @@ def test_cdb_extracts_stack_frames(debug_settings: DebugSettings, dump_path: str
     raw = (FIXTURES / "sample_cdb_output.txt").read_text()
     backend = CdbBackend(debug_settings)
     with mock.patch(_RUN, return_value=_proc(raw)):
-        result = backend.extract(_source(dump_path), None)
+        result = backend.extract(_source(dump_path), [])
 
     assert len(result.stack_frames) == 5
     top = result.stack_frames[0]
@@ -88,7 +87,7 @@ def test_cdb_symbol_resolution_score(debug_settings: DebugSettings, dump_path: s
     raw = (FIXTURES / "sample_cdb_output.txt").read_text()
     backend = CdbBackend(debug_settings)
     with mock.patch(_RUN, return_value=_proc(raw)):
-        result = backend.extract(_source(dump_path), None)
+        result = backend.extract(_source(dump_path), [])
     # 4 of 5 frames resolve to a function.
     assert result.symbol_resolution_score == pytest.approx(0.8)
 
@@ -97,7 +96,7 @@ def test_cdb_noise_filter_applied(debug_settings: DebugSettings, dump_path: str)
     raw = (FIXTURES / "sample_cdb_output.txt").read_text()
     backend = CdbBackend(debug_settings)
     with mock.patch(_RUN, return_value=_proc(raw)):
-        result = backend.extract(_source(dump_path), None)
+        result = backend.extract(_source(dump_path), [])
     assert "DBGHELP" not in result.raw_text_excerpt
     assert "ModuleLoad" not in result.raw_text_excerpt
 
@@ -106,14 +105,14 @@ def test_cdb_parses_debug_timestamp(debug_settings: DebugSettings, dump_path: st
     raw = (FIXTURES / "sample_cdb_output.txt").read_text()
     backend = CdbBackend(debug_settings)
     with mock.patch(_RUN, return_value=_proc(raw)):
-        result = backend.extract(_source(dump_path), None)
+        result = backend.extract(_source(dump_path), [])
     assert result.debug_timestamp is not None
     assert result.debug_timestamp.year == 2026
 
 
 def test_cdb_command_sequence(debug_settings: DebugSettings, dump_path: str):
     backend = CdbBackend(debug_settings)
-    cmd = backend._build_command_sequence(_source(dump_path), "C:/extra/syms")
+    cmd = backend._build_command_sequence(_source(dump_path), ["C:/extra/syms"])
     assert cmd[0] == "cdb.exe"
     assert "-z" in cmd and dump_path in cmd
     assert ".reload /f /i; !analyze -v; q" in cmd
@@ -121,6 +120,41 @@ def test_cdb_command_sequence(debug_settings: DebugSettings, dump_path: str):
     assert sym_chain.startswith("srv*")
     assert "msdl.microsoft.com" in sym_chain
     assert sym_chain.endswith("C:/extra/syms")
+
+
+def test_cdb_symbol_chain_no_extra_paths(debug_settings: DebugSettings):
+    """Empty symbol list produces a chain with no semicolons (SRV entry only)."""
+    backend = CdbBackend(debug_settings)
+    chain = backend._symbol_path_string([])
+    assert chain.startswith("srv*")
+    assert "msdl.microsoft.com" in chain
+    assert ";" not in chain
+
+
+def test_cdb_symbol_chain_two_paths(debug_settings: DebugSettings):
+    """Two paths are both present in the chain in order."""
+    backend = CdbBackend(debug_settings)
+    chain = backend._symbol_path_string(["C:/proj/x64/Release", "C:/symbols"])
+    assert "C:/proj/x64/Release" in chain
+    assert "C:/symbols" in chain
+    assert chain.index("C:/proj/x64/Release") < chain.index("C:/symbols")
+
+
+def test_sym_paths_flow_from_incident_source_to_command(
+    debug_settings: DebugSettings, dump_path: str
+):
+    """symbol_path list on IncidentSource is forwarded verbatim to the -y chain."""
+    backend = CdbBackend(debug_settings)
+    source = IncidentSource(
+        mode=IncidentMode.CRASH_DUMP,
+        dump_path=dump_path,
+        symbol_path=["C:/proj/x64/Release", "C:/symbols"],
+    )
+    cmd = backend._build_command_sequence(source, source.symbol_path)
+    sym_chain = cmd[cmd.index("-y") + 1]
+    assert "C:/proj/x64/Release" in sym_chain
+    assert "C:/symbols" in sym_chain
+    assert sym_chain.index("C:/proj/x64/Release") < sym_chain.index("C:/symbols")
 
 
 @pytest.mark.parametrize(
@@ -189,7 +223,7 @@ def test_gdb_maps_sigsegv(debug_settings: DebugSettings, dump_path: str):
     raw = (FIXTURES / "sample_gdb_bt.txt").read_text()
     backend = GdbBackend(debug_settings)
     with mock.patch(_RUN, return_value=_proc(raw)):
-        result = backend.extract(_source(dump_path), None)
+        result = backend.extract(_source(dump_path), [])
     assert result.fault_class == FaultClass.MEMORY_ACCESS_VIOLATION
     assert result.exception_code_raw == "SIGSEGV"
 
@@ -198,7 +232,7 @@ def test_gdb_parses_frames(debug_settings: DebugSettings, dump_path: str):
     raw = (FIXTURES / "sample_gdb_bt.txt").read_text()
     backend = GdbBackend(debug_settings)
     with mock.patch(_RUN, return_value=_proc(raw)):
-        result = backend.extract(_source(dump_path), None)
+        result = backend.extract(_source(dump_path), [])
     assert len(result.stack_frames) == 5
     assert result.faulting_function == "db_writer::serialize"
     assert result.stack_frames[0].source_line == 142
@@ -209,7 +243,7 @@ def test_gdb_parses_frames(debug_settings: DebugSettings, dump_path: str):
 
 def test_gdb_command_sequence(debug_settings: DebugSettings, dump_path: str):
     backend = GdbBackend(debug_settings)
-    cmd = backend._build_command_sequence(_source(dump_path), None)
+    cmd = backend._build_command_sequence(_source(dump_path), [])
     assert cmd[0] == "gdb"
     assert "--batch" in cmd
     assert any(f"core-file {dump_path}" == part for part in cmd)
@@ -224,7 +258,7 @@ def test_lldb_maps_exc_bad_access(debug_settings: DebugSettings, dump_path: str)
     raw = (FIXTURES / "sample_lldb_bt.txt").read_text()
     backend = LldbBackend(debug_settings)
     with mock.patch(_RUN, return_value=_proc(raw)):
-        result = backend.extract(_source(dump_path), None)
+        result = backend.extract(_source(dump_path), [])
     assert result.fault_class == FaultClass.MEMORY_ACCESS_VIOLATION
     assert result.exception_code_raw == "EXC_BAD_ACCESS"
 
@@ -233,7 +267,7 @@ def test_lldb_parses_frames(debug_settings: DebugSettings, dump_path: str):
     raw = (FIXTURES / "sample_lldb_bt.txt").read_text()
     backend = LldbBackend(debug_settings)
     with mock.patch(_RUN, return_value=_proc(raw)):
-        result = backend.extract(_source(dump_path), None)
+        result = backend.extract(_source(dump_path), [])
     assert len(result.stack_frames) == 5
     assert result.faulting_module == "libdbwriter.dylib"
     assert result.faulting_function == "db_writer::serialize"
@@ -251,23 +285,21 @@ def test_lldb_parses_frames(debug_settings: DebugSettings, dump_path: str):
 def test_extract_without_dump_path_raises(debug_settings: DebugSettings):
     backend = CdbBackend(debug_settings)
     with pytest.raises(DebugExtractionError):
-        backend.extract(IncidentSource(mode=IncidentMode.CRASH_DUMP), None)
+        backend.extract(IncidentSource(mode=IncidentMode.CRASH_DUMP), [])
 
 
 def test_extract_missing_file_raises(debug_settings: DebugSettings):
     backend = CdbBackend(debug_settings)
     source = IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path="/no/such/file.dmp")
     with pytest.raises(DebugExtractionError):
-        backend.extract(source, None)
+        backend.extract(source, [])
 
 
-def test_missing_binary_raises_platform_error(
-    debug_settings: DebugSettings, dump_path: str
-):
+def test_missing_binary_raises_platform_error(debug_settings: DebugSettings, dump_path: str):
     backend = CdbBackend(debug_settings)
     with mock.patch(_RUN, side_effect=FileNotFoundError()):  # noqa: SIM117
         with pytest.raises(PlatformNotSupportedError):
-            backend.extract(_source(dump_path), None)
+            backend.extract(_source(dump_path), [])
 
 
 def test_timeout_raises_debug_error(debug_settings: DebugSettings, dump_path: str):
@@ -275,7 +307,7 @@ def test_timeout_raises_debug_error(debug_settings: DebugSettings, dump_path: st
     err = subprocess.TimeoutExpired(cmd="cdb.exe", timeout=1)
     with mock.patch(_RUN, side_effect=err):  # noqa: SIM117
         with pytest.raises(DebugExtractionError):
-            backend.extract(_source(dump_path), None)
+            backend.extract(_source(dump_path), [])
 
 
 # ---------------------------------------------------------------------------
@@ -351,19 +383,19 @@ def test_callback_bridge_per_instance_queue_isolation():
         _CallbackBridge(callback_timeout=2) as bridge_a,
         _CallbackBridge(callback_timeout=2) as bridge_b,
     ):
-            # Send only to bridge_b
-            body = b'{"target": "b"}'
-            req = urllib.request.Request(
-                f"http://127.0.0.1:{bridge_b.port}/",
-                data=body,
-                headers={"Content-Type": "application/json", "Content-Length": str(len(body))},
-                method="POST",
-            )
-            urllib.request.urlopen(req, timeout=2)  # noqa: S310
-            payload_b = bridge_b.wait_for_payload()
-            # bridge_a's queue must still be empty
-            with pytest.raises(DebugExtractionError):
-                bridge_a.wait_for_payload()
+        # Send only to bridge_b
+        body = b'{"target": "b"}'
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{bridge_b.port}/",
+            data=body,
+            headers={"Content-Type": "application/json", "Content-Length": str(len(body))},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=2)  # noqa: S310
+        payload_b = bridge_b.wait_for_payload()
+        # bridge_a's queue must still be empty
+        with pytest.raises(DebugExtractionError):
+            bridge_a.wait_for_payload()
 
     assert json.loads(payload_b)["target"] == "b"
 
@@ -404,15 +436,13 @@ _JS_PROVIDER_STDOUT = "Loaded extension DLL JsProvider.dll\nReady.\n"
 _BRIDGE_PATH = "aegis_swr.backends.debug.windbg_js_worker._CallbackBridge"
 
 
-def test_windbg_js_parses_ddm_json(
-    js_backend: WinDbgJSBackend, dump_path: str
-):
+def test_windbg_js_parses_ddm_json(js_backend: WinDbgJSBackend, dump_path: str):
     payload = (FIXTURES / "sample_windbg_js_payload.json").read_text()
     with (
         mock.patch(_BRIDGE_PATH, return_value=_mock_bridge(payload)),
         mock.patch(_RUN, return_value=_proc(_JS_PROVIDER_STDOUT)),
     ):
-        result = js_backend.extract(_source(dump_path), None)
+        result = js_backend.extract(_source(dump_path), [])
 
     assert result.fault_class == FaultClass.MEMORY_ACCESS_VIOLATION
     assert result.exception_code_raw == "0xc0000005"
@@ -427,10 +457,8 @@ def test_windbg_js_parses_ddm_json(
     assert result.stack_frames[4].module is None
 
 
-def test_windbg_js_command_uses_scriptload(
-    js_backend: WinDbgJSBackend, dump_path: str
-):
-    cmd = js_backend._js_command(_source(dump_path), None, "/tmp/test.js")
+def test_windbg_js_command_uses_scriptload(js_backend: WinDbgJSBackend, dump_path: str):
+    cmd = js_backend._js_command(_source(dump_path), [], "/tmp/test.js")
     assert cmd[0] == "cdb.exe"
     assert "-z" in cmd
     joined = " ".join(cmd)
@@ -438,21 +466,17 @@ def test_windbg_js_command_uses_scriptload(
     assert "test.js" in joined
 
 
-def test_windbg_js_raises_on_missing_jsprovider(
-    js_backend: WinDbgJSBackend, dump_path: str
-):
+def test_windbg_js_raises_on_missing_jsprovider(js_backend: WinDbgJSBackend, dump_path: str):
     payload = (FIXTURES / "sample_windbg_js_payload.json").read_text()
     with (
         mock.patch(_BRIDGE_PATH, return_value=_mock_bridge(payload)),
         mock.patch(_RUN, return_value=_proc("CDB version 10.0\nReady.\n")),
         pytest.raises(DebugExtractionError, match="JsProvider"),
     ):
-        js_backend.extract(_source(dump_path), None)
+        js_backend.extract(_source(dump_path), [])
 
 
-def test_windbg_js_raises_on_callback_timeout(
-    js_backend: WinDbgJSBackend, dump_path: str
-):
+def test_windbg_js_raises_on_callback_timeout(js_backend: WinDbgJSBackend, dump_path: str):
     bridge = _mock_bridge("")
     bridge.wait_for_payload.side_effect = DebugExtractionError("Timed out")
     with (
@@ -460,28 +484,24 @@ def test_windbg_js_raises_on_callback_timeout(
         mock.patch(_RUN, return_value=_proc(_JS_PROVIDER_STDOUT)),
         pytest.raises(DebugExtractionError, match="Timed out"),
     ):
-        js_backend.extract(_source(dump_path), None)
+        js_backend.extract(_source(dump_path), [])
 
 
-def test_windbg_js_missing_asset_raises(
-    js_backend: WinDbgJSBackend, dump_path: str
-):
+def test_windbg_js_missing_asset_raises(js_backend: WinDbgJSBackend, dump_path: str):
     with (
         mock.patch.object(js_backend, "_asset_path", return_value=Path("/no/such.js")),
         pytest.raises(DebugExtractionError, match="asset not found"),
     ):
-        js_backend.extract(_source(dump_path), None)
+        js_backend.extract(_source(dump_path), [])
 
 
-def test_windbg_js_parses_invalid_json_raises(
-    js_backend: WinDbgJSBackend, dump_path: str
-):
+def test_windbg_js_parses_invalid_json_raises(js_backend: WinDbgJSBackend, dump_path: str):
     with (
         mock.patch(_BRIDGE_PATH, return_value=_mock_bridge("not json {")),
         mock.patch(_RUN, return_value=_proc(_JS_PROVIDER_STDOUT)),
         pytest.raises(DebugExtractionError, match="invalid JSON"),
     ):
-        js_backend.extract(_source(dump_path), None)
+        js_backend.extract(_source(dump_path), [])
 
 
 def test_windbg_js_inject_params_substitutes_all_tokens(
@@ -493,6 +513,17 @@ def test_windbg_js_inject_params_substitutes_all_tokens(
     assert "__CALLBACK_URL__" not in result
     assert "__MAX_FAULTING_FRAMES__" not in result
     assert "__MAX_OTHER_FRAMES__" not in result
+
+
+def test_windbg_js_symbol_chain_two_paths(
+    js_settings: DebugSettings,
+):
+    """WinDbgJSBackend uses the same chain logic as CDB: both paths appear in order."""
+    backend = WinDbgJSBackend(js_settings)
+    chain = backend._symbol_path_string(["C:/proj/x64/Release", "C:/symbols"])
+    assert "C:/proj/x64/Release" in chain
+    assert "C:/symbols" in chain
+    assert chain.index("C:/proj/x64/Release") < chain.index("C:/symbols")
 
 
 # ---------------------------------------------------------------------------

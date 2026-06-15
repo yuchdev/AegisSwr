@@ -24,6 +24,7 @@ class IncidentMode(str, Enum):
     such as analyzing crash dumps, reviewing logs, or monitoring live
     processes.
     """
+
     CRASH_DUMP = "crash_dump"
     LOG_FORENSICS = "log_forensics"
     LIVE_PROCESS = "live_process"
@@ -49,6 +50,7 @@ class DumpFormat(str, Enum):
     :ivar BREAKPAD: Represents the Breakpad open-source crash reporting format
     :type BREAKPAD: str
     """
+
     WINDOWS_MINIDUMP = "windows_minidump"
     LINUX_CORE = "linux_core"
     APPLE_CRASHREPORT = "apple_crashreport"
@@ -70,6 +72,7 @@ class ConfidenceLevel(str, Enum):
     :ivar LOW: Low confidence level, represented as the string "low".
     :type LOW: str
     """
+
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
@@ -132,6 +135,7 @@ class IncidentSource(BaseModel):
     :ivar metadata: A dictionary containing additional metadata about the incident, organized as key-value pairs.
     :type metadata: dict[str, str]
     """
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     mode: IncidentMode
@@ -142,7 +146,7 @@ class IncidentSource(BaseModel):
     log_paths: list[str] = Field(default_factory=list)
     screenshot_paths: list[str] = Field(default_factory=list)
     network_capture_paths: list[str] = Field(default_factory=list)
-    symbol_path: Optional[str] = None
+    symbol_path: list[str] = Field(default_factory=list)
     user_assumption: Optional[str] = None
     metadata: dict[str, str] = Field(default_factory=dict)
 
@@ -173,6 +177,7 @@ class StackFrame(BaseModel):
     :ivar instruction_address: The memory address of the instruction for this frame.
     :type instruction_address: str
     """
+
     frame_number: int
     module: Optional[str] = None
     function: Optional[str] = None
@@ -212,6 +217,7 @@ class DebugExtractionResult(BaseModel):
     :ivar raw_text_excerpt: A snippet of raw debugging information or output text related to the fault being analyzed.
     :type raw_text_excerpt: str
     """
+
     fault_class: FaultClass
     exception_code_raw: str
     exception_address: str
@@ -245,6 +251,7 @@ class Hypothesis(BaseModel):
     :ivar confidence: A float representing the level of confidence in the hypothesis, typically ranging from 0.0 to 1.0.
     :type confidence: float
     """
+
     root_cause: str
     faulting_module: Optional[str] = None
     faulting_function: Optional[str] = None
@@ -275,6 +282,7 @@ class AgentTurn(BaseModel):
     :ivar corrections: List of corrections associated with the message, if any.
     :type corrections: list[str]
     """
+
     agent: str
     turn_number: int
     message: str
@@ -301,6 +309,7 @@ class SkepticVerdict(BaseModel):
     :ivar corrections: A list of corrections suggested during the process.
     :type corrections: list[str]
     """
+
     confirmed: bool
     confidence: ConfidenceLevel
     challenges: list[str] = Field(default_factory=list)
@@ -327,6 +336,7 @@ class HITLRequest(BaseModel):
         attribute will default to an empty list.
     :type requested_data: list[str]
     """
+
     question: str
     context_summary: str
     requested_data: list[str] = Field(default_factory=list)
@@ -356,6 +366,7 @@ class ExceptionSummary(BaseModel):
     :ivar interpretation: A descriptive interpretation of the exception.
     :type interpretation: str
     """
+
     fault_class: FaultClass
     exception_code_raw: str
     exception_address: str
@@ -380,6 +391,7 @@ class OSKernelOutput(BaseModel):
     :ivar confidence_score: A numerical value representing the confidence in the operation's output.
     :type confidence_score: float
     """
+
     exception_summary: ExceptionSummary
     hypotheses: list[Hypothesis]
     confidence_score: float
@@ -408,6 +420,7 @@ class RCAHypothesis(BaseModel):
     :ivar code_location: The optional location in the code where the issue might have occurred.
     :type code_location: Optional[str]
     """
+
     root_cause: str
     faulting_module: Optional[str] = None
     faulting_function: Optional[str] = None
@@ -436,6 +449,7 @@ class CodeAnalystOutput(BaseModel):
     :ivar fix_language: An optional string indicating the programming language in which the probabilistic fix is described, if applicable.
     :type fix_language: Optional[str]
     """
+
     rca: RCAHypothesis
     alternative_hypotheses: list[Hypothesis] = Field(default_factory=list)
     confidence_score: float
@@ -459,6 +473,7 @@ class PatternMatch(BaseModel):
     :ivar summary: A summary or description providing context to the matched incident.
     :type summary: str
     """
+
     matched_incident_id: str
     similarity_score: float
     summary: str
@@ -482,6 +497,7 @@ class LogHistorianOutput(BaseModel):
     :ivar history_note: A note providing additional context or history related to the analysis or adjustments.
     :type history_note: str
     """
+
     pattern_match: Optional[PatternMatch] = None
     confidence_adjustment: float
     updated_confidence: float
@@ -514,6 +530,7 @@ class ValidationResult(BaseModel):
                          identified during linting. Defaults to an empty list.
     :type lint_findings: list[str]
     """
+
     passed: Optional[bool] = None
     exit_code: Optional[int] = None
     compiler_output: str = ""
@@ -544,6 +561,7 @@ class CommitRecord(BaseModel):
     :ivar files_changed: The list of filenames that were changed in the commit.
     :type files_changed: list[str]
     """
+
     sha: str
     message: str
     author: str
@@ -570,6 +588,7 @@ class BlameRecord(BaseModel):
     :ivar content: The content of the line in the source code file.
     :type content: str
     """
+
     line_number: int
     sha: str
     author: str
@@ -599,6 +618,7 @@ class UIContext(BaseModel):
         context. Defaults to an empty list.
     :type ui_elements: list[str]
     """
+
     error_message: Optional[str] = None
     visible_timestamp: Optional[str] = None
     ui_elements: list[str] = Field(default_factory=list)
@@ -670,6 +690,7 @@ class RCAReport(BaseModel):
         analysis.
     :type total_output_tokens: int
     """
+
     incident_id: UUID = Field(default_factory=uuid4)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     mode: IncidentMode
@@ -742,6 +763,7 @@ class IncidentBrief(BaseModel):
     :ivar low_symbol_coverage_warning: Optional warning message for scenarios with low symbol coverage in debugging.
     :type low_symbol_coverage_warning: Optional[str]
     """
+
     mode: IncidentMode
     dump_hash: Optional[str] = None
     fault_class: Optional[FaultClass] = None
@@ -799,6 +821,7 @@ class InvestigationState(TypedDict, total=False):
     :ivar error: A string describing any error encountered during the investigation process, or `None` if no error occurred.
     :type error: Optional[str]
     """
+
     incident_id: str
     incident_brief: dict[str, Any]
     source: dict[str, Any]

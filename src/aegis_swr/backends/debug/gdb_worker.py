@@ -3,15 +3,15 @@
 Parses ``gdb --batch`` backtraces from ELF core files and maps POSIX signals to
 :class:`FaultClass`.
 """
+
 from __future__ import annotations
 
 import re
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from aegis_swr.backends.debug._base import _BaseDebugBackend, normalize_address
 from aegis_swr.core.fault_codes import FaultClass, map_linux_signal
-from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, StackFrame
-from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, IncidentSource, StackFrame
 
 # Signal name -> number (kept local so it works identically on any host OS).
 _SIGNAL_NUMBERS = {
@@ -25,10 +25,10 @@ _SIGNAL_NUMBERS = {
 
 _SIGNAL_RE = re.compile(r"signal\s+(SIG[A-Z]+)")
 _FRAME_RE = re.compile(
-    r"^#(\d+)\s+"                         # frame number
-    r"(?:(0x[0-9a-fA-F]+)\s+in\s+)?"     # optional "0x... in "
-    r"(\S+)\s*\([^)]*\)"                 # function (...)
-    r"(?:\s+at\s+(\S+?):(\d+))?",        # optional "at file:line"
+    r"^#(\d+)\s+"  # frame number
+    r"(?:(0x[0-9a-fA-F]+)\s+in\s+)?"  # optional "0x... in "
+    r"(\S+)\s*\([^)]*\)"  # function (...)
+    r"(?:\s+at\s+(\S+?):(\d+))?",  # optional "at file:line"
 )
 
 
@@ -63,7 +63,7 @@ class GdbBackend(_BaseDebugBackend):
     def _build_command_sequence(
         self,
         source: IncidentSource,
-        symbol_path: Optional[str],
+        symbol_path: list[str],
     ) -> list[str]:
         return [
             "gdb",
