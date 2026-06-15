@@ -58,5 +58,5 @@ Chosen option: "<option>", because <justification>.
 
 ## Output
 Print the path of the created ADR and a one-line summary. Note that the
-`architect` agent owns the decision content — this skill only scaffolds and
+`architect` agent owns the decision content - this skill only scaffolds and
 seeds it. Leave it `Proposed` for human/architect sign-off.

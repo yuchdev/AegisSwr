@@ -37,7 +37,7 @@ are ignored to limit false positives.
 
 ## Output
 ```
-## Secret Scan — <N files>
+## Secret Scan - <N files>
 - <file:line>: <type>
 **Result: CLEAN | N FINDING(S)**
 ```

@@ -27,10 +27,10 @@ whole package if empty).
 
 ## Output
 ```
-## Test Gap — <target> (coverage: NN%)
-### P0 — must test
-- path:line-range — <untested behaviour> — <why risky> — <suggested test>
-### P1 — should test
-### P2 — nice to have
+## Test Gap - <target> (coverage: NN%)
+### P0 - must test
+- path:line-range - <untested behaviour> - <why risky> - <suggested test>
+### P1 - should test
+### P2 - nice to have
 ```
 Offer to have `qa` write the P0 tests next.

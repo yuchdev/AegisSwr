@@ -1,6 +1,6 @@
-# Aegis SWR — Agentic Fleet Design
+# Aegis SWR - Agentic Fleet Design
 
-> The agentic operating layer for **Aegis SWR (Synthetic War Room)** — a
+> The agentic operating layer for **Aegis SWR (Synthetic War Room)** - a
 > crash-dump and incident-response forensics platform. This document is the
 > design; the corresponding files live under `.claude/` (plus `.mcp.json` and
 > `.worktreeinclude` at the repo root) and are real, working artifacts, not
@@ -19,10 +19,10 @@ The design is grounded in the real repository, not a generic template:
 | Data layer              | SQLAlchemy + asyncpg (**Postgres**), **SQLite**, **Qdrant**, S3 (boto3)                                                   |
 | LLM SDKs                | `anthropic`, `openai`                                                                                                     |
 | Lint/type/test          | **ruff** (`E,F,I,UP,B,SIM`, len 100), **mypy strict**, **pytest** (+asyncio, +cov)                                        |
-| Formatter               | `ruff format` — **no Black/Prettier present**                                                                             |
+| Formatter               | `ruff format` - **no Black/Prettier present**                                                                             |
 | CI                      | GitHub Actions: lint → typecheck → unit-test w/ coverage (`.github/workflows/ci.yml`)                                     |
 | Domain                  | Crash/incident forensics: debugger backends → multi-agent LLM debate → consensus → skeptic → `RCAReport`, HITL escalation |
-| Pre-existing `.claude/` | none — this is a greenfield agentic setup                                                                                 |
+| Pre-existing `.claude/` | none - this is a greenfield agentic setup                                                                                 |
 
 ---
 
@@ -125,19 +125,19 @@ block, clean writes pass, session context renders, GitHub calls and edits log.
 
 ## 6. MCP server connections (`.mcp.json`)
 
-Tokens are supplied by **`${VAR}` environment expansion** — no secret ever lives
+Tokens are supplied by **`${VAR}` environment expansion** - no secret ever lives
 in the file (see §11, secrets management).
 
 ### Required
 
-- **`github`** (`@modelcontextprotocol/server-github`) — PR management, issue
+- **`github`** (`@modelcontextprotocol/server-github`) - PR management, issue
   tracking, code search, Actions log inspection. Drives `/pr-review`,
   `/adr-write` seeding, and post-mortem action-item creation. Token:
   `${GITHUB_PERSONAL_ACCESS_TOKEN}`.
-- **`slack`** (`@modelcontextprotocol/server-slack`) — monitor the incident
+- **`slack`** (`@modelcontextprotocol/server-slack`) - monitor the incident
   channel, post automated RCA/incident summaries, page on-call via a Slack
   workflow. Tokens: `${SLACK_BOT_TOKEN}`, `${SLACK_TEAM_ID}`.
-- **`postgres`** (`@modelcontextprotocol/server-postgres`) — direct inspection
+- **`postgres`** (`@modelcontextprotocol/server-postgres`) - direct inspection
   of stored incidents/`RCAReport`s (the project's primary store is asyncpg/
   Postgres via `postgres_store.py`); used for incident-state queries and schema
   validation during dev. Connection: `${AEGIS_DATABASE_URL}`. *(SQLite is also a
@@ -145,21 +145,21 @@ in the file (see §11, secrets management).
 
 ### Strongly recommended for Aegis SWR
 
-- **`sentry`** (`@sentry/mcp-server`) — pull error events, link runtime errors to
+- **`sentry`** (`@sentry/mcp-server`) - pull error events, link runtime errors to
   stored incidents, track regression rates. Token: `${SENTRY_AUTH_TOKEN}`.
-- **`pagerduty`** (`@pagerduty/mcp-server`) — read on-call schedules, acknowledge
+- **`pagerduty`** (`@pagerduty/mcp-server`) - read on-call schedules, acknowledge
   / escalate alerts from agentic flows (feeds the on-call name into context).
   Token: `${PAGERDUTY_USER_API_TOKEN}`.
-- **`context7`** (`@upstash/context7-mcp`) — up-to-date docs for libraries in the
+- **`context7`** (`@upstash/context7-mcp`) - up-to-date docs for libraries in the
   stack (FastAPI, LangGraph, Pydantic, SQLAlchemy, Qdrant) injected per task, so
   agents code against current APIs. Key: `${CONTEXT7_API_KEY}`.
-- **`playwright`** (`@playwright/mcp`) — E2E verification of any Aegis web UI and
+- **`playwright`** (`@playwright/mcp`) - E2E verification of any Aegis web UI and
   post-deploy smoke tests.
 
 ### Optional / deferred
 
-- **`linear`** — add if the team adopts Linear; today issues are in GitHub.
-- **`filesystem`** — intentionally **skipped**; Claude Code has native file tools.
+- **`linear`** - add if the team adopts Linear; today issues are in GitHub.
+- **`filesystem`** - intentionally **skipped**; Claude Code has native file tools.
 
 ---
 
@@ -167,18 +167,18 @@ in the file (see §11, secrets management).
 
 Beyond hooks, `settings.json` pre-allows safe, high-frequency commands (pytest,
 ruff, mypy, common git/gh read+commit verbs) to reduce prompt friction, and
-**denies reads** of `.env*`, `*.dmp` dumps, and the prototype DB — incident
+**denies reads** of `.env*`, `*.dmp` dumps, and the prototype DB - incident
 payloads and secrets stay out of context by default.
 
 ---
 
 ## 8. Model tiering (cost vs capability)
 
-- **Opus 4.8** — safety-critical / high-ambiguity reasoning: `architect`,
+- **Opus 4.8** - safety-critical / high-ambiguity reasoning: `architect`,
   `incident-analyst`, `security-auditor`, `orchestrator`.
-- **Sonnet 4.6** — high-throughput execution and review: `coder`, `qa`,
+- **Sonnet 4.6** - high-throughput execution and review: `coder`, `qa`,
   `feature-reviewer`, `background-reviewer`, `docs`.
-- **Haiku** — reserved for cheap mechanical jobs (log triage, formatting
+- **Haiku** - reserved for cheap mechanical jobs (log triage, formatting
   sweeps); never for incident-safety logic.
 
 Principle: the cheapest tier that does the job correctly; escalate to Opus only when
@@ -191,7 +191,7 @@ a wrong decision is expensive (domain safety, security, architecture).
 The `orchestrator` agent runs the canonical sequence, parallelizing independent
 steps:
 
-1. **architect** → ADR (gate: human approves) — *if non-trivial*.
+1. **architect** → ADR (gate: human approves) - *if non-trivial*.
 2. **coder** → branch plus implementation against the ADR; tests before/after.
 3. **qa** → unit plus integration tests; coverage delta.
 4. **incident-analyst** ∥ **security-auditor** → run in parallel; lifecycle
@@ -225,14 +225,14 @@ map in `.claude/CLAUDE.md` §7.
   credential from being written into the repo. Product code already redacts via
   `SensitiveFilter`.
 - **Audit trail**: every production-touching or GitHub-touching action appends a
-  line to `.claude/logs/` — format `<ISO-8601-UTC> <event>`:
-  - `github-actions.log` — every GitHub MCP call plus safe arg summary
-  - `bash-guard.log` — every blocked destructive/prod command
-  - `secret-scan.log` — every blocked writing w/ finding type plus location (never
+  line to `.claude/logs/` - format `<ISO-8601-UTC> <event>`:
+  - `github-actions.log` - every GitHub MCP call plus safe arg summary
+  - `bash-guard.log` - every blocked destructive/prod command
+  - `secret-scan.log` - every blocked writing w/ finding type plus location (never
     the value)
-  - `edits.log` — every file written/edited
-  - `tests.log` — Stop-hook PASS/FAIL/SKIP
-  - `dep-audit.log` — manifest-change advisory audits
+  - `edits.log` - every file written/edited
+  - `tests.log` - Stop-hook PASS/FAIL/SKIP
+  - `dep-audit.log` - manifest-change advisory audits
   Log **contents** are git-ignored; the directory is kept via `.gitkeep`.
 
 ---

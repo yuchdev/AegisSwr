@@ -29,19 +29,19 @@ keeping the human in the loop at the decision points.
 
 ## Canonical orchestration: ticket → merged PR
 
-1. **Design** — if non-trivial, `architect` writes/updates an ADR. Gate: human
+1. **Design** - if non-trivial, `architect` writes/updates an ADR. Gate: human
    approves the ADR.
-2. **Implement** — `coder` creates a feature branch and implements against the
+2. **Implement** - `coder` creates a feature branch and implements against the
    ADR; runs tests before/after.
-3. **Test** — `qa` writes unit + integration tests and reports coverage delta.
-4. **Domain check** — `incident-analyst` validates lifecycle/escalation safety
+3. **Test** - `qa` writes unit + integration tests and reports coverage delta.
+4. **Domain check** - `incident-analyst` validates lifecycle/escalation safety
    (only if the change touches investigation flow).
-5. **Security** — `security-auditor` threat-models the change (only if it
+5. **Security** - `security-auditor` threat-models the change (only if it
    touches auth/secrets/integrations/payload ingestion). CRITICAL ⇒ stop.
-6. **Review** — `feature-reviewer` issues LGTM / REQUEST_CHANGES. Loop back to
+6. **Review** - `feature-reviewer` issues LGTM / REQUEST_CHANGES. Loop back to
    `coder` until LGTM.
-7. **Docs** — `docs` updates docs/OpenAPI/docstrings.
-8. **Land** — open a PR (never push to `main`/`master`); summarise the trail.
+7. **Docs** - `docs` updates docs/OpenAPI/docstrings.
+8. **Land** - open a PR (never push to `main`/`master`); summarise the trail.
 
 ## Rules
 

@@ -22,7 +22,7 @@ violation`, `deadlock`, `resource-exhaustion`, `log-forensics-anomaly`).
 
 ## Aegis runbook template
 ```markdown
-# Runbook — <Incident Type>
+# Runbook - <Incident Type>
 
 - Fault class / mode: <fault_code / IncidentMode>
 - Severity default: <P0|P1|P2>
@@ -32,14 +32,14 @@ violation`, `deadlock`, `resource-exhaustion`, `log-forensics-anomaly`).
 - How Aegis surfaces this (events, ConfidenceLevel, SkepticVerdict cues).
 
 ## Triage (first 5 minutes)
-1. <step> — expected: <result>
+1. <step> - expected: <result>
 
 ## Investigation
 - Which analysis agents dominate (consensus weights), what RCAReport fields to
   read first, which dumps/logs to pull.
 
 ## Mitigation
-1. <step> — idempotent? rollback? requires AEGIS_PROD_CONFIRMED?
+1. <step> - idempotent? rollback? requires AEGIS_PROD_CONFIRMED?
 
 ## Escalation
 - When to raise a HITLRequest / page on-call (PagerDuty) / post to the incident

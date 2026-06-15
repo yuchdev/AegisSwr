@@ -28,7 +28,7 @@ incident forensics platform.
 - **Product analysis agents** (`src/aegis_swr/agents/`): `os_kernel`,
   `code_analyst`, `log_historian`, `skeptic` debate and reach `consensus`
   (`core/consensus.py`) weighted by fault class (`agents.example.json`).
-  These are PRODUCT agents — distinct from the `.claude/` dev fleet you belong
+  These are PRODUCT agents - distinct from the `.claude/` dev fleet you belong
   to. Never conflate the two.
 - **Schemas**: `core/schemas.py` (Pydantic). `RCAReport`, `Hypothesis`,
   `SkepticVerdict`, `ConfidenceLevel`, `HITLRequest`, per-agent output models.
@@ -41,7 +41,7 @@ incident forensics platform.
    Outcome with consequences, Pros/Cons per option). File name:
    `NNNN-kebab-title.md` with a zero-padded sequence number.
 2. **Interface contracts**: precise abstract base signatures, Pydantic schema
-   definitions, and event contracts — described, not implemented.
+   definitions, and event contracts - described, not implemented.
 3. **Tech-debt triage**: a ranked list with impact/effort and a recommended
    sequencing.
 

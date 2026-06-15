@@ -1,4 +1,4 @@
-# CLAUDE.md — Aegis SWR agentic operating manual
+# CLAUDE.md - Aegis SWR agentic operating manual
 
 This file governs how Claude Code agents work in this repository. It is loaded
 into context every session. The root `../CLAUDE.md` describes the product
@@ -11,7 +11,7 @@ forensics platform. It ingests untrusted artifacts (crash dumps, core files,
 logs, telemetry), extracts crash data via debugger backends, runs a multi-agent
 LLM debate (`os_kernel`, `code_analyst`, `log_historian`, `skeptic`) to a
 weighted `consensus`, validates with a skeptic, and emits a Root-Cause-Analysis
-report (`RCAReport`) — escalating to a human (`HITLRequest`) when confidence is
+report (`RCAReport`) - escalating to a human (`HITLRequest`) when confidence is
 low.
 
 **Security sensitivity is the defining property.** Every incident payload is
@@ -27,7 +27,7 @@ and confidential.
   LangGraph, SQLAlchemy/asyncpg (Postgres), SQLite, Qdrant, boto3/S3,
   anthropic + openai SDKs, loguru.
 - **Typing**: full annotations; **mypy `strict` must pass**. Always
-  `Optional[T]` (import from `typing`) — never `T | None`, including in
+  `Optional[T]` (import from `typing`) - never `T | None`, including in
   subscripts and `Annotated[...]`. Enforce with
   `python scripts/replace_optional.py --check`.
 - **Lint/format**: ruff (`select = E,F,I,UP,B,SIM`, line length 100).
@@ -46,8 +46,8 @@ and confidential.
 - **Never log secrets**; rely on `SensitiveFilter` and verify it covers new
   sinks.
 - **Never hard-code credentials.** Read from settings/env. MCP servers receive
-  tokens via `${VAR}` expansion in `.mcp.json` — agents never read `.env`.
-- **Treat all incident payloads as sensitive** — no unredacted dump/log/stack
+  tokens via `${VAR}` expansion in `.mcp.json` - agents never read `.env`.
+- **Treat all incident payloads as sensitive** - no unredacted dump/log/stack
   text in logs, exceptions, stored reports, or API error bodies.
 - Untrusted payload text must never reach a shell, SQL string, `eval`, or an AI
   prompt without sanitisation/parameterisation.
@@ -61,12 +61,12 @@ and confidential.
 - Tests live in `tests/unit/` (CI-gated) and `tests/integration/`. Run:
   `poetry run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-missing`.
 - The **Stop hook runs the unit suite**; a red suite blocks ending the session.
-- Never weaken/`xfail`/delete a test to go green — fix the cause.
+- Never weaken/`xfail`/delete a test to go green - fix the cause.
 
 ## 5. Commit & PR discipline
 
 - **Conventional Commits**: `feat|fix|refactor|test|docs|chore|perf(scope): …`.
-- **Atomic PRs** — one logical change per PR; keep diffs reviewable.
+- **Atomic PRs** - one logical change per PR; keep diffs reviewable.
 - **No direct pushes to `main`/`master`.** Branch → PR → review → merge.
 - A change touching investigation flow needs an `incident-analyst` pass; one
   touching auth/secrets/integrations/payload ingestion needs a
@@ -97,11 +97,11 @@ and confidential.
 
 ## 8. Model tiering (cost vs capability)
 
-- **Opus 4.8** — deep reasoning where a wrong call is expensive: `architect`,
+- **Opus 4.8** - deep reasoning where a wrong call is expensive: `architect`,
   `incident-analyst`, `security-auditor`, `orchestrator`.
-- **Sonnet 4.6** — high-throughput execution & review: `coder`, `qa`,
+- **Sonnet 4.6** - high-throughput execution & review: `coder`, `qa`,
   `feature-reviewer`, `background-reviewer`, `docs`.
-- **Haiku** — reserve for cheap mechanical jobs (log triage, formatting sweeps,
+- **Haiku** - reserve for cheap mechanical jobs (log triage, formatting sweeps,
   one-line lookups). Don't use it for anything touching incident-safety logic.
 
 Rule of thumb: route to the cheapest tier that can do the job correctly;
@@ -133,8 +133,8 @@ Log contents are git-ignored; the directory is kept via `.gitkeep`.
 
 ## 12. Recurring / scheduled work
 
-- **dep-audit** — weekly + on manifest change (`/dep-audit`).
-- **Coverage report** — on every PR (`/test-gap`).
-- **Daily incident-metric summary** — optional cron posting to the incident
+- **dep-audit** - weekly + on manifest change (`/dep-audit`).
+- **Coverage report** - on every PR (`/test-gap`).
+- **Daily incident-metric summary** - optional cron posting to the incident
   Slack channel.
 See `AEGIS_AGENTIC_FLEET.md` §Scheduled tasks for the proposed cron/loop setup.

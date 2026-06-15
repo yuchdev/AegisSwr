@@ -1,4 +1,4 @@
-# Aegis SWR — Skills Reference
+# Aegis SWR - Skills Reference
 
 Skills are pre-packaged instruction sets that Claude follows when you invoke a
 slash command (`/skill-name args`). Unlike agents (which are autonomous
@@ -31,7 +31,7 @@ what it does step by step, and when to reach for it.
 
 ## `incident-triage`
 
-**Invocation:** automatic — triggered when Claude touches files in the
+**Invocation:** automatic - triggered when Claude touches files in the
 investigation pipeline
 **Relevant files:** `core/orchestrator.py`, `core/consensus.py`,
 `core/incident_similarity.py`, `core/events.py`, `core/schemas.py`
@@ -40,15 +40,15 @@ investigation pipeline
 ### What happens
 Runs a structured checklist against the change before it is considered done:
 
-1. **State-machine completeness** — every pipeline state
+1. **State-machine completeness** - every pipeline state
    (`INITIALIZING → EXTRACTING → PARSING → ANALYZING → STORING`) has a defined
    success exit and a defined failure exit; no state is a dead end.
-2. **EventBus coverage** — each state transition emits the correct `DomainEvent`
+2. **EventBus coverage** - each state transition emits the correct `DomainEvent`
    so views stay in sync.
-3. **Escalation paths** — `ConfidenceLevel.LOW` or a rejected `SkepticVerdict`
+3. **Escalation paths** - `ConfidenceLevel.LOW` or a rejected `SkepticVerdict`
    always produces a `HITLRequest`; there is never a silent, weak RCA.
-4. **Timeout coverage** — every external call has an explicit timeout.
-5. **De-duplication safety** — changes to `incident_similarity.py` don't over-
+4. **Timeout coverage** - every external call has an explicit timeout.
+5. **De-duplication safety** - changes to `incident_similarity.py` don't over-
    or under-suppress real incidents.
 
 Each check is reported as ✓/✗ with a `file:line` citation. Failures produce a
@@ -73,22 +73,22 @@ automatic trigger ensures the check happens before code leaves the session.
 ### What happens
 Validates a remediation playbook (YAML/JSON) or consensus-weight file:
 
-1. **Required fields** — checks that each step has `id`, `description`,
+1. **Required fields** - checks that each step has `id`, `description`,
    `action`, `idempotent`, `rollback`, `requires_authorisation`, `timeout`.
-2. **Step ordering** — verify the sequence: confirm trigger → contain →
+2. **Step ordering** - verify the sequence: confirm trigger → contain →
    remediate → verify. No remediation before confirmation.
-3. **Idempotency** — any non-idempotent step must document why and how it is
+3. **Idempotency** - any non-idempotent step must document why and how it is
    guarded.
-4. **Rollback coverage** — every state-changing step must have a rollback or
+4. **Rollback coverage** - every state-changing step must have a rollback or
    an explicit `rollback: none` with justification.
-5. **Authorisation** — production-affecting steps set
+5. **Authorisation** - production-affecting steps set
    `requires_authorisation: true`.
-6. **Weight files** — for `agents.example.json`-style files, each fault class's
+6. **Weight files** - for `agents.example.json`-style files, each fault class's
    agent weights must sum to 1.0 ± 0.01.
 
 ### Output
 ```
-## Playbook Validation — <file>
+## Playbook Validation - <file>
 **Verdict: VALID | INVALID**
 ### Errors (blocking)
 ### Warnings
@@ -132,7 +132,7 @@ Scaffolds a new Architecture Decision Record:
 - Pros and Cons per option
 
 ### What it does NOT do
-It scaffolds and seeds — it does not make the decision. The `architect` agent
+It scaffolds and seeds - it does not make the decision. The `architect` agent
 (or a human) fills in the options and writes the outcome. The skill is
 deliberately a scaffold, not a generator.
 
@@ -157,15 +157,15 @@ agents to reference.
 ### What happens
 Runs a **parallel** review using two specialist agents:
 
-1. **Resolves the diff** — fetches from GitHub (PR number), runs `git diff
+1. **Resolves the diff** - fetches from GitHub (PR number), runs `git diff
    main...<branch>`, or uses the current working-tree diff.
-2. **Fans out in parallel** — spawns `feature-reviewer` and `security-auditor`
+2. **Fans out in parallel** - spawns `feature-reviewer` and `security-auditor`
    simultaneously, both given the same diff scope and file list.
 3. **Synthesises** their outputs into a single unified review comment.
 
 ### Output shape
 ```
-## Aegis PR Review — <PR/branch>
+## Aegis PR Review - <PR/branch>
 **Merge verdict: APPROVE | REQUEST_CHANGES | BLOCK (security)**
 
 ### Feature review (feature-reviewer)
@@ -180,7 +180,7 @@ Verdict rules:
 
 ### When to use it
 Before merging any PR. Replaces running `feature-reviewer` and
-`security-auditor` separately — the two reviews run in parallel so total time
+`security-auditor` separately - the two reviews run in parallel so total time
 is roughly that of one review.
 
 ---
@@ -201,18 +201,18 @@ is roughly that of one review.
    missing` (scoped to the target path if given).
 2. Spawns the `qa` agent with the coverage output. The agent maps uncovered
    lines to behaviours and **risk-ranks** them:
-   - **P0** — consensus/skeptic logic, payload parsing, escalation/HITL paths,
+   - **P0** - consensus/skeptic logic, payload parsing, escalation/HITL paths,
      security-relevant branches
-   - **P1** — backend strategies, orchestrator transitions, schema validation
-   - **P2** — CLI/view formatting, logging helpers
+   - **P1** - backend strategies, orchestrator transitions, schema validation
+   - **P2** - CLI/view formatting, logging helpers
 
 ### Output
 ```
-## Test Gap — <target> (coverage: NN%)
-### P0 — must test
-- path:line-range — <untested behaviour> — <why risky> — <suggested test>
-### P1 — should test
-### P2 — nice to have
+## Test Gap - <target> (coverage: NN%)
+### P0 - must test
+- path:line-range - <untested behaviour> - <why risky> - <suggested test>
+### P1 - should test
+### P2 - nice to have
 ```
 
 The skill then offers to have `qa` write the P0 tests immediately.
@@ -245,14 +245,14 @@ The skill then offers to have `qa` write the P0 tests immediately.
 
 ### Template sections
 - Fault class / mode, severity default, owner / escalation
-- **Detection signals** — how Aegis surfaces this in the UI/events
-- **Triage (first 5 minutes)** — numbered steps with expected results
-- **Investigation** — which analysis agents dominate, which RCAReport fields
+- **Detection signals** - how Aegis surfaces this in the UI/events
+- **Triage (first 5 minutes)** - numbered steps with expected results
+- **Investigation** - which analysis agents dominate, which RCAReport fields
   to read first
-- **Mitigation** — idempotency, rollback, `AEGIS_PROD_CONFIRMED` note
-- **Escalation** — when to raise a HITLRequest / page on-call
-- **Verification & resolution** — confirming close and moving to post-mortem
-- **Related** — ADRs, playbooks, prior post-mortems
+- **Mitigation** - idempotency, rollback, `AEGIS_PROD_CONFIRMED` note
+- **Escalation** - when to raise a HITLRequest / page on-call
+- **Verification & resolution** - confirming close and moving to post-mortem
+- **Related** - ADRs, playbooks, prior post-mortems
 
 ### When to use it
 When a new fault class or `IncidentMode` is added, or when an on-call engineer
@@ -274,14 +274,14 @@ reports a gap in existing operational knowledge.
 Guides a **blameless** post-mortem (blameless = focus on systems, never on
 individuals):
 
-1. **Timeline reconstruction** — `git log` around the incident window +
+1. **Timeline reconstruction** - `git log` around the incident window +
    queries stored `RCAReport`s via the `postgres`/`sqlite` MCP for detection
    time, consensus outcome, `SkepticVerdict`, `ConfidenceLevel`, and any
    `HITLRequest`.
-2. **Five whys** — iterative drill from symptom to root cause with evidence at
+2. **Five whys** - iterative drill from symptom to root cause with evidence at
    each level.
-3. **Contributing factors** — what made detection/diagnosis/remediation slower.
-4. **Action items** — concrete, each with an owner routed to the right agent:
+3. **Contributing factors** - what made detection/diagnosis/remediation slower.
+4. **Action items** - concrete, each with an owner routed to the right agent:
    code fixes → `coder`, tests → `qa`, docs/runbook updates → `docs`, design
    changes → `architect`.
 
@@ -302,18 +302,18 @@ Even a near-miss is worth a brief post-mortem to capture the learning.
 the full skill is the authoritative version).
 
 ### What happens
-1. **CVE scan** — `poetry run pip-audit --progress-spinner off`; lists package,
+1. **CVE scan** - `poetry run pip-audit --progress-spinner off`; lists package,
    version, CVE/GHSA id, severity, and fixed version.
-2. **Outdated pins** — `poetry show --outdated`; flags majors behind with
+2. **Outdated pins** - `poetry show --outdated`; flags majors behind with
    security relevance.
-3. **Licence audit** — enumerates direct dependencies, identifies each licence,
+3. **Licence audit** - enumerates direct dependencies, identifies each licence,
    flags GPL/AGPL or unknown-licence packages.
-4. **Report** — spawns `background-reviewer` to compile findings into
+4. **Report** - spawns `background-reviewer` to compile findings into
    `docs/reviews/YYYY-MM-DD-dep-audit.md` with severities and recommended
    version bumps.
 
 ### When to use it
-- Weekly (or set up as a scheduled cron — see `AEGIS_AGENTIC_FLEET.md §12`)
+- Weekly (or set up as a scheduled cron - see `AEGIS_AGENTIC_FLEET.md §12`)
 - When adding a significant number of new dependencies
 - Before any external release
 
@@ -323,7 +323,7 @@ the full skill is the authoritative version).
 
 **Invocation:** `/secret-scan [paths]`
 **Also runs automatically** as a `PreToolUse` hook on every Write/Edit/MultiEdit
-— it **blocks** the write if a secret is found (exit code 2).
+- it **blocks** the write if a secret is found (exit code 2).
 
 **Examples:**
 ```
@@ -367,11 +367,11 @@ new writes, but the manual scan catches credentials that already existed.
 
 **Invocation:** `/link-check [path ...]`
 **Also runs automatically** via the `doc_link_check` hook (PostToolUse on Markdown
-edits, and at session Stop for docs changed in the working tree) — advisory,
+edits, and at session Stop for docs changed in the working tree) - advisory,
 non-blocking.
 
 ### What happens
-1. Runs `python scripts/check_doc_links.py [paths]` — the single source of truth for
+1. Runs `python scripts/check_doc_links.py [paths]` - the single source of truth for
    link/anchor integrity (the hook calls the same script).
 2. Reports each dangling relative link (`missing file`) and missing heading anchor
    (`missing anchor`) as `file:line`.
@@ -384,14 +384,14 @@ non-blocking.
 External links (http/https/mailto) and fenced code blocks are ignored.
 
 ### When to use it
-After editing, splitting, merging, or renaming any doc or heading — and as the final
+After editing, splitting, merging, or renaming any doc or heading - and as the final
 step of any `docs`-agent task.
 
 ---
 
 ## `doc-xref`
 
-**Invocation:** `/doc-xref <target>` — a doc path, heading text/anchor, or public symbol
+**Invocation:** `/doc-xref <target>` - a doc path, heading text/anchor, or public symbol
 
 ### What happens
 Finds every **inbound** reference to the target across both `docs/**` (+ repo-root
@@ -406,7 +406,7 @@ pointers. Complements `/link-check` (which validates a file's *outbound* links).
 4. Verify with `/link-check`.
 
 ### When to use it
-**Before** renaming/moving/splitting a doc, heading, or public symbol — the inbound
+**Before** renaming/moving/splitting a doc, heading, or public symbol - the inbound
 half of reference integrity that the (outbound) link checker can't see.
 
 ---

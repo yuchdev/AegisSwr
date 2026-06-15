@@ -19,19 +19,19 @@ factors, never on individual fault.
    - From git: `git log --since=<window> --pretty=format:'%h %ad %s' --date=short`
      for changes around the incident.
    - From incident data: query stored `RCAReport`s (via the `postgres`/`sqlite`
-     MCP or the filesystem store) for the incident id — detection time,
+     MCP or the filesystem store) for the incident id - detection time,
      consensus outcome, `SkepticVerdict`, `ConfidenceLevel`, any `HITLRequest`.
-2. **Five whys** — drill from symptom to root cause; record each "why" and its
+2. **Five whys** - drill from symptom to root cause; record each "why" and its
    evidence.
-3. **Contributing factors** — what made detection/diagnosis/remediation slower
+3. **Contributing factors** - what made detection/diagnosis/remediation slower
    (gaps in runbooks, missing tests, alert fatigue, etc.).
-4. **Action items** — concrete, each with an owner and a tracking issue; route
+4. **Action items** - concrete, each with an owner and a tracking issue; route
    code fixes to `coder`, tests to `qa`, doc/runbook updates to `docs`,
    design changes to `architect`.
 
 ## Template (docs/post-mortems/YYYY-MM-DD-<incident-id>.md)
 ```markdown
-# Post-Mortem — <incident-id> — <date>
+# Post-Mortem - <incident-id> - <date>
 - Severity: | Duration: | Detected by: | Mode:
 
 ## Summary

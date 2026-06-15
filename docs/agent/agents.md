@@ -1,4 +1,4 @@
-# Aegis SWR — Agent Reference
+# Aegis SWR - Agent Reference
 
 This document describes every agent in the `.claude/agents/` fleet: its
 responsibility, the model it uses, which tools it has access to, and exactly
@@ -39,7 +39,7 @@ The architect owns **every design decision** for Aegis SWR. It reads the
 codebase and existing ADRs before proposing anything, presents honest
 trade-offs, and writes Architecture Decision Records (ADRs) using the **MADR**
 template into `docs/adr/NNNN-kebab-title.md`. It never writes implementation
-code — once the decision is made, it hands a list of coding tasks to `coder`.
+code - once the decision is made, it hands a list of coding tasks to `coder`.
 
 ### Domain knowledge it carries
 - The full incident lifecycle and `EventBus` contract (`core/events.py`)
@@ -59,7 +59,7 @@ code — once the decision is made, it hands a list of coding tasks to `coder`.
   anyone codes it
 
 ### Hard limits
-- Never produces Python implementation code — it writes Markdown in `docs/`
+- Never produces Python implementation code - it writes Markdown in `docs/`
   only
 - Every ADR is created with status `Proposed`; a human or the team must promote
   it to `Accepted`
@@ -87,10 +87,10 @@ directly to `main`.
 
 ### Project rules it enforces
 - `Optional[T]` from `typing`, never `T | None`
-- mypy strict — no untyped surfaces
+- mypy strict - no untyped surfaces
 - ruff lint clean (the post-edit hook formats automatically)
 - RAII via context managers for subprocess/socket/file resources
-- `SensitiveFilter` on all loggers — never logs secrets or raw payloads
+- `SensitiveFilter` on all loggers - never logs secrets or raw payloads
 - Thin CLI actions; business logic in `core/` and `backends/`
 
 ### When to use it
@@ -123,19 +123,19 @@ against the Aegis lifecycle, and emits a structured review with a single
 **LGTM** or **REQUEST_CHANGES** verdict. It never edits code.
 
 ### Checks it runs (in priority order)
-1. **Correctness** — logic errors, resource leaks, unhandled errors, wrong
+1. **Correctness** - logic errors, resource leaks, unhandled errors, wrong
    async/await
-2. **Security** — injection paths in payload handling, missing auth, secrets in
+2. **Security** - injection paths in payload handling, missing auth, secrets in
    logs or responses
-3. **Domain accuracy** — correct lifecycle state transitions, Factory-Strategy
+3. **Domain accuracy** - correct lifecycle state transitions, Factory-Strategy
    contract, valid `RCAReport`/`SkepticVerdict` shapes
-4. **Conventions** — `Optional[T]`, mypy, ruff, docstrings on public APIs,
+4. **Conventions** - `Optional[T]`, mypy, ruff, docstrings on public APIs,
    commit message format
-5. **Test coverage** — does the change ship with meaningful tests?
+5. **Test coverage** - does the change ship with meaningful tests?
 
 ### Output format (always this shape)
 ```
-## Feature Review — <branch/PR>
+## Feature Review - <branch/PR>
 **Verdict: LGTM | REQUEST_CHANGES**
 
 ### Blocking issues
@@ -145,7 +145,7 @@ against the Aegis lifecycle, and emits a structured review with a single
 ```
 
 ### When to use it
-- Before every merge, on any branch — run via `/pr-review` for the full
+- Before every merge, on any branch - run via `/pr-review` for the full
   parallel review, or directly for a quick focused pass
 - After `coder` completes a change and says it's ready
 
@@ -169,12 +169,12 @@ compatibility checks. It writes a dated report to `docs/reviews/YYYY-MM-DD-
 <topic>.md` rather than issuing a blocking verdict.
 
 ### Tasks it performs
-- **Dependency audit** — `pip-audit`, advisory CVE lookups, outdated pins
-- **Secret scanning** — runs the shared `secret_scan.py` engine across new
+- **Dependency audit** - `pip-audit`, advisory CVE lookups, outdated pins
+- **Secret scanning** - runs the shared `secret_scan.py` engine across new
   and changed files
-- **Performance regression** — looks for O(n²) over stack frames, sync I/O on
+- **Performance regression** - looks for O(n²) over stack frames, sync I/O on
   async paths, unbounded memory, missing pagination, missing token budgeting
-- **License compatibility** — flags GPL/AGPL or unknown-license direct
+- **License compatibility** - flags GPL/AGPL or unknown-license direct
   dependencies
 
 ### When to use it
@@ -204,11 +204,11 @@ manual test checklist in `docs/qa/<feature>.md`. It also runs the full suite and
 reports the coverage delta vs. the previous baseline.
 
 ### Test principles
-- Assert real behavior — not just "does not raise"
+- Assert real behavior - not just "does not raise"
 - Precise assertions on `RCAReport`, `SkepticVerdict`, `ConfidenceLevel` fields
 - Mock every external: AI providers, debugger subprocesses, DB engines, S3,
   Qdrant, EventBus consumers
-- Never weaken or delete a failing test — fix the cause
+- Never weaken or delete a failing test - fix the cause
 
 ### Coverage priority (the highest risk first)
 1. Consensus/skeptic logic and payload parsing
@@ -243,10 +243,10 @@ uses the `/runbook-write` skill template and the Aegis RST docstring convention
 (`:param:`, `:ivar:`, `:return:`).
 
 ### Output locations
-- `docs/runbooks/` — operational guides per incident type
-- `docs/api/` — REST reference and OpenAPI JSON
-- `docs/README.md` — index (always updated when a new doc is added)
-- `docs/post-mortems/` — blameless post-mortem template instances
+- `docs/runbooks/` - operational guides per incident type
+- `docs/api/` - REST reference and OpenAPI JSON
+- `docs/README.md` - index (always updated when a new doc is added)
+- `docs/post-mortems/` - blameless post-mortem template instances
 - Inline docstrings in changed `src/` files
 
 ### When to use it
@@ -273,8 +273,8 @@ pipeline. It validates that code changes correctly implement the incident
 lifecycle, checks that escalation paths are always reachable, and reviews
 playbook/consensus logic for correctness and safety. It catches the two
 failure modes that matter most in an on-call tool:
-- **Missed escalation** — a real incident that never pages anyone
-- **Alert fatigue** — an incident that pages the same person 50 times
+- **Missed escalation** - a real incident that never pages anyone
+- **Alert fatigue** - an incident that pages the same person 50 times
 
 ### Invariants it checks
 - Every pipeline state has a defined exit (success and failure)
@@ -309,20 +309,20 @@ The security auditor performs threat modeling using a STRIDE-lite, payload-centr
 approach. It treats every incident artifact as attacker-influenced and
 every external integration as a trust-boundary crossing. Findings are written
 to `docs/security/YYYY-MM-DD-<feature>.md`. A **CRITICAL** finding produces
-verdict `BLOCK` — the PR must not merge until the issue is resolved.
+verdict `BLOCK` - the PR must not merge until the issue is resolved.
 
 ### What it looks for
-- **Injection** — untrusted dump/log/stack text reaching a shell, SQL, `eval`,
+- **Injection** - untrusted dump/log/stack text reaching a shell, SQL, `eval`,
   or an AI prompt
-- **Auth** — unprotected API routes, missing authorization checks
-- **Disclosure** — secrets or PII in logs, exception messages, API errors
-- **DoS** — unbounded memory on large dumps, missing rate limits, token-budget
+- **Auth** - unprotected API routes, missing authorization checks
+- **Disclosure** - secrets or PII in logs, exception messages, API errors
+- **DoS** - unbounded memory on large dumps, missing rate limits, token-budget
   exhaustion
-- **Elevation** — automated remediation without `AEGIS_PROD_CONFIRMED` guard
+- **Elevation** - automated remediation without `AEGIS_PROD_CONFIRMED` guard
 
 ### Threat model output
 ```
-# Threat Model — <feature> — <date>
+# Threat Model - <feature> - <date>
 ## Assets & trust boundaries
 ## Findings
 ### [CRITICAL|HIGH|MEDIUM|LOW] <title>
@@ -354,7 +354,7 @@ raw log payloads from external agents (PR #51).
 
 ### What it does
 The orchestrator coordinates **multistep flows** that span several specialist
-agents — typically "ticket → merged PR". It decomposes the request, runs
+agents - typically "ticket → merged PR". It decomposes the request, runs
 independent steps in parallel, serializes where there are real dependencies,
 stops at human decision gates, and hands each task to the right specialist.
 
@@ -367,7 +367,7 @@ stops at human decision gates, and hands each task to the right specialist.
 5. `feature-reviewer` issues LGTM / REQUEST_CHANGES (loops to `coder` until
    LGTM)
 6. `docs` updates docs/OpenAPI/docstrings
-7. Open PR — never push to `main`
+7. Open PR - never push to `main`
 
 ### When to use it
 - When a request is large enough that you would otherwise have to manually
@@ -376,7 +376,7 @@ stops at human decision gates, and hands each task to the right specialist.
   and security implications
 
 ### When NOT to use it
-- For simple one-agent tasks — just call the relevant agent directly
+- For simple one-agent tasks - just call the relevant agent directly
 - When you need fine-grained control over each step (call agents individually)
 
 ### Example prompt
@@ -391,13 +391,13 @@ reports) all the way from ADR through merged PR.
 
 In a Claude Code session, there are two ways to use agents:
 
-**Inline delegation** — ask Claude to delegate to a specific agent in your
+**Inline delegation** - ask Claude to delegate to a specific agent in your
 prompt:
 ```
 Use the coder agent to implement the change described in ADR 0004.
 ```
 
-**Direct subagent spawn** — Claude Code can spawn an agent as a subagent using
+**Direct subagent spawn** - Claude Code can spawn an agent as a subagent using
 the `Agent` tool internally. You do not need to do anything special; Claude
 orchestrates this when you name an agent.
 

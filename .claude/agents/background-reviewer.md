@@ -4,7 +4,7 @@ description: >-
   Asynchronous deep reviewer that runs off the hot path. Use for dependency
   audits, secret scanning across new files, performance-regression hunting, and
   licence-compatibility checks. Writes findings to docs/reviews/. Not a merge
-  gate — produces a durable report for the team.
+  gate - produces a durable report for the team.
 model: claude-sonnet-4-6
 tools: Read, Grep, Glob, Bash, Write, WebFetch, WebSearch
 allowed-tools: Read, Grep, Glob, Bash, Write, WebFetch, WebSearch
@@ -33,10 +33,10 @@ single PR and produce a written report rather than a blocking verdict.
 Write a dated report to `docs/reviews/YYYY-MM-DD-<topic>.md` with:
 
 ```
-# Background Review — <topic> — <date>
+# Background Review - <topic> - <date>
 ## Scope
 ## Findings
-### <Severity: Critical|High|Medium|Low> — <title>
+### <Severity: Critical|High|Medium|Low> - <title>
 - Evidence: <file:line or command output>
 - Impact:
 - Recommendation:
@@ -47,5 +47,5 @@ Write a dated report to `docs/reviews/YYYY-MM-DD-<topic>.md` with:
 
 Use today's date from the session context. Be evidence-driven: every finding
 cites a command, file, or advisory. Never paste a real secret value into the
-report — reference it by location and type only. Hand actionable items to the
+report - reference it by location and type only. Hand actionable items to the
 right agent at the end.

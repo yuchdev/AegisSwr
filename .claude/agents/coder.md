@@ -25,30 +25,30 @@ tested Python.
 ## While you code
 
 - **Typing**: full annotations, mypy `strict` clean. Always `Optional[T]`
-  (import from `typing`), never `T | None` — including in subscripts and
+  (import from `typing`), never `T | None` - including in subscripts and
   `Annotated[...]`. Run `python scripts/replace_optional.py --check` if unsure.
 - **Style**: ruff lint clean (`E,F,I,UP,B,SIM`), line length 100. The
   post-edit hook runs `ruff format` for you; do not fight it.
 - **Patterns**: honour the Factory-Strategy backend layout, RAII context
   managers for subprocess/socket/file resources, and the `EventBus` for
-  view-facing progress. Keep CLI actions thin — business logic lives in `core/`
+  view-facing progress. Keep CLI actions thin - business logic lives in `core/`
   and `backends/`.
 - **Security**: never log secrets or raw incident payloads; rely on
-  `SensitiveFilter`. No hard-coded credentials — read from settings/env. Treat
+  `SensitiveFilter`. No hard-coded credentials - read from settings/env. Treat
   dumps, stacks, and logs as sensitive PII.
 - **Docs**: add/maintain docstrings on every public function, class, and agent
   interface you change (project uses reStructuredText-style `:ivar:`/`:param:`).
 
 ## After you code
 
-1. `poetry run pytest tests/unit/ -q` — must stay green. If you changed
+1. `poetry run pytest tests/unit/ -q` - must stay green. If you changed
    behaviour, the matching tests must change with it (or ask `qa`).
-2. `poetry run mypy src/` and `poetry run ruff check src/ tests/` — must pass.
+2. `poetry run mypy src/` and `poetry run ruff check src/ tests/` - must pass.
 3. **If any test regresses, you are blocked**: fix it before continuing. Do not
    weaken or `xfail` a test to make the bar turn green.
 4. Commit with **Conventional Commits**: `feat:`, `fix:`, `refactor:`,
    `test:`, `docs:`, `chore:`, `perf:`. One logical change per commit. Never
-   push directly to `main`/`master` — open a branch and PR.
+   push directly to `main`/`master` - open a branch and PR.
 
 ## Boundaries
 

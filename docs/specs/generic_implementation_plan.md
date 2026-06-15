@@ -1,4 +1,4 @@
-# Aegis SWR — Implementation Plan & Backend / Data-Adapter Specification
+# Aegis SWR - Implementation Plan & Backend / Data-Adapter Specification
 
 **Package:** `aegis-swr` | **Module root:** `src/aegis_swr/`
 **Total estimated timeline:** 16 weeks across 10 phases
@@ -6,17 +6,17 @@
 This document is self-contained for the **Data Adapter** and **Backend** layers:
 their specifications are inlined in [Part II](#part-ii--data-adapter--backend-specifications)
 (merged here from the design spec, with code/config/directory-tree examples trimmed
-to leave the interface contracts and algorithms). The remaining specifications —
+to leave the interface contracts and algorithms). The remaining specifications -
 Multi-Agent System engine, storage topology, REST API, sandbox, CLI, and the full
-configuration system — continue to live in `PRODUCTION_DESIGN_SPEC.md`.
+configuration system - continue to live in `PRODUCTION_DESIGN_SPEC.md`.
 
-- [Part I — Phase Plan](#part-i--phase-plan)
-- [Part II — Data Adapter & Backend Specifications](#part-ii--data-adapter--backend-specifications)
-- [Part III — New Task: Three-Channel Logging](#part-iii--new-task-three-channel-logging-application--evidence--investigation-process)
+- [Part I - Phase Plan](#part-i--phase-plan)
+- [Part II - Data Adapter & Backend Specifications](#part-ii--data-adapter--backend-specifications)
+- [Part III - New Task: Three-Channel Logging](#part-iii--new-task-three-channel-logging-application--evidence--investigation-process)
 
 ---
 
-# Part I — Phase Plan
+# Part I - Phase Plan
 
 ## Phase Overview
 
@@ -422,7 +422,7 @@ Phase 1 (Foundation)
 
 ---
 
-# Part II — Data Adapter & Backend Specifications
+# Part II - Data Adapter & Backend Specifications
 
 > Merged from the design spec. Code, `config.yaml`, JavaScript, and directory-tree
 > examples have been trimmed; what remains is the **interface contracts, data
@@ -847,7 +847,7 @@ logs before clustering; `query_window` is `async` (sources may be network-backed
 `file_root`, `default_severity_levels` (default `["FATAL","CRITICAL","ERROR",
 "WARNING"]`), `fluent_host`, `fluent_port`, `fluent_tag_prefix`.
 
-> **Note — this is log *ingestion*** (reading the investigated system's logs),
+> **Note - this is log *ingestion*** (reading the investigated system's logs),
 > distinct from Aegis's own application logging. See
 > [Part III](#part-iii--new-task-three-channel-logging-application--evidence--investigation-process).
 
@@ -908,30 +908,30 @@ VCS revision was compiled in?" (Stage 8) - orthogonal questions, same file.
 
 ---
 
-# Part III — New Task: Three-Channel Logging (Application / Evidence / Investigation-Process)
+# Part III - New Task: Three-Channel Logging (Application / Evidence / Investigation-Process)
 
-**Status: COMPLETE.** All phases landed — A–F (the split), H (docs), and J (legacy
+**Status: COMPLETE.** All phases landed - A–F (the split), H (docs), and J (legacy
 migration); Phase G (wiring) was absorbed into C/E/F and Phase I (tests) shipped
 per-phase. The single remaining *deferred* item is the real ELK/Fluent application-log
-emitters (Phase E step 9) — accepted by schema + CLI today as warn-and-fall-back stubs.
+emitters (Phase E step 9) - accepted by schema + CLI today as warn-and-fall-back stubs.
 This chapter splits today's single, overloaded severity knob into three channels:
 application logging, the Evidence Stream, and the Investigation Process pane.
 
-## III.0 Motivation — the current conflation
+## III.0 Motivation - the current conflation
 
 Today one value (`--log-severity` → the `logging.severity` config key) is fed to
 **both** of these unrelated consumers:
 
-- `configure_logging(severity, log_dir)` in `cli/aegis_logging.py` — Aegis's **own**
+- `configure_logging(severity, log_dir)` in `cli/aegis_logging.py` - Aegis's **own**
   diagnostic logging (a loguru stderr sink plus a single rotating *file*; there is
   no ELK/fluent emit sink today), and
 - `stream_and_display(level=…)` → `make_view(console, level=…)` in `views/rich_view.py`
-  — the war-room **Evidence Stream** verbosity (left pane; `EvidenceLevel` =
+  - the war-room **Evidence Stream** verbosity (left pane; `EvidenceLevel` =
   INFO/DEBUG/TRACE), which *also* currently gates the agent-reasoning detail shown
   in the **Investigation Process** pane (right pane).
 
 Worse, the `logging.provider`/`logging.service` keys are not application logging at
-all — they configure the **log-ingestion** backend (`backends.log.provider` and the
+all - they configure the **log-ingestion** backend (`backends.log.provider` and the
 `metadata["service"]` passed to `LogBackend.query_window`; see [Part II §C.4](#c4-logbackend)).
 So the single `logging` section mixes three concerns. This task separates them.
 
@@ -950,7 +950,7 @@ reasoning at `process.severity = TRACE` is orthogonal to the evidence verbosity.
 
 ```jsonc
 {
-  // INGESTION — config for reading the *investigated system's* logs (D1)
+  // INGESTION - config for reading the *investigated system's* logs (D1)
   "ingest": {
     "log_source": {
       "provider": "file",     // file | fluent | elk   → backends.log.provider
@@ -958,7 +958,7 @@ reasoning at `process.severity = TRACE` is orthogonal to the evidence verbosity.
     }
   },
 
-  // APPLICATION logging — Aegis's own diagnostics
+  // APPLICATION logging - Aegis's own diagnostics
   "logging": {
     "severity": "INFO",       // TRACE | DEBUG | INFO | WARNING | ERROR
     "sink": "file",           // file | elk | fluent   (elk/fluent = stubs, D3)
@@ -968,14 +968,14 @@ reasoning at `process.severity = TRACE` is orthogonal to the evidence verbosity.
     "fluent_port": null
   },
 
-  // EVIDENCE logging — war-room left pane, investigation-only
+  // EVIDENCE logging - war-room left pane, investigation-only
   "evidence": {
     "severity": "INFO",       // INFO | TRACE
     "persist": false,         // off by default (D5); when true, write to a file
     "dir": null               // evidence log dir when persist = true
   },
 
-  // INVESTIGATION-PROCESS logging — war-room right pane (agent reasoning)
+  // INVESTIGATION-PROCESS logging - war-room right pane (agent reasoning)
   "process": {
     "severity": "INFO"        // INFO (headlines) | TRACE (full agent reasoning)
   }
@@ -995,20 +995,20 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
 
 ## III.3 Resolved decisions
 
-- **D1** — ingestion `provider`/`service` live under `ingest.log_source` (so `logging`
+- **D1** - ingestion `provider`/`service` live under `ingest.log_source` (so `logging`
   is application diagnostics only).
-- **D2** — evidence has exactly two levels; the former `DEBUG` evidence detail folds
+- **D2** - evidence has exactly two levels; the former `DEBUG` evidence detail folds
   into `TRACE`.
-- **D3** — `logging.sink = elk|fluent` is accepted by schema + CLI but the emitters
+- **D3** - `logging.sink = elk|fluent` is accepted by schema + CLI but the emitters
   are **stubs** (warn + fall back to file/stderr); real sinks land later.
-- **D4** — evidence and investigation-process are **separate** channels; agent
+- **D4** - evidence and investigation-process are **separate** channels; agent
   reasoning prints at `process.severity = TRACE`, toggled independently of evidence.
-- **D5** — evidence persistence is **configurable, off by default**; agent dialogue
+- **D5** - evidence persistence is **configurable, off by default**; agent dialogue
   is already persisted in the report files, so no separate process sink is added.
 
 ## III.4 Development phases
 
-### Phase A — Internal decoupling (no behavior change) ✅
+### Phase A - Internal decoupling (no behavior change) ✅
 1. Thread **three** distinct levels through the call chain in place of the single
    reused `config.log_severity`: an application severity into `configure_logging`,
    and separate evidence/process levels into `stream_and_display`/`make_view`
@@ -1023,7 +1023,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    it). The existing `level=` parameter on `make_view`/`WarRoomView` is retained for
    backward compatibility. No behavior change; all suites green.
 
-### Phase B — Config schema split (`cli/_config.py`) ✅
+### Phase B - Config schema split (`cli/_config.py`) ✅
 2. Add `AnalyzeConfig` fields: `evidence_severity`, `evidence_persist`, `evidence_dir`,
    `process_severity`, `log_sink`, `log_elk_url`, `log_fluent_host`, `log_fluent_port`
    (keep `log_severity`, `log_dir`, `log_provider`, `log_service`).
@@ -1049,14 +1049,14 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    (`test_e2e_cli.py` nested-sections flow-through + `--save-config` nesting).
    Full suite green (393 passed).
 
-### Phase C — CLI surface (`cli/commands.py`)
+### Phase C - CLI surface (`cli/commands.py`)
 4. Add `--evidence-severity`, `--evidence-persist/--no-evidence-persist`,
    `--process-severity`, `--log-sink`; keep `--log-severity`/`--log-dir`; clarify that
    `--log-provider`/`--log-service` configure `ingest.log_source`.
 5. Validate ranges: evidence and process accept only `INFO|TRACE` (clear error
    otherwise); application accepts the full loguru range.
 
-### Phase D — Evidence & process severity model (`views/rich_view.py`) ✅
+### Phase D - Evidence & process severity model (`views/rich_view.py`) ✅
 6. Split `WarRoomView._level` into `_evidence_level` and `_process_level`; pass each to
    the corresponding `_StreamLog.visible(...)` call. Gate `_on_evidence` /
    `_emit_trace_evidence` on the evidence level and the agent-reasoning detail in
@@ -1080,7 +1080,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    shown); 2-level rank test; `make_view` DEBUG→TRACE collapse test; removed the
    obsolete excerpt-cap test. Full suite green.
 
-### Phase E — Application logging sinks (`cli/aegis_logging.py`) ✅
+### Phase E - Application logging sinks (`cli/aegis_logging.py`) ✅
 8. Refactor `configure_logging(severity, *, sink="file", dir=None, elk_url=None,
    fluent_host=None, fluent_port=None)`; `file` keeps current rotating-file behavior;
    stderr always on; `_sensitive_filter` + the noisy-logger clamp apply to every sink.
@@ -1103,7 +1103,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    with `sink="elk"`), integration (`--log-sink elk` completes end-to-end and the
    fallback file log captures the stub warning). Full suite green.
 
-### Phase F — Evidence persistence (D5) ✅
+### Phase F - Evidence persistence (D5) ✅
 10. When `evidence.persist` is true, attach a file sink for the evidence stream under
     `evidence.dir` (default off). The full investigation trail already lives in the
     report files, so process-pane persistence is **not** added.
@@ -1125,7 +1125,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     drives the real view via a mocked event stream and writes the transcript file).
     Full suite green.
 
-### Phase G — Wiring (`cli/commands.py`) ✅ (absorbed into C/E/F)
+### Phase G - Wiring (`cli/commands.py`) ✅ (absorbed into C/E/F)
 11. `configure_logging(config.log_severity, sink=config.log_sink, dir=config.log_dir, …)`
     for diagnostics; `stream_and_display(evidence_level=config.evidence_severity,
     process_level=config.process_severity)` for the war room; evidence persistence per
@@ -1135,7 +1135,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     were wired in Phase C, the `--log-sink`/elk/fluent params in Phase E, and
     `evidence_persist`/`evidence_dir` in Phase F. Nothing remained for a standalone G.
 
-### Phase H — Docs & config files ✅
+### Phase H - Docs & config files ✅
 12. Update `docs/configuration/config.md` (four sections: `ingest.log_source`,
     `logging`, `evidence`, `process`, and the distinction from `backends.log`),
     `docs/configuration/cli.md` (new flag rows + validation), `config.example.json`,
@@ -1154,7 +1154,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     Docs-only - no Python/tests changed; verified `config.example.json` still parses into
     the four-section schema and all doc anchors resolve.
 
-### Phase I — Tests ✅ (delivered incrementally with B–F, not as a separate phase)
+### Phase I - Tests ✅ (delivered incrementally with B–F, not as a separate phase)
 13. **Schema/IO** (`test_analyze_config.py`): dotted-path flatten/nest for all four
     sections; round-trip; legacy-flat-key-wins; defaults; legacy migration.
 14. **CLI** (`test_cli.py`): evidence/process severities independent of `--log-severity`
@@ -1170,7 +1170,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     independent threading; D: pane split + collapse + independence; E: sinks; F:
     evidence transcript + persistence; J: legacy migration). Full suite green throughout.
 
-### Phase J — Back-compat & migration ✅
+### Phase J - Back-compat & migration ✅
 17. If a legacy conflated `logging.severity` exists and `evidence`/`process` are absent,
     seed both from it (clamped to INFO/TRACE) with a one-time deprecation warning; old
     flat `log_*` keys still load via the override-wins path.

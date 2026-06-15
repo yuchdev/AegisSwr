@@ -1,4 +1,4 @@
-# Aegis SWR — Agentic Fleet Tutorial
+# Aegis SWR - Agentic Fleet Tutorial
 
 Welcome. This tutorial assumes you have just joined the Aegis SWR project and
 have little or no prior experience with Claude Code's agentic features. By the
@@ -7,7 +7,7 @@ on this codebase.
 
 ---
 
-## Part 1 — What is happening and why
+## Part 1 - What is happening and why
 
 ### The short version
 
@@ -20,7 +20,7 @@ engineering team sitting inside your terminal.
 ### The two things you must keep straight
 
 **Product agents** (`src/aegis_swr/agents/`) are parts of the Aegis SWR
-application itself. They analyse crashes at runtime — `os_kernel`,
+application itself. They analyse crashes at runtime - `os_kernel`,
 `code_analyst`, `log_historian`, `skeptic`. You work on their code. You do not
 call them in your terminal.
 
@@ -30,7 +30,7 @@ these in your Claude Code session. This tutorial is about these.
 
 ---
 
-## Part 2 — Getting started
+## Part 2 - Getting started
 
 ### Opening a session
 
@@ -75,7 +75,7 @@ gh auth login
 
 ---
 
-## Part 3 — The hooks (things that happen automatically)
+## Part 3 - The hooks (things that happen automatically)
 
 Before you start asking Claude to do things, know what runs in the background
 without you asking.
@@ -106,7 +106,7 @@ markers: `example`, `placeholder`, `${`, `your-`, `changeme`, etc.
 
 Claude will never run `rm -rf`, `DROP TABLE`, `git push --force`, or
 `git reset --hard` without you noticing. These are blocked automatically. If
-you need to run one yourself, do it in a separate terminal — do not ask Claude.
+you need to run one yourself, do it in a separate terminal - do not ask Claude.
 
 ### The test suite runs when the session ends
 
@@ -122,7 +122,7 @@ claude
 
 ---
 
-## Part 4 — Agents in practice
+## Part 4 - Agents in practice
 
 You delegate to an agent by saying "use the X agent to …" in your message.
 Claude spawns the agent, lets it work, and returns the result.
@@ -132,7 +132,7 @@ Claude spawns the agent, lets it work, and returns the result.
 **Situation:** The ticket says "Add support for exporting RCA reports as CSV".
 You have no idea where to start.
 
-**Step 1 — Get a design first**
+**Step 1 - Get a design first**
 
 Ask the `architect` agent to design it before anyone writes code:
 
@@ -149,7 +149,7 @@ The architect will:
 5. Write an ADR to `docs/adr/NNNN-csv-export-for-rca-reports.md`
 6. List tasks for `coder` and `qa`
 
-**Step 2 — Implement against the ADR**
+**Step 2 - Implement against the ADR**
 
 Once you (and optionally the team) approve the ADR:
 
@@ -165,14 +165,14 @@ The coder will:
 4. Run `pytest`, `mypy`, and `ruff` after
 5. Propose a conventional commit message (`feat(cli): add CSV export command`)
 
-**Step 3 — Add tests**
+**Step 3 - Add tests**
 
 ```
 Use the qa agent to write unit tests for the CSV export feature.
 Report the coverage delta.
 ```
 
-**Step 4 — Review before merge**
+**Step 4 - Review before merge**
 
 ```
 /pr-review feat/csv-export
@@ -181,7 +181,7 @@ Report the coverage delta.
 This fans out `feature-reviewer` and `security-auditor` in parallel. Two
 reviewers run simultaneously; you get one synthesised verdict.
 
-**Step 5 — Update docs**
+**Step 5 - Update docs**
 
 ```
 Use the docs agent to update the CLI reference (docs/configuration/cli.md)
@@ -196,7 +196,7 @@ for the new export command and add a runbook entry if needed.
 `SkepticVerdict` with `verdict = None` when the consensus confidence is
 `HIGH`. This should never happen.
 
-**Step 1 — Ask the coder to investigate and fix**
+**Step 1 - Ask the coder to investigate and fix**
 
 ```
 Use the coder agent to investigate and fix the bug where SkepticVerdict.verdict
@@ -206,7 +206,7 @@ src/aegis_swr/agents/skeptic.py and src/aegis_swr/core/consensus.py.
 
 The coder will read the code, find the bug, fix it, and ensure `pytest` passes.
 
-**Step 2 — Ask the incident-analyst to validate**
+**Step 2 - Ask the incident-analyst to validate**
 
 Because this touches the skeptic/consensus path, the incident-analyst should
 confirm the fix does not break any lifecycle invariants:
@@ -217,7 +217,7 @@ current diff does not break any escalation paths or introduce a scenario where
 a LOW-confidence result could bypass HITL escalation.
 ```
 
-**Step 3 — Run the full review**
+**Step 3 - Run the full review**
 
 ```
 /pr-review
@@ -237,12 +237,12 @@ a LOW-confidence result could bypass HITL escalation.
 You will get a risk-ranked list:
 
 ```
-## Test Gap — src/aegis_swr/core/incident_similarity.py (coverage: 61%)
-### P0 — must test
-- incident_similarity.py:45-72 — similarity threshold boundary: what happens
-  at exactly 0.5 similarity — risky: could cause alert-fatigue or missed
-  escalation — suggested: parametrize over similarity scores near threshold
-### P1 — should test
+## Test Gap - src/aegis_swr/core/incident_similarity.py (coverage: 61%)
+### P0 - must test
+- incident_similarity.py:45-72 - similarity threshold boundary: what happens
+  at exactly 0.5 similarity - risky: could cause alert-fatigue or missed
+  escalation - suggested: parametrize over similarity scores near threshold
+### P1 - should test
 ...
 ```
 
@@ -259,9 +259,9 @@ incident_similarity.py.
 **Situation:** You need to add a webhook endpoint that receives incident signals
 from an external monitoring tool. It accepts raw JSON payloads.
 
-This change touches **payload ingestion and auth** — it needs a security review.
+This change touches **payload ingestion and auth** - it needs a security review.
 
-**Step 1 — Design**
+**Step 1 - Design**
 
 ```
 Use the architect agent to design the external signal webhook endpoint.
@@ -269,13 +269,13 @@ The payload is untrusted JSON. Write an ADR covering auth, input validation,
 rate limiting, and how we prevent injection via log/stack-trace fields.
 ```
 
-**Step 2 — Implement**
+**Step 2 - Implement**
 
 ```
 Use the coder agent to implement the webhook endpoint following ADR 0005.
 ```
 
-**Step 3 — Security review before any PR**
+**Step 3 - Security review before any PR**
 
 ```
 Use the security-auditor agent to threat-model the new webhook endpoint
@@ -286,7 +286,7 @@ The security-auditor will apply STRIDE-lite analysis. If it issues a `BLOCK`
 verdict, **do not merge until the issue is resolved**, even if the
 feature-reviewer says LGTM. A BLOCK from security overrides everything.
 
-**Step 4 — Full review**
+**Step 4 - Full review**
 
 ```
 /pr-review 55
@@ -299,7 +299,7 @@ feature-reviewer says LGTM. A BLOCK from security overrides everything.
 **Situation:** A memory-access-violation crash in production was mitigated an
 hour ago. The team wants a post-mortem.
 
-**Step 1 — Capture the post-mortem**
+**Step 1 - Capture the post-mortem**
 
 ```
 /post-mortem INC-2024-0112
@@ -311,14 +311,14 @@ The skill will:
 3. Produce `docs/post-mortems/2024-01-12-INC-2024-0112.md`
 4. List action items routed to `coder`, `qa`, `docs`, `architect`
 
-**Step 2 — Update the runbook if it was missing a step**
+**Step 2 - Update the runbook if it was missing a step**
 
 ```
 Use the docs agent to update docs/runbooks/memory-access-violation.md
 to cover the log-correlation step we missed during triage.
 ```
 
-**Step 3 — Validate the updated runbook**
+**Step 3 - Validate the updated runbook**
 
 ```
 /playbook-validate docs/runbooks/memory-access-violation.md
@@ -346,7 +346,7 @@ Run the test suite after and ensure everything is green.
 ### Scenario 7: The orchestrator handling everything
 
 **Situation:** You have a well-defined ticket and just want Claude to handle
-the whole lifecycle — design, code, tests, review, and docs — with appropriate
+the whole lifecycle - design, code, tests, review, and docs - with appropriate
 checkpoints.
 
 ```
@@ -356,7 +356,7 @@ merged PR, pausing for my approval after the ADR and before merge.
 ```
 
 The orchestrator will:
-1. Have `architect` write an ADR — then **pause and ask you to approve**
+1. Have `architect` write an ADR - then **pause and ask you to approve**
 2. Have `coder` implement it
 3. Have `qa` write tests in parallel with `incident-analyst` and
    `security-auditor` validation
@@ -369,7 +369,7 @@ you want fine-grained control.
 
 ---
 
-## Part 5 — Slash commands at a glance
+## Part 5 - Slash commands at a glance
 
 Type these directly in the Claude Code chat:
 
@@ -386,11 +386,11 @@ Type these directly in the Claude Code chat:
 
 ---
 
-## Part 6 — Common mistakes and how to avoid them
+## Part 6 - Common mistakes and how to avoid them
 
 ### "Claude tried to write an API key into a file and was blocked"
 
-Expected behaviour — the secret scanner caught it. Tell Claude to use
+Expected behaviour - the secret scanner caught it. Tell Claude to use
 `${VARIABLE_NAME}` instead and store the actual value in the environment. Look
 at how `.mcp.json` uses `${GITHUB_PERSONAL_ACCESS_TOKEN}` for the pattern.
 
@@ -411,7 +411,7 @@ claude
 
 ### "The coder keeps changing the code style and ruff keeps reformatting it"
 
-Do not fight `ruff format` — it is the project standard. If a specific
+Do not fight `ruff format` - it is the project standard. If a specific
 formatting decision looks wrong, check the ruff configuration in `pyproject.toml`
 under `[tool.ruff]`. Never ask Claude to disable the formatter.
 
@@ -429,11 +429,11 @@ Fix the security finding and re-run `/pr-review`.
 
 `.dmp` files are in the deny list because they are incident payloads that may
 contain PII. If you genuinely need to inspect a dump, do it in a separate tool
-(`cdb.exe`, WinDbg, `gdb`) — do not load it into Claude's context.
+(`cdb.exe`, WinDbg, `gdb`) - do not load it into Claude's context.
 
 ---
 
-## Part 7 — Reading the audit logs
+## Part 7 - Reading the audit logs
 
 Everything Claude does leaves a trace in `.claude/logs/`. You can review what
 happened in a session after the fact:
@@ -457,7 +457,7 @@ working-tree, local only.
 
 ---
 
-## Part 8 — Quick-reference card
+## Part 8 - Quick-reference card
 
 ```
 AGENTS (call with "use the X agent to…")
@@ -499,10 +499,10 @@ OVERRIDES
 
 ## Where to go next
 
-- **`docs/agent/agents.md`** — deep reference for every agent
-- **`docs/agent/skills.md`** — deep reference for every skill
-- **`docs/agent/hooks.md`** — deep reference for every hook and its logs
-- **`AEGIS_AGENTIC_FLEET.md`** — architectural design decisions behind the fleet
-- **`.claude/CLAUDE.md`** — the operating manual loaded into every session
-- **`CLAUDE.md`** (repo root) — the product architecture guide
-- **`docs/README.md`** — index of all project docs
+- **`docs/agent/agents.md`** - deep reference for every agent
+- **`docs/agent/skills.md`** - deep reference for every skill
+- **`docs/agent/hooks.md`** - deep reference for every hook and its logs
+- **`AEGIS_AGENTIC_FLEET.md`** - architectural design decisions behind the fleet
+- **`.claude/CLAUDE.md`** - the operating manual loaded into every session
+- **`CLAUDE.md`** (repo root) - the product architecture guide
+- **`docs/README.md`** - index of all project docs

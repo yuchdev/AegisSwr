@@ -1,7 +1,7 @@
-# Aegis SWR — Hooks Reference
+# Aegis SWR - Hooks Reference
 
 Hooks are Python scripts that run automatically at specific points in a Claude
-Code session — before a tool runs, after it finishes, when the session starts,
+Code session - before a tool runs, after it finishes, when the session starts,
 or when Claude tries to stop. They are the **invisible enforcement layer** of
 the agentic fleet: no agent needs to remember to run them, they just happen.
 
@@ -19,34 +19,34 @@ pending tool call as JSON on stdin and exits with one of:
 
 | Exit code | Meaning |
 |---|---|
-| `0` | Allow — tool call proceeds |
-| `2` | **Block** — tool call is cancelled; Claude sees the stderr message and must find another approach |
+| `0` | Allow - tool call proceeds |
+| `2` | **Block** - tool call is cancelled; Claude sees the stderr message and must find another approach |
 | Other | Non-fatal warning; surfaced to the user but does not block |
 
 **PostToolUse** hooks run after a tool succeeds, for side effects (formatting,
 logging). **SessionStart** hooks run once at the beginning of a session to seed
 context. **Stop** hooks run when Claude tries to end a session.
 
-Hooks are **deterministic** — unlike agents or skills, they are not LLM calls.
+Hooks are **deterministic** - unlike agents or skills, they are not LLM calls.
 They run at machine speed and always produce the same result for the same input.
 
 ---
 
 ## Hook scripts
 
-### `_common.py` — shared library
+### `_common.py` - shared library
 Not a hook itself; imported by every hook. Provides:
-- `read_event()` — parse the hook JSON from stdin
-- `tool_input(event)` — extract the `tool_input` dict
-- `edited_path(event)` — resolve the target file path from Write/Edit events
-- `block(message)` — print to stderr and exit 2
-- `allow()` — exit 0
-- `append_log(filename, line)` — write a timestamped line to `.claude/logs/`
-- `now_iso()` — current UTC timestamp in ISO-8601
+- `read_event()` - parse the hook JSON from stdin
+- `tool_input(event)` - extract the `tool_input` dict
+- `edited_path(event)` - resolve the target file path from Write/Edit events
+- `block(message)` - print to stderr and exit 2
+- `allow()` - exit 0
+- `append_log(filename, line)` - write a timestamped line to `.claude/logs/`
+- `now_iso()` - current UTC timestamp in ISO-8601
 
 ---
 
-### `guard_bash.py` — destructive command guard
+### `guard_bash.py` - destructive command guard
 
 **Hook event:** `PreToolUse` on `Bash`
 **Log:** `.claude/logs/bash-guard.log`
@@ -54,12 +54,12 @@ Not a hook itself; imported by every hook. Provides:
 Runs before every shell command. Blocks two categories:
 
 **1. Destructive operations** (always blocked, no override):
-- `rm -rf` / `rm -fr` — recursive force delete
-- `DROP TABLE`, `DROP DATABASE`, `TRUNCATE TABLE` — database destruction
-- `git push --force` / `git push -f` — force-push (can overwrite upstream)
-- `git reset --hard` — discards uncommitted work
-- `> /dev/sdX` — raw disk overwrite
-- `mkfs` — filesystem format
+- `rm -rf` / `rm -fr` - recursive force delete
+- `DROP TABLE`, `DROP DATABASE`, `TRUNCATE TABLE` - database destruction
+- `git push --force` / `git push -f` - force-push (can overwrite upstream)
+- `git reset --hard` - discards uncommitted work
+- `> /dev/sdX` - raw disk overwrite
+- `mkfs` - filesystem format
 
 **2. Production-targeting commands** (blocked unless `AEGIS_PROD_CONFIRMED=1`):
 Any command containing the word `prod` or `production` (case-insensitive) is
@@ -67,7 +67,7 @@ blocked unless the environment variable `AEGIS_PROD_CONFIRMED=1` is set.
 
 **When you hit it legitimately:**
 If you genuinely need to run a destructive command, the hook will tell you so
-and ask you to run it manually. This is intentional — the guard is there to
+and ask you to run it manually. This is intentional - the guard is there to
 prevent an automated slip, not to stop you from doing your job. For production
 actions, export `AEGIS_PROD_CONFIRMED=1` in your terminal before starting the
 Claude Code session.
@@ -82,7 +82,7 @@ If you are certain, ask the user to run it manually.
 
 ---
 
-### `secret_scan.py` — secret detector (write guard)
+### `secret_scan.py` - secret detector (write guard)
 
 **Hook event:** `PreToolUse` on `Write`, `Edit`, `MultiEdit`
 **Log:** `.claude/logs/secret-scan.log`
@@ -91,14 +91,14 @@ Scans the **content about to be written** for hardcoded credentials before the
 file is saved. Blocks the write (exit 2) if a match is found.
 
 **Credential patterns detected:**
-- `AKIA…` — AWS access key IDs
-- `sk-ant-…` — Anthropic API keys
-- `sk-…` — OpenAI API keys
-- `AIza…` — Google API keys
-- `ghp_`, `ghs_`, `ghu_`, `ghr_`, `gho_` — GitHub tokens
-- `xox…` — Slack tokens
-- `-----BEGIN … PRIVATE KEY-----` — PEM private key blocks
-- `password = "…"` / `token = "…"` / `api_key = "…"` — generic assignments
+- `AKIA…` - AWS access key IDs
+- `sk-ant-…` - Anthropic API keys
+- `sk-…` - OpenAI API keys
+- `AIza…` - Google API keys
+- `ghp_`, `ghs_`, `ghu_`, `ghr_`, `gho_` - GitHub tokens
+- `xox…` - Slack tokens
+- `-----BEGIN … PRIVATE KEY-----` - PEM private key blocks
+- `password = "…"` / `token = "…"` / `api_key = "…"` - generic assignments
   with values 8+ chars that are not placeholder patterns
 - DB connection strings with embedded credentials in the URL (`scheme://user:secret@host`)
 
@@ -107,7 +107,7 @@ file is saved. Blocks the write (exit 2) if a match is found.
 `redacted`, `fake`, or `test`.
 
 **Skipped file types:** `.lock`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.pdf`,
-`.dmp`, `.db` — binary/lock files that would produce false positives.
+`.dmp`, `.db` - binary/lock files that would produce false positives.
 
 **When you hit it:**
 1. Remove the credential from the proposed content
@@ -122,7 +122,7 @@ python .claude/hooks/secret_scan.py src/aegis_swr/config/
 
 ---
 
-### `post_edit_format.py` — auto-formatter
+### `post_edit_format.py` - auto-formatter
 
 **Hook event:** `PostToolUse` on `Write`, `Edit`, `MultiEdit`
 **Log:** `.claude/logs/edits.log`
@@ -133,7 +133,7 @@ Runs after every file write:
 2. **For all files:** appends the relative path to `.claude/logs/edits.log`
    with a timestamp (the edit audit trail).
 
-This is why you should **not fight the formatter** — if your code looks
+This is why you should **not fight the formatter** - if your code looks
 different after a write, it is because ruff re-formatted it. The result is
 always correct; the before-state was not ruff-canonical.
 
@@ -143,7 +143,7 @@ group: `poetry install --with dev`.
 
 ---
 
-### `dep_audit.py` — dependency audit trigger
+### `dep_audit.py` - dependency audit trigger
 
 **Hook event:** `PostToolUse` on `Write`, `Edit`, `MultiEdit`
 **Log:** `.claude/logs/dep-audit.log`
@@ -161,7 +161,7 @@ with recommended version bumps, then have `coder` apply them.
 
 ---
 
-### `doc_link_check.py` — documentation reference integrity
+### `doc_link_check.py` - documentation reference integrity
 
 **Hook event:** `PostToolUse` on `Write`, `Edit`, `MultiEdit`, **and** `Stop`
 **Log:** `.claude/logs/doc-link-check.log`
@@ -172,7 +172,7 @@ relative link or a missing heading anchor.
 - **PostToolUse:** when the edited file is Markdown, checks that file's *outbound*
   links/anchors immediately.
 - **Stop:** if any Markdown changed in the working tree this session, runs the full
-  repo doc-link scan — which also catches *inbound* breakage (e.g. a renamed heading
+  repo doc-link scan - which also catches *inbound* breakage (e.g. a renamed heading
   that other docs still link to).
 
 **Advisory, non-blocking** (always exits 0): it surfaces dangling references to the
@@ -183,14 +183,14 @@ at a moved doc/heading/symbol). Make it a hard gate by switching its reporting t
 
 ---
 
-### `github_audit.py` — GitHub MCP audit logger
+### `github_audit.py` - GitHub MCP audit logger
 
 **Hook event:** `PostToolUse` on `mcp__github__*` (any GitHub MCP tool call)
 **Log:** `.claude/logs/github-actions.log`
 
 Logs every GitHub MCP operation with a timestamp and a compact, non-sensitive
 summary of the call arguments (owner, repo, PR/issue number, branch, title,
-query, state). The full payload is never logged — only fields that identify the
+query, state). The full payload is never logged - only fields that identify the
 action without leaking content.
 
 **Example log line:**
@@ -198,26 +198,26 @@ action without leaking content.
 2026-06-14T14:04:01Z mcp__github__create_pull_request :: owner=AcmeCorp repo=aegis-swr title=feat: add OTLP adapter
 ```
 
-This hook never blocks. Its sole purpose is the **audit trail** — a durable
+This hook never blocks. Its sole purpose is the **audit trail** - a durable
 record of every GitHub action taken by any agent in any session.
 
 ---
 
-### `session_start.py` — context seeding
+### `session_start.py` - context seeding
 
 **Hook event:** `SessionStart`
 
 Runs once at the beginning of every session. Prints to stdout (which Claude
 Code injects into the session context):
 
-1. **Current branch** — from `git rev-parse --abbrev-ref HEAD`
-2. **Last 5 commits** — from `git log -5 --pretty=format:…`
-3. **Open P0/P1 issues** — from `gh issue list --label P0,P1` (silent if `gh`
+1. **Current branch** - from `git rev-parse --abbrev-ref HEAD`
+2. **Last 5 commits** - from `git log -5 --pretty=format:…`
+3. **Open P0/P1 issues** - from `gh issue list --label P0,P1` (silent if `gh`
    is not authenticated)
 4. **A reminder** about incident-payload sensitivity and the agent delegation map
 
 This means every session starts knowing what branch it is on, what was recently
-committed, and what fires are burning — without the engineer having to paste
+committed, and what fires are burning - without the engineer having to paste
 this into the chat.
 
 **If `gh` is not authenticated:** the issues section reads "none found (or gh
@@ -225,7 +225,7 @@ not authenticated)". Authenticate with `gh auth login` to get the P0/P1 feed.
 
 ---
 
-### `run_tests.py` — session exit gate
+### `run_tests.py` - session exit gate
 
 **Hook event:** `Stop`
 **Log:** `.claude/logs/tests.log`
@@ -236,12 +236,12 @@ told to fix the regression.
 
 **Two escape hatches:**
 
-1. **`stop_hook_active`** — if Claude Code already blocked a session for a
+1. **`stop_hook_active`** - if Claude Code already blocked a session for a
    failing test and the Stop hook fires again in the same context, this flag is
    set. The hook detects it and exits 0 to avoid an infinite loop. Claude Code
    handles this automatically.
 
-2. **`AEGIS_SKIP_TESTS=1`** — export this environment variable before starting
+2. **`AEGIS_SKIP_TESTS=1`** - export this environment variable before starting
    a session to skip the Stop-hook gate entirely. Use only for intentional WIP
    sessions where you know tests are red and you're not ready to fix them:
    ```powershell
@@ -250,7 +250,7 @@ told to fix the regression.
    ```
 
 **Why it matters:** without this gate, an agent could land a change, commit it,
-and end the session — leaving broken tests in the branch that CI catches only
+and end the session - leaving broken tests in the branch that CI catches only
 minutes later. The Stop hook moves the detection into the session itself.
 
 ---

@@ -20,7 +20,7 @@ when a manifest changes; this skill is the authoritative deep version.)
    - `poetry run pip-audit --progress-spinner off` (or `pip-audit` directly).
    - For each finding, note package, installed version, CVE/GHSA id, fixed
      version, and severity.
-2. **Outdated pins**: `poetry show --outdated` — flag majors behind that carry
+2. **Outdated pins**: `poetry show --outdated` - flag majors behind that carry
    security relevance.
 3. **Licences**: enumerate direct deps from `pyproject.toml`; identify each
    licence (use `pip-licenses` if available, else WebSearch). Flag GPL/AGPL or
@@ -31,7 +31,7 @@ when a manifest changes; this skill is the authoritative deep version.)
 
 ## Output
 ```
-## Dependency Audit — <date>
+## Dependency Audit - <date>
 ### Vulnerabilities
 | Package | Version | CVE/GHSA | Severity | Fixed in |
 ### Licence risks
