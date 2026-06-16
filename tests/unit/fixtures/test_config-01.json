@@ -3,7 +3,6 @@
   "sym": "C:/symbols",
   "assume": "The renderer was recently refactored.",
   "engine": "cdb",
-  "ai": "openai",
   "store": "sqlite",
   "store_config": "C:/data/reports.db",
   "code_provider": "git",

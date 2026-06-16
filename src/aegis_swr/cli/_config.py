@@ -5,7 +5,7 @@ dict shape and the *same* class:
 
 1. **JSON config file** - by default ``~/.local/state/.aegis-swr/config.json``
    (override with ``--config PATH``). Keys mirror the CLI option names exactly.
-2. **CLI flags** - ``aegis analyze --ai openai …``.
+2. **CLI flags** - ``aegis analyze --store sqlite …``.
 
 When both are present the file is applied first and explicit CLI flags are
 layered on top, so the precedence (low → high) is::
@@ -234,7 +234,6 @@ class AnalyzeConfig:
     sym: list[str] = field(default_factory=list)
     assume: Optional[str] = None
     engine: str = "auto"
-    ai: str = "anthropic"
     store: str = "filesystem"
     store_config: Optional[str] = None
     code_provider: str = "none"
@@ -329,13 +328,35 @@ def load_analyze_config(path: Optional[Path] = None) -> dict[str, Any]:
     return _flatten_sections(data)
 
 
-def save_analyze_config(opts: Mapping[str, Any], path: Optional[Path] = None):
-    """Write *opts* (filtered to known keys) to the JSON config file."""
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> None:
+    """Recursively merge *override* into *base* in-place."""
+    for k, v in override.items():
+        if isinstance(v, dict) and isinstance(base.get(k), dict):
+            _deep_merge(base[k], v)
+        else:
+            base[k] = v
+
+
+def save_analyze_config(
+    opts: Mapping[str, Any],
+    path: Optional[Path] = None,
+    extra: Optional[dict[str, Any]] = None,
+) -> None:
+    """Write *opts* (filtered to known keys) to the JSON config file.
+
+    :param opts: Mapping of analyze config keys (AnalyzeConfig fields) to save.
+    :param path: Target file path; defaults to :data:`DEFAULT_CONFIG_PATH`.
+    :param extra: Optional dict deep-merged into the output after the analyze
+        keys are serialised. Use this to persist Settings-level sections (e.g.
+        ``{"backends": {"ai": {"provider": "openai"}}}``).
+    """
     target = path or DEFAULT_CONFIG_PATH
     target.parent.mkdir(parents=True, exist_ok=True)
     filtered = {key: opts[key] for key in AnalyzeConfig.keys() if key in opts}
     # Group the flat fields into their nested sections for the on-disk layout.
     nested = _nest_sections(filtered)
+    if extra:
+        _deep_merge(nested, extra)
     target.write_text(json.dumps(nested, indent=2, default=str), encoding="utf-8")
     logger.info(f"Saved analyze config to {target}")
 

@@ -6,7 +6,6 @@
   "sym": null,
   "assume": null,
   "engine": "auto",
-  "ai": "anthropic",
   "store": "filesystem",
   "store_config": null,
   "code_provider": "none",
@@ -44,10 +43,10 @@
   },
   "backends": {
     "ai": {
-      "provider": "anthropic",
-      "model": "claude-sonnet-4-6",
+      "provider": "openai",
+      "model": "gpt-5.4",
       "temperature": "0.2",
-      "max_tokens": 4096,
+      "max_tokens": 20000,
       "stream": true
     },
     "debug": {

@@ -1696,7 +1696,6 @@ options exactly:
   "sym":           null,
   "assume":        null,
   "engine":        "auto",
-  "ai":            "anthropic",
   "store":         "filesystem",
   "store_config":  null,
   "code_provider": "none",

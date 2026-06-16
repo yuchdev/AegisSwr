@@ -38,7 +38,7 @@ class AnthropicBackend(_BaseAIBackend):
 
     @property
     def has_reasoning(self) -> bool:
-        """``True`` for extended-thinking Claude models (3.7 / 4.x)."""
+        """``True`` for extended-thinking models: Claude, OpenAI, Nova Pro"""
         return any(marker in self.model_name for marker in _REASONING_MODEL_MARKERS)
 
     def _system_blocks(self, system_prompt: str) -> list[dict[str, Any]]:

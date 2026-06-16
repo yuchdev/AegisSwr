@@ -220,7 +220,7 @@ def test_save_config_writes_json(tmp_path: Path):
     assert result.exit_code == 0
     assert config_file.exists()
     data = json.loads(config_file.read_text())
-    assert data["ai"] == "openai"
+    assert data["backends"]["ai"]["provider"] == "openai"
     assert data["store"] == "sqlite"
 
 
@@ -240,7 +240,9 @@ def test_save_config_default_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 
 def test_config_file_sets_defaults(tmp_path: Path):
     config_file = tmp_path / "cfg.json"
-    config_file.write_text(json.dumps({"ai": "openai", "output": "json"}))
+    config_file.write_text(
+        json.dumps({"backends": {"ai": {"provider": "openai"}}, "output": "json"})
+    )
 
     async def mock_run(self, source):  # type: ignore[override]
         return _report()
@@ -478,9 +480,8 @@ def test_load_analyze_config_malformed(tmp_path: Path):
 
 def test_save_and_reload_config(tmp_path: Path):
     path = tmp_path / "cfg.json"
-    save_analyze_config({"ai": "openai", "engine": "cdb", "dump": "/x.dmp"}, path)
+    save_analyze_config({"engine": "cdb", "dump": "/x.dmp"}, path)
     loaded = load_analyze_config(path)
-    assert loaded["ai"] == "openai"
     assert loaded["engine"] == "cdb"
     assert loaded["dump"] == "/x.dmp"
 

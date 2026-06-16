@@ -67,15 +67,19 @@ _CONFIG_ONLY_FIELDS: frozenset[str] = frozenset(
 def test_cli_options_have_backing_schema_keys():
     """CLI and config.json must not maintain separate key lists.
 
-    Every ``aegis analyze`` option (besides the CLI-only ``--config`` and
-    ``--save-config`` meta flags) must correspond to an ``AnalyzeConfig`` field -
-    no orphan flags. Conversely every field has a CLI flag *except* the explicit
-    config-file-only set (connection details / evidence-persistence dir).
+    Every ``aegis analyze`` option (besides meta flags and Settings-level
+    overrides) must correspond to an ``AnalyzeConfig`` field - no orphan flags.
+    Conversely every field has a CLI flag *except* the explicit config-file-only
+    set (connection details / evidence-persistence dir).
+
+    ``ai`` is intentionally excluded: it is a CLI-only override for
+    ``settings.backends.ai.provider`` and is not persisted as a flat analyze key.
     """
     from aegis_swr.cli.commands import analyze
 
     cli_params = set(inspect.signature(analyze).parameters)
-    cli_params -= {"ctx", "config_path", "save_config"}
+    # Exclude meta flags and Settings-level overrides that bypass AnalyzeConfig.
+    cli_params -= {"ctx", "config_path", "save_config", "ai"}
     schema_keys = set(AnalyzeConfig.keys())
 
     # No CLI option may exist without a backing schema field.
@@ -94,7 +98,6 @@ def test_from_dict_reads_full_config_01():
     assert cfg.dump == "C:/dumps/CrashUi.dmp"
     assert cfg.sym == "C:/symbols"
     assert cfg.engine == "cdb"
-    assert cfg.ai == "openai"
     assert cfg.store == "sqlite"
     assert cfg.store_config == "C:/data/reports.db"
     assert cfg.code_provider == "git"
@@ -111,7 +114,6 @@ def test_from_dict_partial_config_02_uses_defaults():
     cfg = AnalyzeConfig.from_dict(_asset("test_config-02.json"))
     # Provided values.
     assert cfg.logs == ["C:/logs/app.log", "C:/logs/render.log"]
-    assert cfg.ai == "anthropic"
     assert cfg.log_severity == "INFO"
     # Everything else stays at the schema defaults.
     assert cfg.dump is None
@@ -130,7 +132,6 @@ def test_from_dict_config_03_ignores_unknown_keys_with_warning():
         logger.remove(sink_id)
 
     # Known keys are applied …
-    assert cfg.ai == "openai"
     assert cfg.store == "filesystem"
     assert cfg.store_config == "C:/data/reports"
     # … the typo'd field did not silently become a real setting.
@@ -143,7 +144,6 @@ def test_from_dict_config_03_ignores_unknown_keys_with_warning():
 
 def test_load_analyze_config_reads_fixture_as_dict():
     data = load_analyze_config(FIXTURES / "test_config-01.json")
-    assert data["ai"] == "openai"
     assert data["engine"] == "cdb"
 
 
@@ -161,7 +161,6 @@ def test_load_analyze_config_rejects_non_object_json(tmp_path: Path):
 def _full_sections() -> dict:
     """A config carrying every section the log-subsystem split owns."""
     return {
-        "ai": "openai",
         "ingest": {"log_source": {"provider": "fluent", "service": "auth-api"}},
         "logging": {
             "severity": "DEBUG",
@@ -212,7 +211,6 @@ def test_load_analyze_config_flattens_sections(tmp_path: Path):
     path.write_text(
         json.dumps(
             {
-                "ai": "openai",
                 "ingest": {"log_source": {"provider": "fluent"}},
                 "process": {"severity": "TRACE"},
             }
@@ -230,7 +228,6 @@ def test_save_analyze_config_nests_all_sections(tmp_path: Path):
     path = tmp_path / "cfg.json"
     save_analyze_config(
         {
-            "ai": "openai",
             "log_provider": "fluent",
             "log_service": "auth-api",
             "log_severity": "DEBUG",
@@ -248,10 +245,11 @@ def test_save_analyze_config_nests_all_sections(tmp_path: Path):
     assert raw["logging"] == {"severity": "DEBUG", "dir": "/var/log/aegis", "sink": "fluent"}
     assert raw["evidence"] == {"severity": "TRACE", "persist": True}
     assert raw["process"] == {"severity": "TRACE"}
-    # … and no flat key leaks to the top level.
+    # … no flat key leaks to the top level …
     assert "log_provider" not in raw
     assert "evidence_severity" not in raw
-    assert raw["ai"] == "openai"
+    # … and ai provider is not part of the analyze config.
+    assert "ai" not in raw
 
 
 def test_sections_round_trip_through_save_and_load(tmp_path: Path):
@@ -364,19 +362,17 @@ def test_merge_empty_sources_yields_defaults():
 
 
 def test_merge_file_overrides_defaults():
-    cfg = AnalyzeConfig.merge({"engine": "cdb", "ai": "openai"}, {})
+    cfg = AnalyzeConfig.merge({"engine": "cdb"}, {})
     assert cfg.engine == "cdb"
-    assert cfg.ai == "openai"
     assert cfg.store == "filesystem"  # untouched default
 
 
 def test_merge_cli_overrides_file():
-    file_config = _asset("test_config-01.json")  # ai=openai, engine=cdb
-    cfg = AnalyzeConfig.merge(file_config, {"ai": "anthropic"})
-    # CLI wins for ai …
-    assert cfg.ai == "anthropic"
+    file_config = _asset("test_config-01.json")  # engine=cdb, store=sqlite
+    cfg = AnalyzeConfig.merge(file_config, {"engine": "windbg_js"})
+    # CLI wins for engine …
+    assert cfg.engine == "windbg_js"
     # … but the rest of config.json is preserved.
-    assert cfg.engine == "cdb"
     assert cfg.store == "sqlite"
     assert cfg.log_severity == "DEBUG"
 
@@ -384,6 +380,6 @@ def test_merge_cli_overrides_file():
 def test_merge_ignores_none_cli_values():
     # Values that were not explicitly set on the CLI (None) must not clobber
     # config.json - only real overrides count.
-    cfg = AnalyzeConfig.merge({"ai": "openai"}, {"ai": None, "engine": "windbg_js"})
-    assert cfg.ai == "openai"
-    assert cfg.engine == "windbg_js"
+    cfg = AnalyzeConfig.merge({"engine": "cdb"}, {"engine": None, "store": "sqlite"})
+    assert cfg.engine == "cdb"
+    assert cfg.store == "sqlite"

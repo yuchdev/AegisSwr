@@ -143,8 +143,8 @@ def analyze(  # noqa: PLR0913
         str, typer.Option("--engine", help="Debug engine: auto | cdb | windbg_js.")
     ] = "auto",
     ai: Annotated[
-        str, typer.Option("--ai", help="AI provider: anthropic | openai | bedrock.")
-    ] = "anthropic",
+        Optional[str], typer.Option("--ai", help="AI provider: anthropic | openai | bedrock.")
+    ] = None,
     store: Annotated[
         str,
         typer.Option("--store", help="Storage backend: filesystem | sqlite | s3 | postgres."),
@@ -268,7 +268,6 @@ def analyze(  # noqa: PLR0913
         "sym": [str(p) for p in (sym or [])],
         "assume": assume,
         "engine": engine,
-        "ai": ai,
         "store": store,
         "store_config": store_config,
         "code_provider": code_provider,
@@ -287,7 +286,11 @@ def analyze(  # noqa: PLR0913
     # If --save-config: persist the current CLI values and exit.
     if save_config:
         target = config_path or DEFAULT_CONFIG_PATH
-        save_analyze_config(cli_values, target)
+        # AI provider lives in backends.ai, not the flat analyze keys.
+        ai_extra: dict[str, object] = (
+            {"backends": {"ai": {"provider": ai}}} if ai is not None else {}
+        )
+        save_analyze_config(cli_values, target, extra=ai_extra)
         console.print(f"[green]Config saved to:[/green] {target}")
         raise typer.Exit()
 
@@ -358,7 +361,15 @@ def analyze(  # noqa: PLR0913
     from aegis_swr.config.settings import Settings
 
     settings = Settings()
-    settings.backends.ai.provider = config.ai
+    # Settings() always reads from the default config path. When --config points
+    # to a custom file, apply its backends.ai.provider so it takes effect.
+    if config_path is not None:
+        custom_ai_provider = file_config.get("backends", {}).get("ai", {}).get("provider")
+        if custom_ai_provider:
+            settings.backends.ai.provider = custom_ai_provider
+    # --ai flag takes highest priority.
+    if ai is not None:
+        settings.backends.ai.provider = ai
     settings.backends.debug.engine = config.engine
     settings.backends.storage.provider = config.store
     if config.store_config:

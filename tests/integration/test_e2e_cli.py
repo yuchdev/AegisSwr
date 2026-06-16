@@ -209,7 +209,7 @@ def test_e2e_config_roundtrip(tmp_path: Path):
     )
     assert result.exit_code == 0
     saved = json.loads(config_file.read_text())
-    assert saved["ai"] == "openai"
+    assert saved["backends"]["ai"]["provider"] == "openai"
 
     # Step 2: run using saved config (no --ai flag).
 

@@ -79,7 +79,6 @@ maps to a CLI flag - see [cli.md](cli.md#aegis-analyze).
 | `sym`           | string or null | `null`         | -                                        |
 | `assume`        | string or null | `null`         | -                                        |
 | `engine`        | string         | `"auto"`       | `auto`, `cdb`, `windbg_js`               |
-| `ai`            | string         | `"anthropic"`  | `anthropic`, `openai`, `bedrock`         |
 | `store`         | string         | `"filesystem"` | `filesystem`, `sqlite`, `s3`, `postgres` |
 | `store_config`  | string or null | `null`         | -                                        |
 | `code_provider` | string         | `"none"`       | `none`, `git`, `filesystem`              |

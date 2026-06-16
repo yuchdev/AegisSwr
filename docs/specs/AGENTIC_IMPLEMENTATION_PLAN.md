@@ -954,7 +954,7 @@ All must pass before proceeding to Step 7.
    - Merge: `opts = merge_options(config, ctx, dump=dump, logs=logs, ...)` (include the four new keys).
    - Build `IncidentSource` from merged opts. When `opts["log_service"]` is set, put it in `metadata["service"]` so Stage 4 can pass it to the `LogBackend`.
    - Determine `StorageSettings` from `store` / `store_config` merged opts; call `create_storage_backends`.
-   - Override `settings.backends.ai.provider` from `opts["ai"]`; override `settings.backends.debug.engine` from `opts["engine"]`.
+   - Override `settings.backends.ai.provider` from the `--ai` CLI flag when explicitly set, or from the config file's `backends.ai.provider` when a custom `--config` path is used; override `settings.backends.debug.engine` from `opts["engine"]`.
    - **Code backend:** override `settings.backends.code` from `opts["code_provider"]` / `opts["repo"]` - if `repo` is set, force `enabled=true` and default `provider` to `git` when `code_provider == "none"`; otherwise `enabled = (code_provider != "none")` with `provider = code_provider`. Call `create_code_backend(settings.backends.code)` (may return `None`).
    - **Log backend:** override `settings.backends.log.provider` from `opts["log_provider"]`; call `create_log_backend(settings.backends.log)`.
    - Instantiate `Orchestrator(settings, ai_backend, debug_backend, relational, object_store, code_backend=code_backend, log_backend=log_backend)`. (Extend the `Orchestrator` constructor and its `DataAdapter.process` call to forward `code_backend` and `log_backend`; both default to `None` so existing call sites are unaffected.)
@@ -986,9 +986,9 @@ All must pass before proceeding to Step 7.
 1. Write `tests/unit/test_cli.py` using `typer.testing.CliRunner` - all tests mock `Orchestrator.run`:
 
    - `test_analyze_help`: `runner.invoke(app, ["analyze", "--help"])` exits 0; output contains `--dump`, `--config`, `--save-config`.
-   - `test_save_config_writes_json`: invoke with `--dump dummy.dmp --ai openai --save-config`; assert the JSON file was written with `"ai": "openai"`.
-   - `test_config_file_sets_defaults`: write a JSON file with `{"ai": "openai"}`; invoke with `--config that_file` (no `--ai` flag); assert mock `Orchestrator` was called (config value was picked up).
-   - `test_cli_flag_overrides_config_file`: write `{"ai": "openai"}`; invoke with `--config file --ai anthropic`; assert the `ai` in the built settings is `anthropic`.
+   - `test_save_config_writes_json`: invoke with `--dump dummy.dmp --ai openai --save-config`; assert the JSON file was written with `"backends": {"ai": {"provider": "openai"}}`.
+   - `test_config_file_sets_defaults`: write a JSON file with `{"backends": {"ai": {"provider": "openai"}}}`; invoke with `--config that_file` (no `--ai` flag); assert mock `Orchestrator` was called with the openai provider.
+   - `test_cli_flag_overrides_config_file`: write `{"backends": {"ai": {"provider": "openai"}}}`; invoke with `--config file --ai anthropic`; assert the `backends.ai.provider` in the built settings is `anthropic`.
    - `test_analyze_json_output`: invoke with `--output json`; assert `json.loads(result.stdout)` produces a dict with `"incident_id"` key.
    - `test_analyze_hitl_exits_nonzero`: mock `Orchestrator.run` returns a report with `hitl_request` set; assert exit code is 1.
    - `test_config_show_redacts_secrets`: `aegis config show` output does not contain `sk-ant-` or actual API key value.
