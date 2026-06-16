@@ -79,7 +79,7 @@ maps to a CLI flag - see [cli.md](cli.md#aegis-analyze).
 | `sym`           | string or null | `null`         | -                                        |
 | `assume`        | string or null | `null`         | -                                        |
 | `engine`        | string         | `"auto"`       | `auto`, `cdb`, `windbg_js`               |
-| `ai`            | string         | `"anthropic"`  | `anthropic`, `openai`                    |
+| `ai`            | string         | `"anthropic"`  | `anthropic`, `openai`, `bedrock`         |
 | `store`         | string         | `"filesystem"` | `filesystem`, `sqlite`, `s3`, `postgres` |
 | `store_config`  | string or null | `null`         | -                                        |
 | `code_provider` | string         | `"none"`       | `none`, `git`, `filesystem`              |
@@ -177,13 +177,14 @@ Investigation/debate tuning.
 
 ### `backends.ai`
 
-| Field         | Type   | Default               | Notes                                       |
-|---------------|--------|-----------------------|---------------------------------------------|
-| `provider`    | string | `"anthropic"`         | Allowed: `anthropic`, `openai` (validated). |
-| `model`       | string | `"claude-sonnet-4-6"` | See model resolution below.                 |
-| `temperature` | float  | `0.2`                 |                                             |
-| `max_tokens`  | int    | `4096`                |                                             |
-| `stream`      | bool   | `true`                | Stream tokens from the provider.            |
+| Field         | Type   | Default               | Notes                                                  |
+|---------------|--------|-----------------------|--------------------------------------------------------|
+| `provider`    | string | `"anthropic"`         | Allowed: `anthropic`, `openai`, `bedrock` (validated). |
+| `model`       | string | `"claude-sonnet-4-6"` | See model resolution below.                            |
+| `temperature` | float  | `0.2`                 |                                                        |
+| `max_tokens`  | int    | `4096`                |                                                        |
+| `stream`      | bool   | `true`                | Stream tokens from the provider.                       |
+| `bedrock`     | object | (see below)           | Amazon Bedrock-specific settings; only used when `provider == "bedrock"`. |
 
 **Model resolution** - the effective model reconciles `model` with `provider`.
 If `provider` is switched but `model` still names the other vendor's model, the
@@ -192,6 +193,38 @@ respected:
 
 - `provider: openai` + a non-`gpt-*`/`o1`/`o3`/`o4` model → `gpt-5.4`.
 - `provider: anthropic` + a non-`claude*` model → `claude-sonnet-4-6`.
+- `provider: bedrock` → the model identity comes from `backends.ai.bedrock.model_id`
+  (an inference-profile ID); the top-level `model` field is ignored.
+
+#### `backends.ai.bedrock`
+
+Amazon Bedrock is reached through the **Converse API**, giving a single
+request/response shape across hosted Claude, Nova, and other model families.
+Structured output uses Converse forced tool-use (`toolConfig`); free-form
+generation streams via `converse_stream`. boto3 is synchronous, so every call is
+dispatched to a worker thread to keep the event loop free.
+
+| Field                     | Type   | Default                            | Notes                                                                       |
+|---------------------------|--------|------------------------------------|-----------------------------------------------------------------------------|
+| `region`                  | string | `"ap-southeast-2"`                 | AWS region. Falls back to `AWS_DEFAULT_REGION` only when blank.             |
+| `model_id`                | string | `"au.anthropic.claude-sonnet-4-6"` | Model ID or cross-region inference profile. Direct IDs need provisioned throughput. |
+| `thinking_budget_tokens`  | int    | `0`                                | Extended-thinking budget. `0` disables; sub-1024 is treated as disabled. Applied to free-form output only - never forced tool use. |
+| `connect_timeout_seconds` | int    | `10`                               | bedrock-runtime TCP connect timeout.                                        |
+| `read_timeout_seconds`    | int    | `300`                              | Socket read timeout (reasoning can be slow).                                |
+| `max_attempts`            | int    | `3`                                | botocore standard-mode retry attempts (throttling / 5xx).                   |
+
+**Authentication** (dual-mode, read from the environment, never logged):
+
+- If `AWS_BEARER_TOKEN_BEDROCK` is set, an `Authorization: Bearer <token>` header
+  is injected on every request (Bedrock API-key auth).
+- Otherwise the standard boto3 credential chain (env vars / shared config / IAM
+  role) is used via SigV4.
+
+```bash
+export AEGIS__backends__ai__provider=bedrock
+export AEGIS__backends__ai__bedrock__model_id=au.anthropic.claude-sonnet-4-6
+export AWS_BEARER_TOKEN_BEDROCK=<your-bedrock-api-key>   # or use ~/.aws credentials
+```
 
 ### `backends.debug`
 

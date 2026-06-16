@@ -24,6 +24,21 @@ class AIAPIBackend(ABC):
 
     model_name: str
 
+    @property
+    def has_reasoning(self) -> bool:
+        """Whether the selected model returns its reasoning/thinking trace
+        alongside the final answer.
+
+        ``True`` only when the configured model both *produces* a reasoning
+        trace and *exposes* it in the API response (e.g. Claude extended
+        thinking, which yields ``thinking`` / ``reasoningContent`` blocks).
+        Models that reason internally but hide the trace (OpenAI reasoning
+        models over the Chat Completions API) report ``False``.
+
+        Defaults to ``False``; providers override this per model.
+        """
+        return False
+
     @abstractmethod
     async def generate(
         self,

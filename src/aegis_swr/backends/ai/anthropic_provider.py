@@ -18,6 +18,16 @@ from aegis_swr.config.settings import AISettings
 
 _STRUCTURED_TOOL_NAME = "structured_output"
 
+# Claude families that support extended thinking and return the trace as
+# ``thinking`` blocks: Claude 3.7 and the entire Claude 4 line. Anything else
+# (legacy Claude 3.0/3.5) answers without an exposed reasoning trace.
+_REASONING_MODEL_MARKERS = (
+    "claude-opus-4",
+    "claude-sonnet-4",
+    "claude-haiku-4",
+    "claude-3-7",
+)
+
 
 class AnthropicBackend(_BaseAIBackend):
     def __init__(self, settings: AISettings):
@@ -25,6 +35,11 @@ class AnthropicBackend(_BaseAIBackend):
         # Typed as Any so the rest of the module is not coupled to the SDK's
         # internal TypedDict parameter types.
         self._client: Any = anthropic.AsyncAnthropic()
+
+    @property
+    def has_reasoning(self) -> bool:
+        """``True`` for extended-thinking Claude models (3.7 / 4.x)."""
+        return any(marker in self.model_name for marker in _REASONING_MODEL_MARKERS)
 
     def _system_blocks(self, system_prompt: str) -> list[dict[str, Any]]:
         return [

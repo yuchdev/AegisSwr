@@ -96,6 +96,54 @@ _ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-4-6"
 _OPENAI_DEFAULT_MODEL = "gpt-5.4"
 _OPENAI_MODEL_PREFIXES = ("gpt-",)
 
+"""Default Bedrock inference profile - Claude Sonnet 4.6 via the APAC
+cross-region profile. Direct model IDs (without an ``au.``/``apac.``/``global.``
+prefix) require provisioned throughput, so an on-demand profile is the safe
+default. See :class:`BedrockSettings`.
+"""
+_BEDROCK_DEFAULT_MODEL = "au.anthropic.claude-sonnet-4-6"
+
+
+class BedrockSettings(BaseSettings):
+    """Amazon Bedrock backend configuration.
+
+    Provider-specific knobs for :class:`~aegis_swr.backends.ai.aws_bedrock_provider.AwsBedrockBackend`.
+    The backend authenticates with a bearer token (``AWS_BEARER_TOKEN_BEDROCK``)
+    when one is present, otherwise it falls back to the standard boto3 SigV4
+    credential chain (env / shared config / instance role). Credentials are read
+    from the environment only - never stored in or logged from this model.
+
+    Fields
+    ------
+    region: str
+        AWS region hosting the model / inference profile. Overridable out of
+        band via ``AWS_DEFAULT_REGION``; this field takes precedence when set.
+    model_id: str
+        Model ID or cross-region inference profile (e.g.
+        ``au.anthropic.claude-sonnet-4-6``). This is the value surfaced as
+        :attr:`AISettings.resolved_model` when the provider is ``bedrock``.
+    thinking_budget_tokens: int
+        Extended-thinking budget. ``0`` disables thinking; values below the
+        model minimum (1024) are treated as disabled. Thinking is only applied
+        to free-form generation - never to forced structured (tool) output,
+        which Claude does not permit alongside thinking.
+    connect_timeout_seconds: int
+        TCP connect timeout for the bedrock-runtime client.
+    read_timeout_seconds: int
+        Socket read timeout; reasoning models can be slow, so this is generous.
+    max_attempts: int
+        botocore retry attempts (standard mode) for throttling / 5xx.
+    """
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    region: str = "ap-southeast-2"
+    model_id: str = _BEDROCK_DEFAULT_MODEL
+    thinking_budget_tokens: int = 0
+    connect_timeout_seconds: int = 10
+    read_timeout_seconds: int = 300
+    max_attempts: int = 3
+
 
 class AISettings(BaseSettings):
     """AI backend configuration.
@@ -115,10 +163,14 @@ class AISettings(BaseSettings):
     max_tokens: int = 4096
     stream: bool = True
 
+    #: Provider-specific Amazon Bedrock settings (region, inference profile,
+    #: thinking budget, timeouts). Only consulted when ``provider == "bedrock"``.
+    bedrock: BedrockSettings = Field(default_factory=BedrockSettings)
+
     @field_validator("provider")
     @classmethod
     def validate_provider(cls, v: str) -> str:
-        allowed = {"anthropic", "openai"}
+        allowed = {"anthropic", "openai", "bedrock"}
         if v not in allowed:
             raise ValueError(f"provider must be one of {allowed}")
         return v
@@ -131,6 +183,11 @@ class AISettings(BaseSettings):
         the chosen ``provider``, a sensible default for that provider is
         returned. This avoids accidental API rejections when switching providers
         but keeping the other provider's default model name.
+
+        For ``bedrock`` the model identity lives in the dedicated
+        :attr:`bedrock.model_id` (an inference-profile ID, which has a very
+        different shape from a bare ``claude``/``gpt`` name), so that value is
+        returned verbatim and the top-level ``model`` field is ignored.
         """
         if self.provider == "openai":
             if self.model.startswith(_OPENAI_MODEL_PREFIXES):
@@ -140,6 +197,8 @@ class AISettings(BaseSettings):
             if self.model.startswith("claude"):
                 return self.model
             return _ANTHROPIC_DEFAULT_MODEL
+        if self.provider == "bedrock":
+            return self.bedrock.model_id
         return self.model
 
 

@@ -142,7 +142,9 @@ def analyze(  # noqa: PLR0913
     engine: Annotated[
         str, typer.Option("--engine", help="Debug engine: auto | cdb | windbg_js.")
     ] = "auto",
-    ai: Annotated[str, typer.Option("--ai", help="AI provider: anthropic | openai.")] = "anthropic",
+    ai: Annotated[
+        str, typer.Option("--ai", help="AI provider: anthropic | openai | bedrock.")
+    ] = "anthropic",
     store: Annotated[
         str,
         typer.Option("--store", help="Storage backend: filesystem | sqlite | s3 | postgres."),

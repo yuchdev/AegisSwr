@@ -40,11 +40,11 @@ def _to_openai_strict_schema(model: type[BaseModel]) -> dict[str, Any]:
     return schema
 
 
-# Reasoning models (gpt-5 family, o-series) reject `max_tokens` and any
+# Reasoning models gpt-5 family reject `max_tokens` and any
 # non-default `temperature`; they require `max_completion_tokens`. Their
 # completion budget is also shared with internal reasoning tokens, so a small
 # cap can starve the visible answer - give structured output ample headroom.
-_REASONING_PREFIXES = ("gpt-5", "o1", "o3", "o4")
+_REASONING_PREFIXES = ("gpt-5",)
 _REASONING_MIN_COMPLETION_TOKENS = 16000
 
 
@@ -66,6 +66,13 @@ class OpenAIBackend(_BaseAIBackend):
 
     def _is_reasoning_model(self) -> bool:
         return self.model_name.startswith(_REASONING_PREFIXES)
+
+    @property
+    def has_reasoning(self) -> bool:
+        """Always ``False``: OpenAI reasoning models (gpt-5 family) reason
+        internally but the Chat Completions API used here does not return the
+        reasoning trace alongside the answer - only the final message."""
+        return False
 
     def _completion_kwargs(self) -> dict[str, Any]:
         """Token/temperature kwargs that match the model family's API contract"""

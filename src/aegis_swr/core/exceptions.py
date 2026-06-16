@@ -8,6 +8,13 @@ class AIOutputValidationError(AegisSWRError):
     pass
 
 
+class AIBackendError(AegisSWRError):
+    """An AI backend call failed at the transport/API layer (timeout, auth,
+    throttling, or an unexpected provider response). Carries a sanitised
+    message only - never the raw provider payload or any credential."""
+    pass
+
+
 class PlatformNotSupportedError(AegisSWRError):
     """No debug backend is available for the current platform"""
     pass
