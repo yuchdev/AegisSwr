@@ -1,9 +1,11 @@
 # Configuration Reference (`config.json`)
 
+> `<config-dir>` = `~/.aegis-swr/`
+
 Runtime configuration lives in a single **unified** JSON file:
 
 ```
-~/.local/state/.aegis-swr/config.json
+<config-dir>/config.json
 ```
 
 It carries two kinds of keys:
@@ -19,7 +21,7 @@ at [`config.example.json`](../../config.example.json) - copy it to the default
 path to get started:
 
 ```bash
-cp config.example.json ~/.local/state/.aegis-swr/config.json
+cp config.example.json <config-dir>/config.json
 ```
 
 The agent weight matrix is **not** stored here - it lives in a sibling file,
@@ -113,7 +115,7 @@ to/from this layout at the JSON boundary).
 "logging": {
   "severity": "INFO",
   "sink": "file",
-  "dir": "~/.local/state/aegis-swr/logs",
+  "dir": "<config-dir>/logs",
   "elk_url": null,
   "fluent_host": null,
   "fluent_port": null
@@ -124,7 +126,7 @@ to/from this layout at the JSON boundary).
 |---------------|------------------|----------------|-----------------------------------|--------------------------------------------------------------------------------|
 | `severity`    | `--log-severity` | string         | `"INFO"`                          | `TRACE`,`DEBUG`,`INFO`,`WARNING`,`ERROR` (full loguru range)                   |
 | `sink`        | `--log-sink`     | string         | `"file"`                          | `file`, `elk`, `fluent`; `elk`/`fluent` are stubs → warn + fall back to `file` |
-| `dir`         | `--log-dir`      | string         | `"~/.local/state/aegis-swr/logs"` | Directory for the rotating `aegis-swr.log` file                                |
+| `dir`         | `--log-dir`      | string         | `"<config-dir>/logs"`             | Directory for the rotating `aegis-swr.log` file                                |
 | `elk_url`     | *(config-only)*  | string or null | `null`                            | ELK endpoint (reserved; emitter not yet implemented)                           |
 | `fluent_host` | *(config-only)*  | string or null | `null`                            | Fluent host (reserved)                                                         |
 | `fluent_port` | *(config-only)*  | int or null    | `null`                            | Fluent port (reserved)                                                         |
@@ -139,7 +141,7 @@ to/from this layout at the JSON boundary).
 |------------|-----------------------|----------------|----------|-------------------------------------------------------------------------------------------|
 | `severity` | `--evidence-severity` | string         | `"INFO"` | `INFO` (curated summary) or `TRACE` (every evidence detail)                               |
 | `persist`  | `--evidence-persist`  | bool           | `false`  | Write the stream to `<dir>/evidence-<incident_id>.log` after the run (war-room view only) |
-| `dir`      | *(config-only)*       | string or null | `null`   | Evidence transcript dir (default `~/.local/state/aegis-swr/evidence`)                     |
+| `dir`      | *(config-only)*       | string or null | `null`   | Evidence transcript dir (default `<config-dir>/evidence`)                                 |
 
 #### `process` - the war-room Investigation Process pane (right pane)
 
@@ -242,9 +244,9 @@ export AWS_BEARER_TOKEN_BEDROCK=<your-bedrock-api-key>   # or use ~/.aws credent
 | Field                 | Type           | Default                                                   | Notes                                                          |
 |-----------------------|----------------|-----------------------------------------------------------|----------------------------------------------------------------|
 | `provider`            | string         | `"filesystem"`                                            | Allowed: `filesystem`, `sqlite`, `s3`, `postgres` (validated). |
-| `reports_dir`         | string         | `"~/.local/share/.aegis-swr/reports"`                     | filesystem: report JSON files.                                 |
-| `objects_dir`         | string         | `"~/.local/share/.aegis-swr/objects"`                     | filesystem: raw binary artifacts.                              |
-| `db_path`             | string         | `"~/.local/db/.aegis-swr/reports.db"`                     | sqlite: database file.                                         |
+| `reports_dir`         | string         | `"<config-dir>/reports"`                                  | filesystem: report JSON files.                                 |
+| `objects_dir`         | string         | `"<config-dir>/objects"`                                  | filesystem: raw binary artifacts.                              |
+| `db_path`             | string         | `"<config-dir>/db/reports.db"`                            | sqlite: database file.                                         |
 | `database_url`        | string         | `"postgresql+asyncpg://aegis:aegis@localhost:5432/aegis"` | postgres DSN. **Redacted** in `config show`.                   |
 | `object_store_url`    | string         | `"s3://aegis-raw-inputs"`                                 | S3 bucket URL.                                                 |
 | `object_store_region` | string         | `"us-east-1"`                                             | S3 region.                                                     |
@@ -306,5 +308,5 @@ FastAPI server settings (Phase 8).
 - `aegis config set <dotted.key> <value>` - set one key (see
   [cli.md](cli.md#aegis-config-set)).
 - `aegis config show` - print the resolved, redacted settings.
-- Or edit `~/.local/state/.aegis-swr/config.json` directly (required for lists such as
+- Or edit `<config-dir>/config.json` directly (required for lists such as
   `backends.log.default_severity_levels`).

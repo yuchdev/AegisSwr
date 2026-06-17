@@ -55,12 +55,15 @@ poetry install
 
 
 3. Configure your telemetry and backend providers. Runtime settings live in
-   `~/.local/state/.aegis-swr/config.json`; the per-fault-class agent weight matrix
-   lives alongside it in `~/.local/state/.aegis-swr/agents.json`. Seed both from the
+   `<config-dir>/config.json`; the per-fault-class agent weight matrix
+   lives alongside it in `<config-dir>/agents.json`. Seed both from the
    templates in the repo root:
+
+> `<config-dir>` = `~/.aegis-swr/`
+
 ```bash
-cp config.example.json ~/.local/state/.aegis-swr/config.json
-cp agents.example.json ~/.local/state/.aegis-swr/agents.json
+cp config.example.json <config-dir>/config.json
+cp agents.example.json <config-dir>/agents.json
 ```
 ```json
 {
@@ -141,7 +144,7 @@ Startup options can be supplied two ways, and both share one schema
 (`AnalyzeConfig` - the single source of truth for every setting key):
 
 1. **CLI flags** - `aegis analyze --ai openai …`
-2. **JSON config file** - `~/.local/state/.aegis-swr/config.json` (override with `--config PATH`)
+2. **JSON config file** - `<config-dir>/config.json` (override with `--config PATH`)
 
 When both are present the file is applied first and explicit CLI flags are
 layered on top - `defaults < config.json < CLI`. Copy

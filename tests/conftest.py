@@ -12,7 +12,7 @@ def _isolate_runtime_config(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep ``Settings()`` hermetic across the suite.
 
     Without this, every ``Settings()`` constructed in a test would merge in the
-    developer's real ``~/.local/state/.aegis-swr/config.json`` and any ``AEGIS__*``
+    developer's real ``~/.aegis-swr/config.json`` and any ``AEGIS__*``
     environment overrides, so a local config (e.g. ``backends.ai.provider=openai``)
     would silently flip default-asserting tests. We neutralise the JSON settings
     source (the only caller of ``_read_json_object``) and drop ``AEGIS__*`` env vars

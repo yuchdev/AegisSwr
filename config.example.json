@@ -20,7 +20,7 @@
   "logging": {
     "severity": "INFO",
     "sink": "file",
-    "dir": "~/.local/state/aegis-swr/logs",
+    "dir": "~/.aegis-swr/logs",
     "elk_url": null,
     "fluent_host": null,
     "fluent_port": null
@@ -60,9 +60,9 @@
     },
     "storage": {
       "provider": "filesystem",
-      "reports_dir": "~/.local/state/aegis-swr/reports",
-      "objects_dir": "~/.local/state/aegis-swr/objects",
-      "db_path": "~/.local/db/aegis-swr/reports.db",
+      "reports_dir": "~/.aegis-swr/reports",
+      "objects_dir": "~/.aegis-swr/objects",
+      "db_path": "~/.aegis-swr/db/reports.db",
       "database_url": "postgresql+asyncpg://aegis:aegis@localhost:5432/aegis",
       "object_store_url": "s3://aegis-raw-inputs",
       "object_store_region": "us-east-1",

@@ -34,12 +34,12 @@ def _asset(name: str) -> dict:
 
 
 def test_default_path_is_canonical_config_location():
-    # The config file lives under ~/.local/state/.aegis-swr/config.json, and the
+    # The config file lives under ~/.aegis-swr/config.json, and the
     # CLI and runtime Settings must resolve the *same* file.
     from aegis_swr.config.settings import CONFIG_JSON
 
     normalized = str(DEFAULT_CONFIG_PATH).replace("\\", "/")
-    assert normalized.endswith(".local/state/.aegis-swr/config.json")
+    assert normalized.endswith(".aegis-swr/config.json")
     assert DEFAULT_CONFIG_PATH == CONFIG_JSON
 
 

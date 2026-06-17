@@ -21,14 +21,16 @@ development on Aegis SWR.
 
 ## Configuration Reference (`configuration/`)
 
+> `<config-dir>` = `~/.aegis-swr/`
+
 User-facing reference for every CLI option and configuration field, generated
 from the source of truth in `src/aegis_swr/`.
 
 | Document                              | Description                                                                                                                                                       |
 |---------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [cli.md](configuration/cli.md)        | Every `aegis` command (`analyze`, `export`, `server`, `config show/set`) with all options, defaults, allowed values, output modes, and exit codes.                |
-| [config.md](configuration/config.md)  | The unified `~/.local/state/.aegis-swr/config.json`: analyze keys (flat options plus the `ingest` / `logging` / `evidence` / `process` logging sections) and the nested `core` / `backends` / `sandbox` / `api` runtime sections, sources, precedence, and env overrides. |
-| [agents.md](configuration/agents.md)  | The `~/.local/state/.aegis-swr/agents.json` weight matrix: the four agents, all ten fault-class keys with default weights, and how the consensus score uses them.       |
+| [config.md](configuration/config.md)  | The unified `<config-dir>/config.json`: analyze keys (flat options plus the `ingest` / `logging` / `evidence` / `process` logging sections) and the nested `core` / `backends` / `sandbox` / `api` runtime sections, sources, precedence, and env overrides. |
+| [agents.md](configuration/agents.md)  | The `<config-dir>/agents.json` weight matrix: the four agents, all ten fault-class keys with default weights, and how the consensus score uses them.                    |
 | [coverage.md](configuration/coverage.md) | Test coverage configuration (85% threshold) for both the main project and prototype; commands, CI integration, and troubleshooting. |
 
 ---

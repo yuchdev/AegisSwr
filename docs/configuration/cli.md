@@ -1,5 +1,7 @@
 # CLI Reference
 
+> `<config-dir>` = `~/.aegis-swr/`
+
 The Aegis SWR command-line interface. Invoke it as `aegis <command>` (installed
 entry point) or `python -m aegis_swr.cli <command>`.
 
@@ -49,11 +51,11 @@ dataclass defaults  <  config.json  <  CLI flags
 | `--output`                           | str               | `rich`                             | Output format: `rich` or `json` or `json-full` or `quiet`. See [Output modes](#output-modes).                                       |
 | `--log-severity`                     | str               | `INFO`                             | **Application** log verbosity (Aegis's own diagnostics): `TRACE` or `DEBUG` or `INFO` or `WARNING` or `ERROR`. Maps to `logging.severity`. |
 | `--log-sink`                         | str               | `file`                             | Application log sink: `file` or `elk` or `fluent`. `elk`/`fluent` are stubs (warn + fall back to `file`). Maps to `logging.sink`.    |
-| `--log-dir`                          | path              | `~/.local/state/aegis-swr/logs`    | Directory for the rotating application log file (`aegis-swr.log`), written at `--log-severity`. Maps to `logging.dir`.               |
+| `--log-dir`                          | path              | `<config-dir>/logs`                | Directory for the rotating application log file (`aegis-swr.log`), written at `--log-severity`. Maps to `logging.dir`.               |
 | `--evidence-severity`                | str               | `INFO`                             | Evidence Stream (war-room **left** pane) verbosity: `INFO` or `TRACE`. Maps to `evidence.severity`.                                  |
 | `--process-severity`                 | str               | `INFO`                             | Investigation Process (war-room **right** pane) verbosity: `INFO` or `TRACE` (TRACE prints each agent's full reasoning). Maps to `process.severity`. |
 | `--evidence-persist` / `--no-evidence-persist` | flag    | `--no-evidence-persist`            | After the run, write the Evidence Stream to `<evidence dir>/evidence-<incident_id>.log` (war-room view only). Maps to `evidence.persist`. |
-| `--config`                           | path              | `~/.local/state/.aegis-swr/config.json` | JSON config file to load options from.                                                                                               |
+| `--config`                           | path              | `<config-dir>/config.json`              | JSON config file to load options from.                                                                                               |
 | `--save-config` / `--no-save-config` | flag              | `--no-save-config`                 | Write the current CLI options to the JSON file and exit (writes to `--config` if given, else the default path).                      |
 
 **`--store-config` routing** - the value is written to a different storage field
@@ -128,7 +130,7 @@ Exits `1` if either side has no relational store; otherwise prints the count of
 exported reports.
 
 ```bash
-aegis export --store filesystem --store-config ~/.local/share/.aegis-swr/reports \
+aegis export --store filesystem --store-config <config-dir>/reports \
              --to-store sqlite --to-config ./reports.db
 ```
 
@@ -163,7 +165,7 @@ aegis config show
 
 ## `aegis config set`
 
-Set a single value in `~/.local/state/.aegis-swr/config.json`, creating the file (and
+Set a single value in `<config-dir>/config.json`, creating the file (and
 its parent directory) if needed.
 
 | Argument | Description |

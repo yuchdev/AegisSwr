@@ -1,17 +1,19 @@
 # Agent Weight Matrix (`agents.json`)
 
+> `<config-dir>` = `~/.aegis-swr/`
+
 The per-fault-class **domain-authority weights** for the four Synthetic War Room
 agents live in:
 
 ```
-~/.local/state/.aegis-swr/agents.json
+<config-dir>/agents.json
 ```
 
 A template lives at [`agents.example.json`](../../agents.example.json) - copy it
 to the default path:
 
 ```bash
-cp agents.example.json ~/.local/state/.aegis-swr/agents.json
+cp agents.example.json <config-dir>/agents.json
 ```
 
 `Settings` loads this file and mounts it under the `agent_weights` key
@@ -114,7 +116,7 @@ weight to `log_historian` for trend evidence.
 ## Tuning example
 
 Make the Skeptic more influential for null-pointer faults by editing
-`~/.local/state/.aegis-swr/agents.json`:
+`<config-dir>/agents.json`:
 
 ```json
 {

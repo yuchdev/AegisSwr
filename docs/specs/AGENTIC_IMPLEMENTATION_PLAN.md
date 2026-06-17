@@ -643,7 +643,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 2. Constructor: `__init__(self, settings: StorageSettings)` - store settings, log a warning that this is a stub.
 3. All four methods raise `NotImplementedError("PostgresStore is a stub. Implement with SQLAlchemy async in a future phase.")`.
 4. Update `backends/storage/__init__.py` with the `create_storage_backends` factory from spec §8.6. Add `StorageSettings.provider` validator.
-5. Extend `StorageSettings` in `config/settings.py` with: `provider: str = "filesystem"`, `reports_dir: str = "~/.local/share/.aegis-swr/reports"`, `objects_dir: str = "~/.local/share/.aegis-swr/objects"`, `db_path: str = "~/.local/db/.aegis-swr/reports.db"`, `s3_endpoint_url: str | None = None`.
+5. Extend `StorageSettings` in `config/settings.py` with: `provider: str = "filesystem"`, `reports_dir: str = str(CONFIG_DIR / "reports")`, `objects_dir: str = str(CONFIG_DIR / "objects")`, `db_path: str = str(CONFIG_DIR / "db" / "reports.db")`, `s3_endpoint_url: str | None = None`. (`CONFIG_DIR = Path("~/.aegis-swr").expanduser()` is the only hardcoded literal.)
 6. Update `config.yaml` with the new storage keys.
 
 ---
@@ -891,7 +891,7 @@ All must pass before proceeding to Step 7.
 
 **Instructions:**
 1. Implement `src/aegis_swr/cli/_config.py`:
-   - `DEFAULT_CONFIG_PATH: Path = Path("~/.local/state/.aegis-swr/config.json").expanduser()`
+   - `DEFAULT_CONFIG_PATH: Path = CONFIG_DIR / "config.json"` (where `CONFIG_DIR = Path("~/.aegis-swr").expanduser()`)
    - `ANALYZE_CONFIG_KEYS: tuple[str, ...]` - tuple of all option names that belong in the JSON file (`dump`, `logs`, `shots`, `sym`, `assume`, `engine`, `ai`, `store`, `store_config`, `code_provider`, `repo`, `log_provider`, `log_service`, `output`, `log_severity`, `log_dir`).
      > **Superseded.** The logging-related keys were later re-engineered into nested `ingest` / `logging` / `evidence` / `process` config.json sections (with added `log_sink`, `evidence_severity`, `evidence_persist`, `process_severity`, …). See the log-subsystem chapter in [generic_implementation_plan.md](generic_implementation_plan.md) (Part III) and [configuration/config.md](../configuration/config.md).
    - `load_analyze_config(path: Path | None = None) -> dict[str, Any]` - reads JSON from path (default = `DEFAULT_CONFIG_PATH`); returns `{}` if file absent or malformed (log a warning on parse error).

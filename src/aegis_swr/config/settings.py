@@ -8,7 +8,7 @@ prototype. Settings are modelled with Pydantic / pydantic-settings as
 
 - explicit constructor kwargs
 - environment variables prefixed with ``AEGIS__`` (nested using ``__``)
-- JSON files under the XDG-style runtime state directory (see ``CONFIG_DIR``)
+- JSON files under the config directory (see ``CONFIG_DIR``)
 
 The file also provides a small custom settings source that merges two JSON
 files: ``config.json`` (runtime configuration sections) and ``agents.json``
@@ -25,12 +25,12 @@ from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 """Canonical config directory - the single home of both ``config.json`` (this
-module's runtime settings) and ``agents.json`` (the weight matrix).  Lives
-under XDG state so it is the *same* path the CLI reads and writes; the two
-used to disagree (``share/aegis`` vs ``share/aegis-swr``), which silently
-stopped ``config.json`` from overriding the storage defaults.
+module's runtime settings) and ``agents.json`` (the weight matrix). It is the
+*same* path the CLI reads and writes, and the single hardcoded location: every
+other path default (reports/objects/db/logs/evidence) derives from it, and the
+effective values are supplied by ``config.json``.
 """
-CONFIG_DIR = Path("~/.local/state/.aegis-swr").expanduser()
+CONFIG_DIR = Path("~/.aegis-swr").expanduser()
 
 """Backwards-compatible alias; ``CONFIG_DIR`` is the preferred name."""
 DATA_DIR = CONFIG_DIR
@@ -245,18 +245,18 @@ class StorageSettings(BaseSettings):
     provider: str = "filesystem"
 
     # filesystem: report JSON files
-    reports_dir: str = "~/.local/share/.aegis-swr/reports"
+    reports_dir: str = str(CONFIG_DIR / "reports")
 
     # filesystem: raw binary artifacts
-    objects_dir: str = "~/.local/share/.aegis-swr/objects"
+    objects_dir: str = str(CONFIG_DIR / "objects")
 
     # sqlite: database file
-    db_path: str = "~/.local/db/.aegis-swr/reports.db"
+    db_path: str = str(CONFIG_DIR / "db" / "reports.db")
 
     database_url: str = "postgresql+asyncpg://aegis:aegis@localhost:5432/aegis"
     object_store_url: str = "s3://aegis-raw-inputs"
     object_store_region: str = "us-east-1"
-    s3_endpoint_url: Optional[str] = None        # MinIO / custom S3-compatible endpoint
+    s3_endpoint_url: Optional[str] = None  # MinIO / custom S3-compatible endpoint
     vector_store_url: str = "http://localhost:6333"
     vector_collection: str = "incident_history"
 
@@ -279,15 +279,15 @@ class LogBackendSettings(BaseSettings):
 
     model_config = SettingsConfigDict(extra="ignore")
 
-    provider: str = "file"                  # file | fluent  (elk deferred)
-    file_root: Optional[str] = None            # base dir for service→file resolution (file)
+    provider: str = "file"  # file | fluent  (elk deferred)
+    file_root: Optional[str] = None  # base dir for service→file resolution (file)
     default_severity_levels: list[str] = Field(
         default_factory=lambda: ["FATAL", "CRITICAL", "ERROR", "WARNING"]
     )
-    elk_url: Optional[str] = None              # elk (deferred)
-    fluent_host: Optional[str] = None          # fluent stub
-    fluent_port: Optional[int] = None          # fluent stub
-    fluent_tag_prefix: Optional[str] = None    # fluent stub
+    elk_url: Optional[str] = None  # elk (deferred)
+    fluent_host: Optional[str] = None  # fluent stub
+    fluent_port: Optional[int] = None  # fluent stub
+    fluent_tag_prefix: Optional[str] = None  # fluent stub
 
     @field_validator("provider")
     @classmethod
@@ -309,12 +309,12 @@ class CodeBackendSettings(BaseSettings):
 
     model_config = SettingsConfigDict(extra="ignore")
 
-    enabled: bool = False                   # false → no CodeBackend; Stage 8 skipped
-    provider: str = "git"                   # git | filesystem
-    repo_path: Optional[str] = None         # working tree / source root
-    window_hours: int = 2                   # default look-back for get_commits_before
-    commit_limit: int = 10                  # default max commits returned
-    git_timeout_seconds: int = 30           # git subprocess timeout (git provider)
+    enabled: bool = False  # false → no CodeBackend; Stage 8 skipped
+    provider: str = "git"  # git | filesystem
+    repo_path: Optional[str] = None  # working tree / source root
+    window_hours: int = 2  # default look-back for get_commits_before
+    commit_limit: int = 10  # default max commits returned
+    git_timeout_seconds: int = 30  # git subprocess timeout (git provider)
 
     @field_validator("provider")
     @classmethod
@@ -495,9 +495,7 @@ class AegisJsonSettingsSource(PydanticBaseSettingsSource):
             data["agent_weights"] = agents
         self._data = data
 
-    def get_field_value(
-        self, field: FieldInfo, field_name: str
-    ) -> tuple[Any, str, bool]:
+    def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
         """Return the value for *field_name* from the merged JSON data.
 
         This method implements the small adapter interface expected by

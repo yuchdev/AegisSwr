@@ -1,7 +1,7 @@
 """Aegis SWR command-line interface.
 
 Options can be given as explicit CLI flags or read from a JSON config file
-(default path: ``~/.local/state/.aegis-swr/config.json``).  Both sources share one
+(default path: ``~/.aegis-swr/config.json``).  Both sources share one
 schema (:class:`~aegis_swr.cli._config.AnalyzeConfig`): the file is applied
 first and explicit CLI flags are layered on top - defaults < config.json < CLI.
 """
@@ -28,6 +28,7 @@ from aegis_swr.cli._config import (
 )
 from aegis_swr.cli._formatters import json_formatter, rich_formatter, stream_and_display
 from aegis_swr.cli.aegis_logging import configure_logging
+from aegis_swr.config.settings import CONFIG_DIR
 
 console = Console()
 
@@ -37,7 +38,7 @@ _STREAM_LEVELS = frozenset({"INFO", "TRACE"})
 #: Allowed application log sinks (elk/fluent are stubs until a later phase).
 _LOG_SINKS = frozenset({"file", "elk", "fluent"})
 #: Default directory for the opt-in Evidence Stream transcript (--evidence-persist).
-_DEFAULT_EVIDENCE_DIR = "~/.local/state/aegis-swr/evidence"
+_DEFAULT_EVIDENCE_DIR = str(CONFIG_DIR / "evidence")
 
 
 def _validate_log_options(config: AnalyzeConfig) -> None:
@@ -104,7 +105,7 @@ app = typer.Typer(
     help="Aegis SWR - production forensics platform.",
     no_args_is_help=True,
 )
-config_app = typer.Typer(help="Manage runtime settings in ~/.local/state/.aegis-swr/config.json.")
+config_app = typer.Typer(help="Manage runtime settings in ~/.aegis-swr/config.json.")
 app.add_typer(config_app, name="config")
 
 
@@ -200,7 +201,7 @@ def analyze(  # noqa: PLR0913
         typer.Option(
             "--log-dir",
             help="Directory for the classic application log file "
-            "(default: ~/.local/state/aegis-swr/logs). The rotating "
+            "(default: ~/.aegis-swr/logs). The rotating "
             "aegis-swr.log is written here at the chosen --log-severity.",
         ),
     ] = None,
@@ -240,7 +241,7 @@ def analyze(  # noqa: PLR0913
         Optional[Path],
         typer.Option(
             "--config",
-            help="JSON config file (default: ~/.local/state/.aegis-swr/config.json).",
+            help="JSON config file (default: ~/.aegis-swr/config.json).",
         ),
     ] = None,
     save_config: Annotated[
@@ -619,7 +620,7 @@ def config_set(
     key: Annotated[str, typer.Argument(help="Dotted key path, e.g. backends.ai.model")],
     value: Annotated[str, typer.Argument(help="New value.")],
 ):
-    """Set a single value in ~/.local/state/.aegis-swr/config.json"""
+    """Set a single value in ~/.aegis-swr/config.json"""
     config_path = DEFAULT_CONFIG_PATH
     if config_path.exists():
         try:

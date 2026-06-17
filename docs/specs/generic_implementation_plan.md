@@ -948,6 +948,8 @@ reasoning at `process.severity = TRACE` is orthogonal to the evidence verbosity.
 
 ## III.2 Target configuration shape
 
+> `<config-dir>` = `~/.aegis-swr/`
+
 ```jsonc
 {
   // INGESTION - config for reading the *investigated system's* logs (D1)
@@ -962,7 +964,7 @@ reasoning at `process.severity = TRACE` is orthogonal to the evidence verbosity.
   "logging": {
     "severity": "INFO",       // TRACE | DEBUG | INFO | WARNING | ERROR
     "sink": "file",           // file | elk | fluent   (elk/fluent = stubs, D3)
-    "dir": "~/.local/state/aegis-swr/logs",
+    "dir": "<config-dir>/logs",
     "elk_url": null,          // accepted by schema; emitter not yet implemented
     "fluent_host": null,
     "fluent_port": null
@@ -1115,7 +1117,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     calls `_persist_evidence(view, evidence_dir, report)` which writes
     `<evidence_dir>/evidence-<incident_id>.log` (fails open with a warning on `OSError`).
     `commands.analyze` resolves `evidence_dir` to `config.evidence_dir or
-    _DEFAULT_EVIDENCE_DIR` (`~/.local/state/aegis-swr/evidence`) and passes the flags
+    _DEFAULT_EVIDENCE_DIR` (`<config-dir>/evidence`) and passes the flags
     through. **Limitations surfaced, not silent:** persistence is a WarRoomView feature
     (terminal width ≥ 80) - on the narrow-terminal RichView fallback it is skipped with
     a warning; and `--output quiet` (no rendered stream) also warns. Coverage: unit
@@ -1139,7 +1141,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
 12. Update `docs/configuration/config.md` (four sections: `ingest.log_source`,
     `logging`, `evidence`, `process`, and the distinction from `backends.log`),
     `docs/configuration/cli.md` (new flag rows + validation), `config.example.json`,
-    and `~/.local/share/aegis-swr/config.json`.
+    and `<config-dir>/config.json`.
 
     *As built:* `config.md` - the "Flat analyze keys" section became "Analyze keys"
     (flat table trimmed to the non-logging options) followed by a new "Log-related

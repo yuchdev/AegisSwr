@@ -1305,6 +1305,8 @@ The HITL request is returned in `RCAReport.hitl_request`. The API client (CLI, w
 
 ## 8. Storage Architecture
 
+> `<config-dir>` = `~/.aegis-swr/`
+
 Four concrete backends implement the `RelationalStore` and/or `ObjectStore` ABCs. All backends surface the same deduplication contract: `find_by_hash(dump_hash)` is called by the Orchestrator before any analysis starts; a non-None result returns the cached `RCAReport` immediately.
 
 All sync I/O (filesystem, SQLite) is wrapped in `asyncio.to_thread` so the interface stays uniformly `async` without blocking the event loop.
@@ -1313,11 +1315,11 @@ All sync I/O (filesystem, SQLite) is wrapped in `asyncio.to_thread` so the inter
 
 Implements both `RelationalStore` and `ObjectStore`. Evolved from the prototype's `FilesystemBackend`.
 
-**Report storage** (`reports_dir/`, default `~/.local/share/.aegis-swr/reports`):
+**Report storage** (`reports_dir/`, default `<config-dir>/reports`):
 - One file per report: `{reports_dir}/{incident_id}.json`
 - Hash index for O(1) dedup: `{reports_dir}/_hash_index/{dump_hash}` (content = incident_id string)
 
-**Raw artifact storage** (`objects_dir/`, default `~/.local/share/.aegis-swr/objects`):
+**Raw artifact storage** (`objects_dir/`, default `<config-dir>/objects`):
 - `{objects_dir}/{incident_id}/{filename}` - upload/download path
 
 **Path safety:** every resolved path is checked to remain within its root directory. Traversal attempts raise `ValueError`.
@@ -1347,7 +1349,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_dump_hash
 
 `find_by_hash` uses a direct indexed `WHERE dump_hash = ?` query - no full-table scan.
 `update_hitl_response` does `UPDATE reports SET report_json = ? WHERE incident_id = ?` after modifying the parsed report dict in Python.
-Default `db_path`: `~/.local/db/.aegis-swr/reports.db`.
+Default `db_path`: `<config-dir>/db/reports.db`.
 
 ### 8.3 S3 Store (`s3_store.py`)
 
@@ -1421,9 +1423,9 @@ def create_storage_backends(
 backends:
   storage:
     provider: "filesystem"             # filesystem | sqlite | s3 | postgres
-    reports_dir: "~/.local/share/.aegis-swr/reports"  # filesystem
-    objects_dir: "~/.local/share/.aegis-swr/objects"  # filesystem object store
-    db_path: "~/.local/db/.aegis-swr/reports.db"   # sqlite
+    reports_dir: "<config-dir>/reports"  # filesystem
+    objects_dir: "<config-dir>/objects"  # filesystem object store
+    db_path: "<config-dir>/db/reports.db"   # sqlite
     object_store_url: "s3://aegis-raw-inputs"  # s3
     object_store_region: "us-east-1"           # s3
     s3_endpoint_url: null                      # s3 / MinIO custom endpoint
@@ -1643,14 +1645,14 @@ aegis analyze \
   --engine  auto                 # debug engine: auto | cdb | windbg_js
   --ai      anthropic            # AI provider: anthropic | openai
   --store   filesystem           # storage backend: filesystem | sqlite | s3 | postgres
-  --store-config ~/.local/share/.aegis-swr/reports  # storage config value (dir path / db path / S3 URL)
+  --store-config <config-dir>/reports  # storage config value (dir path / db path / S3 URL)
   --code-provider none           # code backend: none | git | filesystem | pdb
   --repo    ./service-src        # repo / source root (sets code-provider on, repo_path)
   --log-provider file            # log backend: file | fluent
   --log-service auth-api         # service name for LogBackend.query_window (optional)
   --output  rich                 # output format: rich | json | quiet
   --log-severity INFO                # log verbosity: TRACE | DEBUG | INFO | WARNING | ERROR (TRACE streams the full !analyze output)
-  --config  ~/.local/state/.aegis-swr/config.json   # load options from JSON file
+  --config  <config-dir>/config.json   # load options from JSON file
   --save-config                  # save current effective options to JSON file, then exit
 ```
 
@@ -1677,7 +1679,7 @@ New backend options (§6.4 / §6.5):
 - `--log-provider` (maps to `LogSettings.provider`)
 - `--log-service` (service name passed to `LogBackend.query_window`; when omitted, the file-path log source is used and no `query_window` call is made)
 
-### 12.3 JSON config file (`~/.local/state/.aegis-swr/config.json`)
+### 12.3 JSON config file (`<config-dir>/config.json`)
 
 There are two ways to configure `aegis analyze` startup options - the CLI and a
 JSON config file - and **both deserialize into the same schema**,
@@ -1705,7 +1707,7 @@ options exactly:
     "provider":  "file",
     "service":   null,
     "severity":  "WARNING",
-    "dir":       "~/.local/state/aegis-swr/logs"
+    "dir":       "<config-dir>/logs"
   }
 }
 ```
@@ -1715,7 +1717,7 @@ prefix is stripped); each still maps 1:1 to a `--log-*` CLI flag. The section is
 named `logging` rather than `log` so it is not confused with the unrelated
 `backends.log` log-ingestion backend.
 
-The default path is `~/.local/state/.aegis-swr/config.json` (override with
+The default path is `<config-dir>/config.json` (override with
 `--config PATH`). When both sources are present the file is loaded first and
 explicit CLI flags are applied on top (`defaults < config.json < CLI`). Unknown
 keys in the file are ignored with a warning (typo protection). A ready-to-copy
@@ -1729,7 +1731,7 @@ loaded JSON values) to the config file and exits without running analysis.
 ```bash
 aegis export \
   --store        filesystem           # source backend
-  --store-config ~/.local/share/.aegis-swr/reports \
+  --store-config <config-dir>/reports \
   --to-store     sqlite               # destination backend
   --to-config    ~/backup/reports.db
 ```

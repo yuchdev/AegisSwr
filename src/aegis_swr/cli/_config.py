@@ -3,7 +3,7 @@
 Startup options can be supplied two ways, and both deserialize into the *same*
 dict shape and the *same* class:
 
-1. **JSON config file** - by default ``~/.local/state/.aegis-swr/config.json``
+1. **JSON config file** - by default ``~/.aegis-swr/config.json``
    (override with ``--config PATH``). Keys mirror the CLI option names exactly.
 2. **CLI flags** - ``aegis analyze --store sqlite …``.
 
@@ -43,12 +43,12 @@ from typing import Any, Optional
 import typer
 from loguru import logger
 
-#: Default config-file location (``--config`` overrides it).  Imported from the
-#: settings module so the CLI and the runtime :class:`Settings` always resolve
-#: the *same* ``config.json`` - a past divergence here (``share/aegis`` vs
-#: ``share/aegis-swr``) is what stopped the file from overriding the storage
-#: defaults.  Re-exported so existing ``from _config import DEFAULT_CONFIG_PATH``
-#: callers keep working.
+#: Config directory and default config-file location, imported from the settings
+#: module so the CLI and the runtime :class:`Settings` always resolve the *same*
+#: ``config.json`` and derive other path defaults from the *same* base dir.
+#: ``DEFAULT_CONFIG_PATH`` is re-exported so existing
+#: ``from _config import DEFAULT_CONFIG_PATH`` callers keep working.
+from aegis_swr.config.settings import CONFIG_DIR
 from aegis_swr.config.settings import DEFAULT_CONFIG_PATH as DEFAULT_CONFIG_PATH
 
 #: Top-level keys owned by the runtime :class:`~aegis_swr.config.settings.Settings`
@@ -244,7 +244,7 @@ class AnalyzeConfig:
     log_service: Optional[str] = None
     # Application logging (Aegis's own diagnostics) → logging.*
     log_severity: str = "INFO"
-    log_dir: str = "~/.local/state/aegis-swr/logs"
+    log_dir: str = str(CONFIG_DIR / "logs")
     log_sink: str = "file"
     log_elk_url: Optional[str] = None
     log_fluent_host: Optional[str] = None
