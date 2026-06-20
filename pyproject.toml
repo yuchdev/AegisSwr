@@ -10,6 +10,7 @@ python = "^3.12"
 fastapi = "^0.115"
 uvicorn = { version = "^0.32", extras = ["standard"] }
 typer = { version = "^0.26", extras = ["all"] }
+rich = "^13.0"
 pydantic = "^2.9"
 pydantic-settings = "^2.5"
 langgraph = "^0.2"

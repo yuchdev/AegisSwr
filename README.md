@@ -86,7 +86,7 @@ resolved settings with secrets redacted.
 
 4. Launch the core orchestration server:
 ```bash
-poetry run python -m aegis.core.server
+uv run python -m aegis_swr.core.server
 
 ```
 
@@ -132,10 +132,10 @@ $env:AEGIS_SYMBOL_CACHE = ''
 ### Triggering an Investigation (CLI Example)
 
 ```bash
-poetry run aegis analyze \
-  --logs ./production_fail.log \
-  --crashdump ./core.20260529.dmp \
-  --screenshot ./error_ui.png
+uv run aegis analyze \
+  --log ./production_fail.log \
+  --dump ./core.20260529.dmp \
+  --shot ./error_ui.png
 ```
 
 #### Configuration: CLI plus the config file
