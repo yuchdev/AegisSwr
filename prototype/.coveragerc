@@ -1,0 +1,30 @@
+[run]
+source = wincrash_analyzer
+branch = True
+parallel = True
+omit =
+    */site-packages/*
+    */distutils/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+    @abstractmethod
+    pass
+    except ImportError
+    except ImportError:
+
+precision = 2
+show_missing = True
+skip_covered = False
+fail_under = 85
+
+[html]
+directory = htmlcov
+

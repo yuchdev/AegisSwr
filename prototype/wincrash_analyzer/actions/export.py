@@ -1,4 +1,4 @@
-"""Export action: migrate analysis records between store backends."""
+"""Export action: migrate analysis records between store backends"""
 import logging
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn

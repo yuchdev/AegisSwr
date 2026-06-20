@@ -1,4 +1,4 @@
-"""Fluentd / Fluent Bit log backend — stub.
+"""Fluentd / Fluent Bit log backend - stub.
 
 Shipped as a stub (mirrors ``PostgresStore``) so the factory and config can
 select ``provider: fluent`` ahead of a full implementation.
@@ -8,19 +8,18 @@ Intended production design (for the future implementer): connect to
 time-range query against the Fluent forward/HTTP API, and map the returned
 records to log lines. The stub makes no network connection.
 
-See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §6.4.2.
+See ``docs/specs/generic_implementation_plan.md`` C.5 CodeBackend.
 """
 from __future__ import annotations
+from typing import Optional
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from loguru import logger
 
 from aegis_swr.backends.base import LogBackend
 
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import LogBackendSettings
+from aegis_swr.config.settings import LogBackendSettings
 
 _MSG = (
     "FluentAdapter is a stub. "
@@ -29,9 +28,9 @@ _MSG = (
 
 
 class FluentAdapter(LogBackend):
-    """Fluent backend stub — ``query_window`` raises ``NotImplementedError``."""
+    """Fluent backend stub - ``query_window`` raises ``NotImplementedError``"""
 
-    def __init__(self, settings: LogBackendSettings) -> None:
+    def __init__(self, settings: LogBackendSettings):
         self._settings = settings
         logger.warning("FluentAdapter is a stub and does not query any log source.")
 
@@ -40,6 +39,6 @@ class FluentAdapter(LogBackend):
         service: str,
         start_time: datetime,
         end_time: datetime,
-        severity_levels: list[str] | None = None,
+        severity_levels: Optional[list[str]] = None,
     ) -> list[str]:
         raise NotImplementedError(_MSG)

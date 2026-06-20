@@ -1,4 +1,4 @@
-"""WinDbg JavaScript engine backend."""
+"""WinDbg JavaScript engine backend"""
 from __future__ import annotations
 
 import logging

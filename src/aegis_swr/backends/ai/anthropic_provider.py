@@ -7,26 +7,39 @@ stable persona/schema instructions are billed at the cached rate.
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional
 
 import anthropic
 from pydantic import BaseModel
 
 from aegis_swr.backends.ai._base import _BaseAIBackend
 from aegis_swr.core.exceptions import AIOutputValidationError
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import AISettings
+from aegis_swr.config.settings import AISettings
 
 _STRUCTURED_TOOL_NAME = "structured_output"
 
+# Claude families that support extended thinking and return the trace as
+# ``thinking`` blocks: Claude 3.7 and the entire Claude 4 line. Anything else
+# (legacy Claude 3.0/3.5) answers without an exposed reasoning trace.
+_REASONING_MODEL_MARKERS = (
+    "claude-opus-4",
+    "claude-sonnet-4",
+    "claude-haiku-4",
+    "claude-3-7",
+)
+
 
 class AnthropicBackend(_BaseAIBackend):
-    def __init__(self, settings: AISettings) -> None:
+    def __init__(self, settings: AISettings):
         super().__init__(settings)
         # Typed as Any so the rest of the module is not coupled to the SDK's
         # internal TypedDict parameter types.
         self._client: Any = anthropic.AsyncAnthropic()
+
+    @property
+    def has_reasoning(self) -> bool:
+        """``True`` for extended-thinking models: Claude, OpenAI, Nova Pro"""
+        return any(marker in self.model_name for marker in _REASONING_MODEL_MARKERS)
 
     def _system_blocks(self, system_prompt: str) -> list[dict[str, Any]]:
         return [
@@ -41,7 +54,7 @@ class AnthropicBackend(_BaseAIBackend):
         self,
         system_prompt: str,
         messages: list[dict[str, Any]],
-        output_schema: type[BaseModel] | None,
+        output_schema: Optional[type[BaseModel]],
     ) -> tuple[str | dict[str, Any], dict[str, int]]:
         kwargs: dict[str, Any] = {
             "model": self.model_name,

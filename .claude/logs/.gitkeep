@@ -1,0 +1,3 @@
+# Hook log output lands here (edits.log, tests.log, bash-guard.log,
+# secret-scan.log, dep-audit.log, github-actions.log). Log contents are
+# git-ignored; this .gitkeep preserves the directory.

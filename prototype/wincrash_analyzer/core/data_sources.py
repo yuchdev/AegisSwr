@@ -1,4 +1,4 @@
-"""Data source abstractions for WinCrash Analyzer."""
+"""Data source abstractions for WinCrash Analyzer"""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

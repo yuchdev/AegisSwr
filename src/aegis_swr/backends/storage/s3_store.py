@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional
 from uuid import UUID
 
 from loguru import logger
@@ -22,15 +22,13 @@ from loguru import logger
 from aegis_swr.backends.base import ObjectStore, RelationalStore
 from aegis_swr.core.exceptions import IncidentNotFoundError
 from aegis_swr.core.schemas import RCAReport
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import StorageSettings
+from aegis_swr.config.settings import StorageSettings
 
 _NO_SUCH_KEY = "NoSuchKey"
 
 
 def _parse_bucket(url: str) -> str:
-    """Extract bucket name from ``s3://bucket-name`` URL."""
+    """Extract bucket name from ``s3://bucket-name`` URL"""
     stripped = url.removeprefix("s3://").removeprefix("s3a://").split("/")[0]
     if not stripped:
         raise ValueError(f"Cannot parse bucket from URL: {url!r}")
@@ -38,9 +36,9 @@ def _parse_bucket(url: str) -> str:
 
 
 class S3Store(RelationalStore, ObjectStore):
-    """S3/MinIO backend; wraps sync boto3 calls in ``asyncio.to_thread``."""
+    """S3/MinIO backend; wraps sync boto3 calls in ``asyncio.to_thread``"""
 
-    def __init__(self, settings: StorageSettings) -> None:
+    def __init__(self, settings: StorageSettings):
         import boto3
 
         self._bucket = _parse_bucket(settings.object_store_url)
@@ -54,7 +52,7 @@ class S3Store(RelationalStore, ObjectStore):
     # Low-level helpers
     # ------------------------------------------------------------------
 
-    def _put_text(self, key: str, text: str) -> None:
+    def _put_text(self, key: str, text: str):
         self._client.put_object(
             Bucket=self._bucket,
             Key=key,
@@ -62,7 +60,7 @@ class S3Store(RelationalStore, ObjectStore):
             ContentType="application/json",
         )
 
-    def _get_text(self, key: str) -> str | None:
+    def _get_text(self, key: str) -> Optional[str]:
         try:
             resp = self._client.get_object(Bucket=self._bucket, Key=key)
             raw: str = resp["Body"].read().decode("utf-8")
@@ -80,7 +78,7 @@ class S3Store(RelationalStore, ObjectStore):
             return code == _NO_SUCH_KEY
         return False
 
-    def _put_bytes(self, key: str, data: bytes) -> None:
+    def _put_bytes(self, key: str, data: bytes):
         self._client.put_object(Bucket=self._bucket, Key=key, Body=data)
 
     def _get_bytes(self, key: str) -> bytes:
@@ -97,26 +95,26 @@ class S3Store(RelationalStore, ObjectStore):
     # RelationalStore
     # ------------------------------------------------------------------
 
-    async def save_report(self, report: RCAReport) -> None:
+    async def save_report(self, report: RCAReport):
         await asyncio.to_thread(self._sync_save_report, report)
 
-    def _sync_save_report(self, report: RCAReport) -> None:
+    def _sync_save_report(self, report: RCAReport):
         self._put_text(f"reports/{report.incident_id}.json", report.model_dump_json())
         if report.dump_hash:
             self._put_text(f"hash-index/{report.dump_hash}", str(report.incident_id))
         logger.debug(f"S3Store: saved report {report.incident_id}")
 
-    async def get_report(self, incident_id: UUID) -> RCAReport | None:
+    async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_get_report, incident_id)
 
-    def _sync_get_report(self, incident_id: UUID) -> RCAReport | None:
+    def _sync_get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         text = self._get_text(f"reports/{incident_id}.json")
         return RCAReport.model_validate_json(text) if text else None
 
-    async def find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_find_by_hash, dump_hash)
 
-    def _sync_find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    def _sync_find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         incident_id_text = self._get_text(f"hash-index/{dump_hash}")
         if not incident_id_text:
             return None
@@ -126,14 +124,14 @@ class S3Store(RelationalStore, ObjectStore):
         self,
         incident_id: UUID,
         response: dict[str, object],
-    ) -> None:
+    ):
         await asyncio.to_thread(self._sync_update_hitl, incident_id, response)
 
     def _sync_update_hitl(
         self,
         incident_id: UUID,
         response: dict[str, object],
-    ) -> None:
+    ):
         key = f"reports/{incident_id}.json"
         text = self._get_text(key)
         if text is None:

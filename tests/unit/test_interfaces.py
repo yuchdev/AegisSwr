@@ -1,5 +1,5 @@
 """Verify that ABCs cannot be instantiated directly and that concrete
-subclasses satisfying all abstract methods can be instantiated."""
+subclasses satisfying all abstract methods can be instantiated"""
 from __future__ import annotations
 
 import pytest
@@ -32,12 +32,12 @@ from aegis_swr.backends.base import (
         CodeBackend,
     ],
 )
-def test_backend_abc_cannot_be_instantiated(cls: type) -> None:
+def test_backend_abc_cannot_be_instantiated(cls: type):
     with pytest.raises(TypeError):
         cls()  # type: ignore[call-arg]
 
 
-def test_base_agent_cannot_be_instantiated() -> None:
+def test_base_agent_cannot_be_instantiated():
     with pytest.raises(TypeError):
         BaseAgent(ai_backend=None, settings=None)  # type: ignore[arg-type]
 
@@ -47,9 +47,9 @@ def test_base_agent_cannot_be_instantiated() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_minimal_ai_backend_subclass() -> None:
+def test_minimal_ai_backend_subclass():
     from collections.abc import AsyncGenerator
-    from typing import Any
+    from typing import Any, Optional
 
     from pydantic import BaseModel
 
@@ -60,7 +60,7 @@ def test_minimal_ai_backend_subclass() -> None:
             self,
             system_prompt: str,
             messages: list[dict[str, Any]],
-            output_schema: type[BaseModel] | None = None,
+            output_schema: Optional[type[BaseModel]] = None,
         ) -> BaseModel | str:
             return "ok"
 
@@ -77,7 +77,7 @@ def test_minimal_ai_backend_subclass() -> None:
     assert backend.model_name == "dummy"
 
 
-def test_minimal_base_agent_subclass() -> None:
+def test_minimal_base_agent_subclass():
     from aegis_swr.core.schemas import AgentTurn, InvestigationState
 
     class _DummyAgent(BaseAgent):

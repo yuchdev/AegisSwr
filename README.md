@@ -23,11 +23,11 @@ Aegis SWR is architected as a core Python orchestration layer that exposes abstr
 
 ### Backend Interface Matrix
 
-| Backend Interface Type | Description | Component Examples |
-| --- | --- | --- |
-| **`AIAPIBackend`** | Manages foundational LLM communication, token streaming, and semantic context isolation. | OpenAI, Anthropic, Local vLLM / DeepSeek instances. |
-| **`DebugBackend`** | Wraps native command-line debuggers to extract call stacks, symbols, and frame states from binaries. | `cdb.exe` (Windows), `gdb`/`lldb` (Linux/macOS core dumps). |
-| **`StorageBackend`** | Handles multi-tier persistence for raw incident payloads, active state graphs, and vector patterns. | PostgreSQL (State), AWS S3 / MinIO (Dumps), Qdrant (Vector Logs). |
+| Backend Interface Type | Description                                                                                          | Component Examples                                                |
+|------------------------|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| **`AIAPIBackend`**     | Manages foundational LLM communication, token streaming, and semantic context isolation.             | OpenAI, Anthropic, Local vLLM / DeepSeek instances.               |
+| **`DebugBackend`**     | Wraps native command-line debuggers to extract call stacks, symbols, and frame states from binaries. | `cdb.exe` (Windows), `gdb`/`lldb` (Linux/macOS core dumps).       |
+| **`StorageBackend`**   | Handles multi-tier persistence for raw incident payloads, active state graphs, and vector patterns.  | PostgreSQL (State), AWS S3 / MinIO (Dumps), Qdrant (Vector Logs). |
 
 ---
 
@@ -35,7 +35,7 @@ Aegis SWR is architected as a core Python orchestration layer that exposes abstr
 
 ### Prerequisites
 
-* Python 3.10+
+* Python 3.12+
 * Docker / gVisor (for secure code patch validation steps)
 
 ### Installation
@@ -47,41 +47,83 @@ cd aegis-swr
 
 ```
 
-
-2. Install dependencies using uv:
+2. Install dependencies using Poetry:
 ```bash
-uv sync --group dev
+poetry install
 
 ```
 
 
-3. Configure your telemetry and backend providers in `config.yaml`:
-```yaml
-core:
-  max_debate_rounds: 4
-  consensus_threshold: 0.85
+3. Configure your telemetry and backend providers. Runtime settings live in
+   `<config-dir>/config.json`; the per-fault-class agent weight matrix
+   lives alongside it in `<config-dir>/agents.json`. Seed both from the
+   templates in the repo root:
 
-backends:
-  ai_api:
-    provider: "anthropic"
-    endpoint: "remote-microservice" # Can point to a local instance or external API
-  debug:
-    provider: "gdb-linux"
-    symbol_server: "https://symbols.internal.net"
-  storage:
-    database_url: "postgresql://user:pass@localhost:5432/aegis"
-    object_store_url: "s3://prod-incidents"
+> `<config-dir>` = `~/.aegis-swr/`
 
+```bash
+cp config.example.json <config-dir>/config.json
+cp agents.example.json <config-dir>/agents.json
 ```
+```json
+{
+  "core": { "max_debate_rounds": 4, "consensus_threshold": 0.85 },
+  "backends": {
+    "ai": { "provider": "anthropic", "model": "claude-sonnet-4-6" },
+    "debug": { "engine": "auto", "symbol_server_url": "https://symbols.internal.net" },
+    "storage": {
+      "database_url": "postgresql://user:pass@localhost:5432/aegis",
+      "object_store_url": "s3://prod-incidents"
+    }
+  }
+}
+```
+Individual keys can be edited with `aegis config set <dotted.key> <value>`
+(e.g. `aegis config set backends.ai.model claude-opus-4-8`), or overridden at
+runtime with `AEGIS__*` environment variables. `aegis config show` prints the
+resolved settings with secrets redacted.
 
 
 4. Launch the core orchestration server:
 ```bash
-uv run python -m aegis.core.server
+poetry run python -m aegis.core.server
 
 ```
 
+## 💻 Examples
 
+### Variant A: Baseline
+
+```powershell
+$env:AEGIS_SYMBOL_CACHE = 'C:\symbols'
+.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --engine cdb --ai openai --store filesystem --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --log-severity DEBUG --evidence-severity TRACE
+```
+
+### Variant B: Debug Symbols
+
+```powershell
+.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --sym 'C:\Users\atatat\Projects\wincrashdebugger\x64\Release' --sym 'C:\symbols' --engine cdb --ai openai --store filesystem --assume "There's probability that the crash was deliberately injected. Check this theory" --output rich --log-severity DEBUG --evidence-severity TRACE
+```
+
+### 3.4 Variant C: Logs Only
+
+```powershell
+$env:AEGIS_SYMBOL_CACHE = ''
+.venv\Scripts\aegis.exe analyze --dump 'C:\LBS\CrashDumps\CrashUi.exe.1324.dmp' --log 'C:\LBS\CrashDumps\CrashUi.log' --engine cdb --ai openai --store filesystem --store-config '.\reports-log' --assume "There's probability that the crash was deliberately injected. Check this theory" --output json --log-severity INFO --evidence-severity TRACE
+```
+
+`CrashUi.log` was generated from the plog call-sites in the source:
+
+```
+2026-03-30 17:33:14.001 INFO  [main] CrashUi application started
+2026-03-30 17:33:14.003 DEBUG [Crash_Window::Crash_Window@CrashUi.cpp:95] Handler bound: on_access_violation_click
+2026-03-30 17:33:46.801 DEBUG [Crash_Window::on_access_violation_click@CrashUi.cpp:117] Setting pointer to nullptr
+2026-03-30 17:33:46.802 INFO  [Crash_Window::on_access_violation_click@CrashUi.cpp:120] Writing to nullptr
+```
+
+> **Data Adapter note (Variant B):** `source.incident_timestamp` is not backfilled from the
+> CDB extraction result, so Stage 4 logged *"No incident timestamp; falling back to last 500
+> log lines"* and included all 8 log lines unconditionally. Known limitation - see §10.3.
 
 ---
 
@@ -90,12 +132,24 @@ uv run python -m aegis.core.server
 ### Triggering an Investigation (CLI Example)
 
 ```bash
-uv run aegis analyze \
+poetry run aegis analyze \
   --logs ./production_fail.log \
   --crashdump ./core.20260529.dmp \
   --screenshot ./error_ui.png
-
 ```
+
+#### Configuration: CLI plus the config file
+
+Startup options can be supplied two ways, and both share one schema
+(`AnalyzeConfig` - the single source of truth for every setting key):
+
+1. **CLI flags** - `aegis analyze --ai openai …`
+2. **JSON config file** - `<config-dir>/config.json` (override with `--config PATH`)
+
+When both are present the file is applied first and explicit CLI flags are
+layered on top - `defaults < config.json < CLI`. Copy
+[`config.example.json`](config.example.json) to the default path to get started,
+or run `aegis analyze … --save-config` to write your current flags there.
 
 ### The Output Payload
 

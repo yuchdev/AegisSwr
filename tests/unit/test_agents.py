@@ -1,6 +1,7 @@
-"""Unit tests for the four Synthetic War Room agents."""
+"""Unit tests for the four Synthetic War Room agents"""
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from aegis_swr.agents.code_analyst import CodeAnalystAgent
@@ -15,10 +16,12 @@ from aegis_swr.core.schemas import (
     ConfidenceLevel,
     ExceptionSummary,
     Hypothesis,
+    IncidentMode,
     InvestigationState,
     LogHistorianOutput,
     OSKernelOutput,
     RCAHypothesis,
+    RCAReport,
     SkepticVerdict,
 )
 from tests.unit.fixtures.mock_ai_backend import MockAIBackend
@@ -115,7 +118,7 @@ def _skeptic_rejected() -> SkepticVerdict:
 # ---------------------------------------------------------------------------
 
 
-async def test_os_kernel_requests_correct_schema(settings: Settings) -> None:
+async def test_os_kernel_requests_correct_schema(settings: Settings):
     ai = MockAIBackend(responses=[_os_kernel_response()])
     agent = OSKernelAgent(ai, settings)
     turn = await agent.run(_base_state())
@@ -126,7 +129,7 @@ async def test_os_kernel_requests_correct_schema(settings: Settings) -> None:
     assert ai.calls[0]["schema"] is OSKernelOutput
 
 
-async def test_os_kernel_prepends_low_symbol_warning(settings: Settings) -> None:
+async def test_os_kernel_prepends_low_symbol_warning(settings: Settings):
     ai = MockAIBackend(responses=[_os_kernel_response()])
     agent = OSKernelAgent(ai, settings)
     state = _base_state()
@@ -136,7 +139,7 @@ async def test_os_kernel_prepends_low_symbol_warning(settings: Settings) -> None
     assert "LOW SYMBOL COVERAGE" in sent_content
 
 
-async def test_os_kernel_injects_skeptic_corrections_on_round_2(settings: Settings) -> None:
+async def test_os_kernel_injects_skeptic_corrections_on_round_2(settings: Settings):
     ai = MockAIBackend(responses=[_os_kernel_response()])
     agent = OSKernelAgent(ai, settings)
     skeptic_turn = AgentTurn(
@@ -160,7 +163,7 @@ async def test_os_kernel_injects_skeptic_corrections_on_round_2(settings: Settin
 # ---------------------------------------------------------------------------
 
 
-async def test_code_analyst_requests_correct_schema(settings: Settings) -> None:
+async def test_code_analyst_requests_correct_schema(settings: Settings):
     ai = MockAIBackend(responses=[_code_analyst_response()])
     agent = CodeAnalystAgent(ai, settings)
     os_turn = AgentTurn(
@@ -174,7 +177,7 @@ async def test_code_analyst_requests_correct_schema(settings: Settings) -> None:
     assert ai.calls[0]["schema"] is CodeAnalystOutput
 
 
-async def test_code_analyst_includes_user_assumption(settings: Settings) -> None:
+async def test_code_analyst_includes_user_assumption(settings: Settings):
     ai = MockAIBackend(responses=[_code_analyst_response()])
     agent = CodeAnalystAgent(ai, settings)
     state = _base_state()
@@ -189,7 +192,7 @@ async def test_code_analyst_includes_user_assumption(settings: Settings) -> None
 # ---------------------------------------------------------------------------
 
 
-async def test_log_historian_requests_correct_schema(settings: Settings) -> None:
+async def test_log_historian_requests_correct_schema(settings: Settings):
     ai = MockAIBackend(responses=[_log_historian_response()])
     agent = LogHistorianAgent(ai, settings)
     turn = await agent.run(_base_state())
@@ -197,12 +200,75 @@ async def test_log_historian_requests_correct_schema(settings: Settings) -> None
     assert ai.calls[0]["schema"] is LogHistorianOutput
 
 
+def _prior_report() -> RCAReport:
+    """A stored report for the same defect as ``_base_state`` (new dump hash)."""
+    return RCAReport(
+        mode=IncidentMode.CRASH_DUMP,
+        dump_hash="sha256:previous-session",
+        root_cause="Use-after-free in db_writer::serialize at db_writer.cpp:142.",
+        faulting_module="db_writer",
+        faulting_function="db_writer::serialize",
+        confidence_score=0.9,
+        confidence_level=ConfidenceLevel.HIGH,
+        primary_hypothesis=Hypothesis(
+            root_cause="UAF in serialize",
+            faulting_module="db_writer",
+            faulting_function="db_writer::serialize",
+            evidence=["Exception 0xc0000005 at db_writer.cpp:142"],
+            confidence=0.9,
+        ),
+        consensus_rounds=1,
+    )
+
+
+async def test_log_historian_detects_recurrence_from_history(settings: Settings):
+    ai = MockAIBackend(responses=[_log_historian_response()])
+    agent = LogHistorianAgent(ai, settings)
+
+    await agent.run(_base_state(), history=[_prior_report(), _prior_report()])
+
+    sent = json.loads(ai.calls[0]["messages"][0]["content"])
+    analysis = sent["recurrence_analysis"]
+    assert analysis["history_size"] == 2
+    assert analysis["is_recurrence"] is True
+    assert analysis["recurrence_count"] == 2
+    assert analysis["recurrence_probability"] > 0.5
+    # A recurrence reinforces the diagnosis: the nudge is positive.
+    assert analysis["suggested_confidence_adjustment"] > 0
+    assert "recurrence" in analysis["summary"].lower()
+
+
+async def test_log_historian_reports_first_observation_without_matches(settings: Settings):
+    ai = MockAIBackend(responses=[_log_historian_response()])
+    agent = LogHistorianAgent(ai, settings)
+
+    unrelated = _prior_report()
+    unrelated.faulting_module = "render_engine"
+    unrelated.faulting_function = "render_engine::draw"
+    unrelated.root_cause = "Divide-by-zero in render_engine::draw at gfx.cpp:9."
+    unrelated.primary_hypothesis = Hypothesis(
+        root_cause="div0",
+        faulting_module="render_engine",
+        faulting_function="render_engine::draw",
+        evidence=["Exception 0xc0000094 at gfx.cpp:9"],
+        confidence=0.8,
+    )
+
+    await agent.run(_base_state(), history=[unrelated])
+
+    sent = json.loads(ai.calls[0]["messages"][0]["content"])
+    analysis = sent["recurrence_analysis"]
+    assert analysis["history_size"] == 1
+    assert analysis["is_recurrence"] is False
+    assert analysis["matched_incidents"] == []
+
+
 # ---------------------------------------------------------------------------
-# Skeptic Agent — LLM path
+# Skeptic Agent - LLM path
 # ---------------------------------------------------------------------------
 
 
-async def test_skeptic_confirmed_sets_high_confidence(settings: Settings) -> None:
+async def test_skeptic_confirmed_sets_high_confidence(settings: Settings):
     ai = MockAIBackend(responses=[_skeptic_confirmed()])
     agent = SkepticAgent(ai, settings)
     state = _base_state(
@@ -213,7 +279,7 @@ async def test_skeptic_confirmed_sets_high_confidence(settings: Settings) -> Non
     assert turn.confidence_score >= 0.65   # MEDIUM or HIGH
 
 
-async def test_skeptic_rejected_sets_low_confidence(settings: Settings) -> None:
+async def test_skeptic_rejected_sets_low_confidence(settings: Settings):
     ai = MockAIBackend(responses=[_skeptic_rejected()])
     agent = SkepticAgent(ai, settings)
     state = _base_state(
@@ -225,12 +291,12 @@ async def test_skeptic_rejected_sets_low_confidence(settings: Settings) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Skeptic Agent — programmatic pre-check (no LLM call when module absent)
+# Skeptic Agent - programmatic pre-check (no LLM call when module absent)
 # ---------------------------------------------------------------------------
 
 
-async def test_skeptic_fails_prechecks_without_llm_call(settings: Settings) -> None:
-    ai = MockAIBackend()  # empty responses — any call would raise
+async def test_skeptic_fails_prechecks_without_llm_call(settings: Settings):
+    ai = MockAIBackend()  # empty responses - any call would raise
     agent = SkepticAgent(ai, settings)
     state = _base_state(
         primary_hypothesis={
@@ -246,7 +312,7 @@ async def test_skeptic_fails_prechecks_without_llm_call(settings: Settings) -> N
     assert len(ai.calls) == 0
 
 
-async def test_skeptic_skips_precheck_when_no_primary_hypothesis(settings: Settings) -> None:
+async def test_skeptic_skips_precheck_when_no_primary_hypothesis(settings: Settings):
     ai = MockAIBackend(responses=[_skeptic_confirmed()])
     agent = SkepticAgent(ai, settings)
     # No primary_hypothesis → pre-check cannot run → falls through to LLM.
@@ -260,7 +326,7 @@ async def test_skeptic_skips_precheck_when_no_primary_hypothesis(settings: Setti
 # ---------------------------------------------------------------------------
 
 
-async def test_token_tracker_accumulated_in_state(settings: Settings) -> None:
+async def test_token_tracker_accumulated_in_state(settings: Settings):
     ai = MockAIBackend(
         responses=[_os_kernel_response()],
         usage={"input_tokens": 300, "output_tokens": 50},

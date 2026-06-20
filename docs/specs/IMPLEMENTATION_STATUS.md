@@ -120,7 +120,7 @@ Additional Phase 4 deliverables (WinDbg JS backend):
 ## Phase 7 — CLI & Local Mode ✅
 
 Delivered:
-- `cli/_config.py` — `load_analyze_config`, `save_analyze_config`, `merge_options`. Typer 0.26 compatibility: compares `source.name == "COMMANDLINE"` by string rather than by identity (Typer 0.26 bundles `typer._click.core.ParameterSource` with different enum values from `click.core`).
+- `cli/_config.py` — `AnalyzeConfig` (unified dataclass; the single source of truth for option keys/types/defaults shared by CLI and JSON), `load_analyze_config`, `save_analyze_config`, `collect_cli_overrides`. Default config path `~/.local/share/aegis/config.json`; both sources merge as `defaults < config.json < CLI`. Typer 0.26 compatibility: compares `source.name == "COMMANDLINE"` by string rather than by identity (Typer 0.26 bundles `typer._click.core.ParameterSource` with different enum values from `click.core`).
 - `cli/_logging.py` — `configure_logging(severity)` with sensitive-data loguru filter (redacts API key patterns; ported from prototype `SensitiveFilter`).
 - `cli/_formatters.py` — `json_formatter` and `rich_formatter` (root-cause panel, agent dialogue table, mitigation, code diff, HITL warning panel).
 - `cli/commands.py` — `aegis analyze` (full flag set, `--config`/`--save-config` JSON round-trip), `aegis export` (migrate via `load_recent`), `aegis server` (stub), `aegis config show` / `aegis config set`.

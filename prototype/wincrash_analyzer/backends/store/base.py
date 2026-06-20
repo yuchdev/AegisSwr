@@ -1,4 +1,4 @@
-"""Abstract Base Class for storage backends."""
+"""Abstract Base Class for storage backends"""
 from abc import ABC, abstractmethod
 import logging
 

@@ -1,11 +1,11 @@
-# Aegis SWR — Agentic Implementation Plan
+# Aegis SWR - Agentic Implementation Plan
 
 **Purpose:** Each section below is a self-contained agentic execution brief for one implementation phase. Each brief specifies which AI agents to use, what to give them, what they must produce, and how to verify the output before moving on.
 
 **Reference documents:**
-- `docs/specs/PRODUCTION_DESIGN_SPEC.md` — schemas, interfaces, algorithms
-- `docs/specs/IMPLEMENTATION_PLAN.md` — phase deliverables and success criteria
-- `docs/prototype-analysis-specs/` — gap analysis and prototype heuristics
+- `docs/specs/PRODUCTION_DESIGN_SPEC.md` - schemas, interfaces, algorithms
+- `docs/specs/IMPLEMENTATION_PLAN.md` - phase deliverables and success criteria
+- `docs/prototype-analysis-specs/` - gap analysis and prototype heuristics
 
 ---
 
@@ -118,14 +118,14 @@ All must pass before proceeding to Step 2.
 #### Agent: PipelineEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §5` — full pipeline stage definitions, `IncidentBrief` structure
-- `docs/prototype-analysis-specs/TOKEN_WASTE_REPORT.md` — all 6 algorithmic rules for the Data Adapter
-- `docs/prototype-analysis-specs/PROMPT_HEURISTICS.md §4` — all regex patterns for noise removal
+- `PRODUCTION_DESIGN_SPEC.md §5` - full pipeline stage definitions, `IncidentBrief` structure
+- `docs/prototype-analysis-specs/TOKEN_WASTE_REPORT.md` - all 6 algorithmic rules for the Data Adapter
+- `docs/prototype-analysis-specs/PROMPT_HEURISTICS.md §4` - all regex patterns for noise removal
 
 **Instructions:**
-1. Implement `src/aegis_swr/core/data_adapter.py` — `DataAdapter(settings: Settings)` with `async def process(source: IncidentSource, debug_backend: DebugBackend | None) -> IncidentBrief`.
+1. Implement `src/aegis_swr/core/data_adapter.py` - `DataAdapter(settings: Settings)` with `async def process(source: IncidentSource, debug_backend: DebugBackend | None) -> IncidentBrief`.
 2. Implement `_compute_hash()`: SHA-256 in 8192-byte chunks using `hashlib`.
-3. Implement `_detect_format()`: read first 8 bytes; check magic bytes — Windows minidump: `MDMP`; ELF core: `\x7fELF`; Apple crashreport: JSON starting with `{`; default to `WINDOWS_MINIDUMP` on `.dmp` extension.
+3. Implement `_detect_format()`: read first 8 bytes; check magic bytes - Windows minidump: `MDMP`; ELF core: `\x7fELF`; Apple crashreport: JSON starting with `{`; default to `WINDOWS_MINIDUMP` on `.dmp` extension.
 4. Implement `_apply_noise_filter()` using the exact regex patterns from `PROMPT_HEURISTICS.md §4`: DBGHELP strip, fill pattern replace (`0xCCCCCCCC`, `0xDDDDDDDD`, `0xFEEEFEEE`, `0xABABABAB`, `0xBAADF00D` → `<fill>`), DLL list drop (between `*** WARNING:` and `EXCEPTION_ANALYSIS:`), head+tail truncation at 8,000 chars (4,000 / 4,000 split).
 5. Implement `_enforce_assumption_limit()` using `tiktoken` (cl100k_base encoding) to count tokens.
 6. Implement `_assemble_brief()` that constructs the `IncidentBrief` dict matching the JSON structure in spec §5.2.
@@ -138,8 +138,8 @@ All must pass before proceeding to Step 2.
 #### Agent: NLPEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §5.1` — stages 4 (log processing), 5 (OCR), 6 (PII scrubbing)
-- `TOKEN_WASTE_REPORT.md` — Rule 2 (temporal windowing), Rule 3 (noise filter)
+- `PRODUCTION_DESIGN_SPEC.md §5.1` - stages 4 (log processing), 5 (OCR), 6 (PII scrubbing)
+- `TOKEN_WASTE_REPORT.md` - Rule 2 (temporal windowing), Rule 3 (noise filter)
 
 **Instructions:**
 1. Implement `DataAdapter._process_logs()`:
@@ -160,7 +160,7 @@ All must pass before proceeding to Step 2.
    - Run `analyzer.analyze()` then `anonymizer.anonymize()`.
    - Build substitution map `{ "[REDACTED_EMAIL_1]": "user@example.com", ... }`.
    - Return scrubbed text + substitution map.
-   - If Presidio not installed: log warning and return original text + empty map (fail open — never block analysis).
+   - If Presidio not installed: log warning and return original text + empty map (fail open - never block analysis).
 
 **Verification:** Write a test string with known PII; assert all entities are replaced and the substitution map has correct entries.
 
@@ -174,9 +174,9 @@ All must pass before proceeding to Step 2.
 
 **Instructions:**
 1. Create `tests/unit/fixtures/` directory with:
-   - `sample_cdb_output.txt` — realistic 200-line CDB `!analyze -v` output containing DBGHELP noise, DLL list, fill patterns, and an EXCEPTION_ANALYSIS block.
-   - `sample_logs_with_pii.txt` — 50 lines including email addresses, IP addresses, an AWS key pattern, and heartbeat repetitions.
-   - `sample_logs_timestamped.txt` — 200 lines with ISO timestamps spanning 10 minutes; known crash at line 100.
+   - `sample_cdb_output.txt` - realistic 200-line CDB `!analyze -v` output containing DBGHELP noise, DLL list, fill patterns, and an EXCEPTION_ANALYSIS block.
+   - `sample_logs_with_pii.txt` - 50 lines including email addresses, IP addresses, an AWS key pattern, and heartbeat repetitions.
+   - `sample_logs_timestamped.txt` - 200 lines with ISO timestamps spanning 10 minutes; known crash at line 100.
 2. Write `tests/unit/test_data_adapter.py` with these test cases:
    - `test_noise_filter_removes_dbghelp`: assert zero DBGHELP lines in output.
    - `test_noise_filter_replaces_fill_patterns`: assert no `0xCCCCCCCC` in output; `<fill>` present.
@@ -209,12 +209,12 @@ All must pass before proceeding to Step 2.
 #### Agent: AnthropicEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §6.1` — AIAPIBackend interface and implementation notes
+- `PRODUCTION_DESIGN_SPEC.md §6.1` - AIAPIBackend interface and implementation notes
 - Claude API documentation context: `cache_control`, tool use pattern for structured output, `messages.stream()`
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/ai/anthropic_provider.py` — `AnthropicBackend(AIAPIBackend)`.
-2. Constructor: `__init__(self, settings: AISettings)` — creates `anthropic.AsyncAnthropic()` client; sets `model_name = settings.model`.
+1. Implement `src/aegis_swr/backends/ai/anthropic_provider.py` - `AnthropicBackend(AIAPIBackend)`.
+2. Constructor: `__init__(self, settings: AISettings)` - creates `anthropic.AsyncAnthropic()` client; sets `model_name = settings.model`.
 3. Implement `generate()`:
    - Build system message with `cache_control: {"type": "ephemeral"}`.
    - If `output_schema` is not None: define a single tool with `name="structured_output"`, `description="Output the analysis as structured JSON"`, `input_schema=output_schema.model_json_schema()`. Add `tool_choice={"type": "tool", "name": "structured_output"}`.
@@ -225,7 +225,7 @@ All must pass before proceeding to Step 2.
 4. Implement `stream()`: use `async with self._client.messages.stream(...) as stream: async for text in stream.text_stream: yield text`.
 5. Implement `src/aegis_swr/backends/ai/__init__.py` factory.
 
-**Key invariant:** The system prompt block MUST always include `cache_control: {"type": "ephemeral"}`. Never omit it — this is the primary token-cost reduction mechanism (system prompt re-billed at ~10% on cache hits).
+**Key invariant:** The system prompt block MUST always include `cache_control: {"type": "ephemeral"}`. Never omit it - this is the primary token-cost reduction mechanism (system prompt re-billed at ~10% on cache hits).
 
 **Verification:** `mypy src/aegis_swr/backends/ai/anthropic_provider.py` passes.
 
@@ -234,12 +234,12 @@ All must pass before proceeding to Step 2.
 #### Agent: OpenAIEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §6.1` — OpenAI implementation notes
+- `PRODUCTION_DESIGN_SPEC.md §6.1` - OpenAI implementation notes
 - OpenAI structured output documentation context
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/ai/openai_provider.py` — `OpenAIBackend(AIAPIBackend)`.
-2. Constructor: `__init__(self, settings: AISettings)` — creates `openai.AsyncOpenAI()` client.
+1. Implement `src/aegis_swr/backends/ai/openai_provider.py` - `OpenAIBackend(AIAPIBackend)`.
+2. Constructor: `__init__(self, settings: AISettings)` - creates `openai.AsyncOpenAI()` client.
 3. Implement `generate()`:
    - If `output_schema`: use `response_format={"type": "json_schema", "json_schema": {"name": output_schema.__name__, "schema": output_schema.model_json_schema(), "strict": True}}`.
    - Parse response JSON and validate with Pydantic. Same retry logic as Anthropic.
@@ -272,9 +272,9 @@ All must pass before proceeding to Step 2.
 
 | Agent Role             | Responsibility                                                                   |
 |------------------------|----------------------------------------------------------------------------------|
-| `WindowsDebugEngineer` | `cdb_worker.py` — full CDB implementation with all regex parsers                 |
-| `WinDbgJSEngineer`     | `windbg_js_worker.py` + `assets/windbg_diagnostic.js` — WinDbg JS engine backend |
-| `LinuxDebugEngineer`   | `gdb_worker.py` and `lldb_worker.py` — Linux/macOS stubs                         |
+| `WindowsDebugEngineer` | `cdb_worker.py` - full CDB implementation with all regex parsers                 |
+| `WinDbgJSEngineer`     | `windbg_js_worker.py` + `assets/windbg_diagnostic.js` - WinDbg JS engine backend |
+| `LinuxDebugEngineer`   | `gdb_worker.py` and `lldb_worker.py` - Linux/macOS stubs                         |
 | `DebugTestEngineer`    | Unit tests with fixture subprocess output for all backends                       |
 
 ### Agentic Execution Brief
@@ -282,19 +282,19 @@ All must pass before proceeding to Step 2.
 #### Agent: WindowsDebugEngineer
 
 **Inputs provided:**
-- `docs/prototype-analysis-specs/WIN_DEPENDENCIES.md` — full CDB command sequence and all regex patterns
-- `docs/prototype-analysis-specs/PROMPT_HEURISTICS.md §4` — extraction regexes
-- `PRODUCTION_DESIGN_SPEC.md §6.2` — DebugBackend interface
+- `docs/prototype-analysis-specs/WIN_DEPENDENCIES.md` - full CDB command sequence and all regex patterns
+- `docs/prototype-analysis-specs/PROMPT_HEURISTICS.md §4` - extraction regexes
+- `PRODUCTION_DESIGN_SPEC.md §6.2` - DebugBackend interface
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/debug/cdb_worker.py` — `CdbBackend(DebugBackend)`.
+1. Implement `src/aegis_swr/backends/debug/cdb_worker.py` - `CdbBackend(DebugBackend)`.
 2. Port all regex extractors from prototype's `cdb.py` exactly as documented in `WIN_DEPENDENCIES.md §8` and `PROMPT_HEURISTICS.md §4`. Extractors must produce structured fields: `exception_code_raw`, `exception_address`, `faulting_module`, `faulting_function`, debug timestamp.
 3. Implement `_parse_stack_frames(text: str) -> list[StackFrame]`: parse numbered frame lines in CDB bt output. Handle both resolved (`module!function+offset`) and unresolved (`module+offset`) formats.
 4. Compute `symbol_resolution_score = len([f for f in frames if f.function is not None]) / max(len(frames), 1)`.
-5. Apply noise filter to `raw_text_excerpt` using `DataAdapter._apply_noise_filter()` logic (duplicated or imported — prefer importing from `core/data_adapter.py` as a standalone function).
+5. Apply noise filter to `raw_text_excerpt` using `DataAdapter._apply_noise_filter()` logic (duplicated or imported - prefer importing from `core/data_adapter.py` as a standalone function).
 6. Implement `_symbol_path_string(symbol_path: Path) -> str`: builds `srv*{cache}*https://msdl.microsoft.com/download/symbols;{local_path}` format.
 7. RAII: use `subprocess.run()` inside a `try/finally` block; never leave subprocess open on exception.
-8. Implement `src/aegis_swr/backends/debug/_symbol_path.py` — `resolve_symbol_path()` with platform defaults.
+8. Implement `src/aegis_swr/backends/debug/_symbol_path.py` - `resolve_symbol_path()` with platform defaults.
 
 **Verification:** mypy passes.
 
@@ -303,30 +303,30 @@ All must pass before proceeding to Step 2.
 #### Agent: WinDbgJSEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §6.2.2` — full WinDbg JS backend specification (architecture, bridge design, JS asset, JSON→result mapping, prototype-defect table)
-- `prototype/wincrash_analyzer/backends/debug/js_provider.py` — prototype implementation to supersede
-- `prototype/wincrash_analyzer/core/windbg_server.py` — prototype HTTP bridge to supersede
-- `docs/prototype-analysis-specs/WIN_DEPENDENCIES.md §4, §5, §7` — COM dependency, DDM query API, bridge TCP notes
+- `PRODUCTION_DESIGN_SPEC.md §6.2.2` - full WinDbg JS backend specification (architecture, bridge design, JS asset, JSON→result mapping, prototype-defect table)
+- `prototype/wincrash_analyzer/backends/debug/js_provider.py` - prototype implementation to supersede
+- `prototype/wincrash_analyzer/core/windbg_server.py` - prototype HTTP bridge to supersede
+- `docs/prototype-analysis-specs/WIN_DEPENDENCIES.md §4, §5, §7` - COM dependency, DDM query API, bridge TCP notes
 - All previously implemented debug backend code (`_base.py`, `cdb_worker.py`, `_symbol_path.py`) for import style and conventions
 
 **Instructions:**
 
-**Part 1 — `backends/debug/assets/windbg_diagnostic.js`:**
+**Part 1 - `backends/debug/assets/windbg_diagnostic.js`:**
 
 1. Create directory `src/aegis_swr/backends/debug/assets/`.
 2. Write the JS file exactly as specified in PRODUCTION_DESIGN_SPEC.md §6.2.2 ("Production JS Diagnostic Script"). Do not embed it in Python code.
 3. Use exactly three substitution tokens: `__CALLBACK_URL__`, `__MAX_FAULTING_FRAMES__`, `__MAX_OTHER_FRAMES__`. No others.
 4. Script structure must be: `initializeScript()` export (DDM API version declaration), then an IIFE that queries the DDM and POSTs JSON via `ActiveXObject("MSXML2.XMLHTTP")`.
-5. All DDM accesses must be wrapped in `try/catch` — the DDM is not guaranteed to expose every field for every dump type; a missing attribute must not abort the script and must not prevent the callback POST from firing.
+5. All DDM accesses must be wrapped in `try/catch` - the DDM is not guaranteed to expose every field for every dump type; a missing attribute must not abort the script and must not prevent the callback POST from firing.
 
-**Part 2 — `backends/debug/windbg_js_worker.py`:**
+**Part 2 - `backends/debug/windbg_js_worker.py`:**
 
 1. Implement `_make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]`:
    - Returns a class whose `do_POST` reads `Content-Length` bytes, enqueues the raw body string, responds 200. Suppresses HTTP access logs via a no-op `log_message`.
-   - Uses a **closure** over `data_queue` — NOT a class-level attribute. This eliminates the prototype's race condition.
+   - Uses a **closure** over `data_queue` - NOT a class-level attribute. This eliminates the prototype's race condition.
 
 2. Implement `class _CallbackBridge` as a RAII context manager:
-   - `__init__(self, callback_timeout: int)` — stores timeout, initialises `self.port = 0`.
+   - `__init__(self, callback_timeout: int)` - stores timeout, initialises `self.port = 0`.
    - `__enter__`: creates `self._queue: queue.Queue[str] = queue.Queue()`, calls `_make_handler(self._queue)`, binds `HTTPServer(("127.0.0.1", 0), handler)`, reads `httpd.server_address[1]` → `self.port`, starts daemon thread.
    - `__exit__`: `httpd.shutdown(); httpd.server_close()`.
    - `wait_for_payload(self) -> str`: `self._queue.get(timeout=self._timeout)`; on `queue.Empty` raise `DebugExtractionError("Timed out waiting for WinDbg JS callback")`.
@@ -340,25 +340,25 @@ All must pass before proceeding to Step 2.
    - Override `extract()` from the base: orchestrates the bridge + temp file lifecycle using `contextlib.ExitStack` for RAII. Sequence: (a) start bridge, (b) write temp JS, (c) run subprocess, (d) validate JsProvider loaded, (e) wait for payload, (f) parse, (g) cleanup all resources in reverse order.
    - `_parse(self, raw_json: str, source) -> DebugExtractionResult`: parse JSON from the bridge payload. Map fields per spec §6.2.2 table. Use `map_windows_ntstatus` for `ExceptionCode`. Build `StackFrame` list from `FaultingThread.Frames`. `raw_text_excerpt = apply_noise_filter(raw_json[:8000])`.
 
-4. **`_build_command_sequence` must not write any temp file itself** — file lifecycle belongs in `extract()` with RAII. `_build_command_sequence` receives `tmp_js_path` as a parameter (override the signature: `_build_command_sequence(self, source, symbol_path, tmp_js_path="")` with a default to satisfy the ABC).
+4. **`_build_command_sequence` must not write any temp file itself** - file lifecycle belongs in `extract()` with RAII. `_build_command_sequence` receives `tmp_js_path` as a parameter (override the signature: `_build_command_sequence(self, source, symbol_path, tmp_js_path="")` with a default to satisfy the ABC).
 
 5. **No `shell=True` anywhere.** All subprocess invocations use list-form argv.
 
-**Part 3 — Factory update (`backends/debug/__init__.py`):**
+**Part 3 - Factory update (`backends/debug/__init__.py`):**
 
 1. Add `WinDbgJSBackend` to imports and `__all__`.
-2. Add `_windbg_js_available() -> bool` — probes for `JsProvider.dll` by running `cdb.exe -version` and checking if `JsProvider` appears in stdout. Catches `FileNotFoundError` → `False`. Caches result via `functools.lru_cache(maxsize=1)` so the probe only runs once per process.
-3. Update `create_debug_backend` for Windows per spec §6.2.2 ("Factory Update") — `engine="auto"` → try `WinDbgJSBackend` if available, else `CdbBackend`; `engine="windbg_js"` → always `WinDbgJSBackend`; `engine="cdb"` → always `CdbBackend`.
+2. Add `_windbg_js_available() -> bool` - probes for `JsProvider.dll` by running `cdb.exe -version` and checking if `JsProvider` appears in stdout. Catches `FileNotFoundError` → `False`. Caches result via `functools.lru_cache(maxsize=1)` so the probe only runs once per process.
+3. Update `create_debug_backend` for Windows per spec §6.2.2 ("Factory Update") - `engine="auto"` → try `WinDbgJSBackend` if available, else `CdbBackend`; `engine="windbg_js"` → always `WinDbgJSBackend`; `engine="cdb"` → always `CdbBackend`.
 
-**Part 4 — Config + Settings:**
+**Part 4 - Config + Settings:**
 
 1. Add to `config.yaml` under `backends.debug`: `engine: "auto"`, `callback_timeout_seconds: 60`, `max_faulting_frames: 20`, `max_other_thread_frames: 3`.
 2. Add these four fields to `DebugSettings` in `config/settings.py` with matching defaults.
 
 **Invariants (must hold):**
-- `_CallbackBridge` never uses a module-level or class-level queue — each `with _CallbackBridge(...)` block gets its own `queue.Queue` instance.
+- `_CallbackBridge` never uses a module-level or class-level queue - each `with _CallbackBridge(...)` block gets its own `queue.Queue` instance.
 - The temp JS file is always deleted, even if `subprocess.run` raises. Use `try/finally` or `contextlib.ExitStack`.
-- `_windbg_js_available()` never raises — it returns `False` on any failure.
+- `_windbg_js_available()` never raises - it returns `False` on any failure.
 - The JS asset is read from disk at extraction time, not at import time, so it can be patched in tests without reloading the module.
 
 **Verification:**
@@ -374,12 +374,12 @@ All must pass before proceeding to Step 2.
 - `PRODUCTION_DESIGN_SPEC.md §6.2`
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/debug/gdb_worker.py` — `GdbBackend(DebugBackend)`:
+1. Implement `src/aegis_swr/backends/debug/gdb_worker.py` - `GdbBackend(DebugBackend)`:
    - `SUPPORTED_PLATFORMS = ["Linux"]`
    - Command: `["gdb", "--batch", "--quiet", "-ex", f"core-file {dump_path}", "-ex", "bt 20", "-ex", "info registers rip rsp rbp", "-ex", "quit"]`
    - Parse GDB `bt` output: frame lines match `#N  0x... in function (args) at file:line`.
    - Map POSIX signals to `FaultClass` using `fault_codes.map_linux_signal()`.
-2. Implement `src/aegis_swr/backends/debug/lldb_worker.py` — `LldbBackend(DebugBackend)`:
+2. Implement `src/aegis_swr/backends/debug/lldb_worker.py` - `LldbBackend(DebugBackend)`:
    - `SUPPORTED_PLATFORMS = ["Darwin"]`
    - Command: `["lldb", "--batch", "-c", str(dump_path), "-o", "bt all", "-o", "register read pc sp", "-o", "quit"]`
    - Parse LLDB bt output: frame lines match `frame #N: 0x... module\`function at file:line`.
@@ -397,9 +397,9 @@ All must pass before proceeding to Step 2.
 **Existing tests (already implemented, verify still pass):**
 CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol score, noise filter, factory platform selection (win32/linux/darwin/unsupported).
 
-**New tests for `WinDbgJSBackend` — add to `tests/unit/test_debug_backends.py`:**
+**New tests for `WinDbgJSBackend` - add to `tests/unit/test_debug_backends.py`:**
 
-1. Create `tests/unit/fixtures/sample_windbg_js_payload.json` — a realistic DDM JSON payload with:
+1. Create `tests/unit/fixtures/sample_windbg_js_payload.json` - a realistic DDM JSON payload with:
    - `ExceptionCode: "0xc0000005"`, `ExceptionAddress: "0x00007ff8016a1c3f"`, `FaultingModule: "db_writer"`
    - `FaultingThread.Frames`: 5 frames, 4 with non-empty `Function`, 1 with empty `Function`
    - `AllThreadsSummary`: 2 additional threads, each with 2-3 summarized frames
@@ -420,7 +420,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 3. Write the following bridge-unit tests (no subprocess involved):
 
-   - `test_callback_bridge_assigns_ephemeral_port`: `with _CallbackBridge(timeout=5) as b:` asserts `b.port > 0`. (Does start a real local socket — short-lived.)
+   - `test_callback_bridge_assigns_ephemeral_port`: `with _CallbackBridge(timeout=5) as b:` asserts `b.port > 0`. (Does start a real local socket - short-lived.)
    
    - `test_callback_bridge_per_instance_queue_isolation`: open two bridges simultaneously; POST to each port independently; `wait_for_payload()` on each return only the payload sent to that specific port.
 
@@ -441,9 +441,9 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 | Agent Role             | Responsibility                                                                                       |
 |------------------------|------------------------------------------------------------------------------------------------------|
-| `ConsensusEngineer`    | `core/consensus.py` — weighted CS formula + convergence logic                                        |
+| `ConsensusEngineer`    | `core/consensus.py` - weighted CS formula + convergence logic                                        |
 | `AgentPersonaEngineer` | All four agent implementations (`os_kernel.py`, `code_analyst.py`, `log_historian.py`, `skeptic.py`) |
-| `OrchestratorEngineer` | `core/orchestrator.py` — LangGraph state graph wiring                                                |
+| `OrchestratorEngineer` | `core/orchestrator.py` - LangGraph state graph wiring                                                |
 | `MASTestEngineer`      | Unit tests with mock AI backends                                                                     |
 
 ### Agentic Execution Brief
@@ -451,10 +451,10 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 #### Agent: ConsensusEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §7.2` — CS formula, weight matrix, termination conditions
+- `PRODUCTION_DESIGN_SPEC.md §7.2` - CS formula, weight matrix, termination conditions
 
 **Instructions:**
-1. Implement `src/aegis_swr/core/consensus.py` — `ConsensusEvaluator(settings: AgentWeightsSettings)`.
+1. Implement `src/aegis_swr/core/consensus.py` - `ConsensusEvaluator(settings: AgentWeightsSettings)`.
 2. Implement `calculate(agent_scores: dict[str, float], fault_class: FaultClass) -> float`: apply weight matrix lookup; compute weighted sum; normalize; return CS in [0.0, 1.0].
 3. Implement `is_converged(current_score: float, previous_score: float | None, threshold: float, same_hypothesis: bool) -> bool`: True only if `current_score >= threshold` AND `same_hypothesis` is True (the primary hypothesis identity hasn't changed since last round).
 4. Implement `is_deadlocked(score: float, round_num: int, max_rounds: int, hitl_threshold: float) -> bool`.
@@ -469,24 +469,24 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 #### Agent: AgentPersonaEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §7.3` — all four agent persona definitions, system prompts, output schemas
-- `PROMPT_HEURISTICS.md` — all extracted heuristics to incorporate into system prompts
-- `GAP_ANALYSIS.md §Gap 1, §Gap 6` — Skeptic agent assertion requirements
+- `PRODUCTION_DESIGN_SPEC.md §7.3` - all four agent persona definitions, system prompts, output schemas
+- `PROMPT_HEURISTICS.md` - all extracted heuristics to incorporate into system prompts
+- `GAP_ANALYSIS.md §Gap 1, §Gap 6` - Skeptic agent assertion requirements
 
 **Instructions:**
-1. Implement `src/aegis_swr/agents/os_kernel.py` — `OSKernelAgent(BaseAgent)`:
+1. Implement `src/aegis_swr/agents/os_kernel.py` - `OSKernelAgent(BaseAgent)`:
    - System prompt verbatim from spec §7.3 OS Kernel section.
    - Incorporate heuristic from `PROMPT_HEURISTICS.md §1`: exception code to fault type mapping as few-shot examples in the system prompt.
    - `run()`: build message context from `incident_brief`; prepend low-symbol-coverage warning if `symbol_resolution_score < 0.50`; call `ai_backend.generate(output_schema=OSKernelOutput)`; return `AgentTurn`.
-2. Implement `src/aegis_swr/agents/code_analyst.py` — `CodeAnalystAgent(BaseAgent)`:
+2. Implement `src/aegis_swr/agents/code_analyst.py` - `CodeAnalystAgent(BaseAgent)`:
    - Include `user_assumption` as a labeled block in the user message (not in system prompt).
    - Include `OSKernelOutput` from the previous turn.
    - System prompt incorporates structured output format from `PROMPT_HEURISTICS.md §2`.
-3. Implement `src/aegis_swr/agents/log_historian.py` — `LogHistorianAgent(BaseAgent)`:
+3. Implement `src/aegis_swr/agents/log_historian.py` - `LogHistorianAgent(BaseAgent)`:
    - `run()` accepts `vector_store: VectorStore | None` as an additional parameter.
    - Applies conditional injection rule from spec §5.3.
    - If no history available (first incident): returns a no-op `AgentTurn` with `confidence_score = 0.0` adjustment.
-4. Implement `src/aegis_swr/agents/skeptic.py` — `SkepticAgent(BaseAgent)`:
+4. Implement `src/aegis_swr/agents/skeptic.py` - `SkepticAgent(BaseAgent)`:
    - Runs three programmatic pre-checks BEFORE calling the LLM (spec §7.3 Skeptic section). If any check fails deterministically: set `confirmed=False` immediately without an LLM call.
    - Only calls LLM if pre-checks pass.
    - Output schema: `SkepticVerdict`.
@@ -498,11 +498,11 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 #### Agent: OrchestratorEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §7.1` — full LangGraph state graph definition with node names and conditional edges
+- `PRODUCTION_DESIGN_SPEC.md §7.1` - full LangGraph state graph definition with node names and conditional edges
 - LangGraph v0.2 API: `StateGraph`, `add_node`, `add_edge`, `add_conditional_edges`, `compile`
 
 **Instructions:**
-1. Implement `src/aegis_swr/core/orchestrator.py` — `Orchestrator(settings: Settings, ...)`.
+1. Implement `src/aegis_swr/core/orchestrator.py` - `Orchestrator(settings: Settings, ...)`.
 2. Constructor accepts all backends: `ai_backend, debug_backend, relational_store, object_store, vector_store, log_backend, code_backend`.
 3. Build `StateGraph(InvestigationState)`:
    - Node `data_adapter_node`: calls `DataAdapter.process()` and updates `state["incident_brief"]`.
@@ -518,7 +518,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
    - Otherwise → `os_kernel_node` (next round; increment `round_number`)
 5. Compile: `self._graph = builder.compile()`.
 6. Implement `async def run(source: IncidentSource) -> RCAReport`:
-   - Check `relational_store.find_by_hash(source.dump_hash)` first — return cached report if exists.
+   - Check `relational_store.find_by_hash(source.dump_hash)` first - return cached report if exists.
    - Initialize `InvestigationState` with `incident_id`, empty history, `round_number=1`.
    - `await self._graph.ainvoke(initial_state)` → extract final `RCAReport`.
 7. Implement `async def run_streaming(source: IncidentSource) -> AsyncGenerator[dict, None]`:
@@ -536,7 +536,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 - All MAS components implemented above
 
 **Instructions:**
-1. Create `tests/unit/fixtures/mock_ai_backend.py` — `MockAIBackend(AIAPIBackend)` that accepts a list of pre-scripted responses per call index. Rotates through them. Tracks call count.
+1. Create `tests/unit/fixtures/mock_ai_backend.py` - `MockAIBackend(AIAPIBackend)` that accepts a list of pre-scripted responses per call index. Rotates through them. Tracks call count.
 2. Write `tests/unit/test_orchestrator.py`:
    - `test_full_pipeline_converges`: mock agents return `confidence=0.90` → completes in ≤2 rounds with `is_converged=True`.
    - `test_skeptic_rejection_triggers_next_round`: Skeptic returns `confirmed=False` in round 1 → round 2 starts; `discussion_history` has OS Kernel entry in round 2.
@@ -558,10 +558,10 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 | Agent Role            | Responsibility                                              |
 |-----------------------|-------------------------------------------------------------|
-| `FilesystemEngineer`  | `filesystem_store.py` — JSON files + binary objects on disk |
-| `SQLiteEngineer`      | `sqlite_store.py` — SQLite database                         |
-| `S3Engineer`          | `s3_store.py` — S3/MinIO reports and raw objects            |
-| `StubEngineer`        | `postgres_store.py` — NotImplementedError stub              |
+| `FilesystemEngineer`  | `filesystem_store.py` - JSON files + binary objects on disk |
+| `SQLiteEngineer`      | `sqlite_store.py` - SQLite database                         |
+| `S3Engineer`          | `s3_store.py` - S3/MinIO reports and raw objects            |
+| `StubEngineer`        | `postgres_store.py` - NotImplementedError stub              |
 | `StorageTestEngineer` | Unit tests for all four backends + factory                  |
 
 ### Agentic Execution Brief
@@ -569,13 +569,13 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 #### Agent: FilesystemEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §8.1` — filesystem layout and hash-index design
-- `prototype/wincrash_analyzer/backends/store/filesystem.py` — reference implementation
-- `backends/base.py` — `RelationalStore` and `ObjectStore` ABC signatures
+- `PRODUCTION_DESIGN_SPEC.md §8.1` - filesystem layout and hash-index design
+- `prototype/wincrash_analyzer/backends/store/filesystem.py` - reference implementation
+- `backends/base.py` - `RelationalStore` and `ObjectStore` ABC signatures
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/storage/filesystem_store.py` — `FilesystemStore(RelationalStore, ObjectStore)`.
-2. Constructor: `__init__(self, settings: StorageSettings)` — resolve `reports_dir` and `objects_dir` from settings using `pathlib.Path(x).expanduser().resolve()`.
+1. Implement `src/aegis_swr/backends/storage/filesystem_store.py` - `FilesystemStore(RelationalStore, ObjectStore)`.
+2. Constructor: `__init__(self, settings: StorageSettings)` - resolve `reports_dir` and `objects_dir` from settings using `pathlib.Path(x).expanduser().resolve()`.
 3. Path-traversal guard helper `_safe_path(base: Path, *parts: str) -> Path`: resolves the joined path, asserts it starts with `base`, raises `ValueError` otherwise.
 4. **`RelationalStore` methods** (all wrapped in `asyncio.to_thread`):
    - `save_report(report)`: mkdir reports_dir; write `{reports_dir}/{incident_id}.json`; if `dump_hash`: write `{reports_dir}/_hash_index/{dump_hash}` with content = incident_id string.
@@ -595,11 +595,11 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 #### Agent: SQLiteEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §8.2` — SQLite schema
-- `prototype/wincrash_analyzer/backends/store/sqlite.py` — reference implementation
+- `PRODUCTION_DESIGN_SPEC.md §8.2` - SQLite schema
+- `prototype/wincrash_analyzer/backends/store/sqlite.py` - reference implementation
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/storage/sqlite_store.py` — `SQLiteStore(RelationalStore)`.
+1. Implement `src/aegis_swr/backends/storage/sqlite_store.py` - `SQLiteStore(RelationalStore)`.
 2. Constructor: resolve `db_path` with `pathlib.Path(settings.db_path).expanduser()`. Call `_init_db()` synchronously in `__init__`.
 3. `_init_db()`: `sqlite3.connect(db_path)` → execute `CREATE TABLE IF NOT EXISTS reports (...)` and `CREATE UNIQUE INDEX IF NOT EXISTS ...` per spec §8.2.
 4. Helper `_connect(self) -> sqlite3.Connection`: returns `sqlite3.connect(str(self._db_path), timeout=30)`. Used in each operation (new connection per call for thread-safety).
@@ -616,12 +616,12 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 #### Agent: S3Engineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §8.3` — S3 key layout, MinIO support, find_by_hash algorithm
+- `PRODUCTION_DESIGN_SPEC.md §8.3` - S3 key layout, MinIO support, find_by_hash algorithm
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/storage/s3_store.py` — `S3Store(RelationalStore, ObjectStore)`.
+1. Implement `src/aegis_swr/backends/storage/s3_store.py` - `S3Store(RelationalStore, ObjectStore)`.
 2. Constructor: parse bucket from `settings.object_store_url` (strip `s3://` prefix). Create `self._client = boto3.client("s3", region_name=..., endpoint_url=settings.s3_endpoint_url or None)`. Store as `Any`.
-3. Helper `_run(fn)`: `await asyncio.to_thread(fn)` — wraps any sync boto3 lambda.
+3. Helper `_run(fn)`: `await asyncio.to_thread(fn)` - wraps any sync boto3 lambda.
 4. Helper `_put_text(key, text)` and `_get_text(key) -> str | None`: `_get_text` returns `None` on `ClientError` with code `"NoSuchKey"`.
 5. **`RelationalStore` methods**:
    - `save_report(report)`: `_put_text(f"reports/{incident_id}.json", report.model_dump_json())`; if dump_hash: `_put_text(f"hash-index/{dump_hash}", str(incident_id))`.
@@ -639,11 +639,11 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 #### Agent: StubEngineer
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/storage/postgres_store.py` — `PostgresStore(RelationalStore)`.
-2. Constructor: `__init__(self, settings: StorageSettings)` — store settings, log a warning that this is a stub.
+1. Implement `src/aegis_swr/backends/storage/postgres_store.py` - `PostgresStore(RelationalStore)`.
+2. Constructor: `__init__(self, settings: StorageSettings)` - store settings, log a warning that this is a stub.
 3. All four methods raise `NotImplementedError("PostgresStore is a stub. Implement with SQLAlchemy async in a future phase.")`.
 4. Update `backends/storage/__init__.py` with the `create_storage_backends` factory from spec §8.6. Add `StorageSettings.provider` validator.
-5. Extend `StorageSettings` in `config/settings.py` with: `provider: str = "filesystem"`, `reports_dir: str = "~/.aegis-swr/reports"`, `objects_dir: str = "~/.aegis-swr/objects"`, `db_path: str = "~/.aegis-swr/reports.db"`, `s3_endpoint_url: str | None = None`.
+5. Extend `StorageSettings` in `config/settings.py` with: `provider: str = "filesystem"`, `reports_dir: str = str(CONFIG_DIR / "reports")`, `objects_dir: str = str(CONFIG_DIR / "objects")`, `db_path: str = str(CONFIG_DIR / "db" / "reports.db")`, `s3_endpoint_url: str | None = None`. (`CONFIG_DIR = Path("~/.aegis-swr").expanduser()` is the only hardcoded literal.)
 6. Update `config.yaml` with the new storage keys.
 
 ---
@@ -653,7 +653,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 **Instructions:**
 1. Write `tests/unit/test_storage_backends.py`. All tests run without any external service.
 2. **FilesystemStore** (in `tmp_path`): `test_filesystem_save_get_roundtrip`, `test_filesystem_find_by_hash`, `test_filesystem_find_by_hash_unknown`, `test_filesystem_update_hitl_response`, `test_filesystem_upload_raw_get_raw`, `test_filesystem_path_traversal_blocked`.
-3. **SQLiteStore** (`:memory:` db): same six operations as filesystem. Use `SQLiteStore` with `db_path=":memory:"`. Note: `:memory:` creates a new DB per connection — create the store and call all operations within the same `asyncio.to_thread` call, OR use a real temp-file DB (recommended: `tmp_path / "test.db"`).
+3. **SQLiteStore** (`:memory:` db): same six operations as filesystem. Use `SQLiteStore` with `db_path=":memory:"`. Note: `:memory:` creates a new DB per connection - create the store and call all operations within the same `asyncio.to_thread` call, OR use a real temp-file DB (recommended: `tmp_path / "test.db"`).
 4. **S3Store** (mocked `boto3.client`): patch `boto3.client` to return a `MagicMock`; configure mock return values for `put_object`, `get_object`, `delete_object`; test all six operations.
 5. **PostgresStore**: each of the four methods raises `NotImplementedError`.
 6. **Factory**: `provider="filesystem"` → `(FilesystemStore, FilesystemStore)`; `provider="sqlite"` → `(SQLiteStore, None)`; `provider="s3"` → `(S3Store, S3Store)`; `provider="postgres"` → `(PostgresStore, None)`; unknown provider raises `ValueError`.
@@ -667,16 +667,16 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 Implements the `CodeBackend` family (`PRODUCTION_DESIGN_SPEC.md §6.5`) consumed by
 Data Adapter Stage 8. Three adapters: a real Git backend, a no-VCS filesystem
 fallback, and a Windows PDB Source Server adapter that gives the **exact** build
-revision rather than a time-window approximation. All are optional — when
+revision rather than a time-window approximation. All are optional - when
 `enabled=false` the factory returns `None` and Stage 8 is skipped.
 
 ### Agent Matrix
 
 | Agent Role               | Responsibility                                                                                   |
 |--------------------------|--------------------------------------------------------------------------------------------------|
-| `GitCodeEngineer`        | `code/git_adapter.py` — `git log`/`show`/`blame` via subprocess                                  |
-| `FilesystemCodeEngineer` | `code/filesystem_adapter.py` — directory walk, no VCS                                            |
-| `PdbCodeEngineer`        | `code/pdb_adapter.py` — Windows PDB SrcSrv stream → exact build revision (Windows-only)         |
+| `GitCodeEngineer`        | `code/git_adapter.py` - `git log`/`show`/`blame` via subprocess                                  |
+| `FilesystemCodeEngineer` | `code/filesystem_adapter.py` - directory walk, no VCS                                            |
+| `PdbCodeEngineer`        | `code/pdb_adapter.py` - Windows PDB SrcSrv stream → exact build revision (Windows-only)         |
 | `CodeFactoryEngineer`    | `code/__init__.py` factory, `CodeBackendSettings`, `config.yaml`, `CodeBackendError`             |
 | `CodeTestEngineer`       | `tests/unit/test_code_backends.py`                                                               |
 
@@ -685,21 +685,21 @@ revision rather than a time-window approximation. All are optional — when
 #### Agent: GitCodeEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §6.5` + §6.5.1 — `CodeBackend` ABC and Git command design
-- `PRODUCTION_DESIGN_SPEC.md §4.7` — `CommitRecord` / `BlameRecord` schemas
-- `prototype/` has no code backend — this is a net-new component
+- `PRODUCTION_DESIGN_SPEC.md §6.5` + §6.5.1 - `CodeBackend` ABC and Git command design
+- `PRODUCTION_DESIGN_SPEC.md §4.7` - `CommitRecord` / `BlameRecord` schemas
+- `prototype/` has no code backend - this is a net-new component
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/code/git_adapter.py` — `GitCodeAdapter(CodeBackend)`.
-2. Constructor `__init__(self, settings: CodeSettings)` — store settings; resolve `repo_path` with `pathlib.Path(...).expanduser()` lazily per call (the ABC takes `repo_path` per method, so the per-call value wins; settings supply `window_hours`, `commit_limit`, `git_timeout_seconds` defaults).
-3. Helper `_git(self, repo_path: Path, *args: str) -> str` — `subprocess.run(["git", *args], cwd=str(repo_path), capture_output=True, text=True, timeout=settings.git_timeout_seconds)`. **List-form argv, never `shell=True`.** `FileNotFoundError` (no git binary) → `CodeBackendError`. Non-zero exit → `CodeBackendError` with stderr.
-4. Helper `_assert_repo(repo_path)` — raise `CodeBackendError` if `repo_path / ".git"` is absent.
+1. Implement `src/aegis_swr/backends/code/git_adapter.py` - `GitCodeAdapter(CodeBackend)`.
+2. Constructor `__init__(self, settings: CodeSettings)` - store settings; resolve `repo_path` with `pathlib.Path(...).expanduser()` lazily per call (the ABC takes `repo_path` per method, so the per-call value wins; settings supply `window_hours`, `commit_limit`, `git_timeout_seconds` defaults).
+3. Helper `_git(self, repo_path: Path, *args: str) -> str` - `subprocess.run(["git", *args], cwd=str(repo_path), capture_output=True, text=True, timeout=settings.git_timeout_seconds)`. **List-form argv, never `shell=True`.** `FileNotFoundError` (no git binary) → `CodeBackendError`. Non-zero exit → `CodeBackendError` with stderr.
+4. Helper `_assert_repo(repo_path)` - raise `CodeBackendError` if `repo_path / ".git"` is absent.
 5. `get_commits_before(repo_path, before, window_hours=2, limit=10)`: run `git log` with `--since`/`--until` from the window, `--max-count={limit}`, `--date=iso-strict`, `--name-only`, and a `\x1f`/`\x1e`-delimited `--pretty=format`. Parse into `CommitRecord`s (newest first). `changed_files` from the trailing path lines.
 6. `get_file_diff(repo_path, file_path, commit_sha)`: `git show {sha} -- {file_path}`; return the diff text; unknown sha/path → `""`.
 7. `blame(repo_path, file_path, line_range)`: `git blame -L {start},{end} --line-porcelain -- {file_path}`; parse porcelain blocks → `BlameRecord`s.
-8. Path-safety helper `_safe_rel(repo_path, file_path)` — resolve and assert the path stays within `repo_path`; traversal → `ValueError`.
+8. Path-safety helper `_safe_rel(repo_path, file_path)` - resolve and assert the path stays within `repo_path`; traversal → `ValueError`.
 
-**Invariants:** list-form argv only; no `shell=True`; every method tolerant of empty output. The Data Adapter (Stage 8) is responsible for catching `CodeBackendError` and degrading — this backend raises, it does not swallow.
+**Invariants:** list-form argv only; no `shell=True`; every method tolerant of empty output. The Data Adapter (Stage 8) is responsible for catching `CodeBackendError` and degrading - this backend raises, it does not swallow.
 
 **Verification:** mypy passes.
 
@@ -708,15 +708,15 @@ revision rather than a time-window approximation. All are optional — when
 #### Agent: FilesystemCodeEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §6.5.2` — no-VCS degradation rules
-- `PRODUCTION_DESIGN_SPEC.md §4.7` — record schemas
+- `PRODUCTION_DESIGN_SPEC.md §6.5.2` - no-VCS degradation rules
+- `PRODUCTION_DESIGN_SPEC.md §4.7` - record schemas
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/code/filesystem_adapter.py` — `FilesystemCodeAdapter(CodeBackend)`.
+1. Implement `src/aegis_swr/backends/code/filesystem_adapter.py` - `FilesystemCodeAdapter(CodeBackend)`.
 2. `get_commits_before(repo_path, before, window_hours=2, limit=10)`: walk `repo_path` with `os.walk`, pruning `.git`, `node_modules`, and dot-directories. For each file whose mtime (UTC) is within `[before − window_hours, before]`, build a `CommitRecord` with `sha="fs:"+sha1(relpath).hexdigest()[:12]`, `author="unknown"`, `authored_at=mtime`, `message="filesystem mtime"`, `changed_files=[relpath]`. Sort newest-mtime first; cap to `limit`.
 3. `get_file_diff(repo_path, file_path, commit_sha)`: read current file contents (UTF-8, errors="replace"); return them prefixed with `"--- (no VCS history)\n"`. Missing file → `""`.
 4. `blame(repo_path, file_path, line_range)`: read the file; for each line in `line_range` emit a `BlameRecord(line_number, sha="fs:"+…, author="unknown", authored_at=None, line_content=line)`.
-5. Reuse the same `_safe_rel` traversal guard as `GitCodeAdapter` (factor it into a small shared `_paths.py` helper or duplicate — keep it dependency-free).
+5. Reuse the same `_safe_rel` traversal guard as `GitCodeAdapter` (factor it into a small shared `_paths.py` helper or duplicate - keep it dependency-free).
 
 **Invariants:** never raise on a *missing* file (return empty); only raise `ValueError` on path traversal. Pure stdlib (`os`, `hashlib`, `pathlib`, `datetime`).
 
@@ -727,13 +727,13 @@ revision rather than a time-window approximation. All are optional — when
 #### Agent: PdbCodeEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §6.5.4` — full PdbCodeAdapter design
-- `PRODUCTION_DESIGN_SPEC.md §4.7` — `CommitRecord` / `BlameRecord` schemas
-- As-built `GitCodeAdapter` in `code/git_adapter.py` — reuse its `blame()` parser for the git-fallback blame path
+- `PRODUCTION_DESIGN_SPEC.md §6.5.4` - full PdbCodeAdapter design
+- `PRODUCTION_DESIGN_SPEC.md §4.7` - `CommitRecord` / `BlameRecord` schemas
+- As-built `GitCodeAdapter` in `code/git_adapter.py` - reuse its `blame()` parser for the git-fallback blame path
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/code/pdb_adapter.py` — `PdbCodeAdapter(CodeBackend)`.
-2. Constructor `__init__(self, settings: CodeBackendSettings)` — store settings; compute `self._pdb_timeout = settings.pdbstr_timeout_seconds`.
+1. Implement `src/aegis_swr/backends/code/pdb_adapter.py` - `PdbCodeAdapter(CodeBackend)`.
+2. Constructor `__init__(self, settings: CodeBackendSettings)` - store settings; compute `self._pdb_timeout = settings.pdbstr_timeout_seconds`.
 3. Helper `_resolve_pdb(repo_path: str) -> str`: use `settings.pdb_path` if set; else try `{repo_path}/{stem}.pdb` where `stem` is derived from the nearest `.pdb` in the symbol cache; raise `CodeBackendError("No PDB path configured …")` if unresolvable.
 4. Helper `_extract_srcsrv(pdb_path: str) -> str`: run `subprocess.run(["pdbstr.exe", "-r", f"-p:{pdb_path}", "-s:srcsrv"], …)` with list-form argv, `timeout=self._pdb_timeout`. `FileNotFoundError` → `CodeBackendError("pdbstr.exe not found…")`. Non-zero exit → `""` (no SrcSrv stream, not an error). **Windows-only guard:** check `sys.platform == "win32"` in the constructor; on other platforms raise `CodeBackendError("PdbCodeAdapter requires Windows (pdbstr.exe)")`.
 5. `_parse_srcsrv(stream: str) -> tuple[str, str, dict[str, str]]`: parse the SrcSrv INI-like format; return `(verctrl, repo_url, {file_path: revision_sha})`. Unknown `VERCTRL` → `verctrl="unknown"`.
@@ -777,7 +777,7 @@ revision rather than a time-window approximation. All are optional — when
    - `test_pdb_blame_git_verctrl`: mock `git blame --line-porcelain` → returns `BlameRecord`s.
 5. **Factory:** `enabled=False` → `None`; `git` → `GitCodeAdapter`; `filesystem` → `FilesystemCodeAdapter`; `pdb` → `PdbCodeAdapter`; unknown → `ValueError`.
 
-**Fixture:** `tests/unit/fixtures/sample_srcsrv_stream.txt` — realistic SrcSrv INI block with `VERCTRL=git`, `GITREPO=https://…`, two source file entries.
+**Fixture:** `tests/unit/fixtures/sample_srcsrv_stream.txt` - realistic SrcSrv INI block with `VERCTRL=git`, `GITREPO=https://…`, two source file entries.
 
 **Verification:** `pytest tests/unit/test_code_backends.py -v` passes with zero external calls.
 
@@ -793,8 +793,8 @@ deferred.
 
 | Agent Role           | Responsibility                                                          |
 |----------------------|-------------------------------------------------------------------------|
-| `FileLogEngineer`    | `log/file_adapter.py` — windowed/severity-filtered local log reads      |
-| `FluentStubEngineer` | `log/fluent_adapter.py` — `NotImplementedError` plugin stub             |
+| `FileLogEngineer`    | `log/file_adapter.py` - windowed/severity-filtered local log reads      |
+| `FluentStubEngineer` | `log/fluent_adapter.py` - `NotImplementedError` plugin stub             |
 | `LogFactoryEngineer` | `log/__init__.py` factory, `LogSettings`, `config.yaml`, Stage 4 wiring |
 | `LogTestEngineer`    | `tests/unit/test_log_backends.py`                                       |
 
@@ -803,11 +803,11 @@ deferred.
 #### Agent: FileLogEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §6.4` + §6.4.1 — `LogBackend` ABC and file-resolution rules
-- `core/data_adapter.py` — existing Stage 4 temporal-window + severity logic to reuse
+- `PRODUCTION_DESIGN_SPEC.md §6.4` + §6.4.1 - `LogBackend` ABC and file-resolution rules
+- `core/data_adapter.py` - existing Stage 4 temporal-window + severity logic to reuse
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/log/file_adapter.py` — `FileLogAdapter(LogBackend)`.
+1. Implement `src/aegis_swr/backends/log/file_adapter.py` - `FileLogAdapter(LogBackend)`.
 2. Constructor stores `settings: LogSettings` (provides `file_root`, `default_severity_levels`).
 3. `async def query_window(service, start_time, end_time, severity_levels=None) -> list[str]`:
    - Resolve candidate files: if `settings.file_root` is set, glob `{file_root}/{service}*.log` and `{file_root}/{service}*.txt`; otherwise return `[]` (the Data Adapter still has the `IncidentSource.log_paths` file path covered).
@@ -824,7 +824,7 @@ deferred.
 #### Agent: FluentStubEngineer
 
 **Instructions:**
-1. Implement `src/aegis_swr/backends/log/fluent_adapter.py` — `FluentAdapter(LogBackend)`.
+1. Implement `src/aegis_swr/backends/log/fluent_adapter.py` - `FluentAdapter(LogBackend)`.
 2. Constructor stores `settings`; log a warning that this is a stub (mirrors `PostgresStore`, spec §8.4).
 3. `async def query_window(...)` raises `NotImplementedError("FluentAdapter is a stub. Implement the Fluent forward/HTTP query in a future phase.")`.
 4. Add a module docstring describing the intended production design (connect to `fluent_host:fluent_port`, tag-scoped `fluent_tag_prefix.{service}` time-range query) for the future implementer.
@@ -839,7 +839,7 @@ deferred.
 1. Implement `backends/log/__init__.py` with `create_log_backend(settings: LogSettings) -> LogBackend | None` per spec §6.4.3 (`file` → `FileLogAdapter`; `fluent` → `FluentAdapter`; `elk` → `NotImplementedError`; unknown → `ValueError`).
 2. Add `LogSettings` to `config/settings.py`: `provider: str = "file"`, `file_root: str | None = None`, `default_severity_levels: list[str] = ["FATAL", "CRITICAL", "ERROR", "WARNING"]`, `fluent_host: str | None = None`, `fluent_port: int | None = None`, `fluent_tag_prefix: str | None = None`. Add a `provider` validator. Wire under `BackendsSettings.log` (replacing the placeholder `elk_url`/`fluent_*` pair).
 3. Update `config.yaml` `backends.log` block per spec §11.
-4. **Amend Step 2 (Data Adapter):** extend `DataAdapter.process` signature with `log_backend: LogBackend | None = None`. In Stage 4, when `log_backend` is not None AND a `service` name (from `IncidentSource.metadata["service"]` or the CLI `--log-service`) and `incident_timestamp` are present, call `await log_backend.query_window(...)` and merge the returned lines with the file-based lines **before** Drain3 clustering. Wrap the call in try/except — a stub `NotImplementedError` or a transient query error logs a warning and falls back to file-only logs (fail open).
+4. **Amend Step 2 (Data Adapter):** extend `DataAdapter.process` signature with `log_backend: LogBackend | None = None`. In Stage 4, when `log_backend` is not None AND a `service` name (from `IncidentSource.metadata["service"]` or the CLI `--log-service`) and `incident_timestamp` are present, call `await log_backend.query_window(...)` and merge the returned lines with the file-based lines **before** Drain3 clustering. Wrap the call in try/except - a stub `NotImplementedError` or a transient query error logs a warning and falls back to file-only logs (fail open).
 
 **Verification:** `python -c "from aegis_swr.backends.log import create_log_backend"` succeeds; mypy passes.
 
@@ -848,11 +848,11 @@ deferred.
 #### Agent: LogTestEngineer
 
 **Instructions:**
-1. Write `tests/unit/test_log_backends.py` — no network, no Fluent service.
+1. Write `tests/unit/test_log_backends.py` - no network, no Fluent service.
 2. **FileLogAdapter** (in `tmp_path` with `file_root`): `test_file_window_filters_by_time` (lines inside vs outside the window), `test_file_severity_filter`, `test_file_no_file_root_returns_empty`, `test_file_path_traversal_blocked`, `test_file_missing_file_skipped`.
 3. **FluentAdapter:** `test_fluent_query_window_raises_notimplemented`.
 4. **Factory:** `provider="file"` → `FileLogAdapter`; `provider="fluent"` → `FluentAdapter`; `provider="elk"` → `NotImplementedError`; unknown → `ValueError`.
-5. **Stage 4 merge:** add `test_data_adapter_merges_log_backend_lines` to `tests/unit/test_data_adapter.py` — a fake `LogBackend` returning two windowed lines; assert they appear in the brief's `log_summary` alongside file lines; assert a stub raising `NotImplementedError` degrades to file-only without failing.
+5. **Stage 4 merge:** add `test_data_adapter_merges_log_backend_lines` to `tests/unit/test_data_adapter.py` - a fake `LogBackend` returning two windowed lines; assert they appear in the brief's `log_summary` alongside file lines; assert a stub raising `NotImplementedError` degrades to file-only without failing.
 
 **Verification:** `pytest tests/unit/test_log_backends.py -v` passes with zero external calls.
 
@@ -875,9 +875,9 @@ All must pass before proceeding to Step 7.
 
 | Agent Role           | Responsibility                                                                      |
 |----------------------|-------------------------------------------------------------------------------------|
-| `ConfigFileEngineer` | `cli/_config.py`, `cli/_logging.py` — JSON config load/save/merge, sensitive filter |
-| `FormatterEngineer`  | `cli/_formatters.py` — rich panel + json output                                     |
-| `CLIEngineer`        | `cli/commands.py` — all subcommands, `load_recent` addition to storage ABCs         |
+| `ConfigFileEngineer` | `cli/_config.py`, `cli/_logging.py` - JSON config load/save/merge, sensitive filter |
+| `FormatterEngineer`  | `cli/_formatters.py` - rich panel + json output                                     |
+| `CLIEngineer`        | `cli/commands.py` - all subcommands, `load_recent` addition to storage ABCs         |
 | `CLITestEngineer`    | `tests/unit/test_cli.py`, `tests/integration/test_e2e_cli.py`                       |
 
 ### Agentic Execution Brief
@@ -885,21 +885,22 @@ All must pass before proceeding to Step 7.
 #### Agent: ConfigFileEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §12.3` — JSON config file schema and merge logic
-- `prototype/wincrash_analyzer/config/app_config.py` — prototype `read_config`/`save_config`/`_apply_config` reference
-- `prototype/wincrash_analyzer/core/crash_app.py` — `_handle_config`, `_apply_config`, `SensitiveFilter`
+- `PRODUCTION_DESIGN_SPEC.md §12.3` - JSON config file schema and merge logic
+- `prototype/wincrash_analyzer/config/app_config.py` - prototype `read_config`/`save_config`/`_apply_config` reference
+- `prototype/wincrash_analyzer/core/crash_app.py` - `_handle_config`, `_apply_config`, `SensitiveFilter`
 
 **Instructions:**
 1. Implement `src/aegis_swr/cli/_config.py`:
-   - `DEFAULT_CONFIG_PATH: Path = Path("~/.aegis-swr/analyze.json").expanduser()`
-   - `ANALYZE_CONFIG_KEYS: tuple[str, ...]` — tuple of all option names that belong in the JSON file (`dump`, `logs`, `shots`, `sym`, `assume`, `engine`, `ai`, `store`, `store_config`, `code_provider`, `repo`, `log_provider`, `log_service`, `output`, `severity`).
-   - `load_analyze_config(path: Path | None = None) -> dict[str, Any]` — reads JSON from path (default = `DEFAULT_CONFIG_PATH`); returns `{}` if file absent or malformed (log a warning on parse error).
-   - `save_analyze_config(opts: dict[str, Any], path: Path | None = None) -> None` — writes only keys from `ANALYZE_CONFIG_KEYS` to the JSON file; creates parent dirs.
-   - `merge_options(config: dict[str, Any], ctx: typer.Context, **cli_values: Any) -> dict[str, Any]` — for each key: if `ctx.get_parameter_source(key) == ParameterSource.COMMAND_LINE`, use CLI value; else use `config.get(key, cli_values[key])`. Return the merged dict.
+   - `DEFAULT_CONFIG_PATH: Path = CONFIG_DIR / "config.json"` (where `CONFIG_DIR = Path("~/.aegis-swr").expanduser()`)
+   - `ANALYZE_CONFIG_KEYS: tuple[str, ...]` - tuple of all option names that belong in the JSON file (`dump`, `logs`, `shots`, `sym`, `assume`, `engine`, `ai`, `store`, `store_config`, `code_provider`, `repo`, `log_provider`, `log_service`, `output`, `log_severity`, `log_dir`).
+     > **Superseded.** The logging-related keys were later re-engineered into nested `ingest` / `logging` / `evidence` / `process` config.json sections (with added `log_sink`, `evidence_severity`, `evidence_persist`, `process_severity`, …). See the log-subsystem chapter in [generic_implementation_plan.md](generic_implementation_plan.md) (Part III) and [configuration/config.md](../configuration/config.md).
+   - `load_analyze_config(path: Path | None = None) -> dict[str, Any]` - reads JSON from path (default = `DEFAULT_CONFIG_PATH`); returns `{}` if file absent or malformed (log a warning on parse error).
+   - `save_analyze_config(opts: dict[str, Any], path: Path | None = None) -> None` - writes only keys from `ANALYZE_CONFIG_KEYS` to the JSON file; creates parent dirs.
+   - `merge_options(config: dict[str, Any], ctx: typer.Context, **cli_values: Any) -> dict[str, Any]` - for each key: if `ctx.get_parameter_source(key) == ParameterSource.COMMAND_LINE`, use CLI value; else use `config.get(key, cli_values[key])`. Return the merged dict.
 
 2. Implement `src/aegis_swr/cli/_logging.py`:
-   - `configure_logging(severity: str = "INFO") -> None` — removes default loguru handler; adds a new sink with `sys.stderr`, the given level, and the sensitive filter.
-   - `_REDACT_RE: re.Pattern` — compiles a pattern matching `sk-ant-*`, `sk-*`, and `ANTHROPIC_API_KEY=...`/`OPENAI_API_KEY=...` key=value patterns.
+   - `configure_logging(severity: str = "INFO") -> None` - removes default loguru handler; adds a new sink with `sys.stderr`, the given level, and the sensitive filter.
+   - `_REDACT_RE: re.Pattern` - compiles a pattern matching `sk-ant-*`, `sk-*`, and `ANTHROPIC_API_KEY=...`/`OPENAI_API_KEY=...` key=value patterns.
    - The loguru sink filter replaces matched patterns with `[REDACTED]`.
 
 **Verification:** mypy passes; `load_analyze_config` on a non-existent file returns `{}`.
@@ -909,8 +910,8 @@ All must pass before proceeding to Step 7.
 #### Agent: FormatterEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §12.5` — formatter descriptions
-- `prototype/wincrash_analyzer/actions/analyze.py` — rich `Panel` output reference
+- `PRODUCTION_DESIGN_SPEC.md §12.5` - formatter descriptions
+- `prototype/wincrash_analyzer/actions/analyze.py` - rich `Panel` output reference
 
 **Instructions:**
 1. Implement `src/aegis_swr/cli/_formatters.py`:
@@ -929,21 +930,21 @@ All must pass before proceeding to Step 7.
 #### Agent: CLIEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §12` — full CLI spec (flags, JSON config, export, server stub, config commands)
-- `prototype/wincrash_analyzer/cli.py` — prototype option definitions and export subcommand
+- `PRODUCTION_DESIGN_SPEC.md §12` - full CLI spec (flags, JSON config, export, server stub, config commands)
+- `prototype/wincrash_analyzer/cli.py` - prototype option definitions and export subcommand
 - `_config.py` and `_formatters.py` from ConfigFileEngineer and FormatterEngineer
 
 **Instructions:**
 
-**Part 1 — Add `load_recent` to the storage layer:**
+**Part 1 - Add `load_recent` to the storage layer:**
 1. Add `@abstractmethod async def load_recent(self, limit: int = 100) -> list[RCAReport]:` to `backends/base.py` `RelationalStore`.
 2. Implement in `FilesystemStore`: scan `_reports_dir/*.json` (excluding `_hash_index/`), load each, sort by `created_at` descending, return up to `limit` (0 = all).
 3. Implement in `SQLiteStore`: `SELECT report_json FROM reports ORDER BY created_at DESC LIMIT ?`; `LIMIT -1` when `limit == 0`.
 4. Implement in `S3Store`: list `reports/` prefix (paginated), `GetObject` each; sort by key name (lexicographic); return up to `limit` (0 = all).
 5. `PostgresStore` stub: raise `NotImplementedError`.
 
-**Part 2 — `cli/commands.py`:**
-1. Create the Typer app: `app = typer.Typer(name="aegis", help="Aegis SWR — forensics platform")`.
+**Part 2 - `cli/commands.py`:**
+1. Create the Typer app: `app = typer.Typer(name="aegis", help="Aegis SWR - forensics platform")`.
 2. Create a `config_app = typer.Typer()` sub-app and register it with `app.add_typer(config_app, name="config")`.
 3. Implement `aegis analyze`:
    - All flags from spec §12.2, including the new `--code-provider` (`none`|`git`|`filesystem`, default `none`), `--repo PATH`, `--log-provider` (`file`|`fluent`, default `file`), `--log-service TEXT`. `--log` and `--shot` are `list[Path]` with `default=[]`.
@@ -953,8 +954,8 @@ All must pass before proceeding to Step 7.
    - Merge: `opts = merge_options(config, ctx, dump=dump, logs=logs, ...)` (include the four new keys).
    - Build `IncidentSource` from merged opts. When `opts["log_service"]` is set, put it in `metadata["service"]` so Stage 4 can pass it to the `LogBackend`.
    - Determine `StorageSettings` from `store` / `store_config` merged opts; call `create_storage_backends`.
-   - Override `settings.backends.ai.provider` from `opts["ai"]`; override `settings.backends.debug.engine` from `opts["engine"]`.
-   - **Code backend:** override `settings.backends.code` from `opts["code_provider"]` / `opts["repo"]` — if `repo` is set, force `enabled=true` and default `provider` to `git` when `code_provider == "none"`; otherwise `enabled = (code_provider != "none")` with `provider = code_provider`. Call `create_code_backend(settings.backends.code)` (may return `None`).
+   - Override `settings.backends.ai.provider` from the `--ai` CLI flag when explicitly set, or from the config file's `backends.ai.provider` when a custom `--config` path is used; override `settings.backends.debug.engine` from `opts["engine"]`.
+   - **Code backend:** override `settings.backends.code` from `opts["code_provider"]` / `opts["repo"]` - if `repo` is set, force `enabled=true` and default `provider` to `git` when `code_provider == "none"`; otherwise `enabled = (code_provider != "none")` with `provider = code_provider`. Call `create_code_backend(settings.backends.code)` (may return `None`).
    - **Log backend:** override `settings.backends.log.provider` from `opts["log_provider"]`; call `create_log_backend(settings.backends.log)`.
    - Instantiate `Orchestrator(settings, ai_backend, debug_backend, relational, object_store, code_backend=code_backend, log_backend=log_backend)`. (Extend the `Orchestrator` constructor and its `DataAdapter.process` call to forward `code_backend` and `log_backend`; both default to `None` so existing call sites are unaffected.)
    - Run with spinner: `with Progress(SpinnerColumn(), ...) as p: p.add_task("Analysing..."); report = asyncio.run(orch.run(source))`.
@@ -970,7 +971,7 @@ All must pass before proceeding to Step 7.
 7. Implement `aegis config set KEY VALUE`: read `config.yaml`, set the dotted-path key, write back.
 
 **Key invariants:**
-- Never call `asyncio.run()` inside an async context — the CLI is the top-level sync entry point.
+- Never call `asyncio.run()` inside an async context - the CLI is the top-level sync entry point.
 - `asyncio.run()` is called exactly once per command invocation.
 - `--log` and `--shot` default to `[]` (empty list), not `None`.
 - `--save-config` exits before any analysis begins.
@@ -982,12 +983,12 @@ All must pass before proceeding to Step 7.
 #### Agent: CLITestEngineer
 
 **Instructions:**
-1. Write `tests/unit/test_cli.py` using `typer.testing.CliRunner` — all tests mock `Orchestrator.run`:
+1. Write `tests/unit/test_cli.py` using `typer.testing.CliRunner` - all tests mock `Orchestrator.run`:
 
    - `test_analyze_help`: `runner.invoke(app, ["analyze", "--help"])` exits 0; output contains `--dump`, `--config`, `--save-config`.
-   - `test_save_config_writes_json`: invoke with `--dump dummy.dmp --ai openai --save-config`; assert the JSON file was written with `"ai": "openai"`.
-   - `test_config_file_sets_defaults`: write a JSON file with `{"ai": "openai"}`; invoke with `--config that_file` (no `--ai` flag); assert mock `Orchestrator` was called (config value was picked up).
-   - `test_cli_flag_overrides_config_file`: write `{"ai": "openai"}`; invoke with `--config file --ai anthropic`; assert the `ai` in the built settings is `anthropic`.
+   - `test_save_config_writes_json`: invoke with `--dump dummy.dmp --ai openai --save-config`; assert the JSON file was written with `"backends": {"ai": {"provider": "openai"}}`.
+   - `test_config_file_sets_defaults`: write a JSON file with `{"backends": {"ai": {"provider": "openai"}}}`; invoke with `--config that_file` (no `--ai` flag); assert mock `Orchestrator` was called with the openai provider.
+   - `test_cli_flag_overrides_config_file`: write `{"backends": {"ai": {"provider": "openai"}}}`; invoke with `--config file --ai anthropic`; assert the `backends.ai.provider` in the built settings is `anthropic`.
    - `test_analyze_json_output`: invoke with `--output json`; assert `json.loads(result.stdout)` produces a dict with `"incident_id"` key.
    - `test_analyze_hitl_exits_nonzero`: mock `Orchestrator.run` returns a report with `hitl_request` set; assert exit code is 1.
    - `test_config_show_redacts_secrets`: `aegis config show` output does not contain `sk-ant-` or actual API key value.
@@ -1002,7 +1003,7 @@ All must pass before proceeding to Step 7.
    - Invokes `aegis analyze --dump {tmp_dump} --output json --store filesystem --store-config {tmp_dir}`.
    - Asserts exit code 0.
    - Asserts `json.loads(result.stdout)["root_cause"]` matches the mocked report.
-   - Second invocation: `--output rich` — asserts stdout contains the root cause text.
+   - Second invocation: `--output rich` - asserts stdout contains the root cause text.
 
 **Verification:** `pytest tests/unit/test_cli.py tests/integration/test_e2e_cli.py -v` passes.
 
@@ -1023,11 +1024,11 @@ All must pass before proceeding to Step 7.
 #### Agent: APIEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §9` — all endpoint specifications
-- `cli/commands.py` from Step 7 — `aegis server` stub to complete
+- `PRODUCTION_DESIGN_SPEC.md §9` - all endpoint specifications
+- `cli/commands.py` from Step 7 - `aegis server` stub to complete
 
 **Instructions:**
-1. Implement `src/aegis_swr/api/app.py` — `create_app(settings: Settings) -> FastAPI`.
+1. Implement `src/aegis_swr/api/app.py` - `create_app(settings: Settings) -> FastAPI`.
 2. Implement `api/routes/incidents.py`:
    - `POST /v1/incidents/analyze`: validate multipart form; upload to `ObjectStore`; create DB record; start `Orchestrator.run()` as `BackgroundTasks`; return 202.
    - `POST /v1/incidents/{id}/continue`: HITL continuation endpoint.
@@ -1046,7 +1047,7 @@ All must pass before proceeding to Step 7.
 #### Agent: SecurityEngineer
 
 **Instructions:**
-1. Implement `api/middleware/auth.py` — `AuthMiddleware(BaseHTTPMiddleware)`. Add `api_keys` table to Alembic migration (columns: `key_hash TEXT`, `org_slug TEXT`, `created_at TIMESTAMPTZ`). Hash with `bcrypt.hashpw`.
+1. Implement `api/middleware/auth.py` - `AuthMiddleware(BaseHTTPMiddleware)`. Add `api_keys` table to Alembic migration (columns: `key_hash TEXT`, `org_slug TEXT`, `created_at TIMESTAMPTZ`). Hash with `bcrypt.hashpw`.
 2. Implement `api/middleware/rate_limit.py` using `slowapi`.
 3. Implement `SensitiveFilter` in `src/aegis_swr/core/logging.py` (ported from prototype's pattern): attach to `loguru` logger; redacts `sk-ant-*`, `sk-*`, and all API key patterns.
 
@@ -1079,10 +1080,10 @@ All must pass before proceeding to Step 7.
 #### Agent: SandboxEngineer
 
 **Inputs provided:**
-- `PRODUCTION_DESIGN_SPEC.md §10` — full sandbox architecture, Docker flags, validation flow
+- `PRODUCTION_DESIGN_SPEC.md §10` - full sandbox architecture, Docker flags, validation flow
 
 **Instructions:**
-1. Implement `src/aegis_swr/sandbox/executor.py` — `SandboxExecutor(settings: SandboxSettings)`.
+1. Implement `src/aegis_swr/sandbox/executor.py` - `SandboxExecutor(settings: SandboxSettings)`.
 2. `async def validate(patch: str, language: str) -> ValidationResult`:
    - Write patch to a secure temp file (use `tempfile.NamedTemporaryFile` inside the configured temp dir; validate the resolved path stays within the temp dir to prevent path traversal).
    - Build Docker command with all security flags from spec: `--rm`, `--network=none`, `--read-only`, `--tmpfs /tmp:rw,exec,size=50m`, `--memory={memory_mb}m`, `--cpus={cpu_limit}`, `--cap-drop ALL`.
@@ -1121,7 +1122,7 @@ All must pass before proceeding to Step 7.
 
 **Inputs provided:**
 - Prototype test assets in `prototype/tests/` (real dump files and log fixtures)
-- GAP_ANALYSIS.md — known failure modes to include as ground truth cases
+- GAP_ANALYSIS.md - known failure modes to include as ground truth cases
 
 **Instructions:**
 1. Create `tests/ground_truth/incidents/` with at least 10 subdirectories.
@@ -1149,7 +1150,7 @@ All must pass before proceeding to Step 7.
 2. Create `docker-compose.test.yml` for CI integration tests: `postgres`, `minio` only (no `aegis-api`).
 3. Create `tests/benchmarks/token_budget.py`: runs Data Adapter on 5 canonical input pairs; tokenizes output with `tiktoken`; asserts average ≤ 12,000 tokens.
 4. Complete all Makefile targets: `install`, `lint`, `typecheck`, `test`, `test-integration`, `test-ground-truth`, `benchmark-tokens`, `build-sandbox-images`, `up`, `down`, `migrate`.
-5. Review all `subprocess.run()` calls — verify list-form args (no `shell=True` anywhere). Report any violations.
+5. Review all `subprocess.run()` calls - verify list-form args (no `shell=True` anywhere). Report any violations.
 6. Verify all file path operations use `Path.resolve()` and stay within configured root directories.
 
 ---

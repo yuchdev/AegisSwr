@@ -1,16 +1,13 @@
-"""Storage backend factory."""
+"""Storage backend factory"""
 from __future__ import annotations
-
-from typing import TYPE_CHECKING
+from typing import Optional
 
 from aegis_swr.backends.base import ObjectStore, RelationalStore
 from aegis_swr.backends.storage.filesystem_store import FilesystemStore
 from aegis_swr.backends.storage.postgres_store import PostgresStore
 from aegis_swr.backends.storage.s3_store import S3Store
 from aegis_swr.backends.storage.sqlite_store import SQLiteStore
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import StorageSettings
+from aegis_swr.config.settings import StorageSettings
 
 __all__ = [
     "FilesystemStore",
@@ -23,7 +20,7 @@ __all__ = [
 
 def create_storage_backends(
     settings: StorageSettings,
-) -> tuple[RelationalStore | None, ObjectStore | None]:
+) -> tuple[Optional[RelationalStore], Optional[ObjectStore]]:
     """Return ``(relational, object_store)`` for the configured provider.
 
     ``FilesystemStore`` and ``S3Store`` implement both interfaces so they are

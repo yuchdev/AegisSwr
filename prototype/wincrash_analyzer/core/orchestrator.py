@@ -1,4 +1,4 @@
-"""Orchestrator: pipeline business logic for WinCrash Analyzer."""
+"""Orchestrator: pipeline business logic for WinCrash Analyzer"""
 from __future__ import annotations
 
 import logging
@@ -224,7 +224,7 @@ class CrashOrchestrator:
     # Helpers
     # ------------------------------------------------------------------
 
-    def _update_state(self, state: str) -> None:
+    def _update_state(self, state: str):
         """
         Update the internal state of the orchestrator and log the change.
 
@@ -243,7 +243,7 @@ class CrashOrchestrator:
         """
         return _FILL_PATTERN.sub(" ", raw_data)
 
-    def _safe_persist(self, dump_path: str, raw_report: dict, analysis: str) -> None:
+    def _safe_persist(self, dump_path: str, raw_report: dict, analysis: str):
         """
         Persist a crash record, converting OSError to StorageBackendError.
 

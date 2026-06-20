@@ -6,7 +6,7 @@ backend tests (Step 3) and the orchestrator tests (Step 5).
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -24,10 +24,10 @@ class MockAIBackend(AIAPIBackend):
 
     def __init__(
         self,
-        responses: list[Any] | None = None,
-        stream_tokens: list[str] | None = None,
-        usage: dict[str, int] | None = None,
-    ) -> None:
+        responses: Optional[list[Any]] = None,
+        stream_tokens: Optional[list[str]] = None,
+        usage: Optional[dict[str, int]] = None,
+    ):
         self.model_name = "mock-model"
         self._responses: list[Any] = list(responses or [])
         self._stream_tokens: list[str] = list(stream_tokens or ["mock ", "response"])
@@ -38,7 +38,7 @@ class MockAIBackend(AIAPIBackend):
         self,
         system_prompt: str,
         messages: list[dict[str, Any]],
-        output_schema: type[BaseModel] | None = None,
+        output_schema: Optional[type[BaseModel]] = None,
     ) -> BaseModel | str:
         self.calls.append(
             {"system": system_prompt, "messages": messages, "schema": output_schema}

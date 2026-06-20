@@ -1,4 +1,4 @@
-"""Abstract Base Class for AI backends."""
+"""Abstract Base Class for AI backends"""
 from abc import ABC, abstractmethod
 import logging
 import os

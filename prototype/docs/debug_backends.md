@@ -27,11 +27,11 @@ The `CDBBackend` orchestrates `cdb.exe` via a Python `subprocess` layer to extra
 
 ### How It Works
 
-1. **Path Verification** — Confirms the dump file is readable (`os.access`) before spawning the process.
-2. **Command Composition** — Chains `.sympath`, `.reload /f /i`, `!analyze -v`, and `q` into a single `-c` argument.
-3. **Process Spawn** — Launches `cdb.exe -z <dump> -c <cmds>` with `subprocess.run(capture_output=True)` to prevent `PIPE` deadlocks.
-4. **Noise Reduction** — Strips repetitive `DBGHELP: … file not found` lines via regex before returning the output.
-5. **Timeout Watchdog** — Raises `DebuggerEngineError` if `cdb.exe` runs longer than 300 seconds.
+1. **Path Verification** - Confirms the dump file is readable (`os.access`) before spawning the process.
+2. **Command Composition** - Chains `.sympath`, `.reload /f /i`, `!analyze -v`, and `q` into a single `-c` argument.
+3. **Process Spawn** - Launches `cdb.exe -z <dump> -c <cmds>` with `subprocess.run(capture_output=True)` to prevent `PIPE` deadlocks.
+4. **Noise Reduction** - Strips repetitive `DBGHELP: … file not found` lines via regex before returning the output.
+5. **Timeout Watchdog** - Raises `DebuggerEngineError` if `cdb.exe` runs longer than 300 seconds.
 
 ### Symbol Path and Caching
 

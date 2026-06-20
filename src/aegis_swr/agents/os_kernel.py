@@ -1,14 +1,11 @@
-"""OS Kernel Agent — system-environment specialist."""
+"""OS Kernel Agent - system-environment specialist"""
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
 
 from aegis_swr.agents.base import BaseAgent
 from aegis_swr.core.schemas import AgentTurn, Hypothesis, OSKernelOutput
-
-if TYPE_CHECKING:
-    from aegis_swr.core.schemas import InvestigationState
+from aegis_swr.core.schemas import InvestigationState
 
 _SYSTEM_PROMPT = """\
 You are an expert OS-level debugger and kernel engineer. Your primary focus is \

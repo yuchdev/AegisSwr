@@ -1,4 +1,4 @@
-"""Factory for AI backend instantiation."""
+"""Factory for AI backend instantiation"""
 from wincrash_analyzer.backends.ai.base import AIBackendBase
 from wincrash_analyzer.config import get_option
 

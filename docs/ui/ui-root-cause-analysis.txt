@@ -1,0 +1,111 @@
+﻿┌────────────────────────────────────────────────────────────────────────────── Root Cause Analysis Report ───────────────────────────────────────────────────────────────────────────┐
+│ ## Root Cause Analysis (RCA)                                                                                                                                                        │
+│                                                                                                                                                                                     │
+│ **Conclusion:** The crash was **deliberately triggered by the application code**, not caused by the OS, user32, or random memory corruption.                                        │
+│                                                                                                                                                                                     │
+│ ### Evidence                                                                                                                                                                        │
+│ - **Exception type:** `0xc0000005` access violation                                                                                                                                 │
+│ - **Access type:** **Write**                                                                                                                                                        │
+│ - **Target address:** `0x0000000000000000`                                                                                                                                          │
+│ - **Instruction at fault:**                                                                                                                                                         │
+│   ```asm                                                                                                                                                                            │
+│   mov dword ptr ,2Ah                                                                                                                                                                │
+│   ```                                                                                                                                                                               │
+│ - **Register state at crash:**                                                                                                                                                      │
+│   - `r14 = 0x0`                                                                                                                                                                     │
+│ - Therefore the code attempted to execute:                                                                                                                                          │
+│   ```cpp                                                                                                                                                                            │
+│   *(DWORD*)nullptr = 42;                                                                                                                                                            │
+│   ```                                                                                                                                                                               │
+│                                                                                                                                                                                     │
+│ ### Why this indicates intentional injection                                                                                                                                        │
+│ Several indicators strongly support the user’s theory:                                                                                                                              │
+│                                                                                                                                                                                     │
+│ 1. **Function name is explicit**                                                                                                                                                    │
+│    - Crash occurs in:                                                                                                                                                               │
+│      `CrashUi!Crash_Window::on_access_violation_click`                                                                                                                              │
+│    - That name strongly suggests a UI handler specifically meant to trigger an access violation when clicked.                                                                       │
+│                                                                                                                                                                                     │
+│ 2. **Failure bucket confirms behavior**                                                                                                                                             │
+│    - `NULL_POINTER_WRITE_c0000005_CrashUi.exe!Crash_Window::on_access_violation_click`                                                                                              │
+│                                                                                                                                                                                     │
+│ 3. **Call stack shows a button/UI message path**                                                                                                                                    │
+│    - The stack flows through:                                                                                                                                                       │
+│      - `ButtonWndProcW`                                                                                                                                                             │
+│      - `SendMessageW`                                                                                                                                                               │
+│      - `wl::_wli::base_window::_window_proc`                                                                                                                                        │
+│      - `Crash_Window::on_access_violation_click`                                                                                                                                    │
+│    - This is consistent with a **user clicking a control** that invokes a crash-test handler.                                                                                       │
+│                                                                                                                                                                                     │
+│ 4. **Source mapping is precise**                                                                                                                                                    │
+│    - Faulting source:                                                                                                                                                               │
+│      `CrashUi.cpp`, line `121`                                                                                                                                                      │
+│    - This points to a deterministic code path in the application source, not an incidental corruption event.                                                                        │
+│                                                                                                                                                                                     │
+│ 5. **Instruction semantics are simple and direct**                                                                                                                                  │
+│    - This is not a wild pointer from heap damage or use-after-free.                                                                                                                 │
+│    - The destination register is literally null at the point of write.                                                                                                              │
+│                                                                                                                                                                                     │
+│ ### Assessment of “deliberately injected” theory                                                                                                                                    │
+│ **Highly likely / effectively confirmed.**                                                                                                                                          │
+│ This dump is consistent with an application designed to intentionally raise an access violation, likely for:                                                                        │
+│ - crash testing,                                                                                                                                                                    │
+│ - debugger validation,                                                                                                                                                              │
+│ - WER/mini-dump pipeline testing,                                                                                                                                                   │
+│ - exception handling demo behavior.                                                                                                                                                 │
+│                                                                                                                                                                                     │
+│ There is **no evidence here of exploit activity or accidental corruption**. The data instead shows an intentional null-pointer write performed in a dedicated handler.              │
+│                                                                                                                                                                                     │
+│ ---                                                                                                                                                                                 │
+│                                                                                                                                                                                     │
+│ ## Faulting Module                                                                                                                                                                  │
+│                                                                                                                                                                                     │
+│ - **Module:** `CrashUi.exe`                                                                                                                                                         │
+│ - **Image:** `CrashUi.exe`                                                                                                                                                          │
+│ - **Symbol:** `CrashUi!Crash_Window::on_access_violation_click+0x509`                                                                                                               │
+│ - **Source file:** `C:\Users\atatat\Projects\wincrashdebugger\src\CrashUi\CrashUi.cpp`                                                                                              │
+│ - **Source line:** `121`                                                                                                                                                            │
+│                                                                                                                                                                                     │
+│ ### Fault summary                                                                                                                                                                   │
+│ The faulting module is the application itself, specifically its crash UI handler.                                                                                                   │
+│ Windows components such as `user32.dll`, `kernel32.dll`, and `ntdll.dll` are only in the call path because this originated from normal GUI message dispatch.                        │
+│                                                                                                                                                                                     │
+│ ---                                                                                                                                                                                 │
+│                                                                                                                                                                                     │
+│ ## Recommendation                                                                                                                                                                   │
+│                                                                                                                                                                                     │
+│ 1. **Treat this as an intentional test crash unless proven otherwise**                                                                                                              │
+│    - Based on naming and stack context, this is almost certainly expected behavior in a crash-test application.                                                                     │
+│                                                                                                                                                                                     │
+│ 2. **Review source at `CrashUi.cpp:121`**                                                                                                                                           │
+│    - Confirm whether line 121 contains intentional null dereference logic.                                                                                                          │
+│    - Likely pattern:                                                                                                                                                                │
+│      ```cpp                                                                                                                                                                         │
+│      int* p = nullptr;                                                                                                                                                              │
+│      *p = 42;                                                                                                                                                                       │
+│      ```                                                                                                                                                                            │
+│                                                                                                                                                                                     │
+│ 3. **If intentional, gate or label the feature**                                                                                                                                    │
+│    - Add clear UI labeling such as:                                                                                                                                                 │
+│      - “Trigger Access Violation (Test)”                                                                                                                                            │
+│      - “Intentional Crash for Dump Testing”                                                                                                                                         │
+│    - Consider compile-time guards so it is excluded from production builds.                                                                                                         │
+│                                                                                                                                                                                     │
+│ 4. **If unintentional, add defensive checks**                                                                                                                                       │
+│    - Validate pointer before dereference.                                                                                                                                           │
+│    - Add assertions/logging before the write.                                                                                                                                       │
+│    - Example:                                                                                                                                                                       │
+│      ```cpp                                                                                                                                                                         │
+│      if (!ptr) {                                                                                                                                                                    │
+│          // log and abort operation safely                                                                                                                                          │
+│          return;                                                                                                                                                                    │
+│      }                                                                                                                                                                              │
+│      *ptr = 42;                                                                                                                                                                     │
+│      ```                                                                                                                                                                            │
+│                                                                                                                                                                                     │
+│ 5. **Security interpretation**                                                                                                                                                      │
+│    - This dump alone does **not** indicate malicious code injection or external tampering.                                                                                          │
+│    - It indicates the application intentionally executed a null write inside its own code path.                                                                                     │
+│                                                                                                                                                                                     │
+│ **Bottom line:** The “deliberately injected crash” theory is **supported**. This looks like a purpose-built crash trigger in `CrashUi.exe`, activated from a UI event.              │
+└─────────────────────────────────────────────────────────────────────────────────── Model: openai ───────────────────────────────────────────────────────────────────────────────────┘

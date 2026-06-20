@@ -15,12 +15,12 @@ Directory layout::
             {filename}              # raw binary artifacts
 """
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 import contextlib
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from loguru import logger
@@ -28,23 +28,127 @@ from loguru import logger
 from aegis_swr.backends.base import ObjectStore, RelationalStore
 from aegis_swr.core.exceptions import IncidentNotFoundError
 from aegis_swr.core.schemas import RCAReport
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import StorageSettings
+from aegis_swr.config.settings import StorageSettings
 
 
 def _safe_path(base: Path, *parts: str) -> Path:
-    """Resolve and validate that the joined path stays inside *base*."""
+    """Resolve and validate that the joined path stays inside *base*"""
     candidate = base.joinpath(*parts).resolve()
     if not str(candidate).startswith(str(base.resolve())):
         raise ValueError(f"Path traversal attempt: {parts!r} escapes {base}")
     return candidate
 
 
-class FilesystemStore(RelationalStore, ObjectStore):
-    """JSON-file and binary-file storage; implements both ABCs."""
+def _report_to_markdown(report: RCAReport) -> str:
+    """Render *report* as a human-readable Markdown document"""
+    lines: list[str] = []
 
-    def __init__(self, settings: StorageSettings) -> None:
+    lines.append(f"# RCA Report - {report.incident_id}")
+    lines.append("")
+    lines.append(f"**Created:** {report.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}  ")
+    lines.append(f"**Mode:** {report.mode.value}  ")
+    if report.dump_hash:
+        lines.append(f"**Dump Hash:** `{report.dump_hash}`  ")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Root cause
+    lines.append("## Root Cause")
+    lines.append("")
+    lines.append(report.root_cause)
+    lines.append("")
+    if report.faulting_module:
+        lines.append(f"**Faulting Module:** `{report.faulting_module}`  ")
+    if report.faulting_function:
+        lines.append(f"**Faulting Function:** `{report.faulting_function}`  ")
+    conf_pct = f"{report.confidence_score:.1%}"
+    lines.append(f"**Confidence:** {conf_pct} ({report.confidence_level.value.upper()})  ")
+    if report.symbol_resolution_score is not None:
+        lines.append(f"**Symbol Resolution Score:** {report.symbol_resolution_score:.2f}  ")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # Agent dialogue
+    if report.agent_dialogue:
+        lines.append("## Agent Dialogue")
+        lines.append("")
+        lines.append("| Round | Agent | Conf | Message |")
+        lines.append("|-------|-------|------|---------|")
+        for turn in report.agent_dialogue:
+            msg = turn.message.replace("\n", " ").replace("|", "\\|")
+            if len(msg) > 200:
+                msg = msg[:200] + "…"
+            conf = f"{turn.confidence_score:.0%}"
+            lines.append(f"| {turn.turn_number} | {turn.agent} | {conf} | {msg} |")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # Skeptic challenges
+    if report.skeptic_challenges:
+        lines.append("## Skeptic Challenges")
+        lines.append("")
+        for challenge in report.skeptic_challenges:
+            lines.append(f"- {challenge}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # Probabilistic fix
+    if report.probabilistic_fix:
+        fix_conf = f"{report.fix_confidence:.1%}" if report.fix_confidence is not None else "n/a"
+        lines.append(f"## Probabilistic Fix  *(confidence {fix_conf})*")
+        lines.append("")
+        lines.append("```diff")
+        lines.append(report.probabilistic_fix)
+        lines.append("```")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # Mitigation
+    if report.mitigation_instructions:
+        lines.append("## Mitigation Instructions")
+        lines.append("")
+        for i, step in enumerate(report.mitigation_instructions, 1):
+            lines.append(f"{i}. {step}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # HITL
+    if report.hitl_request:
+        lines.append("## Human Input Required")
+        lines.append("")
+        lines.append(f"**Question:** {report.hitl_request.question}")
+        lines.append("")
+        lines.append(report.hitl_request.context_summary)
+        lines.append("")
+        for item in report.hitl_request.requested_data:
+            lines.append(f"- {item}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    # Metrics
+    lines.append("## Metrics")
+    lines.append("")
+    lines.append("| Metric | Value |")
+    lines.append("|--------|-------|")
+    lines.append(f"| Consensus rounds | {report.consensus_rounds} |")
+    lines.append(f"| Input tokens | {report.total_input_tokens:,} |")
+    lines.append(f"| Output tokens | {report.total_output_tokens:,} |")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+class FilesystemStore(RelationalStore, ObjectStore):
+    """JSON-file and binary-file storage; implements both ABCs"""
+
+    def __init__(self, settings: StorageSettings):
         self._reports_dir = Path(settings.reports_dir).expanduser()
         self._objects_dir = Path(settings.objects_dir).expanduser()
         self._hash_index_dir = self._reports_dir / "_hash_index"
@@ -53,13 +157,15 @@ class FilesystemStore(RelationalStore, ObjectStore):
     # RelationalStore
     # ------------------------------------------------------------------
 
-    async def save_report(self, report: RCAReport) -> None:
+    async def save_report(self, report: RCAReport):
         await asyncio.to_thread(self._sync_save_report, report)
 
-    def _sync_save_report(self, report: RCAReport) -> None:
+    def _sync_save_report(self, report: RCAReport):
         self._reports_dir.mkdir(parents=True, exist_ok=True)
         path = _safe_path(self._reports_dir, f"{report.incident_id}.json")
         path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
+        md_path = _safe_path(self._reports_dir, f"{report.incident_id}.md")
+        md_path.write_text(_report_to_markdown(report), encoding="utf-8")
         if report.dump_hash:
             self._hash_index_dir.mkdir(parents=True, exist_ok=True)
             safe_hash = report.dump_hash.replace(":", "_")
@@ -67,20 +173,20 @@ class FilesystemStore(RelationalStore, ObjectStore):
             idx_path.write_text(str(report.incident_id), encoding="utf-8")
         logger.debug(f"FilesystemStore: saved report {report.incident_id}")
 
-    async def get_report(self, incident_id: UUID) -> RCAReport | None:
+    async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_get_report, incident_id)
 
-    def _sync_get_report(self, incident_id: UUID) -> RCAReport | None:
+    def _sync_get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         try:
             path = _safe_path(self._reports_dir, f"{incident_id}.json")
             return RCAReport.model_validate_json(path.read_text(encoding="utf-8"))
         except FileNotFoundError:
             return None
 
-    async def find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_find_by_hash, dump_hash)
 
-    def _sync_find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    def _sync_find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         try:
             safe_hash = dump_hash.replace(":", "_")
             idx_path = _safe_path(self._hash_index_dir, safe_hash)
@@ -93,14 +199,14 @@ class FilesystemStore(RelationalStore, ObjectStore):
         self,
         incident_id: UUID,
         response: dict[str, object],
-    ) -> None:
+    ):
         await asyncio.to_thread(self._sync_update_hitl, incident_id, response)
 
     def _sync_update_hitl(
         self,
         incident_id: UUID,
         response: dict[str, object],
-    ) -> None:
+    ):
         path = _safe_path(self._reports_dir, f"{incident_id}.json")
         try:
             data = json.loads(path.read_text(encoding="utf-8"))

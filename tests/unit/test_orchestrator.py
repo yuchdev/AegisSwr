@@ -1,4 +1,4 @@
-"""Unit tests for the MAS orchestrator: full pipeline, routing, HITL."""
+"""Unit tests for the MAS orchestrator: full pipeline, routing, HITL"""
 from __future__ import annotations
 
 from typing import Any
@@ -23,7 +23,7 @@ from aegis_swr.core.schemas import (
 from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
 # ---------------------------------------------------------------------------
-# Helpers — scripted agent responses
+# Helpers - scripted agent responses
 # ---------------------------------------------------------------------------
 
 
@@ -88,11 +88,11 @@ def _log_only_source() -> IncidentSource:
 
 
 # ---------------------------------------------------------------------------
-# Full pipeline — convergence
+# Full pipeline - convergence
 # ---------------------------------------------------------------------------
 
 
-async def test_full_pipeline_converges_in_one_round(settings: Settings) -> None:
+async def test_full_pipeline_converges_in_one_round(settings: Settings):
     orch = _make_orchestrator(settings, _one_round(confidence=0.90))
     report = await orch.run(_log_only_source())
 
@@ -103,7 +103,7 @@ async def test_full_pipeline_converges_in_one_round(settings: Settings) -> None:
     assert report.consensus_rounds == 1
 
 
-async def test_full_pipeline_token_tracker_accumulates(settings: Settings) -> None:
+async def test_full_pipeline_token_tracker_accumulates(settings: Settings):
     ai = MockAIBackend(
         responses=_one_round(0.90),
         usage={"input_tokens": 100, "output_tokens": 20},
@@ -120,7 +120,7 @@ async def test_full_pipeline_token_tracker_accumulates(settings: Settings) -> No
 # ---------------------------------------------------------------------------
 
 
-async def test_skeptic_rejection_triggers_second_round(settings: Settings) -> None:
+async def test_skeptic_rejection_triggers_second_round(settings: Settings):
     responses = [
         # Round 1: Skeptic rejects.
         _os(0.90), _code(0.90), _historian(0.90), _skeptic_no(),
@@ -132,7 +132,7 @@ async def test_skeptic_rejection_triggers_second_round(settings: Settings) -> No
 
     assert report.consensus_rounds == 2
     assert report.hitl_request is None
-    # Round-2 OS Kernel turn was called — it's in the dialogue
+    # Round-2 OS Kernel turn was called - it's in the dialogue
     os_turns = [t for t in report.agent_dialogue if t.agent == "OS Kernel Agent"]
     assert len(os_turns) == 2
 
@@ -142,7 +142,7 @@ async def test_skeptic_rejection_triggers_second_round(settings: Settings) -> No
 # ---------------------------------------------------------------------------
 
 
-async def test_deadlock_produces_hitl_request(settings: Settings) -> None:
+async def test_deadlock_produces_hitl_request(settings: Settings):
     low = 0.30  # well below hitl_confidence_threshold=0.50
     # max_debate_rounds=4, so we need 4 rounds all rejecting
     responses = []
@@ -161,7 +161,7 @@ async def test_deadlock_produces_hitl_request(settings: Settings) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_cache_hit_skips_analysis(settings: Settings) -> None:
+async def test_cache_hit_skips_analysis(settings: Settings):
     cached_report = RCAReport(
         mode=IncidentMode.CRASH_DUMP,
         dump_hash="sha256:abc123",
@@ -174,7 +174,7 @@ async def test_cache_hit_skips_analysis(settings: Settings) -> None:
     relational = mock.AsyncMock()
     relational.find_by_hash.return_value = cached_report
 
-    ai = MockAIBackend()  # No responses — any call would exhaust the queue
+    ai = MockAIBackend()  # No responses - any call would exhaust the queue
     orch = Orchestrator(settings=settings, ai_backend=ai, relational_store=relational)
 
     source = IncidentSource(
@@ -193,7 +193,7 @@ async def test_cache_hit_skips_analysis(settings: Settings) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_run_streaming_yields_agent_turn_events(settings: Settings) -> None:
+async def test_run_streaming_yields_agent_turn_events(settings: Settings):
     orch = _make_orchestrator(settings, _one_round(confidence=0.90))
     events = []
     async for event in orch.run_streaming(_log_only_source()):
@@ -204,7 +204,7 @@ async def test_run_streaming_yields_agent_turn_events(settings: Settings) -> Non
     assert "complete" in types
 
 
-async def test_run_streaming_yields_hitl_event_on_deadlock(settings: Settings) -> None:
+async def test_run_streaming_yields_hitl_event_on_deadlock(settings: Settings):
     low = 0.25
     responses = []
     for _ in range(settings.core.max_debate_rounds):

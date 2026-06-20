@@ -1,10 +1,10 @@
-"""Debug backend factory (platform-detected, engine-selected)."""
+"""Debug backend factory (platform-detected, engine-selected)"""
 from __future__ import annotations
+from typing import Optional
 
 import subprocess
 import sys
 from functools import lru_cache
-from typing import TYPE_CHECKING
 
 from aegis_swr.backends.base import DebugBackend
 from aegis_swr.backends.debug.cdb_worker import CdbBackend
@@ -12,9 +12,7 @@ from aegis_swr.backends.debug.gdb_worker import GdbBackend
 from aegis_swr.backends.debug.lldb_worker import LldbBackend
 from aegis_swr.backends.debug.windbg_js_worker import WinDbgJSBackend
 from aegis_swr.core.exceptions import PlatformNotSupportedError
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import DebugSettings
+from aegis_swr.config.settings import DebugSettings
 
 __all__ = [
     "CdbBackend",
@@ -32,7 +30,7 @@ def _windbg_js_available() -> bool:
     Probes by running ``cdb.exe -version`` and checking for the
     ``JsProvider`` marker in the output. The result is cached after the
     first call so the probe subprocess runs at most once per process.
-    Never raises — returns False on any failure.
+    Never raises - returns False on any failure.
     """
     try:
         result = subprocess.run(
@@ -50,14 +48,14 @@ def _windbg_js_available() -> bool:
 
 def create_debug_backend(
     settings: DebugSettings,
-    platform: str | None = None,
+    platform: Optional[str] = None,
 ) -> DebugBackend:
     """Construct the debug backend for the current (or given) platform.
 
     On Windows the engine is selected by ``settings.engine``:
-    - ``"auto"``       — prefer WinDbgJSBackend if available, else CdbBackend.
-    - ``"windbg_js"``  — always WinDbgJSBackend.
-    - ``"cdb"``        — always CdbBackend.
+    - ``"auto"``       - prefer WinDbgJSBackend if available, else CdbBackend.
+    - ``"windbg_js"``  - always WinDbgJSBackend.
+    - ``"cdb"``        - always CdbBackend.
 
     ``platform`` accepts a ``sys.platform`` string; it defaults to the running
     platform and exists primarily so tests can select a backend deterministically.

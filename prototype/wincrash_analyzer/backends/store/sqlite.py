@@ -1,4 +1,4 @@
-"""SQLite-based storage backend."""
+"""SQLite-based storage backend"""
 from __future__ import annotations
 
 import json
@@ -49,7 +49,7 @@ class SQLiteBackend(StorageBackendBase):
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _init_db(self) -> None:
+    def _init_db(self):
         """
         Initialize the database schema if it doesn't already exist.
         """

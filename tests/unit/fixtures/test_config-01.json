@@ -1,0 +1,20 @@
+{
+  "dump": "C:/dumps/CrashUi.dmp",
+  "sym": "C:/symbols",
+  "assume": "The renderer was recently refactored.",
+  "engine": "cdb",
+  "store": "sqlite",
+  "store_config": "C:/data/reports.db",
+  "code_provider": "git",
+  "repo": "C:/src/imagescope",
+  "output": "json",
+  "ingest": {
+    "log_source": {
+      "provider": "file",
+      "service": "render-svc"
+    }
+  },
+  "logging": {
+    "severity": "DEBUG"
+  }
+}

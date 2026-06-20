@@ -1,8 +1,8 @@
-"""Unit tests for all four storage backends — no external services required."""
+"""Unit tests for all four storage backends - no external services required"""
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 from unittest import mock
 from uuid import uuid4
 
@@ -29,7 +29,7 @@ from aegis_swr.core.schemas import (
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _report(dump_hash: str | None = None) -> RCAReport:
+def _report(dump_hash: Optional[str] = None) -> RCAReport:
     return RCAReport(
         mode=IncidentMode.CRASH_DUMP,
         dump_hash=dump_hash or f"sha256:{uuid4().hex}",
@@ -68,7 +68,7 @@ def fs_store(fs_settings: StorageSettings) -> FilesystemStore:
     return FilesystemStore(fs_settings)
 
 
-async def test_filesystem_save_get_roundtrip(fs_store: FilesystemStore) -> None:
+async def test_filesystem_save_get_roundtrip(fs_store: FilesystemStore):
     report = _report()
     await fs_store.save_report(report)
     loaded = await fs_store.get_report(report.incident_id)
@@ -77,11 +77,11 @@ async def test_filesystem_save_get_roundtrip(fs_store: FilesystemStore) -> None:
     assert loaded.root_cause == report.root_cause
 
 
-async def test_filesystem_get_unknown_returns_none(fs_store: FilesystemStore) -> None:
+async def test_filesystem_get_unknown_returns_none(fs_store: FilesystemStore):
     assert await fs_store.get_report(uuid4()) is None
 
 
-async def test_filesystem_find_by_hash(fs_store: FilesystemStore) -> None:
+async def test_filesystem_find_by_hash(fs_store: FilesystemStore):
     report = _report(dump_hash="sha256:abc123")
     await fs_store.save_report(report)
     found = await fs_store.find_by_hash("sha256:abc123")
@@ -89,11 +89,11 @@ async def test_filesystem_find_by_hash(fs_store: FilesystemStore) -> None:
     assert found.incident_id == report.incident_id
 
 
-async def test_filesystem_find_by_hash_unknown(fs_store: FilesystemStore) -> None:
+async def test_filesystem_find_by_hash_unknown(fs_store: FilesystemStore):
     assert await fs_store.find_by_hash("sha256:no_such") is None
 
 
-async def test_filesystem_update_hitl_response(fs_store: FilesystemStore) -> None:
+async def test_filesystem_update_hitl_response(fs_store: FilesystemStore):
     report = _report()
     await fs_store.save_report(report)
     await fs_store.update_hitl_response(report.incident_id, _hitl_payload())
@@ -103,7 +103,7 @@ async def test_filesystem_update_hitl_response(fs_store: FilesystemStore) -> Non
     assert "DB pool size" in loaded.hitl_request.question
 
 
-async def test_filesystem_upload_raw_get_raw(fs_store: FilesystemStore) -> None:
+async def test_filesystem_upload_raw_get_raw(fs_store: FilesystemStore):
     incident_id = uuid4()
     data = b"MDMP\x00\x00\x00\x00" + b"\xAB" * 64
     key = await fs_store.upload_raw(incident_id, "dump.dmp", data)
@@ -112,12 +112,12 @@ async def test_filesystem_upload_raw_get_raw(fs_store: FilesystemStore) -> None:
     assert recovered == data
 
 
-async def test_filesystem_get_raw_unknown_raises(fs_store: FilesystemStore) -> None:
+async def test_filesystem_get_raw_unknown_raises(fs_store: FilesystemStore):
     with pytest.raises(IncidentNotFoundError):
         await fs_store.get_raw(f"{uuid4()}/missing.dmp")
 
 
-async def test_filesystem_path_traversal_blocked(fs_store: FilesystemStore) -> None:
+async def test_filesystem_path_traversal_blocked(fs_store: FilesystemStore):
     with pytest.raises((ValueError, IncidentNotFoundError)):
         await fs_store.get_raw("../../etc/passwd")
 
@@ -135,7 +135,7 @@ def sq_store(tmp_path: Path) -> SQLiteStore:
     ))
 
 
-async def test_sqlite_save_get_roundtrip(sq_store: SQLiteStore) -> None:
+async def test_sqlite_save_get_roundtrip(sq_store: SQLiteStore):
     report = _report()
     await sq_store.save_report(report)
     loaded = await sq_store.get_report(report.incident_id)
@@ -143,11 +143,11 @@ async def test_sqlite_save_get_roundtrip(sq_store: SQLiteStore) -> None:
     assert loaded.incident_id == report.incident_id
 
 
-async def test_sqlite_get_unknown_returns_none(sq_store: SQLiteStore) -> None:
+async def test_sqlite_get_unknown_returns_none(sq_store: SQLiteStore):
     assert await sq_store.get_report(uuid4()) is None
 
 
-async def test_sqlite_find_by_hash(sq_store: SQLiteStore) -> None:
+async def test_sqlite_find_by_hash(sq_store: SQLiteStore):
     report = _report(dump_hash="sha256:deadbeef")
     await sq_store.save_report(report)
     found = await sq_store.find_by_hash("sha256:deadbeef")
@@ -155,11 +155,11 @@ async def test_sqlite_find_by_hash(sq_store: SQLiteStore) -> None:
     assert found.incident_id == report.incident_id
 
 
-async def test_sqlite_find_by_hash_unknown(sq_store: SQLiteStore) -> None:
+async def test_sqlite_find_by_hash_unknown(sq_store: SQLiteStore):
     assert await sq_store.find_by_hash("sha256:no_such") is None
 
 
-async def test_sqlite_upsert_replaces_existing(sq_store: SQLiteStore) -> None:
+async def test_sqlite_upsert_replaces_existing(sq_store: SQLiteStore):
     report = _report(dump_hash="sha256:dup")
     await sq_store.save_report(report)
     report2 = report.model_copy(update={"root_cause": "Updated cause"})
@@ -169,7 +169,7 @@ async def test_sqlite_upsert_replaces_existing(sq_store: SQLiteStore) -> None:
     assert loaded.root_cause == "Updated cause"
 
 
-async def test_sqlite_update_hitl_response(sq_store: SQLiteStore) -> None:
+async def test_sqlite_update_hitl_response(sq_store: SQLiteStore):
     report = _report()
     await sq_store.save_report(report)
     await sq_store.update_hitl_response(report.incident_id, _hitl_payload())
@@ -179,7 +179,7 @@ async def test_sqlite_update_hitl_response(sq_store: SQLiteStore) -> None:
 
 
 # ---------------------------------------------------------------------------
-# S3Store — mocked boto3
+# S3Store - mocked boto3
 # ---------------------------------------------------------------------------
 
 
@@ -205,14 +205,14 @@ def _s3_no_such_key() -> Exception:
     return err
 
 
-async def test_s3_save_get_roundtrip(s3_store: S3Store) -> None:
+async def test_s3_save_get_roundtrip(s3_store: S3Store):
     report = _report(dump_hash="sha256:s3hash")
     client = s3_store._client
     # After save, simulate the report existing.
     client.put_object = mock.MagicMock()
     stored_json: dict[str, bytes] = {}
 
-    def _put(Bucket: str, Key: str, Body: bytes, **_: Any) -> None:  # noqa: N803
+    def _put(Bucket: str, Key: str, Body: bytes, **_: Any):  # noqa: N803
         stored_json[Key] = Body
 
     def _get(Bucket: str, Key: str, **_: Any) -> dict[str, Any]:  # noqa: N803
@@ -229,12 +229,12 @@ async def test_s3_save_get_roundtrip(s3_store: S3Store) -> None:
     assert loaded.incident_id == report.incident_id
 
 
-async def test_s3_find_by_hash(s3_store: S3Store) -> None:
+async def test_s3_find_by_hash(s3_store: S3Store):
     report = _report(dump_hash="sha256:findme")
     client = s3_store._client
     stored: dict[str, bytes] = {}
 
-    def _put(Bucket: str, Key: str, Body: bytes, **_: Any) -> None:  # noqa: N803
+    def _put(Bucket: str, Key: str, Body: bytes, **_: Any):  # noqa: N803
         stored[Key] = Body
 
     def _get(Bucket: str, Key: str, **_: Any) -> dict[str, Any]:  # noqa: N803
@@ -251,18 +251,18 @@ async def test_s3_find_by_hash(s3_store: S3Store) -> None:
     assert found.incident_id == report.incident_id
 
 
-async def test_s3_find_by_hash_unknown(s3_store: S3Store) -> None:
+async def test_s3_find_by_hash_unknown(s3_store: S3Store):
     s3_store._client.get_object.side_effect = _s3_no_such_key()
     result = await s3_store.find_by_hash("sha256:unknown")
     assert result is None
 
 
-async def test_s3_upload_raw_get_raw(s3_store: S3Store) -> None:
+async def test_s3_upload_raw_get_raw(s3_store: S3Store):
     incident_id = uuid4()
     data = b"\xDE\xAD\xBE\xEF"
     stored: dict[str, bytes] = {}
 
-    def _put(Bucket: str, Key: str, Body: bytes, **_: Any) -> None:  # noqa: N803
+    def _put(Bucket: str, Key: str, Body: bytes, **_: Any):  # noqa: N803
         stored[Key] = Body
 
     def _get(Bucket: str, Key: str, **_: Any) -> dict[str, Any]:  # noqa: N803
@@ -278,7 +278,7 @@ async def test_s3_upload_raw_get_raw(s3_store: S3Store) -> None:
 
 
 # ---------------------------------------------------------------------------
-# PostgresStore — stub
+# PostgresStore - stub
 # ---------------------------------------------------------------------------
 
 
@@ -287,22 +287,22 @@ def pg_store() -> PostgresStore:
     return PostgresStore(StorageSettings(provider="postgres"))
 
 
-async def test_postgres_save_raises(pg_store: PostgresStore) -> None:
+async def test_postgres_save_raises(pg_store: PostgresStore):
     with pytest.raises(NotImplementedError):
         await pg_store.save_report(_report())
 
 
-async def test_postgres_get_raises(pg_store: PostgresStore) -> None:
+async def test_postgres_get_raises(pg_store: PostgresStore):
     with pytest.raises(NotImplementedError):
         await pg_store.get_report(uuid4())
 
 
-async def test_postgres_find_by_hash_raises(pg_store: PostgresStore) -> None:
+async def test_postgres_find_by_hash_raises(pg_store: PostgresStore):
     with pytest.raises(NotImplementedError):
         await pg_store.find_by_hash("sha256:x")
 
 
-async def test_postgres_update_hitl_raises(pg_store: PostgresStore) -> None:
+async def test_postgres_update_hitl_raises(pg_store: PostgresStore):
     with pytest.raises(NotImplementedError):
         await pg_store.update_hitl_response(uuid4(), {})
 
@@ -312,7 +312,7 @@ async def test_postgres_update_hitl_raises(pg_store: PostgresStore) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_factory_filesystem(tmp_path: Path) -> None:
+def test_factory_filesystem(tmp_path: Path):
     settings = StorageSettings(
         provider="filesystem",
         reports_dir=str(tmp_path / "r"),
@@ -324,7 +324,7 @@ def test_factory_filesystem(tmp_path: Path) -> None:
     assert relational is object_store
 
 
-def test_factory_sqlite(tmp_path: Path) -> None:
+def test_factory_sqlite(tmp_path: Path):
     relational, object_store = create_storage_backends(StorageSettings(
         provider="sqlite", db_path=str(tmp_path / "t.db")
     ))
@@ -332,7 +332,7 @@ def test_factory_sqlite(tmp_path: Path) -> None:
     assert object_store is None
 
 
-def test_factory_s3() -> None:
+def test_factory_s3():
     with mock.patch("boto3.client"):
         relational, object_store = create_storage_backends(
             StorageSettings(provider="s3")
@@ -342,13 +342,13 @@ def test_factory_s3() -> None:
     assert relational is object_store
 
 
-def test_factory_postgres() -> None:
+def test_factory_postgres():
     relational, object_store = create_storage_backends(StorageSettings(provider="postgres"))
     assert isinstance(relational, PostgresStore)
     assert object_store is None
 
 
-def test_factory_unknown_provider_raises() -> None:
+def test_factory_unknown_provider_raises():
     settings = StorageSettings.__new__(StorageSettings)
     object.__setattr__(settings, "provider", "unknown_db")
     with pytest.raises(ValueError, match="Unknown storage provider"):

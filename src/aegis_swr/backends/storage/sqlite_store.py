@@ -15,12 +15,12 @@ Schema::
     )
 """
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 import json
 import sqlite3
 from pathlib import Path
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from loguru import logger
@@ -28,9 +28,7 @@ from loguru import logger
 from aegis_swr.backends.base import RelationalStore
 from aegis_swr.core.exceptions import IncidentNotFoundError
 from aegis_swr.core.schemas import RCAReport
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import StorageSettings
+from aegis_swr.config.settings import StorageSettings
 
 _CREATE = """
 CREATE TABLE IF NOT EXISTS reports (
@@ -55,13 +53,13 @@ VALUES (?, ?, ?, ?, ?)
 
 
 class SQLiteStore(RelationalStore):
-    """SQLite-backed report store; no external services required."""
+    """SQLite-backed report store; no external services required"""
 
-    def __init__(self, settings: StorageSettings) -> None:
+    def __init__(self, settings: StorageSettings):
         self._db_path = Path(settings.db_path).expanduser()
         self._init_db()
 
-    def _init_db(self) -> None:
+    def _init_db(self):
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(str(self._db_path), timeout=30) as conn:
             conn.execute(_CREATE)
@@ -75,10 +73,10 @@ class SQLiteStore(RelationalStore):
     # RelationalStore
     # ------------------------------------------------------------------
 
-    async def save_report(self, report: RCAReport) -> None:
+    async def save_report(self, report: RCAReport):
         await asyncio.to_thread(self._sync_save, report)
 
-    def _sync_save(self, report: RCAReport) -> None:
+    def _sync_save(self, report: RCAReport):
         row = (
             str(report.incident_id),
             report.dump_hash,
@@ -90,10 +88,10 @@ class SQLiteStore(RelationalStore):
             conn.execute(_UPSERT, row)
         logger.debug(f"SQLiteStore: saved report {report.incident_id}")
 
-    async def get_report(self, incident_id: UUID) -> RCAReport | None:
+    async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_get, str(incident_id))
 
-    def _sync_get(self, incident_id: str) -> RCAReport | None:
+    def _sync_get(self, incident_id: str) -> Optional[RCAReport]:
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT report_json FROM reports WHERE incident_id = ?",
@@ -103,10 +101,10 @@ class SQLiteStore(RelationalStore):
             return None
         return RCAReport.model_validate_json(row[0])
 
-    async def find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         return await asyncio.to_thread(self._sync_find_by_hash, dump_hash)
 
-    def _sync_find_by_hash(self, dump_hash: str) -> RCAReport | None:
+    def _sync_find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT report_json FROM reports WHERE dump_hash = ?",
@@ -120,14 +118,14 @@ class SQLiteStore(RelationalStore):
         self,
         incident_id: UUID,
         response: dict[str, object],
-    ) -> None:
+    ):
         await asyncio.to_thread(self._sync_update_hitl, str(incident_id), response)
 
     def _sync_update_hitl(
         self,
         incident_id: str,
         response: dict[str, object],
-    ) -> None:
+    ):
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT report_json FROM reports WHERE incident_id = ?",

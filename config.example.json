@@ -1,0 +1,110 @@
+{
+  "dump": null,
+  "logs": [],
+  "shots": [],
+  "pcaps": [],
+  "sym": null,
+  "assume": null,
+  "engine": "auto",
+  "store": "filesystem",
+  "store_config": null,
+  "code_provider": "none",
+  "repo": null,
+  "output": "rich",
+  "ingest": {
+    "log_source": {
+      "provider": "file",
+      "service": null
+    }
+  },
+  "logging": {
+    "severity": "INFO",
+    "sink": "file",
+    "dir": "~/.aegis-swr/logs",
+    "elk_url": null,
+    "fluent_host": null,
+    "fluent_port": null
+  },
+  "evidence": {
+    "severity": "INFO",
+    "persist": false,
+    "dir": null
+  },
+  "process": {
+    "severity": "INFO"
+  },
+  "core": {
+    "max_debate_rounds": 4,
+    "consensus_threshold": 0.85,
+    "hitl_confidence_threshold": 0.5,
+    "log_window_seconds": 30,
+    "user_assumption_token_limit": 500,
+    "stack_frames_limit": 20
+  },
+  "backends": {
+    "ai": {
+      "provider": "openai",
+      "model": "gpt-5.4",
+      "temperature": "0.2",
+      "max_tokens": 20000,
+      "stream": true
+    },
+    "debug": {
+      "engine": "auto",
+      "timeout_seconds": 300,
+      "callback_timeout_seconds": 60,
+      "max_faulting_frames": 20,
+      "max_other_thread_frames": 3,
+      "symbol_cache": null,
+      "symbol_server_url": null
+    },
+    "storage": {
+      "provider": "filesystem",
+      "reports_dir": "~/.aegis-swr/reports",
+      "objects_dir": "~/.aegis-swr/objects",
+      "db_path": "~/.aegis-swr/db/reports.db",
+      "database_url": "postgresql+asyncpg://aegis:aegis@localhost:5432/aegis",
+      "object_store_url": "s3://aegis-raw-inputs",
+      "object_store_region": "us-east-1",
+      "s3_endpoint_url": null,
+      "vector_store_url": "http://localhost:6333",
+      "vector_collection": "incident_history"
+    },
+    "log": {
+      "provider": "file",
+      "file_root": null,
+      "default_severity_levels": [
+        "FATAL",
+        "CRITICAL",
+        "ERROR",
+        "WARNING"
+      ],
+      "elk_url": null,
+      "fluent_host": null,
+      "fluent_port": null,
+      "fluent_tag_prefix": null
+    },
+    "code": {
+      "enabled": false,
+      "provider": "git",
+      "repo_path": null,
+      "window_hours": 2,
+      "commit_limit": 10,
+      "git_timeout_seconds": 30
+    }
+  },
+  "sandbox": {
+    "enabled": true,
+    "runtime": "docker",
+    "memory_mb": 256,
+    "cpu_limit": 0.5,
+    "timeout_seconds": 60
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "workers": 4,
+    "api_key_header": "X-Aegis-API-Key",
+    "rate_limit_per_minute": 10
+  }
+}

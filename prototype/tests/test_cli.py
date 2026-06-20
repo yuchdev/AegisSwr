@@ -1,4 +1,4 @@
-"""Tests for CLI helpers: SensitiveFilter, _validate_dump_path, check_environment."""
+"""Tests for CLI helpers: SensitiveFilter, _validate_dump_path, check_environment"""
 from __future__ import annotations
 
 import argparse
@@ -20,7 +20,7 @@ from wincrash_analyzer.core.crash_app import SensitiveFilter, CrashApp
 
 
 class TestSensitiveFilter:
-    """Verify that API key values are redacted from log records."""
+    """Verify that API key values are redacted from log records"""
 
     def _make_record(self, msg: str) -> logging.LogRecord:
         record = logging.LogRecord(
@@ -55,7 +55,7 @@ class TestSensitiveFilter:
         assert record.msg == "Starting debugger extraction"
 
     def test_filter_returns_true(self):
-        """filter() must always return True so the record is not dropped."""
+        """filter() must always return True so the record is not dropped"""
         f = SensitiveFilter()
         record = self._make_record("some message")
         assert f.filter(record) is True
@@ -67,7 +67,7 @@ class TestSensitiveFilter:
 
 
 class TestValidateDumpPath:
-    """Verify that non-.dmp paths are rejected."""
+    """Verify that non-.dmp paths are rejected"""
 
     def test_valid_dmp_extension_passes(self):
         assert _validate_dump_path("crash.dmp") == "crash.dmp"
@@ -93,7 +93,7 @@ class TestValidateDumpPath:
 
 
 class TestCheckEnvironment:
-    """Verify the pre-flight environment check."""
+    """Verify the pre-flight environment check"""
 
     @pytest.fixture
     def app(self):
@@ -145,7 +145,7 @@ class TestCheckEnvironment:
             patch("shutil.which", return_value="/usr/bin/cdb.exe"),
             patch("subprocess.run") as mock_run,
             patch.dict(os.environ, {}, clear=True),
-            caplog.at_level(logging.WARNING, logger="wincrash_analyzer.crash_app"),
+            caplog.at_level(logging.INFO, logger="wincrash_analyzer.crash_app"),
         ):
             mock_run.return_value.returncode = 0
             # Ensure keys are not set
@@ -162,7 +162,7 @@ class TestCheckEnvironment:
 
 
 def test_e2e_mock_payload_is_valid_json():
-    """The e2e mock payload asset must be valid, well-formed JSON."""
+    """The e2e mock payload asset must be valid, well-formed JSON"""
     asset_path = Path(__file__).parent / "assets" / "e2e_mock_payload.json"
     assert asset_path.exists(), "e2e_mock_payload.json is missing from tests/assets/"
     data = json.loads(asset_path.read_text())
@@ -173,7 +173,7 @@ def test_e2e_mock_payload_is_valid_json():
 
 
 def test_e2e_mock_payload_contains_expected_fields():
-    """Validate specific fields in the e2e mock payload."""
+    """Validate specific fields in the e2e mock payload"""
     asset_path = Path(__file__).parent / "assets" / "e2e_mock_payload.json"
     data = json.loads(asset_path.read_text())
     assert data["metadata"]["engine"] in ("cdb", "js")
@@ -188,7 +188,7 @@ def test_e2e_mock_payload_contains_expected_fields():
 
 
 def test_main_help_contains_subparser_options():
-    """Verify that the main help message includes options from subparsers."""
+    """Verify that the main help message includes options from subparsers"""
     parser, _, _ = create_parser()
     help_text = parser.format_help()
     

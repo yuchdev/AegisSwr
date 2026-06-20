@@ -7,7 +7,7 @@ name = "wincrash-analyzer"
 version = "1.0.0"
 description = "AI-powered Windows crash dump analyzer – automates WinDbg forensics with LLM root-cause analysis."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 keywords = ["windbg", "crash-dump", "debugging", "ai", "rca"]
 classifiers = [
@@ -17,7 +17,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Debuggers",
@@ -35,7 +35,44 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--cov=wincrash_analyzer --cov-report=html --cov-report=term-missing --cov-fail-under=85"
+
+[tool.coverage.run]
+source = ["wincrash_analyzer"]
+branch = true
+parallel = true
+omit = [
+    "*/site-packages/*",
+    "*/distutils/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "@abstractmethod",
+    "pass",
+    "except ImportError",
+    "except ImportError:",
+]
+precision = 2
+show_missing = true
+skip_covered = false
+fail_under = 85
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [project.scripts]
 wincrash-analyzer = "wincrash_analyzer.cli:main"

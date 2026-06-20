@@ -9,22 +9,20 @@ from __future__ import annotations
 
 import json
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError
 
 from aegis_swr.backends.base import AIAPIBackend
 from aegis_swr.core.exceptions import AIOutputValidationError
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import AISettings
+from aegis_swr.config.settings import AISettings
 
 
 class _BaseAIBackend(AIAPIBackend):
-    """Common generate()/token logic; providers implement _invoke() + stream()."""
+    """Common generate()/token logic; providers implement _invoke() + stream()"""
 
-    def __init__(self, settings: AISettings) -> None:
+    def __init__(self, settings: AISettings):
         self._settings = settings
         self.model_name = settings.resolved_model
         self._last_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0}
@@ -33,13 +31,13 @@ class _BaseAIBackend(AIAPIBackend):
 
     @property
     def last_usage(self) -> dict[str, int]:
-        """Token usage of the most recent :meth:`generate` call (incl. retries)."""
+        """Token usage of the most recent :meth:`generate` call (incl. retries)"""
         return dict(self._last_usage)
 
-    def _reset_usage(self) -> None:
+    def _reset_usage(self):
         self._last_usage = {"input_tokens": 0, "output_tokens": 0}
 
-    def _accumulate(self, usage: dict[str, int]) -> None:
+    def _accumulate(self, usage: dict[str, int]):
         self._last_usage["input_tokens"] += usage.get("input_tokens", 0)
         self._last_usage["output_tokens"] += usage.get("output_tokens", 0)
 
@@ -49,7 +47,7 @@ class _BaseAIBackend(AIAPIBackend):
         self,
         system_prompt: str,
         messages: list[dict[str, Any]],
-        output_schema: type[BaseModel] | None = None,
+        output_schema: Optional[type[BaseModel]] = None,
     ) -> BaseModel | str:
         self._reset_usage()
 
@@ -59,7 +57,7 @@ class _BaseAIBackend(AIAPIBackend):
             return raw if isinstance(raw, str) else json.dumps(raw)
 
         working = list(messages)
-        last_error: str | None = None
+        last_error: Optional[str] = None
         for attempt in range(2):
             raw, usage = await self._invoke(system_prompt, working, output_schema)
             self._accumulate(usage)
@@ -105,7 +103,7 @@ class _BaseAIBackend(AIAPIBackend):
         self,
         system_prompt: str,
         messages: list[dict[str, Any]],
-        output_schema: type[BaseModel] | None,
+        output_schema: Optional[type[BaseModel]],
     ) -> tuple[str | dict[str, Any], dict[str, int]]:
         """One API round-trip.
 

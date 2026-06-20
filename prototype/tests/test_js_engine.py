@@ -1,4 +1,4 @@
-"""Tests for the WinDbg JS engine backend (js_provider.py)."""
+"""Tests for the WinDbg JS engine backend (js_provider.py)"""
 from __future__ import annotations
 
 import json
@@ -26,7 +26,7 @@ _TEST_PORT = 9988
 
 @pytest.fixture(autouse=True)
 def _reset_queue():
-    """Drain the class-level queue before every test."""
+    """Drain the class-level queue before every test"""
     while not JSCallbackHandler.data_queue.empty():
         JSCallbackHandler.data_queue.get_nowait()
     yield
@@ -38,7 +38,7 @@ def _reset_queue():
 
 
 class TestGenerateJS:
-    """Verify the _generate_js method produces a valid JS script."""
+    """Verify the _generate_js method produces a valid JS script"""
 
     def setup_method(self):
         self.backend = JSProviderBackend()
@@ -47,7 +47,7 @@ class TestGenerateJS:
         assert EXPECTED_JS_PATH.exists(), "tests/assets/expected_script_output.js is missing"
 
     def test_output_matches_expected_asset(self):
-        """Generated JS for port 9999 must match the baseline asset."""
+        """Generated JS for port 9999 must match the baseline asset"""
         # Skipping exact match as the template was updated with new logic
         generated = self.backend._generate_js(9999, r"C:\Symbols")
         assert "ExceptionCode" in generated
@@ -77,10 +77,10 @@ class TestGenerateJS:
 
 
 class TestCallbackLoop:
-    """Verify JSProviderBackend processes a manual HTTP POST correctly."""
+    """Verify JSProviderBackend processes a manual HTTP POST correctly"""
 
     def test_manual_post_received_by_server(self):
-        """A manual POST to the server is dequeued from data_queue."""
+        """A manual POST to the server is dequeued from data_queue"""
         httpd, data_queue = start_listening(_TEST_PORT)
         try:
             payload = json.dumps({"ExceptionCode": "0xC0000005", "Threads": []})
@@ -98,7 +98,7 @@ class TestCallbackLoop:
             httpd.server_close()
 
     def test_extract_unreadable_dump_raises(self, tmp_path):
-        """extract() raises DebuggerEngineError for an unreadable dump."""
+        """extract() raises DebuggerEngineError for an unreadable dump"""
         dump = tmp_path / "test.dmp"
         dump.write_bytes(b"\x00")
         backend = JSProviderBackend()
@@ -107,7 +107,7 @@ class TestCallbackLoop:
                 backend.extract(str(dump), r"C:\Symbols")
 
     def test_extract_cdb_not_found_raises(self, tmp_path):
-        """extract() raises DebuggerNotFoundError when cdb.exe is missing."""
+        """extract() raises DebuggerNotFoundError when cdb.exe is missing"""
         dump = tmp_path / "test.dmp"
         dump.write_bytes(b"\x00")
         backend = JSProviderBackend()
@@ -116,7 +116,7 @@ class TestCallbackLoop:
                 backend.extract(str(dump), r"C:\Symbols")
 
     def test_extract_timeout_raises(self, tmp_path):
-        """extract() raises DebuggerEngineError when cdb.exe times out."""
+        """extract() raises DebuggerEngineError when cdb.exe times out"""
         import subprocess as _sp
 
         dump = tmp_path / "test.dmp"
@@ -130,7 +130,7 @@ class TestCallbackLoop:
                 backend.extract(str(dump), r"C:\Symbols")
 
     def test_extract_js_provider_unavailable_raises(self, tmp_path):
-        """extract() raises DebuggerEngineError when JsProvider.dll is missing."""
+        """extract() raises DebuggerEngineError when JsProvider.dll is missing"""
         dump = tmp_path / "test.dmp"
         dump.write_bytes(b"\x00")
         backend = JSProviderBackend()
@@ -143,7 +143,7 @@ class TestCallbackLoop:
                 backend.extract(str(dump), r"C:\Symbols")
 
     def test_extract_callback_timeout_raises(self, tmp_path):
-        """extract() raises DebuggerEngineError if the JS callback never arrives."""
+        """extract() raises DebuggerEngineError if the JS callback never arrives"""
         dump = tmp_path / "test.dmp"
         dump.write_bytes(b"\x00")
         backend = JSProviderBackend()

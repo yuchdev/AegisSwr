@@ -3,17 +3,15 @@
 Parses ``lldb --batch`` backtraces (LLDB reads minidumps and Mach-O core files)
 and maps Mach exception types to :class:`FaultClass`.
 """
+
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 from aegis_swr.backends.debug._base import _BaseDebugBackend, normalize_address
 from aegis_swr.core.fault_codes import FaultClass, map_macos_exception
-from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, StackFrame
-
-if TYPE_CHECKING:
-    from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, IncidentSource, StackFrame
 
 # Mach exception name -> type code (matches fault_codes._MACOS_EXCEPTION_MAP).
 _EXCEPTION_CODES = {
@@ -29,9 +27,9 @@ _EXCEPTION_CODES = {
 
 _STOP_REASON_RE = re.compile(r"stop reason\s*=\s*(EXC_[A-Z_]+)")
 _FRAME_RE = re.compile(
-    r"frame #(\d+):\s+"                  # frame number
-    r"(0x[0-9a-fA-F]+)"                 # address
-    r"(?:\s+(\S+?)`([^\s(+]+))?"        # optional module`function
+    r"frame #(\d+):\s+"  # frame number
+    r"(0x[0-9a-fA-F]+)"  # address
+    r"(?:\s+(\S+?)`([^\s(+]+))?"  # optional module`function
     r"(?:[^\n]*?\bat\s+(\S+?):(\d+))?",  # optional "at file:line"
 )
 
@@ -63,7 +61,7 @@ class LldbBackend(_BaseDebugBackend):
     def _build_command_sequence(
         self,
         source: IncidentSource,
-        symbol_path: str | None,
+        symbol_path: list[str],
     ) -> list[str]:
         return [
             "lldb",

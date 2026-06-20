@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Aegis SWR Claude Code agentic fleet
+.claude/logs/*.log
+.claude/state/

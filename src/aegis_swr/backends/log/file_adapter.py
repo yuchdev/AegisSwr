@@ -4,22 +4,20 @@ Returns log lines from local ``.log`` / ``.txt`` files whose parsed timestamp
 falls inside the requested window, optionally filtered by severity. The
 ``service`` name resolves to files under ``settings.file_root`` (when set).
 
-See ``docs/specs/PRODUCTION_DESIGN_SPEC.md`` §6.4.1.
+See ``docs/specs/generic_implementation_plan.md`` C.4 LogBackend
 """
 from __future__ import annotations
+from typing import Optional
 
 import asyncio
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from loguru import logger
 
 from aegis_swr.backends.base import LogBackend
 from aegis_swr.core.data_adapter import _parse_timestamp, _severity_token
-
-if TYPE_CHECKING:
-    from aegis_swr.config.settings import LogBackendSettings
+from aegis_swr.config.settings import LogBackendSettings
 
 
 def _safe_under(base: Path, candidate: Path) -> bool:
@@ -27,9 +25,9 @@ def _safe_under(base: Path, candidate: Path) -> bool:
 
 
 class FileLogAdapter(LogBackend):
-    """Reads windowed, severity-filtered log lines from local files."""
+    """Reads windowed, severity-filtered log lines from local files"""
 
-    def __init__(self, settings: LogBackendSettings) -> None:
+    def __init__(self, settings: LogBackendSettings):
         self._settings = settings
 
     async def query_window(
@@ -37,7 +35,7 @@ class FileLogAdapter(LogBackend):
         service: str,
         start_time: datetime,
         end_time: datetime,
-        severity_levels: list[str] | None = None,
+        severity_levels: Optional[list[str]] = None,
     ) -> list[str]:
         return await asyncio.to_thread(
             self._sync_query, service, start_time, end_time, severity_levels
@@ -48,7 +46,7 @@ class FileLogAdapter(LogBackend):
         service: str,
         start_time: datetime,
         end_time: datetime,
-        severity_levels: list[str] | None,
+        severity_levels: Optional[list[str]],
     ) -> list[str]:
         files = self._resolve_files(service)
         if not files:

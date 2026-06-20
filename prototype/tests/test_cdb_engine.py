@@ -1,4 +1,4 @@
-"""Tests for the CDB debugger backend (cdb.py)."""
+"""Tests for the CDB debugger backend (cdb.py)"""
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -25,7 +25,7 @@ def _raw_output() -> str:
 # ---------------------------------------------------------------------------
 
 class TestParseRawOutput:
-    """Verify the _parse_raw_output regex parser."""
+    """Verify the _parse_raw_output regex parser"""
 
     def setup_method(self):
         self.backend = CDBBackend()
@@ -68,7 +68,7 @@ class TestParseRawOutput:
 # ---------------------------------------------------------------------------
 
 class TestExtractTimeout:
-    """Verify that a long-running CDB process raises DebuggerEngineError."""
+    """Verify that a long-running CDB process raises DebuggerEngineError"""
 
     def test_timeout_raises_debugger_engine_error(self, tmp_path):
         dump_file = tmp_path / "test.dmp"
@@ -86,7 +86,7 @@ class TestExtractTimeout:
 # ---------------------------------------------------------------------------
 
 class TestExtractCdbErrors:
-    """Verify that cdb.exe errors raise appropriate exceptions."""
+    """Verify that cdb.exe errors raise appropriate exceptions"""
 
     def test_missing_cdb_raises_debugger_not_found_error(self, tmp_path):
         dump_file = tmp_path / "test.dmp"
@@ -115,7 +115,7 @@ class TestExtractCdbErrors:
 # ---------------------------------------------------------------------------
 
 class TestExtractUnreadableDump:
-    """Verify that an unreadable dump raises DebuggerEngineError before spawning."""
+    """Verify that an unreadable dump raises DebuggerEngineError before spawning"""
 
     def test_unreadable_dump_raises_before_subprocess(self, tmp_path):
         dump_file = tmp_path / "locked.dmp"
@@ -135,7 +135,7 @@ class TestExtractUnreadableDump:
 # ---------------------------------------------------------------------------
 
 class TestExtractSuccess:
-    """Verify happy-path extraction with a mocked subprocess."""
+    """Verify happy-path extraction with a mocked subprocess"""
 
     def test_successful_extraction_returns_filtered_output(self, tmp_path):
         dump_file = tmp_path / "test.dmp"

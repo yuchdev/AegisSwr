@@ -43,7 +43,7 @@ def _os_kernel_payload() -> dict[str, object]:
     }
 
 
-async def test_real_cdb_backend_through_adapter(settings: Settings, tmp_path: Path) -> None:
+async def test_real_cdb_backend_through_adapter(settings: Settings, tmp_path: Path):
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 64)
     source = IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path=str(dump))
@@ -67,7 +67,7 @@ async def test_real_cdb_backend_through_adapter(settings: Settings, tmp_path: Pa
     assert brief.low_symbol_coverage_warning is None
 
 
-async def test_real_cdb_then_mock_ai(settings: Settings, tmp_path: Path) -> None:
+async def test_real_cdb_then_mock_ai(settings: Settings, tmp_path: Path):
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 64)
     source = IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path=str(dump))
@@ -85,7 +85,7 @@ async def test_real_cdb_then_mock_ai(settings: Settings, tmp_path: Path) -> None
     assert result.exception_summary.fault_class == FaultClass.MEMORY_ACCESS_VIOLATION
 
 
-async def test_factory_linux_backend_through_adapter(settings: Settings, tmp_path: Path) -> None:
+async def test_factory_linux_backend_through_adapter(settings: Settings, tmp_path: Path):
     # ELF magic so the adapter detects LINUX_CORE; the GDB backend supports it.
     dump = tmp_path / "core.1234"
     dump.write_bytes(b"\x7fELF" + b"\x00" * 64)

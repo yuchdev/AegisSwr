@@ -1,0 +1,50 @@
+﻿╭──────────────────────────────── EVIDENCE STREAM (debug) ─────────────────────────────────╮╭──────────────────────────────────── FORENSIC AGENTS ─────────────────────────────────────╮
+│ 00:08  stack[14]    CrashUi!wl::window_main::winmain_run  @ 0x00007ff72a739234           ││ ✔ OS Kernel Agent     DONE                                                               │
+│ 00:08  stack[15]    CrashUi!wWinMain  @ 0x00007ff72a73f19e                               ││   ███████████████████░ 95%                                                               │
+│ 00:08  stack[16]    CrashUi!__scrt_common_main_seh  @ 0x00007ffaadb17614                 ││   User-mode access violation mapped to a null-pointer dereference. Debugger metadata ex… │
+│ 00:08  stack[17]    kernel32!BaseThreadInitThunk  @ 0x00007ffaaf0026a1                   ││ ──────────────────────────────────────────────────────────────────────────────────────── │
+│ 00:08  stack[18]    ntdll!RtlUserThreadStart  @ 0x0000000000000000                       ││ ✔ Code Analyst Agent  DONE                                                               │
+│ 00:08  core dump analysis (cdb !analyze -v):                                             ││   ████████████████████ 98%                                                               │
+│     │ ************* Preparing the environment for Debugger Extensions Gallery            ││   Root cause: Deliberate crash injection in the UI test/debug handler: the button click… │
+│ repositories **************                                                              ││ ──────────────────────────────────────────────────────────────────────────────────────── │
+│     │    ExtensionRepository : Implicit                                                  ││ ✔ Log Historian Agent DONE                                                               │
+│     │    UseExperimentalFeatureForNugetShare : true                                      ││   ███████████████████░ 97%                                                               │
+│     │    AllowNugetExeUpdate : true                                                      ││   No similar historical incidents were provided, so this appears to be a first-observed… │
+│     │    NonInteractiveNuget : true                                                      ││ ──────────────────────────────────────────────────────────────────────────────────────── │
+│     │    AllowNugetMSCredentialProviderInstall : true                                    ││ ✔ Skeptic Agent       DONE                                                               │
+│     │    AllowParallelInitializationOfLocalRepositories : true                           ││   ██████████████████░░ 90%                                                               │
+│     │                                                                                    ││   Confirmed (high): Deliberate crash injection in the UI test/debug handler: the button… │
+│     │    EnableRedirectToV8JsProvider : false                                            ││                                                                                          │
+│     │                                                                                    ││                                                                                          │
+│     │    -- Configuring repositories                                                     ││                                                                                          │
+│     │       ----> Repository : LocalInstalled, Enabled: true                             ││                                                                                          │
+│     │       ----> Repository : UserExtensions, Enabled: true                             ││                                                                                          │
+│     │                                                                                    ││                                                                                          │
+│     │ >>>>>>>>>>>>> Preparing the environment for Debugger Extensions Gallery            ││                                                                                          │
+│ repositories completed, duration 0.000 seconds                                           ││                                                                                          │
+│     │                                                                                    │╰──────────────────────────────────────── Round 1 ─────────────────────────────────────────╯
+│     │ ************* Waiting for Debugger Extensions Gallery to Initialize ************** │╭───────────────────────────────── INVESTIGATION PROCESS ──────────────────────────────────╮
+│     │                                                                                    ││ ✔ Investigation complete                                                                 │
+│     │ >>>>>>>>>>>>> Waiting for Debugger Extensions Gallery to Initialize completed,     ││ ██████████████████████  7/7  0:00:58                                                     │
+│ duration 0.313 seconds                                                                   ││                                                                                          │
+│     │    ----> Repository : UserExtensions, Enabled: true, Packages count: 0             ││ 00:24  OS Kernel » User-mode access violation mapped to a null-pointer dereference.      │
+│     │    ----> Repository : LocalInstalled, Enabled: true, Packages count: 30            ││ Debugger metadata explicitly reports AV.Dereference=NullPtr and AV.Fault=Write,          │
+│     │                                                                                    ││ indicating an attempted write through a null or near-null pointer inside CrashUi during  │
+│     │ Microsoft (R) Windows Debugger Version 10.0.26100.7705 AMD64                       ││ a UI button/message callback.                                                            │
+│     │ Copyright (c) Microsoft Corporation. All rights reserved.                          ││ 00:37  Code Analyst » Root cause: Deliberate crash injection in the UI test/debug        │
+│     │                                                                                    ││ handler: the button click path enters Crash_Window::on_access_violation_click and        │
+│     │                                                                                    ││ performs a write through a null pointer (or equivalent near-null lvalue), causing        │
+│     │ Loading Dump File [C:\LBS\CrashDumps\CrashUi.exe.1324.dmp]                         ││ 0xC0000005. The fault is application-owned and synchronous, not caused by external       │
+│     │ User Mini Dump File with Full Memory: Only application data is available           ││ corruption or OS instability.                                                            │
+│     │                                                                                    ││ 00:44  Log Historian » No similar historical incidents were provided, so this appears to │
+│     │                                                                                    ││ be a first-observed signature in the available history rather than a confirmed           │
+│     │ ************* Path validation summary **************                               ││ recurrence. Current signature is highly specific and stable: NULL_POINTER_WRITE c0000005 │
+│     │ Response                         Time (ms)     Location                            ││ in CrashUi!Crash_Window::on_access_violation_click, reached via normal button/message    │
+│     │ Deferred                                                                           ││ dispatch, which is consistent with an intentional crash-test/debug action. Because there │
+│ srv*C:\Users\atatat\AppData\Local\AegisSWR\symbols*https://msdl.microsoft.com/download/s ││ is no recurrence evidence to reinforce the diagnosis, confidence is adjusted slightly    │
+│ ymbols                                                                                   ││ downward despite the strong internal signature.                                          │
+│     │ Symbol search path is:                                                             ││ 00:57  Skeptic » Confirmed (high): Deliberate crash injection in the UI test/debug       │
+│ srv*C:\Users\atatat\AppData\Local\AegisSWR\symbols*https://msdl.microsoft.com/download/s ││ handler: the button click path enters Crash_Window::on_access_violation_click and        │
+│ ymbols                                                                                   ││ performs a write through a null pointer (or equivalent near-null lvalue), causing        │
+│     │ Executable search path is:                                                         ││ 0xC0000005. The fault is application-owned and synchronous, not caused by external       │
+╰──────────────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────── Round 1 ─────────────────────────────────────────╯

@@ -1,14 +1,12 @@
-"""Skeptic Agent — adversarial moderator / consensus challenger."""
+"""Skeptic Agent - adversarial moderator / consensus challenger"""
 from __future__ import annotations
+from typing import Optional
 
 import json
-from typing import TYPE_CHECKING
 
 from aegis_swr.agents.base import BaseAgent
 from aegis_swr.core.schemas import AgentTurn, ConfidenceLevel, Hypothesis, SkepticVerdict
-
-if TYPE_CHECKING:
-    from aegis_swr.core.schemas import InvestigationState
+from aegis_swr.core.schemas import InvestigationState
 
 _SYSTEM_PROMPT = """\
 You are the adversarial moderator of the Synthetic War Room. You receive the \
@@ -24,7 +22,7 @@ Always respond with a structured JSON object matching the SkepticVerdict schema.
 
 
 def _module_in_frames(module: str, frames: list[dict[str, object]]) -> bool:
-    """Return True if *module* appears in the top 5 stack frames."""
+    """Return True if *module* appears in the top 5 stack frames"""
     module_lower = module.lower()
     for frame in frames[:5]:
         frame_module = str(frame.get("module") or "").lower()
@@ -59,7 +57,7 @@ class SkepticAgent(BaseAgent):
                         "in top 5 stack frames."
                     ],
                     corrections=[
-                        f"Re-examine the stack — '{faulting_module}' may not be "
+                        f"Re-examine the stack - '{faulting_module}' may not be "
                         "the actual faulting module. Consider the top frames: "
                         + ", ".join(
                             str(f.get("module") or "unknown") for f in frames[:5]
@@ -91,7 +89,7 @@ class SkepticAgent(BaseAgent):
     @staticmethod
     def _build_turn(
         verdict: SkepticVerdict,
-        primary_hyp: dict[str, object] | None,
+        primary_hyp: Optional[dict[str, object]],
         round_num: int,
     ) -> AgentTurn:
         primary_root = str((primary_hyp or {}).get("root_cause") or "")

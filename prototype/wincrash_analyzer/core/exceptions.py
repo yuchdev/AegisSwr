@@ -1,4 +1,4 @@
-"""Custom exception hierarchy for WinCrash Analyzer."""
+"""Custom exception hierarchy for WinCrash Analyzer"""
 
 
 class WinCrashError(Exception):
@@ -22,15 +22,15 @@ WinCrashAnalyzerError = WinCrashError
 
 
 class DumpFileNotFoundError(WinCrashError):
-    """Raised when the specified dump file does not exist."""
+    """Raised when the specified dump file does not exist"""
 
 
 class DebuggerNotFoundError(WinCrashError):
-    """Raised when cdb.exe cannot be located on the system PATH."""
+    """Raised when cdb.exe cannot be located on the system PATH"""
 
 
 class DebuggerError(WinCrashError):
-    """Failures during cdb.exe or WinDbg execution."""
+    """Failures during cdb.exe or WinDbg execution"""
 
 
 # Backwards-compatible alias.
@@ -38,19 +38,19 @@ DebuggerEngineError = DebuggerError
 
 
 class SymbolMismatchError(DebuggerError):
-    """Raised when the .pdb GUID does not match the .dmp."""
+    """Raised when the .pdb GUID does not match the .dmp"""
 
 
 class AIBackendError(WinCrashError):
-    """API timeouts, rate limits, or safety blocks."""
+    """API timeouts, rate limits, or safety blocks"""
 
 
 class ProviderCallbackError(WinCrashError):
-    """Raised if the JS Provider fails to POST back to windbg_server."""
+    """Raised if the JS Provider fails to POST back to windbg_server"""
 
 
 class StorageBackendError(WinCrashError):
-    """Raised when a storage backend encounters an error."""
+    """Raised when a storage backend encounters an error"""
 
 
 # Backwards-compatible alias.

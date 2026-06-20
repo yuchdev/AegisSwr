@@ -6,15 +6,16 @@ data (exception record, all thread call stacks, module addresses) and POSTs the
 result as JSON to an ephemeral local HTTP bridge started by Python.
 
 Advantages over CdbBackend:
-- Returns typed JSON — no regex parsing of ``!analyze -v`` free text.
+- Returns typed JSON - no regex parsing of ``!analyze -v`` free text.
 - All threads returned (faulting thread at full depth; others summarised).
-- ``ExceptionAddress`` from DDM ``exc.Address`` — more reliable than inferring
+- ``ExceptionAddress`` from DDM ``exc.Address`` - more reliable than inferring
   it from the top stack frame.
 - Path toward live-process attachment (not only static dump files).
 
 Windows-only: the JS script uses ``ActiveXObject("MSXML2.XMLHTTP")`` (COM),
 which is only available inside the cdb/WinDbg Chakra-based WScript runtime.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -25,7 +26,7 @@ import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar, Optional
 
 from loguru import logger
 
@@ -34,10 +35,7 @@ from aegis_swr.backends.debug._symbol_path import resolve_symbol_path
 from aegis_swr.core.data_adapter import apply_noise_filter
 from aegis_swr.core.exceptions import DebugExtractionError
 from aegis_swr.core.fault_codes import map_windows_ntstatus
-from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, StackFrame
-
-if TYPE_CHECKING:
-    from aegis_swr.core.schemas import IncidentSource
+from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, IncidentSource, StackFrame
 
 _DEFAULT_SYMBOL_SERVER = "https://msdl.microsoft.com/download/symbols"
 _JS_ASSET_NAME = "windbg_diagnostic.js"
@@ -57,7 +55,7 @@ def _make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]:
     """
 
     class _Handler(BaseHTTPRequestHandler):
-        def do_POST(self) -> None:
+        def do_POST(self):
             try:
                 length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(length).decode("utf-8")
@@ -71,7 +69,7 @@ def _make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]:
                 self.send_response(500)
                 self.end_headers()
 
-        def log_message(self, *args: object) -> None:
+        def log_message(self, *args: object):
             pass  # suppress noisy HTTP access log lines
 
     return _Handler
@@ -84,10 +82,10 @@ class _CallbackBridge:
     available as ``self.port`` after ``__enter__``.
     """
 
-    def __init__(self, callback_timeout: int) -> None:
+    def __init__(self, callback_timeout: int):
         self._timeout = callback_timeout
         self._queue: queue.Queue[str] = queue.Queue()
-        self._server: HTTPServer | None = None
+        self._server: Optional[HTTPServer] = None
         self.port: int = 0
 
     def __enter__(self) -> _CallbackBridge:
@@ -99,7 +97,7 @@ class _CallbackBridge:
         logger.debug(f"WinDbg bridge listening on 127.0.0.1:{self.port}")
         return self
 
-    def __exit__(self, *_: object) -> None:
+    def __exit__(self, *_: object):
         if self._server is not None:
             self._server.shutdown()
             self._server.server_close()
@@ -115,7 +113,7 @@ class _CallbackBridge:
         except queue.Empty as exc:
             raise DebugExtractionError(
                 f"Timed out after {self._timeout}s waiting for WinDbg JS callback. "
-                "The script may have failed silently — check that JsProvider.dll is loaded."
+                "The script may have failed silently - check that JsProvider.dll is loaded."
             ) from exc
 
 
@@ -124,7 +122,7 @@ class _CallbackBridge:
 # ---------------------------------------------------------------------------
 
 
-def _unlink_safe(path: str) -> None:
+def _unlink_safe(path: str):
     try:
         os.unlink(path)
     except OSError:
@@ -148,15 +146,13 @@ class WinDbgJSBackend(_BaseDebugBackend):
     def extract(
         self,
         source: IncidentSource,
-        symbol_path: str | None,
+        symbol_path: list[str],
     ) -> DebugExtractionResult:
         self._validate(source)
         js_content = self._prepare_js_template()  # raises early if asset missing
 
         with contextlib.ExitStack() as stack:
-            bridge = stack.enter_context(
-                _CallbackBridge(self._settings.callback_timeout_seconds)
-            )
+            bridge = stack.enter_context(_CallbackBridge(self._settings.callback_timeout_seconds))
             js_source = self._inject_params(js_content, bridge.port)
 
             fd, tmp_path = tempfile.mkstemp(suffix=".js")
@@ -178,13 +174,13 @@ class WinDbgJSBackend(_BaseDebugBackend):
         return self._parse(payload, source)
 
     # ------------------------------------------------------------------
-    # ABC requirement — _build_command_sequence
+    # ABC requirement - _build_command_sequence
     # ------------------------------------------------------------------
 
     def _build_command_sequence(
         self,
         source: IncidentSource,
-        symbol_path: str | None,
+        symbol_path: list[str],
     ) -> list[str]:
         # This method satisfies the ABC contract and is used when the base
         # template method (which we override) would call it. In practice
@@ -199,39 +195,35 @@ class WinDbgJSBackend(_BaseDebugBackend):
         return Path(__file__).parent / "assets" / _JS_ASSET_NAME
 
     def _prepare_js_template(self) -> str:
-        """Read the JS asset; raise DebugExtractionError if it is missing."""
+        """Read the JS asset; raise DebugExtractionError if it is missing"""
         path = self._asset_path()
         if not path.exists():
             raise DebugExtractionError(
-                f"WinDbg JS asset not found: {path}. "
-                "Reinstall or repair the aegis-swr package."
+                f"WinDbg JS asset not found: {path}. Reinstall or repair the aegis-swr package."
             )
         return path.read_text(encoding="utf-8")
 
     def _inject_params(self, template: str, port: int) -> str:
-        """Substitute runtime tokens into the JS template."""
+        """Substitute runtime tokens into the JS template"""
         settings = self._settings
         max_faulting = getattr(settings, "max_faulting_frames", 20)
         max_other = getattr(settings, "max_other_thread_frames", 3)
         return (
-            template
-            .replace("__CALLBACK_URL__", f"http://127.0.0.1:{port}/")
+            template.replace("__CALLBACK_URL__", f"http://127.0.0.1:{port}/")
             .replace("__MAX_FAULTING_FRAMES__", str(max_faulting))
             .replace("__MAX_OTHER_FRAMES__", str(max_other))
         )
 
-    def _symbol_path_string(self, symbol_path: str | None) -> str:
+    def _symbol_path_string(self, symbol_paths: list[str]) -> str:
         cache = resolve_symbol_path(self._settings.symbol_cache)
         server = self._settings.symbol_server_url or _DEFAULT_SYMBOL_SERVER
-        chain = f"srv*{cache}*{server}"
-        if symbol_path:
-            chain = f"{chain};{symbol_path}"
-        return chain
+        parts = [f"srv*{cache}*{server}", *symbol_paths]
+        return ";".join(parts)
 
     def _js_command(
         self,
         source: IncidentSource,
-        symbol_path: str | None,
+        symbol_path: list[str],
         tmp_js_path: str,
     ) -> list[str]:
         return [
@@ -248,9 +240,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         try:
             data = json.loads(raw_json)
         except json.JSONDecodeError as exc:
-            raise DebugExtractionError(
-                f"WinDbg JS callback returned invalid JSON: {exc}"
-            ) from exc
+            raise DebugExtractionError(f"WinDbg JS callback returned invalid JSON: {exc}") from exc
 
         exception_code = data.get("ExceptionCode") or "0x0"
         fault_class = map_windows_ntstatus(exception_code)

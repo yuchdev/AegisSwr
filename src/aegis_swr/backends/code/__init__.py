@@ -5,14 +5,11 @@ returns ``None`` and Data Adapter Stage 8 is skipped.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+from typing import Optional
 from aegis_swr.backends.code.filesystem_adapter import FilesystemCodeAdapter
 from aegis_swr.backends.code.git_adapter import GitCodeAdapter
-
-if TYPE_CHECKING:
-    from aegis_swr.backends.base import CodeBackend
-    from aegis_swr.config.settings import CodeBackendSettings
+from aegis_swr.backends.base import CodeBackend
+from aegis_swr.config.settings import CodeBackendSettings
 
 __all__ = [
     "FilesystemCodeAdapter",
@@ -21,8 +18,8 @@ __all__ = [
 ]
 
 
-def create_code_backend(settings: CodeBackendSettings) -> CodeBackend | None:
-    """Return the configured ``CodeBackend`` or ``None`` when disabled."""
+def create_code_backend(settings: CodeBackendSettings) -> Optional[CodeBackend]:
+    """Return the configured ``CodeBackend`` or ``None`` when disabled"""
     if not settings.enabled:
         return None
     if settings.provider == "git":
