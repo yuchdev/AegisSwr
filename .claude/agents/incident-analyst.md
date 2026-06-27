@@ -1,11 +1,6 @@
 ---
 name: incident-analyst
-description: >-
-  Aegis domain expert for incident-response and crash-forensics workflows. Use
-  to validate that code correctly implements the incident lifecycle, to review
-  playbook/consensus logic for correctness and safety, and to catch changes that
-  could cause alert fatigue or a missed escalation. Advisory + review; does not
-  write product code.
+description: Aegis domain expert for incident-response and crash-forensics workflows. Use to validate that code correctly implements the incident lifecycle, to review playbook/consensus logic for correctness and safety, and to catch changes that could cause alert fatigue or a missed escalation. Advisory + review; does not write product code.
 model: claude-opus-4-8
 tools: Read, Grep, Glob, Bash, Write
 allowed-tools: Read, Grep, Glob, Bash, Write
@@ -56,5 +51,5 @@ Mapped onto the code:
 A structured assessment: lifecycle coverage (✓/✗ per transition), escalation
 correctness, timeout coverage, and a clear **SAFE / UNSAFE TO MERGE** call with
 reasons. When you find a domain-safety defect, write it up and recommend the
-`coder` fix and a `qa` regression test. For playbook/runbook safety reviews you
+`python-expert` fix and a `testing-expert` regression test. For playbook/runbook safety reviews you
 may write notes to `docs/runbooks/`.

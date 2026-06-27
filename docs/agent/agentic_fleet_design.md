@@ -51,7 +51,7 @@ security sensitivity; coding conventions (Python 3.12, `Optional[T]` never
 `T | None`, mypy strict, ruff, RAII, `SensitiveFilter`); the security rules
 (never log secrets, no hard-coded creds, all payloads sensitive); the testing
 mandate (unit per feature, integration per external, Stop-hook gate); commit
-discipline (Conventional Commits, atomic PRs, no direct pushes to `main`); the
+discipline (Conventional Commits, atomic PRs, no direct pushes to `master`); the
 docs mandate; the **delegation map**; **model tiering**; **worktree policy**;
 **context seeding**; the **audit trail** format; and **scheduled work**.
 
@@ -66,15 +66,15 @@ Each agent is a Markdown file with YAML front-matter (`name`, `description`,
 
 | Agent                 | Model             | Role (one line)                                                                                                            |
 |-----------------------|-------------------|----------------------------------------------------------------------------------------------------------------------------|
-| `architect`           | claude-opus-4-8   | Design, ADRs (MADR → `docs/adr/`), interface contracts, tech-debt. Never writes impl code.                                 |
-| `coder`               | claude-sonnet-4-6 | Implements features/fixes/refactors; reads ADR first; runs tests before+after; conventional commits.                       |
+| `app-architect`           | claude-opus-4-8   | Design, ADRs (MADR → `docs/adr/`), interface contracts, tech-debt. Never writes impl code.                                 |
+| `python-expert`               | claude-sonnet-4-6 | Implements features/fixes/refactors; reads ADR first; runs tests before+after; conventional commits.                       |
 | `feature-reviewer`    | claude-sonnet-4-6 | Pre-merge review (correctness, injection in payload handling, missing auth, unhandled errors); LGTM / REQUEST_CHANGES.     |
 | `background-reviewer` | claude-sonnet-4-6 | Async dep audit, secret scan, perf-regression, licence checks → `docs/reviews/`.                                           |
-| `qa`                  | claude-sonnet-4-6 | Unit + integration (mocked externals) tests, manual checklist in `docs/qa/`, coverage delta.                               |
-| `docs`                | claude-sonnet-4-6 | Docs, runbooks, OpenAPI refresh, docstrings; keeps `docs/` in sync.                                                        |
+| `testing-expert`                  | claude-sonnet-4-6 | Unit + integration (mocked externals) tests, manual checklist in `docs/qa/`, coverage delta.                               |
+| `docs-updater`                | claude-sonnet-4-6 | Docs, runbooks, OpenAPI refresh, docstrings; keeps `docs/` in sync.                                                        |
 | `incident-analyst`    | claude-opus-4-8   | *(Aegis-specific)* Validates lifecycle states, escalation paths, playbook safety; flags alert-fatigue / missed escalation. |
 | `security-auditor`    | claude-opus-4-8   | *(Aegis-specific)* Threat models → `docs/security/`; CRITICAL ⇒ merge BLOCK.                                               |
-| `orchestrator`        | claude-opus-4-8   | *(added)* Coordinates multi-agent "ticket → merged PR" flows.                                                              |
+| `agent-orchestrator`        | claude-opus-4-8   | *(added)* Coordinates multi-agent "ticket → merged PR" flows.                                                              |
 
 > On front-matter: Claude Code reads `tools` for subagents; `allowed-tools` is
 > included alongside it to satisfy the brief and is harmless where unused.
@@ -89,7 +89,7 @@ Each agent is a Markdown file with YAML front-matter (`name`, `description`,
 | `playbook-validate` | `/playbook-validate <path>`           | Step ordering, required fields, idempotency, rollback, auth, weight sums.            |
 | `adr-write`         | `/adr-write <title>`                  | Scaffold a MADR ADR, seeded from git log + open issues.                              |
 | `pr-review`         | `/pr-review [pr]`                     | Fan out `feature-reviewer` + `security-auditor` in parallel; synthesise one verdict. |
-| `test-gap`          | `/test-gap [path]`                    | Spawn `qa`; risk-ranked list of missing tests.                                       |
+| `test-gap`          | `/test-gap [path]`                    | Spawn `testing-expert`; risk-ranked list of missing tests.                                       |
 | `runbook-write`     | `/runbook-write <type>`               | Draft a runbook from the Aegis template.                                             |
 | `post-mortem`       | `/post-mortem [id]`                   | Blameless timeline (git + incident data), five-whys, action items.                   |
 | `dep-audit`         | auto (manifest change) + `/dep-audit` | CVE scan + licence check; deep write-up via `background-reviewer`.                   |
@@ -174,10 +174,10 @@ payloads and secrets stay out of context by default.
 
 ## 8. Model tiering (cost vs capability)
 
-- **Opus 4.8** - safety-critical / high-ambiguity reasoning: `architect`,
-  `incident-analyst`, `security-auditor`, `orchestrator`.
-- **Sonnet 4.6** - high-throughput execution and review: `coder`, `qa`,
-  `feature-reviewer`, `background-reviewer`, `docs`.
+- **Opus 4.8** - safety-critical / high-ambiguity reasoning: `app-architect`,
+  `incident-analyst`, `security-auditor`, `agent-orchestrator`.
+- **Sonnet 4.6** - high-throughput execution and review: `python-expert`, `testing-expert`,
+  `feature-reviewer`, `background-reviewer`, `docs-updater`.
 - **Haiku** - reserved for cheap mechanical jobs (log triage, formatting
   sweeps); never for incident-safety logic.
 
@@ -188,8 +188,7 @@ a wrong decision is expensive (domain safety, security, architecture).
 
 ## 9. Orchestration: ticket → merged PR
 
-The `orchestrator` agent runs the canonical sequence, parallelizing independent
-steps:
+The `agent-orchestrator` agent runs the canonical sequence, parallelizing independent steps:
 
 1. **architect** → ADR (gate: human approves) - *if non-trivial*.
 2. **coder** → branch plus implementation against the ADR; tests before/after.
@@ -198,7 +197,7 @@ steps:
    safety and threat model. *(only for relevant surfaces; CRITICAL ⇒ stop.)*
 5. **feature-reviewer** → LGTM / REQUEST_CHANGES; loop to coder until LGTM.
 6. **docs** → docs / OpenAPI / docstrings.
-7. **Land** → open PR (never push to `main`); summarize the audit trail.
+7. **Land** → open PR (never push to `master`); summarize the audit trail.
 
 For a single small change, skip the orchestrator and delegate directly per the
 map in `.claude/CLAUDE.md` §7.

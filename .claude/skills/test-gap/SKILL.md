@@ -14,10 +14,11 @@ Identify the highest-value missing tests for `$ARGUMENTS` (a module/dir, or the
 whole package if empty).
 
 ## Steps
+
 1. Establish current coverage:
    `poetry run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-missing`
    (scope with `--cov=aegis_swr.<subpkg>` when a path is given).
-2. Spawn the **`qa`** agent with the coverage output and the target path. Ask it
+2. Spawn the **`testing-expert`** agent with the coverage output and the target path. Ask it
    to map uncovered lines to behaviours and **risk-rank** them:
    - **P0**: consensus/skeptic logic, payload/dump/log parsing, escalation &
      HITL paths, security-relevant branches.
@@ -26,6 +27,7 @@ whole package if empty).
 3. Return the qa agent's prioritised list.
 
 ## Output
+
 ```
 ## Test Gap - <target> (coverage: NN%)
 ### P0 - must test
@@ -33,4 +35,4 @@ whole package if empty).
 ### P1 - should test
 ### P2 - nice to have
 ```
-Offer to have `qa` write the P0 tests next.
+Offer to have `testing-expert` write the P0 tests next.

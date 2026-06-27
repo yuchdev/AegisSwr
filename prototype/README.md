@@ -114,6 +114,7 @@ wincrash_analyzer/
 ### 5.3 Usage
 
 #### CLI
+
 Run the CLI by pointing it to a crash dump and your local release symbol folder:
 
 ```powershell
@@ -125,6 +126,7 @@ python -m wincrash_analyzer.cli analyze --dump "C:\Crashes\UiCrash.dmp" --sym "C
 ```
 
 #### GUI
+
 A PySide6-based graphical interface is also available for a more interactive experience.
 
 **Prerequisites:**

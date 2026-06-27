@@ -1,0 +1,12 @@
+[tool.ruff]
+src = ["src"]
+line-length = 120
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "C4"]
+
+# Disable the pyupgrade rules that rewrite it to the `X | None` shorthand:
+#   UP007 - Union[...]  -> X | Y
+#   UP045 - Optional[X] -> X | None
+ignore = ["UP007", "UP045"]

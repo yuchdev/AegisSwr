@@ -8,7 +8,7 @@ Amazon Bedrock API example using:
 - Verbose logging of every stage: credential loading, request, response, errors
 
 Model selection notes (ap-southeast-2, 2026-06):
-    Direct model IDs require provisioned throughput — use inference profiles.
+    Direct model IDs require provisioned throughput - use inference profiles.
 
     Profile                                  Max output   Thinking
     -------                                  ----------   --------

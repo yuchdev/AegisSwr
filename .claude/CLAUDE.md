@@ -67,7 +67,7 @@ and confidential.
 
 - **Conventional Commits**: `feat|fix|refactor|test|docs|chore|perf(scope): …`.
 - **Atomic PRs** - one logical change per PR; keep diffs reviewable.
-- **No direct pushes to `main`/`master`.** Branch → PR → review → merge.
+- **No direct pushes to `master`/`master`.** Branch → PR → review → merge.
 - A change touching investigation flow needs an `incident-analyst` pass; one
   touching auth/secrets/integrations/payload ingestion needs a
   `security-auditor` pass (CRITICAL ⇒ merge blocked).
@@ -83,24 +83,24 @@ and confidential.
 
 ## 7. Agent delegation map
 
-| Task | Delegate to |
-|------|-------------|
-| Design decisions, ADRs, interface contracts, tech-debt | `architect` |
-| Implementation, bug fixes, refactors | `coder` |
-| Tests, coverage, test-gap | `qa` |
-| Pre-merge correctness/domain review | `feature-reviewer` |
-| Async dep/secret/perf/licence audits | `background-reviewer` |
-| Docs, runbooks, OpenAPI, docstrings | `docs` |
-| Lifecycle/escalation/playbook safety | `incident-analyst` |
-| Threat models, security gate | `security-auditor` |
-| Multi-step "ticket → merged PR" coordination | `orchestrator` |
+| Task                                                   | Delegate to           |
+|--------------------------------------------------------|-----------------------|
+| Design decisions, ADRs, interface contracts, tech-debt | `app-architect`           |
+| Implementation, bug fixes, refactors                   | `python-expert`       |
+| Tests, coverage, test-gap                              | `testing-expert`      |
+| Pre-merge correctness/domain review                    | `feature-reviewer`    |
+| Async dep/secret/perf/licence audits                   | `background-reviewer` |
+| Docs, runbooks, OpenAPI, docstrings                    | `docs-updater`        |
+| Lifecycle/escalation/playbook safety                   | `incident-analyst`    |
+| Threat models, security gate                           | `security-auditor`    |
+| Multi-step "ticket → merged PR" coordination           | `agent-orchestrator`        |
 
 ## 8. Model tiering (cost vs capability)
 
-- **Opus 4.8** - deep reasoning where a wrong call is expensive: `architect`,
-  `incident-analyst`, `security-auditor`, `orchestrator`.
-- **Sonnet 4.6** - high-throughput execution & review: `coder`, `qa`,
-  `feature-reviewer`, `background-reviewer`, `docs`.
+- **Opus 4.8** - deep reasoning where a wrong call is expensive: `app-architect`,
+  `incident-analyst`, `security-auditor`, `agent-orchestrator`.
+- **Sonnet 4.6** - high-throughput execution & review: `python-expert`, `testing-expert`,
+  `feature-reviewer`, `background-reviewer`, `docs-updater`.
 - **Haiku** - reserve for cheap mechanical jobs (log triage, formatting sweeps,
   one-line lookups). Don't use it for anything touching incident-safety logic.
 

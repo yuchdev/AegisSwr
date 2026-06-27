@@ -74,7 +74,7 @@ def main() -> None:
     lines += [
         "",
         "Reminder: incident payloads are sensitive. Never log secrets or raw PII. "
-        "Delegate per .claude/CLAUDE.md (architect/coder/qa/reviewers/incident-analyst/"
+        "Delegate per .claude/CLAUDE.md (architect/coder/test/reviewers/incident-analyst/"
         "security-auditor).",
     ]
     print("\n".join(lines))

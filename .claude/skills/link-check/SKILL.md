@@ -17,6 +17,7 @@ heading. Backed by `scripts/check_doc_links.py` (the same checker the
 `doc_link_check` hook runs), so results match the automated gate.
 
 ## Steps
+
 1. Run the checker over `$ARGUMENTS` (or the whole doc set when no path is given):
    ```bash
    python scripts/check_doc_links.py $ARGUMENTS
@@ -29,6 +30,7 @@ heading. Backed by `scripts/check_doc_links.py` (the same checker the
 4. Re-run step 1 until it exits `0`.
 
 ## Output
+
 Report the findings fixed and confirm a clean `exit 0`. Note any link left
 intentionally dangling (e.g. a planned-but-unwritten doc) so reviewers know it is
 deliberate.

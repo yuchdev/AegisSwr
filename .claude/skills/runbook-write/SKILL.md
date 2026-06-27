@@ -14,6 +14,7 @@ Draft a runbook for the incident type `$ARGUMENTS` (e.g. `memory-access-
 violation`, `deadlock`, `resource-exhaustion`, `log-forensics-anomaly`).
 
 ## Steps
+
 1. Cross-reference the fault class against `agents.example.json`, `core/
    fault_codes.py`, and `IncidentMode` so the runbook matches real product
    classifications.
@@ -21,6 +22,7 @@ violation`, `deadlock`, `resource-exhaustion`, `log-forensics-anomaly`).
 3. Add an index line to `docs/README.md` and `docs/runbooks/` index if present.
 
 ## Aegis runbook template
+
 ```markdown
 # Runbook - <Incident Type>
 
@@ -53,5 +55,6 @@ violation`, `deadlock`, `resource-exhaustion`, `log-forensics-anomaly`).
 ```
 
 ## Output
+
 Print the runbook path. Recommend the `incident-analyst` agent review the
 mitigation/escalation steps for safety before the runbook is trusted.

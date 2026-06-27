@@ -36,6 +36,7 @@ a malformed one is a safety hazard.
    agent exceeds a sane ceiling.
 
 ## Output
+
 ```
 ## Playbook Validation - <file>
 **Verdict: VALID | INVALID**

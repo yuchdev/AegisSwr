@@ -3,20 +3,20 @@
 **For:** Claude Opus (Claude Code)  
 **Priority:** core infrastructure  
 **Scope:** new `aegis/router/` module + `agents.yaml` schema update + full test suite + docs  
-**Prerequisite:** UI MVC isolation task (`aegis-swr-ui-isolation-task.md`) must be complete — `aegis/core/` must contain zero terminal imports before this task begins  
+**Prerequisite:** UI MVC isolation task (`aegis-swr-ui-isolation-task.md`) must be complete - `aegis/core/` must contain zero terminal imports before this task begins  
 **Outcome:** Aegis SWR orchestrates all model calls through an embedded LiteLLM router; adding or swapping a model requires only an `agents.yaml` edit; zero provider SDKs imported outside `aegis/router/`
 
 ---
 
 ## Background
 
-Aegis SWR is a forensic analysis pipeline that currently references models by name in `agents.yaml` but has no unified routing layer — each agent potentially uses a different SDK. This task replaces that with an embedded LiteLLM router that provides:
+Aegis SWR is a forensic analysis pipeline that currently references models by name in `agents.yaml` but has no unified routing layer - each agent potentially uses a different SDK. This task replaces that with an embedded LiteLLM router that provides:
 
 - A single async call interface across all providers (Anthropic, DeepSeek, self-hosted vLLM, any future model)
 - Declarative fallback chains per agent role
 - Retry and timeout policy per agent role
 - Cost and latency telemetry emitted as `RouterEvent` events on the existing `EventBus`
-- Full provider isolation — only `aegis/router/` knows LiteLLM exists
+- Full provider isolation - only `aegis/router/` knows LiteLLM exists
 
 The self-hosted vLLM endpoint (OpenAI-compatible, at `${VLLM_BASE_URL}/v1`) is a first-class provider alongside cloud providers.
 
@@ -30,8 +30,8 @@ agents.yaml
     ▼
 aegis/router/
     config.py       ← RouterConfig, AgentConfig, ProviderConfig dataclasses
-    client.py       ← LiteLLMClient — single async completion interface
-    router.py       ← ModelRouter — resolves role → model, owns retry/fallback
+    client.py       ← LiteLLMClient - single async completion interface
+    router.py       ← ModelRouter - resolves role → model, owns retry/fallback
     events.py       ← RouterEvent, RouterError (emitted on EventBus)
     exceptions.py   ← RouterException, AllProvidersExhausted
     │
@@ -47,7 +47,7 @@ aegis/events.py     ← existing neutral event types (AgentUpdate, EvidenceLine,
 
 ---
 
-## Subtask 1 — `agents.yaml` Schema Extension
+## Subtask 1 - `agents.yaml` Schema Extension
 
 **File:** `aegis/config/agents.yaml`
 
@@ -117,7 +117,7 @@ agents:
 
 ---
 
-## Subtask 2 — `aegis/router/config.py`
+## Subtask 2 - `aegis/router/config.py`
 
 Implement typed dataclasses that parse `agents.yaml` into structured config objects.
 
@@ -170,13 +170,13 @@ class RouterConfig:
 **Acceptance criteria:**
 
 - [ ] `${ENV_VAR}` references in `api_key` and `base_url` are resolved via `os.environ`; missing vars raise `ConfigValidationError` listing all missing names at once (not one at a time)
-- [ ] `from_yaml()` is idempotent — calling it twice on the same file returns equal objects
+- [ ] `from_yaml()` is idempotent - calling it twice on the same file returns equal objects
 - [ ] All dataclasses are `frozen=True`
 - [ ] No LiteLLM import anywhere in this file
 
 ---
 
-## Subtask 3 — `aegis/router/client.py`
+## Subtask 3 - `aegis/router/client.py`
 
 Thin async wrapper around LiteLLM's completion API. This is the **only** file in the project that imports `litellm`.
 
@@ -210,7 +210,7 @@ class LiteLLMClient:
     """
     Async wrapper around litellm.acompletion.
     Handles provider-specific auth configuration.
-    Raises RouterException on all errors — never re-raises litellm internals.
+    Raises RouterException on all errors - never re-raises litellm internals.
     """
 
     def __init__(self, provider_configs: dict[str, ProviderConfig]) -> None:
@@ -225,7 +225,7 @@ class LiteLLMClient:
 
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
         """
-        Single model call. Does NOT implement retry or fallback — that is
+        Single model call. Does NOT implement retry or fallback - that is
         ModelRouter's responsibility.
         Raises RouterException wrapping the underlying cause on failure.
         """
@@ -234,14 +234,14 @@ class LiteLLMClient:
 
 **Acceptance criteria:**
 
-- [ ] `litellm` is imported **only** in this file — enforced by a `grep` check in CI (see Subtask 5)
+- [ ] `litellm` is imported **only** in this file - enforced by a `grep` check in CI (see Subtask 5)
 - [ ] `CompletionResponse.cost_usd` is populated using `litellm.completion_cost()` when available, `None` otherwise (no exception raised)
 - [ ] `latency_ms` is measured wall-clock from call entry to response receipt
 - [ ] All litellm exceptions are caught and re-raised as `RouterException` with the original as `__cause__`
 
 ---
 
-## Subtask 4 — `aegis/router/router.py`
+## Subtask 4 - `aegis/router/router.py`
 
 The orchestration layer. Resolves agent role → model, executes with retry/fallback, emits `RouterEvent` on the bus.
 
@@ -286,10 +286,10 @@ class ModelRouter:
         raise AllProvidersExhausted if all options fail.
 
         Emits on bus:
-          RouterCallStarted   — before each attempt
-          RouterCallCompleted — on success
-          RouterCallFailed    — on each individual attempt failure
-          RouterFallbackUsed  — when moving to next model in fallback chain
+          RouterCallStarted   - before each attempt
+          RouterCallCompleted - on success
+          RouterCallFailed    - on each individual attempt failure
+          RouterFallbackUsed  - when moving to next model in fallback chain
         """
         ...
 ```
@@ -324,14 +324,14 @@ raise AllProvidersExhausted(role=role, tried=[primary] + fallbacks)
 
 **Acceptance criteria:**
 
-- [ ] `ModelRouter` has no knowledge of LiteLLM internals — it only calls `LiteLLMClient.complete()`
+- [ ] `ModelRouter` has no knowledge of LiteLLM internals - it only calls `LiteLLMClient.complete()`
 - [ ] `run_id` is attached to every emitted `RouterEvent`
-- [ ] Backoff is `asyncio.sleep`, not `time.sleep` — never blocks the event loop
+- [ ] Backoff is `asyncio.sleep`, not `time.sleep` - never blocks the event loop
 - [ ] `AllProvidersExhausted` includes the full list of models tried and their individual error messages
 
 ---
 
-## Subtask 5 — `aegis/router/events.py` and `aegis/router/exceptions.py`
+## Subtask 5 - `aegis/router/events.py` and `aegis/router/exceptions.py`
 
 ### events.py
 
@@ -411,12 +411,12 @@ class AllProvidersExhausted(RouterException):
 **Acceptance criteria:**
 
 - [ ] All event dataclasses are `frozen=True`
-- [ ] All event dataclasses have a `ClassVar[str] event_type` — used by `EventBus` subscribers to filter by type without `isinstance` checks
-- [ ] `RouterCallCompleted` is the only event that contains token counts and cost — not duplicated elsewhere
+- [ ] All event dataclasses have a `ClassVar[str] event_type` - used by `EventBus` subscribers to filter by type without `isinstance` checks
+- [ ] `RouterCallCompleted` is the only event that contains token counts and cost - not duplicated elsewhere
 
 ---
 
-## Subtask 6 — Unit Tests
+## Subtask 6 - Unit Tests
 
 **Location:** `tests/router/`
 
@@ -452,7 +452,7 @@ def test_optional_fields_have_correct_defaults():
 ### `tests/router/test_client.py`
 
 ```python
-# Tests for LiteLLMClient — litellm.acompletion is always mocked
+# Tests for LiteLLMClient - litellm.acompletion is always mocked
 
 @pytest.fixture
 def mock_litellm_success(mocker):
@@ -496,7 +496,7 @@ async def test_litellm_is_only_imported_in_client():
 ### `tests/router/test_router.py`
 
 ```python
-# Tests for ModelRouter — LiteLLMClient is always mocked
+# Tests for ModelRouter - LiteLLMClient is always mocked
 
 @pytest.fixture
 def mock_client_success(mocker):
@@ -547,7 +547,7 @@ async def test_unknown_role_raises_key_error(mock_client_success, event_bus):
 
 ---
 
-## Subtask 7 — Mock Tests (Provider Simulation)
+## Subtask 7 - Mock Tests (Provider Simulation)
 
 **Location:** `tests/router/mocks/`
 
@@ -572,7 +572,7 @@ def make_context_length_provider():
     """Raises RouterException simulating 'context length exceeded' error."""
 
 def make_slow_provider(latency_ms: float = 500.0):
-    """Succeeds but with artificial latency — used to test timeout_s enforcement."""
+    """Succeeds but with artificial latency - used to test timeout_s enforcement."""
 
 def make_flaky_provider(failure_rate: float = 0.5, seed: int = 42):
     """Succeeds or fails randomly with a fixed seed for reproducibility."""
@@ -612,7 +612,7 @@ async def test_router_events_correct_for_rate_limit_retry_scenario():
 
 ---
 
-## Subtask 8 — Integration Tests
+## Subtask 8 - Integration Tests
 
 **Location:** `tests/integration/test_router_integration.py`
 
@@ -686,14 +686,14 @@ def router_with_all_bad_keys(tmp_path, monkeypatch):
 
 ---
 
-## Subtask 9 — Wire Router into Agent Layer
+## Subtask 9 - Wire Router into Agent Layer
 
 Update `aegis/core/agents/` to call `ModelRouter.complete()` instead of any direct SDK.
 
 **Target:** every agent that currently makes a model call.
 
 ```python
-# aegis/core/agents/base_agent.py  — AFTER
+# aegis/core/agents/base_agent.py  - AFTER
 
 from aegis.router.router import ModelRouter
 from aegis.router.exceptions import AllProvidersExhausted
@@ -728,17 +728,17 @@ class BaseAgent:
 **Acceptance criteria:**
 
 - [ ] No `import anthropic`, `import openai`, `import deepseek` in `aegis/core/agents/`
-- [ ] `BaseAgent.__init__` receives `ModelRouter` via constructor injection — no global state
+- [ ] `BaseAgent.__init__` receives `ModelRouter` via constructor injection - no global state
 - [ ] `AllProvidersExhausted` results in a `PipelineError` event on the bus before propagating
 
 ---
 
-## Subtask 10 — Update `app.py` Wiring
+## Subtask 10 - Update `app.py` Wiring
 
 `app.py` is the composition root. It must construct `RouterConfig → LiteLLMClient → ModelRouter` and inject `ModelRouter` into agents.
 
 ```python
-# aegis/app.py  — relevant section
+# aegis/app.py  - relevant section
 
 from aegis.router.config import RouterConfig
 from aegis.router.router import ModelRouter
@@ -760,12 +760,12 @@ def build_pipeline(config_dir: Path, bus: EventBus) -> Pipeline:
 **Acceptance criteria:**
 
 - [ ] `RouterConfig` is instantiated once at startup, not per-call
-- [ ] `ModelRouter` is shared across all agents — one instance, not one per agent
-- [ ] `--dry-run` CLI flag bypasses `LiteLLMClient` entirely (inject a `NullClient` that returns a fixed `CompletionResponse`) — useful for CI and UI testing
+- [ ] `ModelRouter` is shared across all agents - one instance, not one per agent
+- [ ] `--dry-run` CLI flag bypasses `LiteLLMClient` entirely (inject a `NullClient` that returns a fixed `CompletionResponse`) - useful for CI and UI testing
 
 ---
 
-## Subtask 11 — Documentation
+## Subtask 11 - Documentation
 
 ### `docs/config-reference.md` (new file)
 
@@ -890,6 +890,6 @@ Add to the CI pipeline (`.github/workflows/` or equivalent):
 
 - Implement subtasks in dependency order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11
 - Subtasks 6, 7, 8 can be implemented incrementally alongside their corresponding source subtasks (write tests as you implement, not after)
-- The `self_hosted` provider uses LiteLLM's `openai/` prefix with a custom `base_url` — model string in YAML is `self_hosted/<name>`, resolved to `openai/<name>` by `LiteLLMClient._configure_providers()` using the `base_url` from `ProviderConfig`
-- Do not implement cost-optimized routing (choosing cheapest model per call) in this task — that is a future enhancement; this task delivers reliable routing with explicit fallback only
+- The `self_hosted` provider uses LiteLLM's `openai/` prefix with a custom `base_url` - model string in YAML is `self_hosted/<name>`, resolved to `openai/<name>` by `LiteLLMClient._configure_providers()` using the `base_url` from `ProviderConfig`
+- Do not implement cost-optimized routing (choosing cheapest model per call) in this task - that is a future enhancement; this task delivers reliable routing with explicit fallback only
 - The `--dry-run` `NullClient` should return a `CompletionResponse` with `content="[dry-run]"`, zero tokens, zero cost, and 0ms latency

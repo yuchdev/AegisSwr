@@ -41,6 +41,7 @@
 ## Algorithmic Target Guidelines for the Data Adapter Layer
 
 ### Rule 1: Extract-then-Send (not Send-then-Truncate)
+
 The prototype truncates raw text after the AI call buffer fills. The Data Adapter must extract structured fields **before** any AI call. Only extracted fields and a compact, pre-filtered text block travel to the AI.
 
 **Structured fields to extract in Data Adapter:**
@@ -57,6 +58,7 @@ registers_rip_only:    str   (instruction pointer only)
 AI receives a compact JSON object + a short free-text block, not raw debugger output.
 
 ### Rule 2: Temporal Log Windowing
+
 ```
 log_window = ±30 seconds around crash_timestamp
 discard lines outside window
@@ -65,6 +67,7 @@ deduplicate consecutive identical lines (heartbeat flattening): keep first + cou
 Estimated reduction: 60–80% of typical application log volume.
 
 ### Rule 3: Global Noise Pre-Filter Pipeline
+
 Apply in order before any text leaves Data Adapter:
 1. Strip `DBGHELP: .* file not found` lines
 2. Replace `0xCCCCCCCC` (and `0xDDDDDDDD`, `0xFEEEFEEE`, `0xABABABAB`, `0xBAADF00D`) with `<fill>`
@@ -72,12 +75,14 @@ Apply in order before any text leaves Data Adapter:
 4. Apply head+tail truncation at 8,000 chars (4,000/4,000 split - tighter than prototype's 10k/5k/5k)
 
 ### Rule 4: Prompt Caching for System Instructions
+
 All stable system prompts (agent role, output schema, diagnostic taxonomy) must use the provider's prompt caching API:
 - Anthropic: `cache_control: {"type": "ephemeral"}` on the `system` block
 - Gemini: `cached_content` API for system instruction
 - Estimated savings: system prompt re-billed at ~10% of the normal rate on cache hits
 
 ### Rule 5: Conditional History Injection
+
 Only inject crash history if:
 - `faulting_module` matches a module that appears in ≥2 of the last 10 records, **or**
 - `exception_code` matches a code that appears in ≥3 of the last 10 records
@@ -85,6 +90,7 @@ Only inject crash history if:
 Otherwise, omit history block entirely (saves ~300 tokens per non-recurring crash).
 
 ### Rule 6: Structured Output Instead of Markdown Free-Text
+
 Request AI output as JSON with a defined schema (`RCAReport`) rather than a free-form Markdown string. Eliminates reparsing overhead and reduces output token count by removing Markdown decorators (`##`, `**`, `---`) which add ~5–10% token overhead to typical RCA responses.
 
 ---

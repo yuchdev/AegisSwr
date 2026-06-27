@@ -35,6 +35,7 @@ They run at machine speed and always produce the same result for the same input.
 ## Hook scripts
 
 ### `_common.py` - shared library
+
 Not a hook itself; imported by every hook. Provides:
 - `read_event()` - parse the hook JSON from stdin
 - `tool_input(event)` - extract the `tool_input` dict
@@ -157,7 +158,7 @@ signal. The authoritative dependency audit is the `/dep-audit` skill, which
 delegates a full CVE+licence report to `background-reviewer`.
 
 **What to do when it logs a finding:** run `/dep-audit` to get the full report
-with recommended version bumps, then have `coder` apply them.
+with recommended version bumps, then have `python-expert` apply them.
 
 ---
 

@@ -15,6 +15,7 @@ Run a unified review of the change identified by `$ARGUMENTS` (a PR number, a
 branch, or - if empty - the current working-tree diff).
 
 ## Steps
+
 1. **Resolve the diff.** If a PR number is given, fetch it via the `github` MCP
    (or `gh pr diff <n>`). If a branch, `git diff main...<branch>`. Otherwise use
    `git diff` of the working tree. Capture the file list and the diff.
@@ -26,6 +27,7 @@ branch, or - if empty - the current working-tree diff).
 3. **Wait for both**, then **synthesise** one comment.
 
 ## Unified output
+
 ```
 ## Aegis PR Review - <PR/branch>
 **Merge verdict: APPROVE | REQUEST_CHANGES | BLOCK (security)**

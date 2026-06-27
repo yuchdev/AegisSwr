@@ -6,7 +6,7 @@ render an investigation live:
 * :class:`WarRoomView` - a full-screen, three-pane "Synthetic War Room"
   (Evidence Stream | Forensic Agents / Investigation Process) built on
   :class:`rich.layout.Layout` inside a :class:`rich.live.Live`. See
-  ``docs/adr/new-ui-rich-based-design.md``.
+  ``docs/adr/new-ui_sketches-rich-based-design.md``.
 * :class:`RichView` - a simpler single-column trail, kept as a fallback for
   narrow terminals.
 

@@ -89,18 +89,6 @@ fail_under = 85
 [tool.coverage.html]
 directory = "htmlcov"
 
-[tool.ruff]
-src = ["src"]
-line-length = 100
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-# The project mandates Optional[T] (see CLAUDE.md and scripts/replace_optional.py).
-# Disable the pyupgrade rules that rewrite it to the `X | None` shorthand:
-#   UP007 - Union[...]  -> X | Y
-#   UP045 - Optional[X] -> X | None
-ignore = ["UP007", "UP045"]
-
 [tool.mypy]
 python_version = "3.12"
 strict = true

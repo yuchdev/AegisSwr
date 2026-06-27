@@ -16,6 +16,7 @@ advisory pass also runs automatically via the `dep_audit.py` PostToolUse hook
 when a manifest changes; this skill is the authoritative deep version.)
 
 ## Steps
+
 1. **Vulnerabilities**:
    - `poetry run pip-audit --progress-spinner off` (or `pip-audit` directly).
    - For each finding, note package, installed version, CVE/GHSA id, fixed
@@ -30,6 +31,7 @@ when a manifest changes; this skill is the authoritative deep version.)
    recommended bumps.
 
 ## Output
+
 ```
 ## Dependency Audit - <date>
 ### Vulnerabilities
@@ -39,5 +41,5 @@ when a manifest changes; this skill is the authoritative deep version.)
 ### Recommended actions (for coder)
 - bump <pkg> <old> → <new>
 ```
-If any CRITICAL/HIGH CVE is found, recommend an immediate `coder` bump + `qa`
+If any CRITICAL/HIGH CVE is found, recommend an immediate `python-expert` bump + `testing-expert`
 regression run before the next release.

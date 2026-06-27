@@ -72,7 +72,7 @@ Coverage settings are in:
 - **Main**: `pyproject.toml` and `.coveragerc`
 - **Prototype**: `pyproject.toml` and `.coveragerc`
 
-Full documentation: [docs/configuration/coverage.md](../configuration/coverage.md)
+Full documentation: [docs/configuration/coverage.md](../config/coverage.md)
 
 ### Tips
 
@@ -222,6 +222,7 @@ Make sure you test:
 If local tests show coverage < 85%:
 
 ### Step 1: Identify Coverage Gaps
+
 ```powershell
 # Open coverage report
 open htmlcov/index.html
@@ -253,6 +254,7 @@ def error_handler():  # pragma: no cover
 - Update `fail_under` in configuration
 
 ### Step 3: Re-verify
+
 ```powershell
 pytest
 # Should show ≥ 85% and PASS

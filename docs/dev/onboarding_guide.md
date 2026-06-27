@@ -25,7 +25,7 @@ application itself. They analyse crashes at runtime - `os_kernel`,
 call them in your terminal.
 
 **Dev agents** (`.claude/agents/`) are assistants that help you build the
-product. `architect`, `coder`, `qa`, `feature-reviewer`, `docs`, etc. You call
+product. `app-architect`, `python-expert`, `testing-expert`, `feature-reviewer`, `docs-updater`, etc. You call
 these in your Claude Code session. This tutorial is about these.
 
 ---
@@ -134,7 +134,7 @@ You have no idea where to start.
 
 **Step 1 - Get a design first**
 
-Ask the `architect` agent to design it before anyone writes code:
+Ask the `app-architect` agent to design it before anyone writes code:
 
 ```
 Use the architect agent to design how we should add CSV export for RCA reports.
@@ -147,7 +147,7 @@ The architect will:
 3. Check existing ADRs for precedent
 4. Propose 2–3 options with honest trade-offs
 5. Write an ADR to `docs/adr/NNNN-csv-export-for-rca-reports.md`
-6. List tasks for `coder` and `qa`
+6. List tasks for `python-expert` and `testing-expert`
 
 **Step 2 - Implement against the ADR**
 
@@ -309,7 +309,7 @@ The skill will:
 1. Reconstruct the timeline from git log and stored `RCAReport`s
 2. Walk through the five-whys with you
 3. Produce `docs/post-mortems/2024-01-12-INC-2024-0112.md`
-4. List action items routed to `coder`, `qa`, `docs`, `architect`
+4. List action items routed to `python-expert`, `testing-expert`, `docs-updater`, `app-architect`
 
 **Step 2 - Update the runbook if it was missing a step**
 
@@ -356,12 +356,12 @@ merged PR, pausing for my approval after the ADR and before merge.
 ```
 
 The orchestrator will:
-1. Have `architect` write an ADR - then **pause and ask you to approve**
-2. Have `coder` implement it
-3. Have `qa` write tests in parallel with `incident-analyst` and
+1. Have `app-architect` write an ADR - then **pause and ask you to approve**
+2. Have `python-expert` implement it
+3. Have `testing-expert` write tests in parallel with `incident-analyst` and
    `security-auditor` validation
-4. Have `feature-reviewer` review (loop to `coder` if REQUEST_CHANGES)
-5. Have `docs` update the reference
+4. Have `feature-reviewer` review (loop to `python-expert` if REQUEST_CHANGES)
+5. Have `docs-updater` update the reference
 6. **Pause and ask you to approve before opening the PR**
 
 Use the orchestrator when you want the full pipeline with guardrails, not when
@@ -418,7 +418,7 @@ under `[tool.ruff]`. Never ask Claude to disable the formatter.
 ### "I asked the architect to write code and it refused"
 
 Correct behaviour. The architect writes Markdown (ADRs and docs) only. To get
-code, tell `coder` to implement what the `architect` designed.
+code, tell `python-expert` to implement what the `app-architect` designed.
 
 ### "The feature-reviewer approved but security-auditor said BLOCK"
 

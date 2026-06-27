@@ -14,6 +14,7 @@ invocation: /adr-write <title>
 Scaffold a new ADR for the decision titled `$ARGUMENTS`.
 
 ## Steps
+
 1. Determine the next ADR number: list `docs/adr/`, find the highest
    `NNNN-` prefix, increment (zero-padded to 4 digits). If none exist, start at
    `0001`. Filename: `docs/adr/NNNN-<kebab-title>.md`.
@@ -25,6 +26,7 @@ Scaffold a new ADR for the decision titled `$ARGUMENTS`.
 4. Add an index line to `docs/README.md`.
 
 ## MADR template
+
 ```markdown
 # NNNN. <Title>
 
@@ -57,6 +59,7 @@ Chosen option: "<option>", because <justification>.
 ```
 
 ## Output
+
 Print the path of the created ADR and a one-line summary. Note that the
-`architect` agent owns the decision content - this skill only scaffolds and
+`app-architect` agent owns the decision content - this skill only scaffolds and
 seeds it. Leave it `Proposed` for human/architect sign-off.

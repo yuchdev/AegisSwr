@@ -16,12 +16,14 @@ Detect committed credentials. This skill shares its detection engine with the
 block use identical rules.
 
 ## How it works
+
 - **Automatic (block)**: `.claude/hooks/secret_scan.py` runs before every
   Write/Edit, scans the pending content, and exits 2 (blocking the write) if a
   likely secret is found. Findings are logged to `.claude/logs/secret-scan.log`.
 - **Manual (sweep)**: this skill scans files already on disk.
 
 ## Steps
+
 1. Resolve targets from `$ARGUMENTS`. If empty, sweep changed files:
    `git diff --name-only` + `git diff --cached --name-only` + untracked.
 2. Run the shared scanner:
@@ -30,12 +32,14 @@ block use identical rules.
    secret value beyond the short excerpt the scanner emits.
 
 ## Detected shapes
+
 AWS keys, Anthropic/OpenAI/Google API keys, GitHub & Slack tokens, private-key
 blocks, Postgres URLs with embedded passwords, and generic `password=`/`token=`
 assignments. Obvious placeholders (`example`, `${VAR}`, `your-…`, `changeme`)
 are ignored to limit false positives.
 
 ## Output
+
 ```
 ## Secret Scan - <N files>
 - <file:line>: <type>

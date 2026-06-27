@@ -47,13 +47,13 @@ Delegate each Agentic Execution Brief to the appropriate fleet agent in parallel
 where the spec allows it (independent briefs within one step can run concurrently;
 briefs with stated ordering dependencies run sequentially):
 
-| Spec role keyword            | Fleet agent                                                 |
-|------------------------------|-------------------------------------------------------------|
-| `*Engineer` (implementation) | `coder`                                                     |
-| `*TestEngineer`              | `qa`                                                        |
-| `*Architect` / `*Designer`   | `architect`                                                 |
-| Security / Auth / Middleware | `security-auditor` (advisory) then `coder` (implementation) |
-| `*DocumentationEngineer`     | `docs`                                                      |
+| Spec role keyword            | Fleet agent                                                         |
+|------------------------------|---------------------------------------------------------------------|
+| `*Engineer` (implementation) | `python-expert`                                                     |
+| `*TestEngineer`              | `testing-expert`                                                    |
+| `*Architect` / `*Designer`   | `app-architect`                                                         |
+| Security / Auth / Middleware | `security-auditor` (advisory) then `python-expert` (implementation) |
+| `*DocumentationEngineer`     | `docs-writer` then `docs-updater`                                   |
 
 Brief each coder/qa agent with:
 - The exact Inputs and Instructions from the spec brief
@@ -72,7 +72,7 @@ Coder picks up the threat model as an additional input.
 After all briefs for the step are done, run the Verification command(s) stated
 in each brief (e.g. `pytest tests/unit/test_api.py -v`, `mypy src/ --strict`).
 If any verification fails:
-- Diagnose the failure, delegate a fix to `coder`.
+- Diagnose the failure, delegate a fix to `python-expert`.
 - Re-run verification. Continue until green or until the failure is clearly a
   spec ambiguity requiring human input (in that case, stop the loop and surface
   the blocker to the user).
@@ -83,7 +83,7 @@ After verification is green, invoke the following skills as applicable:
 
 | Condition                                                    | Skill                                                                                                        |
 |--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
-| Always                                                       | `/test-gap src/aegis_swr/<phase-module>/` - report coverage delta; if < 85 % delegate missing tests to `qa`. |
+| Always                                                       | `/test-gap src/aegis_swr/<phase-module>/` - report coverage delta; if < 85 % delegate missing tests to `testing-expert`. |
 | `pyproject.toml` or any `requirements*.txt` changed          | `/dep-audit`                                                                                                 |
 | Any file under `api/`, `sandbox/`, or any middleware changed | `/secret-scan src/aegis_swr/<changed-module>/`                                                               |
 | Phase is complete (before updating status)                   | `/pr-review` - must get LGTM or REQUEST_CHANGES resolved before advancing.                                   |
@@ -111,7 +111,7 @@ Call ScheduleWakeup with:
 ### Phase 8 - REST API Layer
 
 Run `security-auditor` first on the auth middleware spec (§9 auth section).
-The `coder` reads the threat model before implementing `api/middleware/auth.py`.
+The `python-expert` reads the threat model before implementing `api/middleware/auth.py`.
 After the `APIEngineer` brief, verify `aegis server --help` exits 0 (the stub
 from Phase 7 must be wired to the real `uvicorn.run` call).
 
@@ -126,17 +126,17 @@ boundary** before the Docker command is constructed - the security-auditor must
 confirm this in its threat model before the coder starts.
 
 The Sandbox Dockerfiles (`sandbox/Dockerfile.cpp`, `sandbox/Dockerfile.python`)
-are implementation artifacts, not product code - the `coder` writes them, but they
+are implementation artifacts, not product code - the `python-expert` writes them, but they
 do not need mypy/ruff passes.
 
 ### Phase 10 - Testing & Hardening
 
 `GroundTruthEngineer` needs real fixture dumps from `prototype/tests/`. Delegate
-to `coder` with the explicit instruction to **not** invoke real AI backends --
+to `python-expert` with the explicit instruction to **not** invoke real AI backends --
 expected outputs are pre-computed ground truth, not live inference.
 
 `HardeningEngineer`'s `shell=True` audit (step 5 in its Instructions) is a
-code-review task: delegate to `feature-reviewer`, not `coder`. The reviewer must
+code-review task: delegate to `feature-reviewer`, not `python-expert`. The reviewer must
 grep for `shell=True` across all `backends/` and `sandbox/` and report any
 violations as blocking findings.
 

@@ -38,6 +38,7 @@ investigation pipeline
 (Hypothesis, SkepticVerdict, HITLRequest)
 
 ### What happens
+
 Runs a structured checklist against the change before it is considered done:
 
 1. **State-machine completeness** - every pipeline state
@@ -52,9 +53,10 @@ Runs a structured checklist against the change before it is considered done:
    or under-suppress real incidents.
 
 Each check is reported as ✓/✗ with a `file:line` citation. Failures produce a
-recommendation for `coder` and a `qa` regression test suggestion.
+recommendation for `python-expert` and a `testing-expert` regression test suggestion.
 
 ### Why it's automatic (not manual)
+
 The lifecycle invariants are easy to break inadvertently during refactors. An
 automatic trigger ensures the check happens before code leaves the session.
 
@@ -71,6 +73,7 @@ automatic trigger ensures the check happens before code leaves the session.
 ```
 
 ### What happens
+
 Validates a remediation playbook (YAML/JSON) or consensus-weight file:
 
 1. **Required fields** - checks that each step has `id`, `description`,
@@ -87,6 +90,7 @@ Validates a remediation playbook (YAML/JSON) or consensus-weight file:
    agent weights must sum to 1.0 ± 0.01.
 
 ### Output
+
 ```
 ## Playbook Validation - <file>
 **Verdict: VALID | INVALID**
@@ -97,6 +101,7 @@ Validates a remediation playbook (YAML/JSON) or consensus-weight file:
 ```
 
 ### When to use it
+
 Before trusting a playbook to drive any automated remediation, and after every
 edit to `agents.example.json`.
 
@@ -113,6 +118,7 @@ edit to `agents.example.json`.
 ```
 
 ### What happens
+
 Scaffolds a new Architecture Decision Record:
 
 1. Determines the next sequence number by listing `docs/adr/` and incrementing
@@ -124,6 +130,7 @@ Scaffolds a new Architecture Decision Record:
 4. Adds an index line to `docs/README.md`.
 
 ### The MADR sections scaffolded
+
 - Title, Status, Date, Deciders
 - Context and Problem Statement *(seeded from git log)*
 - Decision Drivers
@@ -132,13 +139,15 @@ Scaffolds a new Architecture Decision Record:
 - Pros and Cons per option
 
 ### What it does NOT do
-It scaffolds and seeds - it does not make the decision. The `architect` agent
+
+It scaffolds and seeds - it does not make the decision. The `app-architect` agent
 (or a human) fills in the options and writes the outcome. The skill is
 deliberately a scaffold, not a generator.
 
 ### When to use it
+
 Before starting any non-trivial change. Even if the decision is obvious, having
-an ADR provides a paper trail for future engineers and for the `coder`/`qa`
+an ADR provides a paper trail for future engineers and for the `python-expert`/`testing-expert`
 agents to reference.
 
 ---
@@ -155,6 +164,7 @@ agents to reference.
 ```
 
 ### What happens
+
 Runs a **parallel** review using two specialist agents:
 
 1. **Resolves the diff** - fetches from GitHub (PR number), runs `git diff
@@ -164,6 +174,7 @@ Runs a **parallel** review using two specialist agents:
 3. **Synthesises** their outputs into a single unified review comment.
 
 ### Output shape
+
 ```
 ## Aegis PR Review - <PR/branch>
 **Merge verdict: APPROVE | REQUEST_CHANGES | BLOCK (security)**
@@ -179,6 +190,7 @@ Verdict rules:
 - Any feature blocking issue → at minimum **REQUEST_CHANGES**
 
 ### When to use it
+
 Before merging any PR. Replaces running `feature-reviewer` and
 `security-auditor` separately - the two reviews run in parallel so total time
 is roughly that of one review.
@@ -197,9 +209,10 @@ is roughly that of one review.
 ```
 
 ### What happens
+
 1. Runs `poetry run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-
    missing` (scoped to the target path if given).
-2. Spawns the `qa` agent with the coverage output. The agent maps uncovered
+2. Spawns the `testing-expert` agent with the coverage output. The agent maps uncovered
    lines to behaviours and **risk-ranks** them:
    - **P0** - consensus/skeptic logic, payload parsing, escalation/HITL paths,
      security-relevant branches
@@ -207,6 +220,7 @@ is roughly that of one review.
    - **P2** - CLI/view formatting, logging helpers
 
 ### Output
+
 ```
 ## Test Gap - <target> (coverage: NN%)
 ### P0 - must test
@@ -215,9 +229,10 @@ is roughly that of one review.
 ### P2 - nice to have
 ```
 
-The skill then offers to have `qa` write the P0 tests immediately.
+The skill then offers to have `testing-expert` write the P0 tests immediately.
 
 ### When to use it
+
 - When inheriting a module and wanting to know where to start with tests
 - After a large refactor to verify coverage did not drop
 - On every PR as part of the `/pr-review` flow
@@ -237,6 +252,7 @@ The skill then offers to have `qa` write the P0 tests immediately.
 ```
 
 ### What happens
+
 1. Cross-references the incident type against `agents.example.json`
    (consensus weights), `core/fault_codes.py`, and `IncidentMode` so the
    runbook matches real product classifications.
@@ -244,6 +260,7 @@ The skill then offers to have `qa` write the P0 tests immediately.
 3. Adds an index line to `docs/README.md`.
 
 ### Template sections
+
 - Fault class / mode, severity default, owner / escalation
 - **Detection signals** - how Aegis surfaces this in the UI/events
 - **Triage (first 5 minutes)** - numbered steps with expected results
@@ -255,6 +272,7 @@ The skill then offers to have `qa` write the P0 tests immediately.
 - **Related** - ADRs, playbooks, prior post-mortems
 
 ### When to use it
+
 When a new fault class or `IncidentMode` is added, or when an on-call engineer
 reports a gap in existing operational knowledge.
 
@@ -271,6 +289,7 @@ reports a gap in existing operational knowledge.
 ```
 
 ### What happens
+
 Guides a **blameless** post-mortem (blameless = focus on systems, never on
 individuals):
 
@@ -282,13 +301,15 @@ individuals):
    each level.
 3. **Contributing factors** - what made detection/diagnosis/remediation slower.
 4. **Action items** - concrete, each with an owner routed to the right agent:
-   code fixes → `coder`, tests → `qa`, docs/runbook updates → `docs`, design
-   changes → `architect`.
+   code fixes → `python-expert`, tests → `testing-expert`, docs/runbook updates → `docs-updater`, design
+   changes → `app-architect`.
 
 ### Output location
+
 `docs/post-mortems/YYYY-MM-DD-<incident-id>.md`
 
 ### When to use it
+
 After any incident that was mitigated in production, regardless of severity.
 Even a near-miss is worth a brief post-mortem to capture the learning.
 
@@ -302,6 +323,7 @@ Even a near-miss is worth a brief post-mortem to capture the learning.
 the full skill is the authoritative version).
 
 ### What happens
+
 1. **CVE scan** - `poetry run pip-audit --progress-spinner off`; lists package,
    version, CVE/GHSA id, severity, and fixed version.
 2. **Outdated pins** - `poetry show --outdated`; flags majors behind with
@@ -313,6 +335,7 @@ the full skill is the authoritative version).
    version bumps.
 
 ### When to use it
+
 - Weekly (or set up as a scheduled cron - see `AEGIS_AGENTIC_FLEET.md §12`)
 - When adding a significant number of new dependencies
 - Before any external release
@@ -333,6 +356,7 @@ the full skill is the authoritative version).
 ```
 
 ### Detection patterns
+
 The scanner detects (not exhaustive):
 - AWS access key ids (`AKIA…`)
 - Anthropic API keys (`sk-ant-…`)
@@ -345,11 +369,13 @@ The scanner detects (not exhaustive):
 - Postgres connection strings with embedded passwords
 
 ### Allowlisted (not flagged)
+
 Lines containing obvious placeholder markers are skipped: `example`,
 `placeholder`, `your-`, `your_`, `changeme`, `dummy`, `xxxx`, `${`, `<your`,
 `redacted`, `fake`, `test`.
 
 ### What to do when it fires
+
 1. Remove the credential from the file
 2. If it was already committed, rotate the credential immediately
 3. Replace with a `${VAR_NAME}` reference (resolved from environment; see
@@ -358,6 +384,7 @@ Lines containing obvious placeholder markers are skipped: `example`,
    history (ask the team before doing this)
 
 ### When to use it manually
+
 Before a first PR, to sweep all files you changed. The automatic hook covers
 new writes, but the manual scan catches credentials that already existed.
 
@@ -371,6 +398,7 @@ edits, and at session Stop for docs changed in the working tree) - advisory,
 non-blocking.
 
 ### What happens
+
 1. Runs `python scripts/check_doc_links.py [paths]` - the single source of truth for
    link/anchor integrity (the hook calls the same script).
 2. Reports each dangling relative link (`missing file`) and missing heading anchor
@@ -380,12 +408,14 @@ non-blocking.
    *inbound* links.
 
 ### Scope
+
 `docs/**`, repo-root `*.md`, and `.claude/**` by default; or only the paths you pass.
 External links (http/https/mailto) and fenced code blocks are ignored.
 
 ### When to use it
+
 After editing, splitting, merging, or renaming any doc or heading - and as the final
-step of any `docs`-agent task.
+step of any `docs-updater`-agent task.
 
 ---
 
@@ -394,18 +424,21 @@ step of any `docs`-agent task.
 **Invocation:** `/doc-xref <target>` - a doc path, heading text/anchor, or public symbol
 
 ### What happens
+
 Finds every **inbound** reference to the target across both `docs/**` (+ repo-root
 `*.md`, `.claude/**`) and `src/**` / `tests/**` docstrings & comments, then updates
 them so a rename/move/split/rewording propagates everywhere instead of leaving stale
 pointers. Complements `/link-check` (which validates a file's *outbound* links).
 
 ### Steps
+
 1. `git grep -nF "<target>"` for the path / anchor / symbol (and any old name).
 2. Update each hit; `git mv` when renaming a whole file so history follows.
 3. Refresh the `docs/README.md` registry line if a file changed.
 4. Verify with `/link-check`.
 
 ### When to use it
+
 **Before** renaming/moving/splitting a doc, heading, or public symbol - the inbound
 half of reference integrity that the (outbound) link checker can't see.
 

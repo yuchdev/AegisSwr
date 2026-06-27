@@ -110,7 +110,7 @@ Split the findings from Step 3a and 3b into two buckets:
 
 Files under `docs/`, repo-root `*.md`, `.claude/**/*.md`.
 
-Delegate to the **`docs` agent** in a single call, passing:
+Delegate to the **`docs-updater` agent** in a single call, passing:
 - The full list of `(file, line, old_text, new_text)` replacements to make.
   For a rename, `new_text` is the new anchor / heading text; for a deletion
   with no replacement, `new_text` is `""` and the agent must decide whether
@@ -119,7 +119,7 @@ Delegate to the **`docs` agent** in a single call, passing:
 - The instruction: "Do not change anything beyond the stale references listed.
   Prefer updating the anchor slug over rewriting surrounding prose."
 - For Step 3b findings (outbound broken links from TARGET itself): also pass
-  those to the `docs` agent to fix in place.
+  those to the `docs-updater` agent to fix in place.
 
 #### Bucket B - code files (src/, tests/)
 
@@ -127,11 +127,11 @@ Files under `src/` and `tests/`, any extension.
 
 Classify each hit:
 - **Docstring reference** (`"""…See docs/…"""`, `:seealso:`, `References:` block):
-  delegate to the **`coder` agent**.
+  delegate to the **`python-expert` agent**.
 - **Inline comment** (`# See §X.Y`, `# docs/…#anchor`): delegate to the
-  **`coder` agent**.
+  **`python-expert` agent**.
 
-Brief the `coder` agent with:
+Brief the `python-expert` agent with:
 - The list of files and line numbers to fix.
 - The old anchor/text and its replacement.
 - The instruction: "Update the reference text only. Do not change logic,
@@ -171,12 +171,12 @@ Otherwise call ScheduleWakeup with:
 
 | Finding type | File location | Agent |
 |--------------|---------------|-------|
-| Broken anchor in a Markdown link | `docs/`, repo `*.md`, `.claude/` | `docs` |
-| Stale prose mention of old heading text | `docs/`, repo `*.md` | `docs` |
-| `docs/README.md` registry line (file renamed/moved) | `docs/README.md` | `docs` |
-| Docstring `See X §Y` or `:seealso:` reference | `src/`, `tests/` | `coder` |
-| Inline comment pointing to old anchor | `src/`, `tests/` | `coder` |
-| Broken outbound link inside TARGET itself | TARGET | `docs` |
+| Broken anchor in a Markdown link | `docs/`, repo `*.md`, `.claude/` | `docs-updater` |
+| Stale prose mention of old heading text | `docs/`, repo `*.md` | `docs-updater` |
+| `docs/README.md` registry line (file renamed/moved) | `docs/README.md` | `docs-updater` |
+| Docstring `See X §Y` or `:seealso:` reference | `src/`, `tests/` | `python-expert` |
+| Inline comment pointing to old anchor | `src/`, `tests/` | `python-expert` |
+| Broken outbound link inside TARGET itself | TARGET | `docs-updater` |
 
 Never delegate `.claude/CLAUDE.md` edits to an agent - surface those to the
 user; they require deliberate human review.
@@ -205,4 +205,4 @@ user; they require deliberate human review.
 | Step 6 exits 0 AND Step 3a found 0 stale refs | Print summary, stop |
 | Identical stale refs after two consecutive passes | Surface to user, stop |
 | No heading changes detected AND Step 3b finds 0 broken links | Print "Nothing to update", stop immediately |
-| `docs` or `coder` agent returns an edit conflict or ambiguity | Surface the specific file:line to user, continue with the rest |
+| `docs-updater` or `python-expert` agent returns an edit conflict or ambiguity | Surface the specific file:line to user, continue with the rest |

@@ -9,13 +9,13 @@ All design, planning, and analysis documents for the Aegis SWR project.
 How to use the Claude Code agent fleet, skills, and hooks for day-to-day
 development on Aegis SWR.
 
-| Document | Description |
-|---|---|
-| [tutorial.md](agent/tutorial.md) | **Start here.** Practical onboarding guide: scenarios for every common task, common mistakes, quick-reference card. Aimed at developers new to Claude Code. |
-| [agents.md](agent/agents.md) | Reference for all 9 dev agents (`architect`, `coder`, `qa`, `feature-reviewer`, `background-reviewer`, `docs`, `incident-analyst`, `security-auditor`, `orchestrator`): model, tools, responsibilities, when to use. |
-| [skills.md](agent/skills.md) | Reference for all 11 slash-command skills (`/adr-write`, `/pr-review`, `/test-gap`, `/runbook-write`, `/post-mortem`, `/dep-audit`, `/secret-scan`, `/playbook-validate`, `/link-check`, `/doc-xref`, `incident-triage`): invocation, step-by-step behaviour, when to use. |
-| [hooks.md](agent/hooks.md) | Reference for all hooks that run automatically (`guard_bash`, `secret_scan`, `post_edit_format`, `dep_audit`, `doc_link_check`, `github_audit`, `session_start`, `run_tests`): what each blocks/logs, override env vars, audit log locations. |
-| [agentic_fleet_design.md](agent/agentic_fleet_design.md) | Design and operational details for the agentic fleet: agent definitions, prompts, hooks, and orchestration guidance. |
+| Document                                                 | Description                                                                                                                                                                                                                                                                |
+|----------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [tutorial.md](agent/tutorial.md)                         | Practical onboarding guide: scenarios for every common task, common mistakes, quick-reference card. Aimed at developers new to Claude Code.                                                                                                                                |
+| [agents.md](agent/agents.md)                             | Reference for all 10 dev agents (`app-architect`, `background-reviewer`, `docs-updater`, `docs-writer`, `feature-reviewer`, `incident-analyst`, `python-expert`, `security-auditor`, `testing-expert`): model, tools, responsibilities, when to use.                       |
+| [skills.md](agent/skills.md)                             | Reference for all 11 slash-command skills (`/adr-write`, `/pr-review`, `/test-gap`, `/runbook-write`, `/post-mortem`, `/dep-audit`, `/secret-scan`, `/playbook-validate`, `/link-check`, `/doc-xref`, `incident-triage`): invocation, step-by-step behaviour, when to use. |
+| [hooks.md](agent/hooks.md)                               | Reference for all hooks that run automatically (`guard_bash`, `secret_scan`, `post_edit_format`, `dep_audit`, `doc_link_check`, `github_audit`, `session_start`, `run_tests`): what each blocks/logs, override env vars, audit log locations.                              |
+| [agentic_fleet_design.md](agent/agentic_fleet_design.md) | Design and operational details for the agentic fleet: agent definitions, prompts, hooks, and orchestration guidance.                                                                                                                                                       |
 
 ---
 
@@ -28,10 +28,10 @@ from the source of truth in `src/aegis_swr/`.
 
 | Document                              | Description                                                                                                                                                       |
 |---------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [cli.md](configuration/cli.md)        | Every `aegis` command (`analyze`, `export`, `server`, `config show/set`) with all options, defaults, allowed values, output modes, and exit codes.                |
-| [config.md](configuration/config.md)  | The unified `<config-dir>/config.json`: analyze keys (flat options plus the `ingest` / `logging` / `evidence` / `process` logging sections) and the nested `core` / `backends` / `sandbox` / `api` runtime sections, sources, precedence, and env overrides. |
-| [agents.md](configuration/agents.md)  | The `<config-dir>/agents.json` weight matrix: the four agents, all ten fault-class keys with default weights, and how the consensus score uses them.                    |
-| [coverage.md](configuration/coverage.md) | Test coverage configuration (85% threshold) for both the main project and prototype; commands, CI integration, and troubleshooting. |
+| [cli.md](config/cli.md)        | Every `aegis` command (`analyze`, `export`, `server`, `config show/set`) with all options, defaults, allowed values, output modes, and exit codes.                |
+| [config.md](config/config.md)  | The unified `<config-dir>/config.json`: analyze keys (flat options plus the `ingest` / `logging` / `evidence` / `process` logging sections) and the nested `core` / `backends` / `sandbox` / `api` runtime sections, sources, precedence, and env overrides. |
+| [agents.md](config/agents.md)  | The `<config-dir>/agents.json` weight matrix: the four agents, all ten fault-class keys with default weights, and how the consensus score uses them.                    |
+| [coverage.md](config/coverage.md) | Test coverage configuration (85% threshold) for both the main project and prototype; commands, CI integration, and troubleshooting. |
 
 ---
 
@@ -72,11 +72,11 @@ Outputs produced by the Phase 1.1 analysis run against the WinCrashAnalyzer prot
 
 ## QA (`qa/`)
 
-Project QA guidance, checklists, and coverage requirements used by `qa` agents and CI.
+Project QA guidance, checklists, and coverage requirements used by `testing-expert` agents and CI.
 
 | Document                                          | Description                                                                                                |
 |---------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| [code_test_coverage.md](qa/code_test_coverage.md) | Coverage requirements checklist, PR checklist, and runnable commands to validate coverage (85% threshold). |
+| [code_test_coverage.md](test/code_test_coverage.md) | Coverage requirements checklist, PR checklist, and runnable commands to validate coverage (85% threshold). |
 
 ---
 
@@ -86,5 +86,5 @@ Design notes and text mockups used by the UI team and for documentation/examples
 
 | Document                                                        | Description                                                                                                      |
 |-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| [ui-investigation-process.txt](ui/ui-investigation-process.txt) | ASCII mockup / example of the Investigation UI's Evidence Stream and Forensic Agents view (debug output sample). |
-| [ui-root-cause-analysis.txt](ui/ui-root-cause-analysis.txt)     | Plain-text Root Cause Analysis report example produced by the agents (RCA template / sample output).             |
+| [ui-investigation-process.txt](ui_sketches/ui-investigation-process.txt) | ASCII mockup / example of the Investigation UI's Evidence Stream and Forensic Agents view (debug output sample). |
+| [ui-root-cause-analysis.txt](ui_sketches/ui-root-cause-analysis.txt)     | Plain-text Root Cause Analysis report example produced by the agents (RCA template / sample output).             |

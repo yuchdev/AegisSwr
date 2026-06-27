@@ -17,6 +17,7 @@ file's *outbound* links; this finds *inbound* references so a change propagates
 instead of leaving stale pointers.
 
 ## Steps
+
 1. Enumerate inbound references across both trees:
    - **Docs**: links `](<path-or-anchor>)`, bare path mentions, and prose mentions
      of the heading/title in `docs/**`, repo-root `*.md`, and `.claude/**`.
@@ -34,5 +35,6 @@ instead of leaving stale pointers.
 5. Verify with `/link-check` (or `python scripts/check_doc_links.py`).
 
 ## Output
+
 List each reference updated (`file:line`, old → new) and confirm `/link-check`
 passes. Flag any reference you could not safely auto-update for human review.

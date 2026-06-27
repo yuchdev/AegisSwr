@@ -1011,6 +1011,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
 ## III.4 Development phases
 
 ### Phase A - Internal decoupling (no behavior change) ✅
+
 1. Thread **three** distinct levels through the call chain in place of the single
    reused `config.log_severity`: an application severity into `configure_logging`,
    and separate evidence/process levels into `stream_and_display`/`make_view`
@@ -1026,6 +1027,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    backward compatibility. No behavior change; all suites green.
 
 ### Phase B - Config schema split (`cli/_config.py`) ✅
+
 2. Add `AnalyzeConfig` fields: `evidence_severity`, `evidence_persist`, `evidence_dir`,
    `process_severity`, `log_sink`, `log_elk_url`, `log_fluent_host`, `log_fluent_port`
    (keep `log_severity`, `log_dir`, `log_provider`, `log_service`).
@@ -1052,6 +1054,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    Full suite green (393 passed).
 
 ### Phase C - CLI surface (`cli/commands.py`)
+
 4. Add `--evidence-severity`, `--evidence-persist/--no-evidence-persist`,
    `--process-severity`, `--log-sink`; keep `--log-severity`/`--log-dir`; clarify that
    `--log-provider`/`--log-service` configure `ingest.log_source`.
@@ -1059,6 +1062,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    otherwise); application accepts the full loguru range.
 
 ### Phase D - Evidence & process severity model (`views/rich_view.py`) ✅
+
 6. Split `WarRoomView._level` into `_evidence_level` and `_process_level`; pass each to
    the corresponding `_StreamLog.visible(...)` call. Gate `_on_evidence` /
    `_emit_trace_evidence` on the evidence level and the agent-reasoning detail in
@@ -1083,6 +1087,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    obsolete excerpt-cap test. Full suite green.
 
 ### Phase E - Application logging sinks (`cli/aegis_logging.py`) ✅
+
 8. Refactor `configure_logging(severity, *, sink="file", dir=None, elk_url=None,
    fluent_host=None, fluent_port=None)`; `file` keeps current rotating-file behavior;
    stderr always on; `_sensitive_filter` + the noisy-logger clamp apply to every sink.
@@ -1106,6 +1111,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    fallback file log captures the stub warning). Full suite green.
 
 ### Phase F - Evidence persistence (D5) ✅
+
 10. When `evidence.persist` is true, attach a file sink for the evidence stream under
     `evidence.dir` (default off). The full investigation trail already lives in the
     report files, so process-pane persistence is **not** added.
@@ -1128,6 +1134,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     Full suite green.
 
 ### Phase G - Wiring (`cli/commands.py`) ✅ (absorbed into C/E/F)
+
 11. `configure_logging(config.log_severity, sink=config.log_sink, dir=config.log_dir, …)`
     for diagnostics; `stream_and_display(evidence_level=config.evidence_severity,
     process_level=config.process_severity)` for the war room; evidence persistence per
@@ -1138,6 +1145,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     `evidence_persist`/`evidence_dir` in Phase F. Nothing remained for a standalone G.
 
 ### Phase H - Docs & config files ✅
+
 12. Update `docs/configuration/config.md` (four sections: `ingest.log_source`,
     `logging`, `evidence`, `process`, and the distinction from `backends.log`),
     `docs/configuration/cli.md` (new flag rows + validation), `config.example.json`,
@@ -1157,6 +1165,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     the four-section schema and all doc anchors resolve.
 
 ### Phase I - Tests ✅ (delivered incrementally with B–F, not as a separate phase)
+
 13. **Schema/IO** (`test_analyze_config.py`): dotted-path flatten/nest for all four
     sections; round-trip; legacy-flat-key-wins; defaults; legacy migration.
 14. **CLI** (`test_cli.py`): evidence/process severities independent of `--log-severity`
@@ -1173,6 +1182,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     evidence transcript + persistence; J: legacy migration). Full suite green throughout.
 
 ### Phase J - Back-compat & migration ✅
+
 17. If a legacy conflated `logging.severity` exists and `evidence`/`process` are absent,
     seed both from it (clamped to INFO/TRACE) with a one-time deprecation warning; old
     flat `log_*` keys still load via the override-wins path.

@@ -1,4 +1,4 @@
-"""Unified ``aegis analyze`` configuration: one schema, two sources.
+"""Unified ``aegis analyze`` config: one schema, two sources.
 
 Startup options can be supplied two ways, and both deserialize into the *same*
 dict shape and the *same* class:
@@ -169,7 +169,7 @@ def _migrate_legacy(data: Mapping[str, Any]) -> dict[str, Any]:
         logger.warning(
             "Deprecated config layout migrated (" + "; ".join(notes) + "). Update "
             "config.json to the ingest/logging/evidence/process sections - see "
-            "docs/configuration/config.md."
+            "docs/config/config.md."
         )
     return migrated
 
