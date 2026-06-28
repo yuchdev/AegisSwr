@@ -16,7 +16,12 @@ from aegis_swr.backends.ai import create_ai_backend
 from aegis_swr.backends.ai.anthropic_provider import AnthropicBackend
 from aegis_swr.backends.ai.aws_bedrock_provider import AwsBedrockBackend
 from aegis_swr.backends.ai.openai_provider import OpenAIBackend, _to_openai_strict_schema
-from aegis_swr.config.settings import AISettings
+from aegis_swr.config.settings import (
+    AISettings,
+    AnthropicSettings,
+    BedrockSettings,
+    OpenAISettings,
+)
 from aegis_swr.core.exceptions import AIBackendError, AIOutputValidationError
 from aegis_swr.core.schemas import Hypothesis
 
@@ -109,7 +114,7 @@ def _bedrock_stream_response(tokens: list[str]) -> dict[str, Any]:
 
 @pytest.fixture
 def anthropic_backend() -> tuple[AnthropicBackend, Any]:
-    settings = AISettings(provider="anthropic", model="claude-sonnet-4-6")
+    settings = AnthropicSettings(model="claude-sonnet-4-6")
     with mock.patch("anthropic.AsyncAnthropic") as cls:
         client = mock.MagicMock()
         cls.return_value = client
@@ -119,7 +124,7 @@ def anthropic_backend() -> tuple[AnthropicBackend, Any]:
 
 @pytest.fixture
 def openai_backend() -> tuple[OpenAIBackend, Any]:
-    settings = AISettings(provider="openai", model="gpt-5.4")
+    settings = OpenAISettings(model="gpt-5.4")
     with mock.patch("openai.AsyncOpenAI") as cls:
         client = mock.MagicMock()
         cls.return_value = client
@@ -130,7 +135,7 @@ def openai_backend() -> tuple[OpenAIBackend, Any]:
 @pytest.fixture
 def bedrock_backend(monkeypatch: pytest.MonkeyPatch) -> tuple[AwsBedrockBackend, Any]:
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "test-bearer-token")
-    settings = AISettings(provider="bedrock")
+    settings = BedrockSettings()
     client = mock.MagicMock()
     session = mock.MagicMock()
     session.client.return_value = client
@@ -285,7 +290,7 @@ async def test_openai_reasoning_model_uses_max_completion_tokens(
 
 
 async def test_openai_non_reasoning_model_uses_max_tokens():
-    settings = AISettings(provider="openai", model="gpt-4o", temperature=0.2, max_tokens=4096)
+    settings = OpenAISettings(model="gpt-4o", temperature=0.2, max_tokens=4096)
     with mock.patch("openai.AsyncOpenAI") as cls:
         client = mock.MagicMock()
         cls.return_value = client
@@ -480,7 +485,7 @@ def test_bedrock_registers_bearer_hook_when_token_present(
     session = mock.MagicMock()
     session.client.return_value = client
     with mock.patch("boto3.Session", return_value=session):
-        AwsBedrockBackend(AISettings(provider="bedrock"))
+        AwsBedrockBackend(BedrockSettings())
     client.meta.events.register.assert_called_once()
     event_name = client.meta.events.register.call_args.args[0]
     assert event_name == "before-send.bedrock-runtime.*"
@@ -492,14 +497,13 @@ def test_bedrock_no_bearer_hook_without_token(monkeypatch: pytest.MonkeyPatch):
     session = mock.MagicMock()
     session.client.return_value = client
     with mock.patch("boto3.Session", return_value=session):
-        AwsBedrockBackend(AISettings(provider="bedrock"))
+        AwsBedrockBackend(BedrockSettings())
     client.meta.events.register.assert_not_called()
 
 
 async def test_bedrock_thinking_enabled_for_free_form(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
-    settings = AISettings(provider="bedrock")
-    settings.bedrock.thinking_budget_tokens = 2048
+    settings = BedrockSettings(thinking_budget_tokens=2048)
     client = mock.MagicMock()
     session = mock.MagicMock()
     session.client.return_value = client
@@ -532,7 +536,7 @@ async def test_bedrock_thinking_enabled_for_free_form(monkeypatch: pytest.Monkey
 )
 def test_anthropic_has_reasoning(model: str, expected: bool):
     with mock.patch("anthropic.AsyncAnthropic"):
-        backend = AnthropicBackend(AISettings(provider="anthropic", model=model))
+        backend = AnthropicBackend(AnthropicSettings(model=model))
     assert backend.has_reasoning is expected
 
 
@@ -555,8 +559,7 @@ def test_bedrock_has_reasoning(
     monkeypatch: pytest.MonkeyPatch, model_id: str, expected: bool
 ):
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
-    settings = AISettings(provider="bedrock")
-    settings.bedrock.model_id = model_id
+    settings = BedrockSettings(model_id=model_id)
     session = mock.MagicMock()
     session.client.return_value = mock.MagicMock()
     with mock.patch("boto3.Session", return_value=session):
@@ -583,7 +586,7 @@ def test_factory_returns_anthropic():
 
 def test_factory_returns_openai():
     with mock.patch("openai.AsyncOpenAI"):
-        backend = create_ai_backend(AISettings(provider="openai", model="gpt-5.4"))
+        backend = create_ai_backend(AISettings(provider="openai"))
     assert isinstance(backend, OpenAIBackend)
 
 

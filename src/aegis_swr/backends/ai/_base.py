@@ -9,21 +9,25 @@ from __future__ import annotations
 
 import json
 from abc import abstractmethod
-from typing import Any, Optional
+from typing import Any, Generic, Optional, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError
 
 from aegis_swr.backends.base import AIAPIBackend
 from aegis_swr.core.exceptions import AIOutputValidationError
-from aegis_swr.config.settings import AISettings
+from aegis_swr.config.settings import ProviderSettingsBase
+
+#: The concrete provider sub-config a backend is parameterised over, so that
+#: ``self._settings`` is precisely typed in each provider implementation.
+_SettingsT = TypeVar("_SettingsT", bound=ProviderSettingsBase)
 
 
-class _BaseAIBackend(AIAPIBackend):
+class _BaseAIBackend(AIAPIBackend, Generic[_SettingsT]):
     """Common generate()/token logic; providers implement _invoke() + stream()"""
 
-    def __init__(self, settings: AISettings):
-        self._settings = settings
+    def __init__(self, settings: _SettingsT):
+        self._settings: _SettingsT = settings
         self.model_name = settings.resolved_model
         self._last_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0}
 

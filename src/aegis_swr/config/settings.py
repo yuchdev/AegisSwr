@@ -18,9 +18,10 @@ simply ignored, leaving the model defaults intact.
 
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Self
 
-from pydantic import Field, field_validator
+from loguru import logger
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
@@ -104,38 +105,187 @@ default. See :class:`BedrockSettings`.
 _BEDROCK_DEFAULT_MODEL = "au.anthropic.claude-sonnet-4-6"
 
 
-class BedrockSettings(BaseSettings):
-    """Amazon Bedrock backend configuration.
+#: Legacy flat ``backends.ai`` keys that were promoted into the per-provider
+#: sub-configs. Detected on load so a stale config produces a loud warning
+#: instead of silently losing its tuning (see :meth:`AISettings._warn_legacy`).
+_LEGACY_AI_KEYS = ("model", "temperature", "max_tokens")
 
-    Provider-specific knobs for :class:`~aegis_swr.backends.ai.aws_bedrock_provider.AwsBedrockBackend`.
+
+class ModelOverride(BaseModel):
+    """Per-model override of provider-level AI settings.
+
+    Every field is optional; ``None`` means "inherit the provider-level value".
+    A single override type serves all providers - when merged onto a concrete
+    provider config, keys that are not fields of that provider are ignored, so
+    e.g. ``reasoning_effort`` on a Bedrock override is harmlessly dropped. See
+    :meth:`ProviderSettingsBase.for_model`.
+
+    :ivar max_tokens: Override the maximum output-token budget.
+    :ivar temperature: Override the sampling temperature.
+    :ivar thinking_budget_tokens: Override the extended-thinking budget
+        (Anthropic / Bedrock).
+    :ivar reasoning_effort: Override the reasoning effort (OpenAI).
+    :ivar max_completion_tokens: Override the completion-token budget (OpenAI).
+    :ivar prompt_caching: Override ephemeral prompt caching (Anthropic).
+    :ivar timeout_seconds: Override the per-request timeout (Anthropic / OpenAI).
+    :ivar max_retries: Override the SDK retry count (Anthropic / OpenAI).
+    :ivar connect_timeout_seconds: Override the connect timeout (Bedrock).
+    :ivar read_timeout_seconds: Override the read timeout (Bedrock).
+    :ivar max_attempts: Override the botocore retry attempts (Bedrock).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    max_tokens: Optional[int] = None
+    temperature: Optional[float] = None
+    thinking_budget_tokens: Optional[int] = None
+    reasoning_effort: Optional[str] = None
+    max_completion_tokens: Optional[int] = None
+    prompt_caching: Optional[bool] = None
+    timeout_seconds: Optional[float] = None
+    max_retries: Optional[int] = None
+    connect_timeout_seconds: Optional[int] = None
+    read_timeout_seconds: Optional[int] = None
+    max_attempts: Optional[int] = None
+
+
+class ProviderSettingsBase(BaseModel):
+    """Common AI knobs shared by every provider sub-config.
+
+    Concrete providers (:class:`AnthropicSettings`, :class:`OpenAISettings`,
+    :class:`BedrockSettings`) extend this with their own capabilities. The
+    factory passes the resolved, per-model-merged sub-config (see
+    :meth:`for_model`) to the matching backend, so each backend sees a precise
+    type rather than the whole :class:`AISettings`.
+
+    :ivar model: Provider model name (Bedrock overrides identity via
+        ``model_id``; see :attr:`resolved_model`).
+    :ivar max_tokens: Maximum output-token budget for a single response.
+    :ivar temperature: Sampling temperature.
+    :ivar models: Optional per-model overrides keyed by :attr:`resolved_model`,
+        merged over the provider-level defaults by :meth:`for_model`.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    model: str = ""
+    max_tokens: int = 4096
+    temperature: float = 0.2
+    models: dict[str, ModelOverride] = Field(default_factory=dict)
+
+    @property
+    def resolved_model(self) -> str:
+        """Return the effective model identity (overridden by Bedrock)."""
+        return self.model
+
+    def for_model(self) -> Self:
+        """Return this config merged with the override for the active model.
+
+        Looks up :attr:`resolved_model` in :attr:`models`; if an override
+        exists, returns a copy with the override's non-``None`` fields applied
+        over the provider-level defaults (override wins). Fields that do not
+        belong to this provider are ignored. Returns ``self`` unchanged when no
+        override matches.
+        """
+        override = self.models.get(self.resolved_model)
+        if override is None:
+            return self
+        patch = {
+            key: value
+            for key, value in override.model_dump(exclude_none=True).items()
+            if key in type(self).model_fields and key not in ("model", "models")
+        }
+        return self.model_copy(update=patch)
+
+
+class AnthropicSettings(ProviderSettingsBase):
+    """Anthropic (Claude) provider configuration.
+
+    :ivar thinking_budget_tokens: Extended-thinking budget for free-form
+        generation. ``0`` (or any value below the 1024 model minimum) disables
+        thinking. Never applied to forced structured output.
+    :ivar prompt_caching: When ``True`` (default), the stable system prompt is
+        sent with an ephemeral ``cache_control`` block so it is billed at the
+        cached rate.
+    :ivar timeout_seconds: Per-request timeout passed to the Anthropic SDK.
+    :ivar max_retries: SDK retry count (exponential backoff on timeouts / 429 /
+        5xx).
+    """
+
+    model: str = _ANTHROPIC_DEFAULT_MODEL
+    thinking_budget_tokens: int = 0
+    prompt_caching: bool = True
+    timeout_seconds: float = 600.0
+    max_retries: int = 2
+
+    @property
+    def resolved_model(self) -> str:
+        """Return ``model`` when it looks like a Claude name, else the default."""
+        if self.model.startswith("claude"):
+            return self.model
+        return _ANTHROPIC_DEFAULT_MODEL
+
+
+class OpenAISettings(ProviderSettingsBase):
+    """OpenAI (GPT) provider configuration.
+
+    :ivar reasoning_effort: Reasoning effort (``"low"`` / ``"medium"`` /
+        ``"high"``) for reasoning models; ``None`` leaves the SDK default. Sent
+        only for reasoning-capable models (``gpt-5`` family).
+    :ivar max_completion_tokens: Completion-token budget used for reasoning
+        models (which reject ``max_tokens``); shared with internal reasoning
+        tokens, so it is generous by default.
+    :ivar timeout_seconds: Per-request timeout passed to the OpenAI SDK.
+    :ivar max_retries: SDK retry count (exponential backoff on timeouts / 429 /
+        5xx).
+    """
+
+    model: str = _OPENAI_DEFAULT_MODEL
+    reasoning_effort: Optional[str] = None
+    max_completion_tokens: int = 16000
+    timeout_seconds: float = 300.0
+    max_retries: int = 4
+
+    @property
+    def resolved_model(self) -> str:
+        """Return ``model`` when it looks like a GPT name, else the default."""
+        if self.model.startswith(_OPENAI_MODEL_PREFIXES):
+            return self.model
+        return _OPENAI_DEFAULT_MODEL
+
+
+class BedrockSettings(ProviderSettingsBase):
+    """Amazon Bedrock provider configuration.
+
     The backend authenticates with a bearer token (``AWS_BEARER_TOKEN_BEDROCK``)
     when one is present, otherwise it falls back to the standard boto3 SigV4
     credential chain (env / shared config / instance role). Credentials are read
     from the environment only - never stored in or logged from this model.
 
-    Fields
-    ------
-    region: str
-        AWS region hosting the model / inference profile. Overridable out of
-        band via ``AWS_DEFAULT_REGION``; this field takes precedence when set.
-    model_id: str
-        Model ID or cross-region inference profile (e.g.
-        ``au.anthropic.claude-sonnet-4-6``). This is the value surfaced as
-        :attr:`AISettings.resolved_model` when the provider is ``bedrock``.
-    thinking_budget_tokens: int
-        Extended-thinking budget. ``0`` disables thinking; values below the
-        model minimum (1024) are treated as disabled. Thinking is only applied
+    Bedrock has *two* token budgets: :attr:`max_tokens` (inherited) is the
+    absolute maximum output, while :attr:`thinking_budget_tokens` caps the
+    reasoning portion within it.
+
+    :ivar region: AWS region hosting the model / inference profile. Overridable
+        out of band via ``AWS_DEFAULT_REGION``; this field takes precedence when
+        set.
+    :ivar model_id: Model ID or cross-region inference profile (e.g.
+        ``au.anthropic.claude-sonnet-4-6``). Surfaced as :attr:`resolved_model`;
+        the inherited ``model`` field is unused for Bedrock.
+    :ivar thinking_budget_tokens: Extended-thinking (reasoning) budget. ``0`` (or
+        any value below the 1024 model minimum) disables thinking. Applied only
         to free-form generation - never to forced structured (tool) output,
         which Claude does not permit alongside thinking.
-    connect_timeout_seconds: int
-        TCP connect timeout for the bedrock-runtime client.
-    read_timeout_seconds: int
-        Socket read timeout; reasoning models can be slow, so this is generous.
-    max_attempts: int
-        botocore retry attempts (standard mode) for throttling / 5xx.
+    :ivar connect_timeout_seconds: TCP connect timeout for the bedrock-runtime
+        client.
+    :ivar read_timeout_seconds: Socket read timeout; reasoning models can be
+        slow, so this is generous.
+    :ivar max_attempts: botocore retry attempts (standard mode) for throttling /
+        5xx.
+    :ivar auth_mode: ``"auto"`` uses a bearer token when present and otherwise
+        SigV4; ``"bearer"`` forces bearer-token auth; ``"sigv4"`` forces the
+        credential chain even when a bearer token is set.
     """
-
-    model_config = SettingsConfigDict(extra="ignore")
 
     region: str = "ap-southeast-2"
     model_id: str = _BEDROCK_DEFAULT_MODEL
@@ -143,63 +293,82 @@ class BedrockSettings(BaseSettings):
     connect_timeout_seconds: int = 10
     read_timeout_seconds: int = 300
     max_attempts: int = 3
+    auth_mode: str = "auto"
+
+    @field_validator("auth_mode")
+    @classmethod
+    def validate_auth_mode(cls, v: str) -> str:
+        """Restrict ``auth_mode`` to the supported strategies."""
+        allowed = {"auto", "bearer", "sigv4"}
+        if v not in allowed:
+            raise ValueError(f"auth_mode must be one of {allowed}")
+        return v
+
+    @property
+    def resolved_model(self) -> str:
+        """Return the configured inference-profile ID verbatim."""
+        return self.model_id
 
 
 class AISettings(BaseSettings):
     """AI backend configuration.
 
-    Controls which AI provider and model are used and common model-level
-    parameters. The ``resolved_model`` property reconciles the configured
-    model string with the selected provider, returning a provider-appropriate
-    model name even when the user left the model value at the other provider's
-    default.
+    Selects the active ``provider`` and carries one typed sub-config per
+    provider (:attr:`anthropic`, :attr:`openai`, :attr:`bedrock`). All three
+    blocks coexist, so switching provider is a one-field change that preserves
+    every provider's tuning. Each sub-config exposes only the knobs that
+    provider actually supports plus an optional per-model override map.
     """
 
     model_config = SettingsConfigDict(extra="ignore")
 
     provider: str = "anthropic"
-    model: str = _ANTHROPIC_DEFAULT_MODEL
-    temperature: float = 0.2
-    max_tokens: int = 4096
     stream: bool = True
 
-    #: Provider-specific Amazon Bedrock settings (region, inference profile,
-    #: thinking budget, timeouts). Only consulted when ``provider == "bedrock"``.
+    anthropic: AnthropicSettings = Field(default_factory=AnthropicSettings)
+    openai: OpenAISettings = Field(default_factory=OpenAISettings)
     bedrock: BedrockSettings = Field(default_factory=BedrockSettings)
 
     @field_validator("provider")
     @classmethod
     def validate_provider(cls, v: str) -> str:
+        """Restrict ``provider`` to a backend that has a sub-config + factory."""
         allowed = {"anthropic", "openai", "bedrock"}
         if v not in allowed:
             raise ValueError(f"provider must be one of {allowed}")
         return v
 
+    @model_validator(mode="before")
+    @classmethod
+    def _warn_legacy(cls, data: Any) -> Any:
+        """Warn (once) when a stale flat ``backends.ai`` layout is detected.
+
+        The flat ``model`` / ``temperature`` / ``max_tokens`` keys moved into the
+        per-provider sub-configs. They are no longer read (``extra="ignore"``
+        drops them); emitting a warning here prevents silent loss of tuning. No
+        migration is performed - only key names are logged, never values.
+        """
+        if isinstance(data, dict):
+            stale = [key for key in _LEGACY_AI_KEYS if key in data]
+            if stale:
+                logger.warning(
+                    "Ignoring legacy flat backends.ai keys {}; move them under "
+                    "backends.ai.<provider> (e.g. backends.ai.anthropic.max_tokens). "
+                    "See docs/config/config.md.",
+                    stale,
+                )
+        return data
+
+    @property
+    def active(self) -> ProviderSettingsBase:
+        """Return the selected provider's sub-config, merged for its model."""
+        sub: ProviderSettingsBase = getattr(self, self.provider)
+        return sub.for_model()
+
     @property
     def resolved_model(self) -> str:
-        """Return a provider-correct model name.
-
-        If the configured ``model`` string does not look like one belonging to
-        the chosen ``provider``, a sensible default for that provider is
-        returned. This avoids accidental API rejections when switching providers
-        but keeping the other provider's default model name.
-
-        For ``bedrock`` the model identity lives in the dedicated
-        :attr:`bedrock.model_id` (an inference-profile ID, which has a very
-        different shape from a bare ``claude``/``gpt`` name), so that value is
-        returned verbatim and the top-level ``model`` field is ignored.
-        """
-        if self.provider == "openai":
-            if self.model.startswith(_OPENAI_MODEL_PREFIXES):
-                return self.model
-            return _OPENAI_DEFAULT_MODEL
-        if self.provider == "anthropic":
-            if self.model.startswith("claude"):
-                return self.model
-            return _ANTHROPIC_DEFAULT_MODEL
-        if self.provider == "bedrock":
-            return self.bedrock.model_id
-        return self.model
+        """Return the effective model identity for the active provider."""
+        return self.active.resolved_model
 
 
 class DebugSettings(BaseSettings):

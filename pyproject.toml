@@ -53,6 +53,14 @@ types-boto3 = "^1.35"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.flake8_lint_tests]
+# Selects which custom X-rules tests/flake8_lint/test_plugin_direct.py exercises.
+#   include: when non-empty, only these rule codes are tested (whitelist).
+#   exclude: rule codes to skip (blacklist); applied after include, so it wins.
+# Leaving both empty (the default) tests every rule X001-X011.
+include = []
+exclude = []
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

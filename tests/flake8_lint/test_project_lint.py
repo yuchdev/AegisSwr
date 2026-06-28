@@ -23,9 +23,9 @@ from flake8_project_rules.plugin import ProjectRulesPlugin
 PROJECT_ROOT = Path(__file__).parents[2]
 
 # Directory names that are conventionally git-ignored. They are always dropped,
-# even when a broad root such as ``src`` or ``tests`` is included, so a scan
-# never descends into build artefacts, virtualenvs, or tool caches. The list
-# mirrors the directory entries in the project ``.gitignore``.
+# even when a broad root such as `src` or `tests` is included, so a scan
+# never descends into build artifacts, virtualenvs, or tool caches. The list
+# mirrors the directory entries in the project `.gitignore`
 _DEFAULT_EXCLUDED_DIR_NAMES = frozenset(
     {
         "__pycache__",

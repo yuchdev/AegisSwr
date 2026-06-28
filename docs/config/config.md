@@ -178,24 +178,81 @@ Investigation/debate tuning.
 
 ### `backends.ai`
 
-| Field         | Type   | Default               | Notes                                                  |
-|---------------|--------|-----------------------|--------------------------------------------------------|
-| `provider`    | string | `"anthropic"`         | Allowed: `anthropic`, `openai`, `bedrock` (validated). |
-| `model`       | string | `"claude-sonnet-4-6"` | See model resolution below.                            |
-| `temperature` | float  | `0.2`                 |                                                        |
-| `max_tokens`  | int    | `4096`                |                                                        |
-| `stream`      | bool   | `true`                | Stream tokens from the provider.                       |
-| `bedrock`     | object | (see below)           | Amazon Bedrock-specific settings; only used when `provider == "bedrock"`. |
+`backends.ai` carries a `provider` **selector** plus one typed sub-config per
+provider (`anthropic`, `openai`, `bedrock`). All three blocks coexist, so each
+provider keeps its own fine-tuning and switching provider is a one-field change
+(`provider`) that preserves every provider's settings. Each provider exposes
+only the knobs it actually supports.
 
-**Model resolution** - the effective model reconciles `model` with `provider`.
-If `provider` is switched but `model` still names the other vendor's model, the
-provider's default is substituted; an explicit, provider-matching model is always
-respected:
+| Field       | Type   | Default       | Notes                                                                  |
+|-------------|--------|---------------|------------------------------------------------------------------------|
+| `provider`  | string | `"anthropic"` | Active provider. Allowed: `anthropic`, `openai`, `bedrock` (validated). |
+| `stream`    | bool   | `true`        | Stream tokens from the provider (pipeline flag, provider-neutral).     |
+| `anthropic` | object | (see below)   | Anthropic (Claude) sub-config.                                         |
+| `openai`    | object | (see below)   | OpenAI (GPT) sub-config.                                               |
+| `bedrock`   | object | (see below)   | Amazon Bedrock sub-config.                                             |
 
-- `provider: openai` + a non-`gpt-*`/`o1`/`o3`/`o4` model → `gpt-5.4`.
-- `provider: anthropic` + a non-`claude*` model → `claude-sonnet-4-6`.
-- `provider: bedrock` → the model identity comes from `backends.ai.bedrock.model_id`
-  (an inference-profile ID); the top-level `model` field is ignored.
+> **Changed in this release (breaking).** The old flat layout
+> (`backends.ai.model` / `temperature` / `max_tokens`, plus a single nested
+> `bedrock` block) is **no longer read**. Those keys now live under the matching
+> provider sub-config (e.g. `backends.ai.anthropic.max_tokens`). A config that
+> still uses the flat keys loads with provider **defaults** and logs a one-time
+> warning naming the stale keys - no values are migrated automatically. Update
+> `config.json` to the per-provider shape shown below.
+
+**Model resolution** - each provider's effective model is exposed as
+`resolved_model`:
+
+- `anthropic` → `anthropic.model` when it looks like a `claude*` name, otherwise
+  the default `claude-sonnet-4-6`.
+- `openai` → `openai.model` when it looks like a `gpt-*` name, otherwise the
+  default `gpt-5.4`.
+- `bedrock` → `bedrock.model_id` (an inference-profile ID) verbatim; Bedrock's
+  inherited `model` field is unused.
+
+**Per-model overrides** - every provider sub-config accepts an optional `models`
+map keyed by the resolved model id (for Bedrock, the `model_id`). When the active
+model has an entry, its non-null fields are merged **over** the provider-level
+defaults (the override wins; untouched fields are inherited). Keys that are not
+fields of that provider are ignored. This lets one provider tune each model
+differently - e.g. a larger thinking budget for an Opus model than for a Haiku
+one - without changing provider defaults.
+
+#### `backends.ai.anthropic`
+
+Uses the Messages API with forced tool-use for structured output. The stable
+system prompt is sent with an ephemeral `cache_control` block (when
+`prompt_caching` is on) so it is billed at the cached rate. Extended thinking is
+applied to free-form generation only (never to forced tool use).
+
+| Field                    | Type   | Default               | Notes                                                                       |
+|--------------------------|--------|-----------------------|-----------------------------------------------------------------------------|
+| `model`                  | string | `"claude-sonnet-4-6"` | Claude model name (see model resolution).                                   |
+| `max_tokens`             | int    | `4096`                | Maximum output tokens.                                                       |
+| `temperature`            | float  | `0.2`                 | Forced to `1.0` when extended thinking is active.                           |
+| `thinking_budget_tokens` | int    | `0`                   | Extended-thinking budget. `0` (or sub-1024) disables it; free-form only.    |
+| `prompt_caching`         | bool   | `true`                | Attach an ephemeral `cache_control` block to the system prompt.             |
+| `timeout_seconds`        | float  | `600.0`               | Per-request timeout passed to the Anthropic SDK.                            |
+| `max_retries`            | int    | `2`                   | SDK retry count (backoff on timeouts / 429 / 5xx).                          |
+| `models`                 | object | `{}`                  | Per-model overrides keyed by model name (see Per-model overrides).          |
+
+#### `backends.ai.openai`
+
+Uses the `json_schema` strict response format for structured output. Reasoning
+models (the `gpt-5` family) reject `max_tokens`/`temperature` and instead use
+`max_completion_tokens` (and optionally `reasoning_effort`); non-reasoning models
+use `max_tokens` + `temperature`.
+
+| Field                   | Type           | Default    | Notes                                                                  |
+|-------------------------|----------------|------------|------------------------------------------------------------------------|
+| `model`                 | string         | `"gpt-5.4"` | GPT model name (see model resolution).                                |
+| `max_tokens`            | int            | `4096`     | Output-token cap for non-reasoning models.                             |
+| `temperature`          | float          | `0.2`      | Sampling temperature for non-reasoning models.                         |
+| `reasoning_effort`      | string or null | `null`     | `low` / `medium` / `high` for reasoning models; `null` = SDK default.  |
+| `max_completion_tokens` | int            | `16000`    | Completion budget for reasoning models (shared with internal reasoning). |
+| `timeout_seconds`       | float          | `300.0`    | Per-request timeout passed to the OpenAI SDK.                          |
+| `max_retries`           | int            | `4`        | SDK retry count (backoff on timeouts / 429 / 5xx).                     |
+| `models`                | object         | `{}`       | Per-model overrides keyed by model name.                              |
 
 #### `backends.ai.bedrock`
 
@@ -203,28 +260,124 @@ Amazon Bedrock is reached through the **Converse API**, giving a single
 request/response shape across hosted Claude, Nova, and other model families.
 Structured output uses Converse forced tool-use (`toolConfig`); free-form
 generation streams via `converse_stream`. boto3 is synchronous, so every call is
-dispatched to a worker thread to keep the event loop free.
+dispatched to a worker thread to keep the event loop free. Bedrock has **two**
+token budgets: `max_tokens` is the absolute output cap, while
+`thinking_budget_tokens` caps the reasoning portion within it.
 
 | Field                     | Type   | Default                            | Notes                                                                       |
 |---------------------------|--------|------------------------------------|-----------------------------------------------------------------------------|
 | `region`                  | string | `"ap-southeast-2"`                 | AWS region. Falls back to `AWS_DEFAULT_REGION` only when blank.             |
 | `model_id`                | string | `"au.anthropic.claude-sonnet-4-6"` | Model ID or cross-region inference profile. Direct IDs need provisioned throughput. |
-| `thinking_budget_tokens`  | int    | `0`                                | Extended-thinking budget. `0` disables; sub-1024 is treated as disabled. Applied to free-form output only - never forced tool use. |
+| `max_tokens`              | int    | `4096`                             | **Absolute** maximum output tokens (`inferenceConfig.maxTokens`).           |
+| `temperature`             | float  | `0.2`                              | Forced to `1.0` when extended thinking is active.                           |
+| `thinking_budget_tokens`  | int    | `0`                                | Extended-thinking (reasoning) budget. `0` (or sub-1024) disables it; free-form only. |
 | `connect_timeout_seconds` | int    | `10`                               | bedrock-runtime TCP connect timeout.                                        |
 | `read_timeout_seconds`    | int    | `300`                              | Socket read timeout (reasoning can be slow).                                |
 | `max_attempts`            | int    | `3`                                | botocore standard-mode retry attempts (throttling / 5xx).                   |
+| `auth_mode`               | string | `"auto"`                           | `auto` / `bearer` / `sigv4` (validated). See Authentication.                |
+| `models`                  | object | `{}`                               | Per-model overrides keyed by `model_id`.                                    |
 
-**Authentication** (dual-mode, read from the environment, never logged):
+**Authentication** (credentials read from the environment, never logged):
 
-- If `AWS_BEARER_TOKEN_BEDROCK` is set, an `Authorization: Bearer <token>` header
-  is injected on every request (Bedrock API-key auth).
-- Otherwise the standard boto3 credential chain (env vars / shared config / IAM
-  role) is used via SigV4.
+- `auth_mode: auto` (default) - use `AWS_BEARER_TOKEN_BEDROCK` when set, otherwise
+  the boto3 SigV4 credential chain.
+- `auth_mode: bearer` - force bearer-token auth (`Authorization: Bearer <token>`
+  from `AWS_BEARER_TOKEN_BEDROCK`).
+- `auth_mode: sigv4` - force the SigV4 credential chain (env vars / shared config
+  / IAM role) even when a bearer token is present.
+
+**Environment overrides** follow the nested-key convention (case-insensitive),
+targeting the active provider's sub-config:
 
 ```bash
-export AEGIS__backends__ai__provider=bedrock
-export AEGIS__backends__ai__bedrock__model_id=au.anthropic.claude-sonnet-4-6
+export AEGIS__BACKENDS__AI__PROVIDER=bedrock
+export AEGIS__BACKENDS__AI__BEDROCK__MODEL_ID=au.anthropic.claude-sonnet-4-6
+export AEGIS__BACKENDS__AI__BEDROCK__THINKING_BUDGET_TOKENS=4096
 export AWS_BEARER_TOKEN_BEDROCK=<your-bedrock-api-key>   # or use ~/.aws credentials
+# OpenAI example: AEGIS__BACKENDS__AI__OPENAI__REASONING_EFFORT=high
+# Anthropic example: AEGIS__BACKENDS__AI__ANTHROPIC__MAX_TOKENS=8192
+```
+
+#### Full `backends.ai` examples
+
+Each example sets `provider` to a different backend and exercises every option
+for that provider, including a per-model override.
+
+**OpenAI** (all options):
+
+```json
+"ai": {
+  "provider": "openai",
+  "stream": true,
+  "openai": {
+    "model": "gpt-5.4",
+    "max_tokens": 4096,
+    "temperature": 0.2,
+    "reasoning_effort": "high",
+    "max_completion_tokens": 24000,
+    "timeout_seconds": 300.0,
+    "max_retries": 4,
+    "models": {
+      "gpt-4o": {
+        "temperature": 0.1,
+        "max_tokens": 8192
+      }
+    }
+  }
+}
+```
+
+**Anthropic** (all options):
+
+```json
+"ai": {
+  "provider": "anthropic",
+  "stream": true,
+  "anthropic": {
+    "model": "claude-sonnet-4-6",
+    "max_tokens": 8192,
+    "temperature": 0.2,
+    "thinking_budget_tokens": 0,
+    "prompt_caching": true,
+    "timeout_seconds": 600.0,
+    "max_retries": 2,
+    "models": {
+      "claude-opus-4-8": {
+        "max_tokens": 32000,
+        "thinking_budget_tokens": 8192
+      }
+    }
+  }
+}
+```
+
+**Bedrock** (all options):
+
+```json
+"ai": {
+  "provider": "bedrock",
+  "stream": true,
+  "bedrock": {
+    "region": "ap-southeast-2",
+    "model_id": "au.anthropic.claude-sonnet-4-6",
+    "max_tokens": 20000,
+    "temperature": 0.2,
+    "thinking_budget_tokens": 4096,
+    "connect_timeout_seconds": 10,
+    "read_timeout_seconds": 300,
+    "max_attempts": 3,
+    "auth_mode": "auto",
+    "models": {
+      "au.anthropic.claude-opus-4-8": {
+        "max_tokens": 32000,
+        "thinking_budget_tokens": 8192
+      },
+      "apac.amazon.nova-pro-v1:0": {
+        "thinking_budget_tokens": 0
+      }
+    }
+  }
+}
 ```
 
 ### `backends.debug`
