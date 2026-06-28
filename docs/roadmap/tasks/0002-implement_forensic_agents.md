@@ -93,7 +93,7 @@
 
 ### Step 1 Integration Check
 
-After all four agents complete, run:
+After all four agents are complete, run:
 ```bash
 poetry install
 mypy src/ --strict --ignore-missing-imports
@@ -144,23 +144,23 @@ All must pass before proceeding to Step 2.
 **Instructions:**
 1. Implement `DataAdapter._process_logs()`:
    - For each log path, open and read lines.
-   - Apply temporal window: keep lines within ±30 seconds of `incident_timestamp`. If no timestamp: keep last 500 lines with warning.
+   - Apply a temporal window: keep lines within ±30 seconds of `incident_timestamp`. If no timestamp: keep the last 500 lines with a warning.
    - Apply Drain3: `TemplateMiner` with `SimpleProfiler()`. Group lines by template; for each template appearing >3 times, replace with `"{template} (×{count})"`.
    - Severity filter: discard `INFO`/`DEBUG` lines outside the ±5 s window. Keep all `WARNING`/`ERROR`/`FATAL`/`CRITICAL` lines regardless of timestamp.
-   - Enforce 2,000-token budget on combined log output (truncate oldest lines first).
+   - Enforce a 2,000-token budget on combined log output (truncate oldest lines first).
 2. Implement `DataAdapter._process_screenshot()`:
    - Conditionally import `pytesseract` (guarded with `try/except ImportError`).
    - Run `pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)`.
    - Filter to words with `conf > 60`.
    - Assemble into `UIContext { error_message: str, visible_timestamp: str | None, ui_elements: list[str] }`.
-   - Return `None` if pytesseract not installed or confidence too low.
+   - Return `None` if pytesseract not installed or confidence too lows.
 3. Implement `DataAdapter._scrub_pii()`:
    - Conditionally import `presidio_analyzer` and `presidio_anonymizer`.
    - Configure `AnalyzerEngine` with entity types from spec §5.1 stage 6.
    - Run `analyzer.analyze()` then `anonymizer.anonymize()`.
    - Build substitution map `{ "[REDACTED_EMAIL_1]": "user@example.com", ... }`.
-   - Return scrubbed text + substitution map.
-   - If Presidio not installed: log warning and return original text + empty map (fail open - never block analysis).
+   - Return scrubbed text and substitution map.
+   - If Presidio is not installed: log warning and return the original text and empty map (fail open - never block analysis).
 
 **Verification:** Write a test string with known PII; assert all entities are replaced and the substitution map has correct entries.
 
@@ -188,7 +188,7 @@ All must pass before proceeding to Step 2.
    - `test_assumption_token_cap`: 1000-token assumption string truncated to ≤500 tokens.
    - `test_hash_consistency`: same file hashed twice → same SHA-256.
    - `test_format_detection_minidump`: file with `MDMP` magic → `DumpFormat.WINDOWS_MINIDUMP`.
-   - `test_full_pipeline_produces_brief`: end-to-end with mock DebugBackend returning fixture result; assert `IncidentBrief` has all required fields.
+   - `test_full_pipeline_produces_brief`: end-to-end with mock DebugBackend returning a fixture result; assert `IncidentBrief` has all required fields.
 
 **Verification:** `pytest tests/unit/test_data_adapter.py -v` passes. Coverage on `data_adapter.py` ≥ 85%.
 
@@ -359,7 +359,7 @@ All must pass before proceeding to Step 2.
 - `_CallbackBridge` never uses a module-level or class-level queue - each `with _CallbackBridge(...)` block gets its own `queue.Queue` instance.
 - The temp JS file is always deleted, even if `subprocess.run` raises. Use `try/finally` or `contextlib.ExitStack`.
 - `_windbg_js_available()` never raises - it returns `False` on any failure.
-- The JS asset is read from disk at extraction time, not at import time, so it can be patched in tests without reloading the module.
+- The JS asset is read from the disk at extraction time, not at import time, so it can be patched in tests without reloading the module.
 
 **Verification:**
 - `mypy src/` passes with no new errors.
@@ -406,7 +406,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 2. Write the following tests, all using `mock.patch("aegis_swr.backends.debug._base.subprocess.run")`:
 
-   - `test_windbg_js_parses_ddm_json`: fixture payload + mock subprocess output that includes `"JsProvider.dll"` string → `WinDbgJSBackend.extract()` returns `DebugExtractionResult` with `fault_class = MEMORY_ACCESS_VIOLATION`, `exception_address = "0x00007ff8016a1c3f"`, `faulting_module = "db_writer"`, `len(stack_frames) == 5`, `symbol_resolution_score == 0.8`.
+   - `test_windbg_js_parses_ddm_json`: fixture payload and mock subprocess output that includes `"JsProvider.dll"` string → `WinDbgJSBackend.extract()` returns `DebugExtractionResult` with `fault_class = MEMORY_ACCESS_VIOLATION`, `exception_address = "0x00007ff8016a1c3f"`, `faulting_module = "db_writer"`, `len(stack_frames) == 5`, `symbol_resolution_score == 0.8`.
    
      Implementation hint: the backend calls `bridge.wait_for_payload()`; patch `_CallbackBridge.wait_for_payload` (or mock the full bridge) to return the fixture JSON without actually starting a thread.
    
@@ -455,7 +455,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 
 **Instructions:**
 1. Implement `src/aegis_swr/core/consensus.py` - `ConsensusEvaluator(settings: AgentWeightsSettings)`.
-2. Implement `calculate(agent_scores: dict[str, float], fault_class: FaultClass) -> float`: apply weight matrix lookup; compute weighted sum; normalize; return CS in [0.0, 1.0].
+2. Implement `calculate(agent_scores: dict[str, float], fault_class: FaultClass) -> float`: apply weight matrix lookup; compute the weighted sum; normalize; return CS in [0.0, 1.0].
 3. Implement `is_converged(current_score: float, previous_score: float | None, threshold: float, same_hypothesis: bool) -> bool`: True only if `current_score >= threshold` AND `same_hypothesis` is True (the primary hypothesis identity hasn't changed since last round).
 4. Implement `is_deadlocked(score: float, round_num: int, max_rounds: int, hitl_threshold: float) -> bool`.
 5. Write `tests/unit/test_consensus.py` with:
@@ -481,7 +481,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 2. Implement `src/aegis_swr/agents/code_analyst.py` - `CodeAnalystAgent(BaseAgent)`:
    - Include `user_assumption` as a labeled block in the user message (not in system prompt).
    - Include `OSKernelOutput` from the previous turn.
-   - System prompt incorporates structured output format from `PROMPT_HEURISTICS.md §2`.
+   - System prompt incorporates a structured output format from `PROMPT_HEURISTICS.md §2`.
 3. Implement `src/aegis_swr/agents/log_historian.py` - `LogHistorianAgent(BaseAgent)`:
    - `run()` accepts `vector_store: VectorStore | None` as an additional parameter.
    - Applies conditional injection rule from spec §5.3.
@@ -515,10 +515,10 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
 4. Conditional edges from `skeptic_node`:
    - `is_converged` → `output_synthesizer_node`
    - `round_number >= max_rounds` and `is_deadlocked` → `hitl_node`
-   - Otherwise → `os_kernel_node` (next round; increment `round_number`)
+   - Otherwise, → `os_kernel_node` (next round; increment `round_number`)
 5. Compile: `self._graph = builder.compile()`.
 6. Implement `async def run(source: IncidentSource) -> RCAReport`:
-   - Check `relational_store.find_by_hash(source.dump_hash)` first - return cached report if exists.
+   - Check `relational_store.find_by_hash(source.dump_hash)` first - return the cached report if exists.
    - Initialize `InvestigationState` with `incident_id`, empty history, `round_number=1`.
    - `await self._graph.ainvoke(initial_state)` → extract final `RCAReport`.
 7. Implement `async def run_streaming(source: IncidentSource) -> AsyncGenerator[dict, None]`:
@@ -541,7 +541,7 @@ CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol 
    - `test_full_pipeline_converges`: mock agents return `confidence=0.90` → completes in ≤2 rounds with `is_converged=True`.
    - `test_skeptic_rejection_triggers_next_round`: Skeptic returns `confirmed=False` in round 1 → round 2 starts; `discussion_history` has OS Kernel entry in round 2.
    - `test_deadlock_produces_hitl_request`: all rounds have CS < 0.50 → `RCAReport.hitl_request` is not None.
-   - `test_cache_hit_skips_analysis`: relational store mock returns existing report for hash → `Orchestrator.run()` returns it immediately without calling any agent.
+   - `test_cache_hit_skips_analysis`: relational store mock returns the existing report for hash → `Orchestrator.run()` returns it immediately without calling any agent.
    - `test_token_tracker_accumulates`: three rounds × 2 agent calls each → `token_tracker["input_tokens"]` is sum of all mock usage values.
 3. Write `tests/unit/test_agents.py`:
    - Per-agent: verify that the correct output schema class is requested from `ai_backend.generate()`.
@@ -672,13 +672,13 @@ revision rather than a time-window approximation. All are optional - when
 
 ### Agent Matrix
 
-| Agent Role               | Responsibility                                                                                   |
-|--------------------------|--------------------------------------------------------------------------------------------------|
-| `GitCodeEngineer`        | `code/git_adapter.py` - `git log`/`show`/`blame` via subprocess                                  |
-| `FilesystemCodeEngineer` | `code/filesystem_adapter.py` - directory walk, no VCS                                            |
-| `PdbCodeEngineer`        | `code/pdb_adapter.py` - Windows PDB SrcSrv stream → exact build revision (Windows-only)         |
-| `CodeFactoryEngineer`    | `code/__init__.py` factory, `CodeBackendSettings`, `config.yaml`, `CodeBackendError`             |
-| `CodeTestEngineer`       | `tests/unit/test_code_backends.py`                                                               |
+| Agent Role               | Responsibility                                                                          |
+|--------------------------|-----------------------------------------------------------------------------------------|
+| `GitCodeEngineer`        | `code/git_adapter.py` - `git log`/`show`/`blame` via subprocess                         |
+| `FilesystemCodeEngineer` | `code/filesystem_adapter.py` - directory walk, no VCS                                   |
+| `PdbCodeEngineer`        | `code/pdb_adapter.py` - Windows PDB SrcSrv stream → exact build revision (Windows-only) |
+| `CodeFactoryEngineer`    | `code/__init__.py` factory, `CodeBackendSettings`, `config.yaml`, `CodeBackendError`    |
+| `CodeTestEngineer`       | `tests/unit/test_code_backends.py`                                                      |
 
 ### Agentic Execution Brief
 
@@ -893,8 +893,8 @@ All must pass before proceeding to Step 7.
 1. Implement `src/aegis_swr/cli/_config.py`:
    - `DEFAULT_CONFIG_PATH: Path = CONFIG_DIR / "config.json"` (where `CONFIG_DIR = Path("~/.aegis-swr").expanduser()`)
    - `ANALYZE_CONFIG_KEYS: tuple[str, ...]` - tuple of all option names that belong in the JSON file (`dump`, `logs`, `shots`, `sym`, `assume`, `engine`, `ai`, `store`, `store_config`, `code_provider`, `repo`, `log_provider`, `log_service`, `output`, `log_severity`, `log_dir`).
-     > **Superseded.** The logging-related keys were later re-engineered into nested `ingest` / `logging` / `evidence` / `process` config.json sections (with added `log_sink`, `evidence_severity`, `evidence_persist`, `process_severity`, …). See the log-subsystem chapter in [generic_implementation_plan.md](generic_implementation_plan.md) (Part III) and [configuration/config.md](../config/config.md).
-   - `load_analyze_config(path: Path | None = None) -> dict[str, Any]` - reads JSON from path (default = `DEFAULT_CONFIG_PATH`); returns `{}` if file absent or malformed (log a warning on parse error).
+     > **Superseded.** The logging-related keys were later re-engineered into nested `ingest` / `logging` / `evidence` / `process` config.json sections (with added `log_sink`, `evidence_severity`, `evidence_persist`, `process_severity`, …). See the log-subsystem chapter in [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md) (Part III) and [configuration/config.md](/docs/config/config.md).
+   - `load_analyze_config(path: Path | None = None) -> dict[str, Any]` - reads JSON from path (default = `DEFAULT_CONFIG_PATH`); returns `{}` if the file absent or malformed (log a warning on parse error).
    - `save_analyze_config(opts: dict[str, Any], path: Path | None = None) -> None` - writes only keys from `ANALYZE_CONFIG_KEYS` to the JSON file; creates parent dirs.
    - `merge_options(config: dict[str, Any], ctx: typer.Context, **cli_values: Any) -> dict[str, Any]` - for each key: if `ctx.get_parameter_source(key) == ParameterSource.COMMAND_LINE`, use CLI value; else use `config.get(key, cli_values[key])`. Return the merged dict.
 

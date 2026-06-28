@@ -4,87 +4,131 @@ All design, planning, and analysis documents for the Aegis SWR project.
 
 ---
 
-## Agentic Fleet (`agent/`)
-
-How to use the Claude Code agent fleet, skills, and hooks for day-to-day
-development on Aegis SWR.
-
-| Document                                                 | Description                                                                                                                                                                                                                                                                |
-|----------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [tutorial.md](agent/tutorial.md)                         | Practical onboarding guide: scenarios for every common task, common mistakes, quick-reference card. Aimed at developers new to Claude Code.                                                                                                                                |
-| [agents.md](agent/agents.md)                             | Reference for all 10 dev agents (`app-architect`, `background-reviewer`, `docs-updater`, `docs-writer`, `feature-reviewer`, `incident-analyst`, `python-expert`, `security-auditor`, `testing-expert`): model, tools, responsibilities, when to use.                       |
-| [skills.md](agent/skills.md)                             | Reference for all 11 slash-command skills (`/adr-write`, `/pr-review`, `/test-gap`, `/runbook-write`, `/post-mortem`, `/dep-audit`, `/secret-scan`, `/playbook-validate`, `/link-check`, `/doc-xref`, `incident-triage`): invocation, step-by-step behaviour, when to use. |
-| [hooks.md](agent/hooks.md)                               | Reference for all hooks that run automatically (`guard_bash`, `secret_scan`, `post_edit_format`, `dep_audit`, `doc_link_check`, `github_audit`, `session_start`, `run_tests`): what each blocks/logs, override env vars, audit log locations.                              |
-| [agentic_fleet_design.md](agent/agentic_fleet_design.md) | Design and operational details for the agentic fleet: agent definitions, prompts, hooks, and orchestration guidance.                                                                                                                                                       |
-
----
-
-## Configuration Reference (`configuration/`)
-
-> `<config-dir>` = `~/.aegis-swr/`
-
-User-facing reference for every CLI option and configuration field, generated
-from the source of truth in `src/aegis_swr/`.
-
-| Document                              | Description                                                                                                                                                       |
-|---------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [cli.md](config/cli.md)        | Every `aegis` command (`analyze`, `export`, `server`, `config show/set`) with all options, defaults, allowed values, output modes, and exit codes.                |
-| [config.md](config/config.md)  | The unified `<config-dir>/config.json`: analyze keys (flat options plus the `ingest` / `logging` / `evidence` / `process` logging sections) and the nested `core` / `backends` / `sandbox` / `api` runtime sections, sources, precedence, and env overrides. |
-| [agents.md](config/agents.md)  | The `<config-dir>/agents.json` weight matrix: the four agents, all ten fault-class keys with default weights, and how the consensus score uses them.                    |
-| [coverage.md](config/coverage.md) | Test coverage configuration (85% threshold) for both the main project and prototype; commands, CI integration, and troubleshooting. |
-
----
-
 ## Architecture Decision Records (`adr/`)
 
-| Document                                                         | Description                                                                                                                                                                                                                                                                                           |
-|------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [aegis-swr-roadmap.md](adr/aegis-swr-roadmap.md)                 | Full 5-phase development roadmap: Phase 1 Prototype Deconstruction → Phase 2 Data Adapter → Phase 3 Multi-Agent System → Phase 4 Output Synthesis → Phase 5 Production Hardening. Covers consensus threshold logic, token budget guardrails, and deployment vectors.                                  |
-| [proposed-design-aegis-swr.md](adr/proposed-design-aegis-swr.md) | Target system architecture: hybrid enterprise API deployment topology, Data Adapter pipeline (temporal windowing, log clustering, OCR), Synthetic War Room agent layout (OS Kernel, Code Analyst, Skeptic), REST/gRPC endpoint specifications, secure code validation sandbox (gVisor / Firecracker). |
-| [new-ui-rich-based-design.md](adr/new-ui-rich-based-design.md)   | Full design specification for the three-pane `WarRoomView`: Evidence Stream (left half), Forensic Agents (right top), Investigation Process (right bottom). Covers animation elements, event→widget mapping, post-conclusion transition, implementation plan, and Rich API inventory.                 |
----
+Point-in-time decisions in [MADR](https://adr.github.io/madr/) format.
+See [adr/README.md](adr/README.md) for the full inventory and naming conventions.
+Mermaid diagrams live in `adr/assets/`.
 
-## Production Design Specifications (`specs/`)
-
-Authoritative production specifications for the `aegis-swr` package under `src/aegis_swr/`.
-
-| Document                                                               | Description                                                                                                                                                                                                                                                                                                      |
-|------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [PRODUCTION_DESIGN_SPEC.md](specs/PRODUCTION_DESIGN_SPEC.md)           | Full production design: directory structure, `pyproject.toml`, all Pydantic schemas, FaultClass enum, Data Adapter pipeline (9 stages), all 5 backend ABCs, MAS LangGraph state graph, consensus algorithm, 3-tier storage schema, REST/SSE API endpoints, secure sandbox, config system, CLI, testing strategy. |
-| [agentic_implementation_plan.md](specs/agentic_implementation_plan.md) | Detailed execution brief for every implementation step: per-phase agent matrix, verbatim per-agent instructions, inputs provided, verification gates, and cross-cutting implementation rules.                                                                                                                    |
-| [generic_implementation_plan.md](specs/generic_implementation_plan.md) | 10-phase implementation plan (Foundation → Data Adapter → AI/Debug Backends → MAS → Storage → CLI → API → Sandbox → Testing) with per-phase deliverables and a dependency graph; inlines the Data Adapter & Backend specifications; and includes the completed log-subsystem re-engineering chapter (three logging channels). |
-| [implementation_status.md](specs/implementation_status.md)             | Live progress tracker against the 10-phase plan: which phases are complete, current lint/type/test gate status, and per-phase delivered artifacts.                                                                                                                                                               |
----
-
-## Prototype Analysis Specs (`prototype-analysis-specs/`)
-
-Outputs produced by the Phase 1.1 analysis run against the WinCrashAnalyzer prototype. Used as input to Phase 1.2 design decisions.
-
-| Document                                                         | Description                                                                                                                                                                                                                                                                                                               |
-|------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [win-dependencies.md](prototype/win_dependencies.md)             | Complete register of 9 Windows-specific components (cdb.exe, symbol paths, `.dmp` format, ActiveXObject COM, WinDbg DDM, NTSTATUS codes, HTTP bridge, CDB command sequences) with exact `file:line` locations and cross-platform replacement strategies.                                                                  |
-| [prompt-heuristics.md](prototype/prompt_heuristics.md)           | All LLM system prompts, user prompt templates, regex rules, and sanitization heuristics extracted from the prototype. Sorted by troubleshooting domain and mapped to their target Aegis SWR agent.                                                                                                                        |
-| [token-waste-report.md](adr/token_waste_report.md)         | Token efficiency audit: per-category waste estimates (worst-case ~17,440 tokens/request), comparison of prototype vs. target behavior, and 6 algorithmic guidelines for the Data Adapter layer.                                                                                                                           |
-| [gap-analysis.md](prototype/gap_analysis.md)                     | 7 conceptual gaps in the prototype (tunnel vision, no reasoning trail, no non-crash support, filename-based deduplication, no output validation, no multi-turn context, no symbol quality signal) each mapped to the Aegis SWR component that resolves it.                                                                |
-| [aegis-swr-vs-prototype.md](prototype/aegis_swr_vs_prototype.md) | End-to-end reproduction of the WinCrashAnalyzer prototype's resolution of `CrashUi.exe.1324.dmp` (deliberate NULL-pointer write) through the full Aegis SWR pipeline - CDB + OpenAI (gpt-5.4) + filesystem store. Side-by-side result comparison, the five backend-engine fixes the run surfaced, and reproduction steps. |
+| Document | Status | Description |
+|---|---|---|
+| [0001-new-ui-rich-based-design.md](adr/0001-new-ui-rich-based-design.md) | Implemented | WarRoomView three-pane terminal UI: Evidence Stream (left), Forensic Agents (right-top), Investigation Process (right-bottom). Animation, event→widget mapping, post-conclusion transition, Rich API inventory. |
+| [template.md](adr/template.md) | — | Blank MADR template; use `/adr-write <title>` to scaffold a new record. |
 
 ---
 
-## QA (`qa/`)
+## Design Specifications (`specs/`)
 
-Project QA guidance, checklists, and coverage requirements used by `testing-expert` agents and CI.
+Long-form implementation specifications for `src/aegis_swr/`. For the high-level
+architecture overview see **[ARCHITECTURE.md](../ARCHITECTURE.md)** (repo root).
 
-| Document                                          | Description                                                                                                |
-|---------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| Document | Description |
+|---|---|
+| [implementation-spec.md](specs/implementation-spec.md) | Full implementation spec: module layout, `pyproject.toml`, all Pydantic schemas, FaultClass enum, Data Adapter pipeline (9 stages), all 5 backend ABCs, MAS LangGraph state machine, consensus algorithm, 3-tier storage schema, REST/SSE API endpoints, secure sandbox, config system, CLI, testing strategy. |
+| [agentic-fleet-design.md](specs/agentic-fleet-design.md) | Design and operational details for the Claude Code dev fleet: agent definitions, hooks, MCP connections, model tiering, orchestration, worktree policy, secrets management, and scheduled tasks. |
+
+---
+
+## Roadmap (`roadmap/`)
+
+Development timeline, per-phase task briefs, and live progress tracking.
+
+| Document | Description |
+|---|---|
+| [roadmap.md](roadmap/roadmap.md) | Full 5-phase development roadmap: Phase 1 Prototype Deconstruction → Phase 2 Data Adapter → Phase 3 Multi-Agent System → Phase 4 Output Synthesis → Phase 5 Hardening. Covers consensus threshold logic and token budget guardrails. |
+| [progress/implementation_status.md](roadmap/progress/implementation_status.md) | Live tracker: which phases are complete, current lint/type/test gate status, delivered artifacts. |
+| [tasks/0001-generic_implementation_plan.md](roadmap/tasks/0001-generic_implementation_plan.md) | 10-phase implementation plan with per-phase deliverables and a dependency graph; inlines the Data Adapter and Backend specifications. |
+| [tasks/0002-implement_forensic_agents.md](roadmap/tasks/0002-implement_forensic_agents.md) | Agentic execution brief per phase: agent matrix, verbatim per-agent instructions, inputs, verification gates. |
+| [tasks/0003-aegis-swr-litellm-routing-task.md](roadmap/tasks/0003-aegis-swr-litellm-routing-task.md) | LiteLLM routing task brief. |
+
+---
+
+## Agentic Fleet (`agent/`)
+
+Operational references for the Claude Code dev agent fleet.
+
+| Document | Description |
+|---|---|
+| [tutorial.md](agent/tutorial.md) | Practical onboarding: scenarios for every common task, common mistakes, quick-reference card. Aimed at developers new to Claude Code. |
+| [agents.md](agent/agents.md) | Reference for all dev agents (`app-architect`, `background-reviewer`, `docs-updater`, `docs-writer`, `feature-reviewer`, `incident-analyst`, `python-expert`, `security-auditor`, `testing-expert`): model, tools, responsibilities, when to use. |
+| [skills.md](agent/skills.md) | Reference for all slash-command skills (`/adr-write`, `/pr-review`, `/test-gap`, `/runbook-write`, `/post-mortem`, `/dep-audit`, `/secret-scan`, `/playbook-validate`, `/link-check`, `/doc-xref`, `incident-triage`): invocation, step-by-step behaviour, when to use. |
+| [hooks.md](agent/hooks.md) | Reference for all automatic hooks (`guard_bash`, `secret_scan`, `post_edit_format`, `dep_audit`, `doc_link_check`, `github_audit`, `session_start`, `run_tests`): what each blocks/logs, override env vars, audit log locations. |
+
+---
+
+## Configuration Reference (`config/`)
+
+User-facing reference for every CLI option and configuration field, derived from
+`src/aegis_swr/`. Config dir: `~/.aegis-swr/`.
+
+| Document | Description |
+|---|---|
+| [cli.md](config/cli.md) | Every `aegis` command (`analyze`, `export`, `server`, `config show/set`) with all options, defaults, allowed values, output modes, and exit codes. |
+| [config.md](config/config.md) | The unified `config.json`: analyze keys plus `ingest` / `logging` / `evidence` / `process` sections, nested `core` / `backends` / `sandbox` / `api` runtime config, sources, precedence, and env overrides. |
+| [agents.md](config/agents.md) | The `agents.json` weight matrix: the four forensic agents, all ten fault-class keys with default weights, and how the consensus score uses them. |
+
+---
+
+## Developer Guides (`dev/`)
+
+| Document | Description |
+|---|---|
+| [python_coding_standard.md](dev/python_coding_standard.md) | Index and project-specific overrides (start here). |
+| [python_language_rules.md](dev/python_language_rules.md) | §1 Background + §2 Python Language Rules: lint, imports, packages, exceptions, mutable globals, comprehensions, generators, lambdas, type annotations. |
+| [python_style_rules.md](dev/python_style_rules.md) | §3 Python Style Rules: line length, indentation, comments, docstrings, naming, main, function length, type annotation style. §4 Parting Words. |
+
+---
+
+## QA & Test Coverage (`test/`)
+
+| Document | Description |
+|---|---|
 | [code_test_coverage.md](test/code_test_coverage.md) | Coverage requirements checklist, PR checklist, and runnable commands to validate coverage (85% threshold). |
+| [coverage.md](test/coverage.md) | Coverage configuration for both the main project and prototype; commands, CI integration, and troubleshooting. |
 
 ---
 
-## UI (`ui/`)
+## Reviews (`reviews/`)
 
-Design notes and text mockups used by the UI team and for documentation/examples.
+Outputs from `background-reviewer`: dependency audits, secret scans, performance
+findings, and licence checks. See [reviews/README.md](reviews/README.md).
 
-| Document                                                        | Description                                                                                                      |
-|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| [ui-investigation-process.txt](ui_sketches/ui-investigation-process.txt) | ASCII mockup / example of the Investigation UI's Evidence Stream and Forensic Agents view (debug output sample). |
-| [ui-root-cause-analysis.txt](ui_sketches/ui-root-cause-analysis.txt)     | Plain-text Root Cause Analysis report example produced by the agents (RCA template / sample output).             |
+| Document | Description |
+|---|---|
+| [token-waste-report.md](reviews/token-waste-report.md) | Token efficiency audit: per-category waste estimates (~17 440 tokens/request worst-case), prototype vs. target comparison, and 6 Data Adapter guidelines. |
+
+---
+
+## Runbooks (`runbooks/`)
+
+Operational runbooks for on-call engineers. See [runbooks/README.md](runbooks/README.md).
+
+> No runbooks yet — use `/runbook-write <incident-type>` to create the first one.
+
+---
+
+## Security (`security/`)
+
+Threat models and security review outputs from `security-auditor`.
+See [security/README.md](security/README.md).
+
+> No threat models yet — populated when incident-ingestion and auth code is reviewed.
+
+---
+
+## Post-Mortems (`post-mortems/`)
+
+Blameless post-mortems for resolved incidents. See [post-mortems/README.md](post-mortems/README.md).
+
+> No post-mortems yet — filed after the first P0/P1 incident.
+
+---
+
+## UI Sketches (`ui/`)
+
+Design notes and text mockups.
+
+| Document | Description |
+|---|---|
+| [ui-investigation-process.txt](ui/ui-investigation-process.txt) | ASCII mockup of the Evidence Stream and Forensic Agents panels (debug output sample). |
+| [ui-root-cause-analysis.txt](ui/ui-root-cause-analysis.txt) | Plain-text RCA report example produced by the agents (RCA template / sample output). |

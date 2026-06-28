@@ -72,7 +72,7 @@ Coverage settings are in:
 - **Main**: `pyproject.toml` and `.coveragerc`
 - **Prototype**: `pyproject.toml` and `.coveragerc`
 
-Full documentation: [docs/configuration/coverage.md](../config/coverage.md)
+Full documentation: [docs/test/coverage.md](coverage.md)
 
 ### Tips
 

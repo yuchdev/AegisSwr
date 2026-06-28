@@ -66,15 +66,15 @@ Each agent is a Markdown file with YAML front-matter (`name`, `description`,
 
 | Agent                 | Model             | Role (one line)                                                                                                            |
 |-----------------------|-------------------|----------------------------------------------------------------------------------------------------------------------------|
-| `app-architect`           | claude-opus-4-8   | Design, ADRs (MADR → `docs/adr/`), interface contracts, tech-debt. Never writes impl code.                                 |
-| `python-expert`               | claude-sonnet-4-6 | Implements features/fixes/refactors; reads ADR first; runs tests before+after; conventional commits.                       |
+| `app-architect`       | claude-opus-4-8   | Design, ADRs (MADR → `docs/adr/`), interface contracts, tech-debt. Never writes impl code.                                 |
+| `python-expert`       | claude-sonnet-4-6 | Implements features/fixes/refactors; reads ADR first; runs tests before+after; conventional commits.                       |
 | `feature-reviewer`    | claude-sonnet-4-6 | Pre-merge review (correctness, injection in payload handling, missing auth, unhandled errors); LGTM / REQUEST_CHANGES.     |
 | `background-reviewer` | claude-sonnet-4-6 | Async dep audit, secret scan, perf-regression, licence checks → `docs/reviews/`.                                           |
-| `testing-expert`                  | claude-sonnet-4-6 | Unit + integration (mocked externals) tests, manual checklist in `docs/qa/`, coverage delta.                               |
-| `docs-updater`                | claude-sonnet-4-6 | Docs, runbooks, OpenAPI refresh, docstrings; keeps `docs/` in sync.                                                        |
+| `testing-expert`      | claude-sonnet-4-6 | Unit + integration (mocked externals) tests, manual checklist in `docs/qa/`, coverage delta.                               |
+| `docs-updater`        | claude-sonnet-4-6 | Docs, runbooks, OpenAPI refresh, docstrings; keeps `docs/` in sync.                                                        |
 | `incident-analyst`    | claude-opus-4-8   | *(Aegis-specific)* Validates lifecycle states, escalation paths, playbook safety; flags alert-fatigue / missed escalation. |
 | `security-auditor`    | claude-opus-4-8   | *(Aegis-specific)* Threat models → `docs/security/`; CRITICAL ⇒ merge BLOCK.                                               |
-| `agent-orchestrator`        | claude-opus-4-8   | *(added)* Coordinates multi-agent "ticket → merged PR" flows.                                                              |
+| `agent-orchestrator`  | claude-opus-4-8   | *(added)* Coordinates multi-agent "ticket → merged PR" flows.                                                              |
 
 > On front-matter: Claude Code reads `tools` for subagents; `allowed-tools` is
 > included alongside it to satisfy the brief and is harmless where unused.
@@ -89,7 +89,7 @@ Each agent is a Markdown file with YAML front-matter (`name`, `description`,
 | `playbook-validate` | `/playbook-validate <path>`           | Step ordering, required fields, idempotency, rollback, auth, weight sums.            |
 | `adr-write`         | `/adr-write <title>`                  | Scaffold a MADR ADR, seeded from git log + open issues.                              |
 | `pr-review`         | `/pr-review [pr]`                     | Fan out `feature-reviewer` + `security-auditor` in parallel; synthesise one verdict. |
-| `test-gap`          | `/test-gap [path]`                    | Spawn `testing-expert`; risk-ranked list of missing tests.                                       |
+| `test-gap`          | `/test-gap [path]`                    | Spawn `testing-expert`; risk-ranked list of missing tests.                           |
 | `runbook-write`     | `/runbook-write <type>`               | Draft a runbook from the Aegis template.                                             |
 | `post-mortem`       | `/post-mortem [id]`                   | Blameless timeline (git + incident data), five-whys, action items.                   |
 | `dep-audit`         | auto (manifest change) + `/dep-audit` | CVE scan + licence check; deep write-up via `background-reviewer`.                   |
@@ -108,15 +108,15 @@ All hooks are **Python** (Windows-first host; Python is a hard dependency) and
 share `_common.py` (stdin parsing, path resolution, logging, block/allow). Exit
 code 2 blocks the tool call.
 
-| Event / matcher                        | Script                | Behaviour                                                                                                                                               |
-|----------------------------------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `SessionStart`                         | `session_start.py`    | Injects branch, last 5 commits, open P0/P1 issues (via `gh` if authed).                                                                                 |
-| `PreToolUse / Bash`                    | `guard_bash.py`       | Blocks `rm -rf`, `DROP/TRUNCATE TABLE`, force-push, hard-reset, disk overwrite; blocks any `prod`/`production` command unless `AEGIS_PROD_CONFIRMED=1`. |
+| Event / matcher                            | Script                | Behaviour                                                                                                                                               |
+|--------------------------------------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `SessionStart`                             | `session_start.py`    | Injects branch, last 5 commits, open P0/P1 issues (via `gh` if authed).                                                                                 |
+| `PreToolUse / Bash`                        | `guard_bash.py`       | Blocks `rm -rf`, `DROP/TRUNCATE TABLE`, force-push, hard-reset, disk overwrite; blocks any `prod`/`production` command unless `AEGIS_PROD_CONFIRMED=1`. |
 | `PreToolUse / Write or Edit or MultiEdit`  | `secret_scan.py`      | Scans pending content; **exit 2** if a secret pattern matches.                                                                                          |
 | `PostToolUse / Write or Edit or MultiEdit` | `post_edit_format.py` | `ruff format` + `ruff check --fix` on `.py`; logs path to `edits.log`.                                                                                  |
 | `PostToolUse / Write or Edit or MultiEdit` | `dep_audit.py`        | On manifest change, advisory `pip-audit` → `dep-audit.log`.                                                                                             |
-| `PostToolUse / mcp__github__.*`        | `github_audit.py`     | Logs every GitHub MCP call (timestamp + safe arg summary) → `github-actions.log`.                                                                       |
-| `Stop`                                 | `run_tests.py`        | Runs `poetry run pytest tests/unit/ -q`; **exit 2** on failure (respects `stop_hook_active`; skip with `AEGIS_SKIP_TESTS=1`).                           |
+| `PostToolUse / mcp__github__.*`            | `github_audit.py`     | Logs every GitHub MCP call (timestamp + safe arg summary) → `github-actions.log`.                                                                       |
+| `Stop`                                     | `run_tests.py`        | Runs `poetry run pytest tests/unit/ -q`; **exit 2** on failure (respects `stop_hook_active`; skip with `AEGIS_SKIP_TESTS=1`).                           |
 
 All seven hooks were smoke-tested: destructive/prod commands block, secrets
 block, clean writes pass, session context renders, GitHub calls and edits log.

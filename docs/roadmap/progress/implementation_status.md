@@ -1,6 +1,6 @@
 # Aegis SWR - Implementation Status
 
-Tracks progress against [generic_implementation_plan.md](generic_implementation_plan.md). Updated as each phase lands.
+Tracks progress against [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md). Updated as each phase lands.
 
 | Phase | Name                       | Status                                            | Tests                                                          |
 |-------|----------------------------|---------------------------------------------------|----------------------------------------------------------------|
@@ -17,9 +17,9 @@ Tracks progress against [generic_implementation_plan.md](generic_implementation_
 | 9     | Secure Code Sandbox        | ⬜ Not started                                     | -                                                              |
 | 10    | Testing & Hardening        | ⬜ Not started                                     | -                                                              |
 
-**Current gate status:** 416 tests passing (unit + integration). Phases 6.1 (git + filesystem adapters) and 6.2 (file + fluent adapters) partially shipped; PDB adapter spec'd, not yet implemented. The **log-subsystem re-engineering** (Part III of the plan) is complete - see [below](#log-subsystem-re-engineering-).
+**Current gate status:** 416 tests passing (unit and integration). Phases 6.1 (git + filesystem adapters) and 6.2 (file and fluent adapters) are partially shipped; PDB adapter described in specs, not yet implemented. The **log-subsystem re-engineering** (Part III of the plan) is complete - see [below](#log-subsystem-re-engineering-).
 
-**End-to-end validation (real dump, 2026-05-31):** reproduced the prototype's resolution of `CrashUi.exe.1324.dmp` (deterministic NULL-pointer write in `CrashUi!Crash_Window::on_access_violation_click`) through the full Aegis pipeline - `CdbBackend` → `DataAdapter` → 4-agent MAS → `FilesystemStore`, with `--ai openai` (gpt-5.4). Consensus 0.97 (HIGH), converged in 1 round, and the panel additionally emitted a probabilistic-fix diff. Backend engine fixes made during this run (all in [generic_implementation_plan.md](generic_implementation_plan.md) C.1 AIAPIBackend / C.2 DebugBackend):
+**End-to-end validation (real dump, 2026-05-31):** reproduced the prototype's resolution of `CrashUi.exe.1324.dmp` (deterministic NULL-pointer write in `CrashUi!Crash_Window::on_access_violation_click`) through the full Aegis pipeline - `CdbBackend` → `DataAdapter` → 4-agent MAS → `FilesystemStore`, with `--ai openai` (gpt-5.4). Consensus 0.97 (HIGH), converged in 1 round, and the panel additionally emitted a probabilistic-fix diff. Backend engine fixes made during this run (all in [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md) C.1 AIAPIBackend / C.2 DebugBackend):
 - `AISettings.resolved_model` - `--ai openai` now uses an OpenAI model instead of the Anthropic default.
 - `OpenAIBackend` reasoning-model contract - `max_completion_tokens` (16k floor), no `temperature`; client `timeout=300s` + `max_retries=4`.
 - `CdbBackend._extract_exception_code` - multi-key fault-code extraction (`EXCEPTION_CODE` / `ERROR_CODE` / `EXCEPTION_CODE_STR` / `ExceptionCode`); fixes a prototype-ported defect that mapped NULL_POINTER_WRITE dumps to `FaultClass.UNKNOWN`.
@@ -30,12 +30,12 @@ Tracks progress against [generic_implementation_plan.md](generic_implementation_
 
 ## Log subsystem re-engineering ✅
 
-Cross-cutting refactor (plan [Part III](generic_implementation_plan.md#part-iii--new-task-three-channel-logging-application--evidence--investigation-process)) that split one overloaded `--log-severity` knob into three independent channels and regrouped config.json into four nested analyze sections.
+Cross-cutting refactor (plan [Phase 6.2](/docs/roadmap/tasks/0001-generic_implementation_plan.md#phase-62-log-backend)) that split one overloaded `--log-severity` knob into three independent channels and regrouped config.json into four nested analyze sections.
 
 - **Channels:** **application logging** (`logging.*` - severity + sink + dir), **evidence** (`evidence.*` - war-room left pane, INFO/TRACE), **investigation process** (`process.*` - war-room right pane, INFO/TRACE). Log **ingestion** moved to `ingest.log_source.*` (overrides `backends.log`).
 - **CLI:** added `--log-sink`, `--evidence-severity`, `--process-severity`, `--evidence-persist`; `--log-severity` is now application-only; `--log-provider`/`--log-service` configure `ingest.log_source`. Out-of-range stream levels / unknown sink exit `2`.
 - **Sinks:** application `file` sink implemented; `elk`/`fluent` are warn-and-fall-back stubs with `_register_*_sink` seams (real emitters are the one deferred item).
-- **Evidence persistence:** opt-in post-run transcript (`evidence-<id>.log`); war-room view + non-quiet output only (warns otherwise).
+- **Evidence persistence:** opt-in post-run transcript (`evidence-<id>.log`); war-room view and non-quiet output only (warns otherwise).
 - **Back-compat:** `_migrate_legacy` upgrades a pre-split `logging` block (provider/service → `ingest.log_source`; conflated `severity` seeds the panes) with a one-time deprecation warning.
 - **Docs/config:** `configuration/config.md` + `cli.md` rewritten; `config.example.json` and the default `config.json` use the four-section layout.
 - **Tests:** unit + mock + integration shipped per phase across `test_analyze_config.py`, `test_cli.py`, `test_logging.py`, `test_views.py`, `integration/test_e2e_cli.py`.
@@ -70,7 +70,7 @@ Delivered:
   8. Code-history query (optional `CodeBackend`)
   9. `IncidentBrief` assembly
 - `core/schemas.py` - added `IncidentBrief` model
-- Refinements recorded in [generic_implementation_plan.md](generic_implementation_plan.md) 5. Data Adapter Layer
+- Refinements recorded in [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md) 5. Data Adapter Layer
 
 Test coverage (29 tests): hashing, format detection, every noise-filter rule, ≥60 % token reduction on the canonical CDB fixture, temporal windowing (inner/outer/out-of-window), Drain3 heartbeat dedup, PII scrubbing (emails/AWS keys/IPs/DB strings + stable tokens + map recovery), assumption cap, history-injection rule, and full-pipeline integration (crash-dump, low-symbol-coverage, log-only modes).
 
@@ -84,7 +84,7 @@ Delivered:
 - `backends/ai/openai_provider.py` - `OpenAIBackend`: `json_schema` strict structured output (`_to_openai_strict_schema`), `stream_options.include_usage` streaming
 - `backends/ai/__init__.py` - `create_ai_backend(settings)` factory
 - ABC change: `AIAPIBackend.stream` is now a plain `def` returning `AsyncGenerator` (see spec 6.1 AIAPIBackend)
-- As-built decisions recorded in [generic_implementation_plan.md](generic_implementation_plan.md) 6.1 AIAPIBackend
+- As-built decisions recorded in [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md) 6.1 AIAPIBackend
 
 Mock/unit coverage (`test_ai_backends.py`, 20 tests): structured-output happy path, retry-then-valid, raise-after-retry, unstructured text, streaming, cache-control + tool assertion, no-tool-block error, OpenAI strict-schema adapter, malformed-JSON handling, and the provider factory (anthropic/openai/unknown). All SDK clients patched - no network.
 
@@ -96,7 +96,7 @@ Delivered:
 - `agents/code_analyst.py` - `CodeAnalystAgent`: code logic analyst; encodes probabilistic fixes in hypothesis evidence for the synthesizer
 - `agents/log_historian.py` - `LogHistorianAgent`: historical pattern correlator; conditionally queries `VectorStore` when available
 - `agents/skeptic.py` - `SkepticAgent`: programmatic pre-check (module absent from top frames → `confirmed=False` with zero LLM call); LLM-based checks 2+3; stores corrections in `AgentTurn.corrections` for next-round OS Kernel injection
-- `core/orchestrator.py` - `Orchestrator`: LangGraph `StateGraph` with 7 nodes; consensus evaluator in Skeptic node; `_route_after_skeptic` conditional edge; `run()` with deduplication cache gate; `run_streaming()` yielding SSE events; `continue_investigation()` stub (Phase 6)
+- `core/orchestrator.py` - `Orchestrator`: LangGraph `StateGraph` with 7 nodes; consensus evaluator in Skeptic node; `_route_after_skeptic` conditional edge; `run()` with the deduplication cache gate; `run_streaming()` yielding SSE events; `continue_investigation()` stub (Phase 6)
 - `core/schemas.py` - added `corrections: list[str]` to `AgentTurn`; added `previous_hypothesis_key`, `current_round_scores`, `result` to `InvestigationState`
 - `agents/base.py` - added `_accumulate_tokens(state)` helper
 
@@ -116,7 +116,7 @@ Delivered:
 - `backends/debug/_symbol_path.py` - `resolve_symbol_path` (config → `AEGIS_SYMBOL_CACHE` → platform default)
 - `backends/debug/__init__.py` - `create_debug_backend(settings, platform=None)` factory
 - `core/exceptions.py` - added `DebugExtractionError`
-- As-built decisions recorded in [generic_implementation_plan.md](generic_implementation_plan.md) 6.2 DebugBackend
+- As-built decisions recorded in [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md) 6.2 DebugBackend
 
 Unit coverage (`test_debug_backends.py`, 22 tests): per-backend fault-class mapping, structured field + stack-frame parsing, `symbol_resolution_score`, noise-filter application, CDB timestamp + source-line parsing, command-sequence construction, validation errors (no dump / missing file), subprocess errors (missing binary → `PlatformNotSupportedError`, timeout → `DebugExtractionError`), the platform factory (win32/linux/darwin/unsupported), and symbol-path resolution. All `subprocess.run` calls mocked - no debugger binary required.
 
@@ -145,7 +145,7 @@ Delivered:
 - `pyproject.toml` - `typer = "^0.26"`.
 - Spec updated: `PRODUCTION_DESIGN_SPEC.md §12`, `IMPLEMENTATION_PLAN.md Phase 7`, `AGENTIC_IMPLEMENTATION_PLAN.md Step 7`.
 
-Unit coverage (`test_cli.py`, 12 tests): help flags, --save-config writes JSON, --config sets defaults, CLI flag overrides config, json/rich output, HITL exit code 1, config show redacts, config set writes YAML, config helpers.  
+Unit coverage (`test_cli.py`, 12 tests): help flags, --save-config writes JSON, --config sets defaults, CLI flag overrides config, json/rich output, HITL exit code 1, config show redacts, a config set writes YAML, config helpers.  
 Integration coverage (`test_e2e_cli.py`, 4 tests): JSON output E2E, rich output, log-only mode, config round-trip.
 
 > **Pending (lands with Phases 6.1 / 6.2):** the `--code-provider`, `--repo`, `--log-provider`, and `--log-service` flags and their orchestrator wiring are specified in `AGENTIC_IMPLEMENTATION_PLAN.md Step 7` / `IMPLEMENTATION_PLAN.md Phase 7` but are not yet implemented - they depend on the Code/Log backends being built first.

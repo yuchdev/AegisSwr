@@ -1,0 +1,26 @@
+---
+title: WarRoomView — Rich Layout Hierarchy (ADR 0001)
+---
+graph TB
+    subgraph Live["rich.Live block · 12 fps refresh"]
+        Header["header\nstatus bar — dump name · mode · elapsed · round"]
+
+        subgraph Body["body  (horizontal split)"]
+            direction LR
+
+            subgraph Left["left  50%"]
+                ES["EvidenceStream\n─ timestamped event log\n─ fault_class · module · sym_coverage\n─ raw stack frames\n─ per-agent summaries\n─ consensus round results"]
+            end
+
+            subgraph Right["right  50%  (vertical split)"]
+                direction TB
+                AP["AgentPanel  upper 60%\n┌ OS Kernel    ANALYZING  ████░ 82% ┐\n│ Code Analyst  DONE       ████░ 78% │\n│ Log Historian DONE       ████░ 74% │\n└ Skeptic       DONE       ████░ 85% ┘\nspinner · progress bar · one-line summary"]
+                PP["ProcessPanel  lower 40%\nplaybook steps · current phase\nconsensus threshold · confidence band"]
+            end
+        end
+
+        Verdict["verdict frame  (post-conclusion only)\nrender_verdict → _build_diagnosis\nsingle green frame + model name subtitle"]
+    end
+
+    WarRoomView["WarRoomView.run()"] -->|"make_view() selects\nif terminal wide enough"| Live
+    RichView["RichView  (narrow-terminal fallback)"] -.->|"make_view() selects\nif terminal narrow"| WarRoomView

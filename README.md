@@ -17,17 +17,13 @@ See **[docs/README.md](docs/README.md)** for the full index of architecture, roa
 
 ---
 
-## 🏗️ Architecture & Pluggable Backends
+## Architecture
 
-Aegis SWR is architected as a core Python orchestration layer that exposes abstract interfaces for specialized backends. These backends can run as local Python modules or remote microservices, dynamically registering themselves to extend the platform's diagnostic intelligence.
-
-### Backend Interface Matrix
-
-| Backend Interface Type | Description                                                                                          | Component Examples                                                |
-|------------------------|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| **`AIAPIBackend`**     | Manages foundational LLM communication, token streaming, and semantic context isolation.             | OpenAI, Anthropic, Local vLLM / DeepSeek instances.               |
-| **`DebugBackend`**     | Wraps native command-line debuggers to extract call stacks, symbols, and frame states from binaries. | `cdb.exe` (Windows), `gdb`/`lldb` (Linux/macOS core dumps).       |
-| **`StorageBackend`**   | Handles multi-tier persistence for raw incident payloads, active state graphs, and vector patterns.  | PostgreSQL (State), AWS S3 / MinIO (Dumps), Qdrant (Vector Logs). |
+Aegis SWR is built around a **Data Adapter → Multi-Agent Debate → Consensus** pipeline.
+See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full design rationale — deployment strategy,
+Data Adapter preprocessing, agent personas, HITL escalation, and key constraints.
+See **[docs/specs/implementation-spec.md](docs/specs/implementation-spec.md)** for the
+authoritative implementation specification (schemas, pipelines, API contract).
 
 ---
 
@@ -161,7 +157,7 @@ The platform processes the inputs through the **Data Adapter**, runs the agentic
   "conclusion": "Race condition triggered by high I/O latency exposing an unhandled early-return pointer bug in db_writer.cpp:142.",
   "confidence_score": 0.92,
   "investigators_rationale": [
-    "OS Kernel Agent argued for a deadlock due to I/O latency, but Code Analyst Agent pointed out an uninitialized pointer in the header parser. Skeptic Agent verified that the pointer is only uninitialized when the I/O takes >500ms. Consensus: Race condition.",
+    "OS Kernel Agent argued for a deadlock due to I/O latency, but Code Analyst Agent pointed out an uninitialized pointer in the header parser. Skeptic Agent verified that the pointer is only uninitialized when the I/O takes >500ms. Consensus: Race condition."
   ],
   "mitigation_instructions": [
     "1. Temporarily increase database write-timeout limits to 1000ms.",
@@ -169,7 +165,6 @@ The platform processes the inputs through the **Data Adapter**, runs the agentic
   ],
   "probabilistic_fix": "--- a/src/db_writer.cpp\n+++ b/src/db_writer.cpp\n@@ -142,5 +142,6 @@\n if (latency > 500) {\n+  cleanup_pointer();\n   return ERR_TIMEOUT;\n }"
 }
-
 ```
 
 > **Product Note:** "We aren't just developing a tool that reads dumps. We are developing a Synthetic Expert Panel. When a crash occurs, our product performs a 10-minute 'Agentic Discussion' that replaces 4 hours of senior developer meetings."

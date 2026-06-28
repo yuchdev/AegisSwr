@@ -5,6 +5,12 @@
 **Package:** `aegis-swr` (PyPI/Poetry name); Python module root: `aegis_swr`  
 **Source root:** `src/aegis_swr/`
 
+> **Related documents:** For the 16-week execution phasing and per-agent task matrix see
+> [`docs/roadmap/tasks/0001-generic_implementation_plan.md`](../roadmap/tasks/0001-generic_implementation_plan.md).
+> For the high-level design rationale (deployment strategy, agent personas, HITL)
+> see [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
+> For the three-channel logging architecture see [§15](#15-logging-architecture).
+
 ---
 
 ## 1. Product Summary
@@ -214,16 +220,16 @@ Each `DebugBackend` maps its platform-native fault indicator to `FaultClass`. Th
 
 **Platform mapping table** (implemented in `fault_codes.py`):
 
-| Platform | Native Code | FaultClass |
-|---|---|---|
-| Windows NTSTATUS | `0xC0000005` | `MEMORY_ACCESS_VIOLATION` |
-| Windows NTSTATUS | `0xC00000FD` | `STACK_OVERFLOW` |
-| Windows NTSTATUS | `0xC0000094` | `INTEGER_DIVIDE_BY_ZERO` |
-| Linux signal | `SIGSEGV (11)` | `MEMORY_ACCESS_VIOLATION` |
-| Linux signal | `SIGBUS (7)` | `MEMORY_ACCESS_VIOLATION` |
-| Linux signal | `SIGFPE (8)` | `INTEGER_DIVIDE_BY_ZERO` |
-| macOS exception | `EXC_BAD_ACCESS (1)` | `MEMORY_ACCESS_VIOLATION` |
-| macOS exception | `EXC_ARITHMETIC (3)` | `INTEGER_DIVIDE_BY_ZERO` |
+| Platform         | Native Code          | FaultClass                |
+|------------------|----------------------|---------------------------|
+| Windows NTSTATUS | `0xC0000005`         | `MEMORY_ACCESS_VIOLATION` |
+| Windows NTSTATUS | `0xC00000FD`         | `STACK_OVERFLOW`          |
+| Windows NTSTATUS | `0xC0000094`         | `INTEGER_DIVIDE_BY_ZERO`  |
+| Linux signal     | `SIGSEGV (11)`       | `MEMORY_ACCESS_VIOLATION` |
+| Linux signal     | `SIGBUS (7)`         | `MEMORY_ACCESS_VIOLATION` |
+| Linux signal     | `SIGFPE (8)`         | `INTEGER_DIVIDE_BY_ZERO`  |
+| macOS exception  | `EXC_BAD_ACCESS (1)` | `MEMORY_ACCESS_VIOLATION` |
+| macOS exception  | `EXC_ARITHMETIC (3)` | `INTEGER_DIVIDE_BY_ZERO`  |
 
 ### 4.3 Debug Extraction Result
 
@@ -460,7 +466,7 @@ IncidentSource
 The Log Historian Agent queries the Qdrant vector store for semantically similar historical incidents. Injection is conditional:
 - Inject if `faulting_module` appears in ≥2 of the last 10 stored incidents, **or**
 - Inject if `fault_class` matches ≥3 of the last 10 stored incidents.
-- Otherwise omit (saves ~300 input tokens on non-recurring crashes).
+- Otherwise, omit (saves ~300 input tokens on non-recurring crashes).
 
 The rule is implemented as the pure helper `DataAdapter.should_inject_history(brief, recent)`; the Log Historian Agent (Phase 5) supplies the `recent` list from the vector store.
 
@@ -586,9 +592,9 @@ def create_debug_backend(config: DebugConfig) -> DebugBackend:
 > **PDB dual-use note.** A `.pdb` (Program Database) file contains two distinct
 > information classes used at *different pipeline stages*:
 >
-> | Class | Used by | Stage | Mechanism |
-> |---|---|---|---|
-> | Address → symbol (function name, source line, type) | **Debug Backend** | Stage 2 | `cdb.exe -y {symbol_path}` resolves frames |
+> | Class                                                    | Used by                 | Stage   | Mechanism                                           |
+> |----------------------------------------------------------|-------------------------|---------|-----------------------------------------------------|
+> | Address → symbol (function name, source line, type)      | **Debug Backend**       | Stage 2 | `cdb.exe -y {symbol_path}` resolves frames          |
 > | Source Server (SrcSrv) stream → exact VCS revision built | **Code Backend §6.5.4** | Stage 8 | `pdbstr.exe -r -s:srcsrv` extracts build provenance |
 >
 > Both backends reference the same `.pdb` file; this is intentional and architecturally
@@ -772,15 +778,15 @@ Substitution tokens (`__CALLBACK_URL__`, `__MAX_FAULTING_FRAMES__`, `__MAX_OTHER
 
 ##### JSON Payload → `DebugExtractionResult` Mapping
 
-| JSON field | `DebugExtractionResult` field | Notes |
-|---|---|---|
-| `ExceptionCode` | `exception_code_raw`, `fault_class` | Via `map_windows_ntstatus` |
-| `ExceptionAddress` | `exception_address` | From `exc.Address`; more reliable than frame[0] offset |
-| `FaultingModule` | `faulting_module` | From JS (DDM knows the module directly) |
-| `FaultingThread.Frames[0].Function` | `faulting_function` | Top faulting-thread frame |
-| `FaultingThread.Frames[:N]` | `stack_frames` | Top `N` faulting frames as `StackFrame` objects |
-| `AllThreadsSummary` (JSON string) | `raw_text_excerpt` | Passed through `apply_noise_filter`; included for Log Historian's multi-thread context |
-| Faulting frames with non-empty Function | `symbol_resolution_score` | Fraction of faulting-thread frames with resolved function names |
+| JSON field                              | `DebugExtractionResult` field       | Notes                                                                                  |
+|-----------------------------------------|-------------------------------------|----------------------------------------------------------------------------------------|
+| `ExceptionCode`                         | `exception_code_raw`, `fault_class` | Via `map_windows_ntstatus`                                                             |
+| `ExceptionAddress`                      | `exception_address`                 | From `exc.Address`; more reliable than frame[0] offset                                 |
+| `FaultingModule`                        | `faulting_module`                   | From JS (DDM knows the module directly)                                                |
+| `FaultingThread.Frames[0].Function`     | `faulting_function`                 | Top faulting-thread frame                                                              |
+| `FaultingThread.Frames[:N]`             | `stack_frames`                      | Top `N` faulting frames as `StackFrame` objects                                        |
+| `AllThreadsSummary` (JSON string)       | `raw_text_excerpt`                  | Passed through `apply_noise_filter`; included for Log Historian's multi-thread context |
+| Faulting frames with non-empty Function | `symbol_resolution_score`           | Fraction of faulting-thread frames with resolved function names                        |
 
 ##### Configuration Additions (`DebugSettings`)
 
@@ -1648,10 +1654,16 @@ aegis analyze \
   --store-config <config-dir>/reports  # storage config value (dir path / db path / S3 URL)
   --code-provider none           # code backend: none | git | filesystem | pdb
   --repo    ./service-src        # repo / source root (sets code-provider on, repo_path)
-  --log-provider file            # log backend: file | fluent
-  --log-service auth-api         # service name for LogBackend.query_window (optional)
+  --log-provider file            # log ingestion backend: file | fluent  (→ ingest.log_source.provider)
+  --log-service auth-api         # service name for LogBackend.query_window (→ ingest.log_source.service)
   --output  rich                 # output format: rich | json | quiet
-  --log-severity INFO                # log verbosity: TRACE | DEBUG | INFO | WARNING | ERROR (TRACE streams the full !analyze output)
+  --log-severity INFO            # application log verbosity: TRACE | DEBUG | INFO | WARNING | ERROR
+  --log-sink    file             # application log sink: file | elk | fluent  (elk/fluent = stubs)
+  --log-dir     <config-dir>/logs
+  --evidence-severity INFO       # Evidence Stream verbosity: INFO | TRACE
+  --evidence-persist             # write evidence transcript to --evidence-dir after run
+  --no-evidence-persist
+  --process-severity  INFO       # Investigation Process pane verbosity: INFO | TRACE
   --config  <config-dir>/config.json   # load options from JSON file
   --save-config                  # save current effective options to JSON file, then exit
 ```
@@ -1660,24 +1672,25 @@ aegis analyze \
 
 `--log`, `--shot`, and `--pcap` are **repeatable**: pass each flag once per file.
 
-`--log-severity DEBUG` also raises the live war-room Evidence Stream to its DEBUG
-verbosity, which surfaces detailed per-artifact metadata (textual core-dump
-analysis, ±2-minute log windows, screenshot file properties, and network-capture
-metadata). See `docs/adr/new-ui-rich-based-design.md` §2.2.1.
+**Logging channel flags** (see §15 for the full architecture):
+- `--log-severity` / `--log-sink` / `--log-dir` control Aegis's own diagnostic logging.
+- `--evidence-severity TRACE` reveals full per-artifact detail in the Evidence Stream (left war-room pane): textual dump analysis, ±30 s log windows, screenshot properties, network-capture metadata. See `docs/adr/0001-new-ui-rich-based-design.md` §2.2.1.
+- `--process-severity TRACE` shows the full agent reasoning transcript in the Investigation Process pane (right pane); independent of evidence verbosity.
+- `--log-provider` / `--log-service` configure log *ingestion* (reading the investigated system's logs via `LogBackend`), not Aegis diagnostics.
 
 Prototype options carried forward:
 - `--engine` (maps to `DebugSettings.engine`)
 - `--ai` (maps to `AISettings.provider`)
 - `--store` / `--store-config` (maps to `StorageSettings.provider` / path)
 - `--assume` (maps to `IncidentSource.user_assumption`)
-- `--log-severity` (maps to log verbosity; replaces `--report-severity`)
+- `--log-severity` (application log verbosity; replaces prototype `--report-severity`)
 - `--config` / `--save-config` (JSON file round-trip)
 
-New backend options (§6.4 / §6.5):
+New options (§6.4 / §6.5 / §15):
 - `--code-provider` (maps to `CodeSettings.provider`; `none` leaves `CodeSettings.enabled=false`; valid values: `none | git | filesystem | pdb`)
-- `--repo` (maps to `CodeSettings.repo_path`; passing it implies `enabled=true` and, if `--code-provider` is omitted, defaults the provider to `git`; for `pdb` provider, `--repo` still accepted as the git fallback root for blame)
-- `--log-provider` (maps to `LogSettings.provider`)
-- `--log-service` (service name passed to `LogBackend.query_window`; when omitted, the file-path log source is used and no `query_window` call is made)
+- `--repo` (maps to `CodeSettings.repo_path`; implies `enabled=true`; defaults provider to `git` if `--code-provider` omitted; for `pdb`, still accepted as the git fallback root for blame)
+- `--log-provider` / `--log-service` (ingestion: `ingest.log_source.provider` / `.service`)
+- `--log-sink` / `--evidence-severity` / `--process-severity` / `--evidence-persist` (§15)
 
 ### 12.3 JSON config file (`<config-dir>/config.json`)
 
@@ -1689,7 +1702,7 @@ names, the JSON keys, and the persisted file all derive from it, so there is no
 second list of names to keep in sync. The keys mirror the `aegis analyze` CLI
 options exactly:
 
-```json
+```jsonc
 {
   "dump":          null,
   "logs":          [],
@@ -1703,19 +1716,44 @@ options exactly:
   "code_provider": "none",
   "repo":          null,
   "output":        "rich",
+
+  // INGESTION — config for reading the investigated system's logs
+  "ingest": {
+    "log_source": {
+      "provider": "file",     // → backends.log.provider
+      "service":  null        // → metadata["service"] for LogBackend.query_window
+    }
+  },
+
+  // APPLICATION logging — Aegis's own diagnostics
   "logging": {
-    "provider":  "file",
-    "service":   null,
-    "severity":  "WARNING",
-    "dir":       "<config-dir>/logs"
+    "severity": "INFO",       // TRACE | DEBUG | INFO | WARNING | ERROR
+    "sink":     "file",       // file | elk | fluent  (elk/fluent = stubs)
+    "dir":      "<config-dir>/logs",
+    "elk_url":  null,
+    "fluent_host": null,
+    "fluent_port": null
+  },
+
+  // EVIDENCE logging — war-room Evidence Stream (left pane)
+  "evidence": {
+    "severity": "INFO",       // INFO | TRACE
+    "persist":  false,        // write transcript to evidence.dir after the run
+    "dir":      null          // defaults to <config-dir>/evidence when persist = true
+  },
+
+  // INVESTIGATION-PROCESS logging — agent reasoning pane (right pane)
+  "process": {
+    "severity": "INFO"        // INFO (headlines) | TRACE (full agent reasoning)
   }
 }
 ```
 
-The four logging options are grouped under a nested `logging` section (the `log_`
-prefix is stripped); each still maps 1:1 to a `--log-*` CLI flag. The section is
-named `logging` rather than `log` so it is not confused with the unrelated
-`backends.log` log-ingestion backend.
+The three channel sections (`logging`, `evidence`, `process`) are independent; see §15
+for the full rationale. The `ingest.log_source` section replaces the former
+`logging.provider` / `logging.service` keys, which mixed log-ingestion and
+application-diagnostic concerns. Legacy configs with the old flat layout are
+automatically migrated (see §15.3, D1).
 
 The default path is `<config-dir>/config.json` (override with
 `--config PATH`). When both sources are present the file is loaded first and
@@ -1816,3 +1854,100 @@ tests/ground_truth/
 ### 14.4 Token Budget Benchmarks
 
 After each significant change to the Data Adapter, run `tests/benchmarks/token_budget.py` against 5 canonical dump+log pairs. Assert that the average per-request token count is below the configured `TOKEN_BUDGET_TARGET` (default: 12,000 input tokens), ensuring that the Data Adapter is providing at least a 30% reduction vs. the prototype baseline.
+
+---
+
+## 15. Logging Architecture
+
+Aegis SWR operates three independent logging channels. The implementation history
+(phases A–J) lives in
+[`docs/roadmap/tasks/0001-generic_implementation_plan.md` Part III](../roadmap/tasks/0001-generic_implementation_plan.md#part-iii--new-task-three-channel-logging-application--evidence--investigation-process);
+this section records the resolved design.
+
+### 15.1 The three channels
+
+| Channel | What it controls | UI / sink surface | Severity range |
+|---|---|---|---|
+| **Application logging** | Aegis's own diagnostics (startup, backend errors, internal state) | File sink (`<config-dir>/logs/`); optional elk/fluent stubs | `TRACE … ERROR` (full loguru range) |
+| **Evidence logging** | Investigation evidence events (dump extraction results, log clusters, OCR output, code history) | War-room **left** pane (Evidence Stream) | `INFO` (general) or `TRACE` (full per-artifact detail) |
+| **Investigation-process logging** | Agent deliberation and reasoning transcript | War-room **right** pane (Investigation Process) | `INFO` (headlines) or `TRACE` (full agent reasoning) |
+
+Evidence and process are configured **independently**: enabling full agent reasoning
+(`process.severity = TRACE`) is orthogonal to the evidence verbosity, and vice versa.
+
+The log-ingestion backend (`backends.log`, §6.4) — which reads the *investigated
+system's* logs — is a fourth, separate concept. It is configured under
+`ingest.log_source` and is not a logging output channel.
+
+### 15.2 Configuration shape
+
+```jsonc
+// Stored in <config-dir>/config.json (analyze options)
+
+// INGESTION — reading the investigated system's logs (→ §6.4 LogBackend)
+"ingest": {
+  "log_source": {
+    "provider": "file",     // file | fluent | elk   → backends.log.provider
+    "service":  null        // → metadata["service"] for LogBackend.query_window
+  }
+},
+
+// APPLICATION logging — Aegis's own diagnostics
+"logging": {
+  "severity": "INFO",       // TRACE | DEBUG | INFO | WARNING | ERROR
+  "sink":     "file",       // file | elk | fluent  (elk/fluent = stubs)
+  "dir":      "<config-dir>/logs",
+  "elk_url":  null,         // accepted by schema; emitter not yet implemented
+  "fluent_host": null,
+  "fluent_port": null
+},
+
+// EVIDENCE logging — war-room left pane
+"evidence": {
+  "severity": "INFO",       // INFO | TRACE
+  "persist":  false,        // write evidence transcript after run (off by default)
+  "dir":      null          // defaults to <config-dir>/evidence when persist = true
+},
+
+// INVESTIGATION-PROCESS logging — war-room right pane
+"process": {
+  "severity": "INFO"        // INFO (headlines) | TRACE (full agent reasoning)
+}
+```
+
+**CLI mapping.** `AnalyzeConfig` keeps flat field names; nesting is a JSON-layout
+translation at the file boundary:
+
+| CLI flag | `AnalyzeConfig` field | Config JSON path |
+|---|---|---|
+| `--log-severity` | `log_severity` | `logging.severity` |
+| `--log-sink` | `log_sink` | `logging.sink` |
+| `--log-dir` | `log_dir` | `logging.dir` |
+| `--evidence-severity` | `evidence_severity` | `evidence.severity` |
+| `--evidence-persist` | `evidence_persist` | `evidence.persist` |
+| `--process-severity` | `process_severity` | `process.severity` |
+| `--log-provider` | `log_provider` | `ingest.log_source.provider` |
+| `--log-service` | `log_service` | `ingest.log_source.service` |
+
+### 15.3 Resolved decisions
+
+- **D1** — Ingestion `provider`/`service` live under `ingest.log_source`; `logging`
+  is application diagnostics only. Legacy configs that placed these under `logging`
+  are auto-migrated on load (see §15.3, migration note).
+- **D2** — Evidence has exactly two levels; the former `DEBUG` evidence detail folds
+  into `TRACE`. `_normalize_evidence_level` maps `DEBUG` → `TRACE` silently.
+- **D3** — `logging.sink = elk|fluent` is accepted by the schema and CLI but the
+  emitters are **stubs** (warn + fall back to file/stderr). Real sinks are a future
+  enhancement behind the `_register_<sink>_sink` extension seam.
+- **D4** — Evidence and investigation-process are **separate** channels; full agent
+  reasoning (`process.severity = TRACE`) can be enabled without enabling full evidence
+  verbosity, and vice versa.
+- **D5** — Evidence persistence is **configurable and off by default**. Agent dialogue
+  is already persisted in the report files, so no separate process-pane sink is added.
+
+**Legacy migration.** `_migrate_legacy(data)` runs first in `_flatten_sections`. A
+pre-split `logging` block with `logging.provider`/`service` is promoted to
+`ingest.log_source.*`; `logging.severity` seeds `evidence.severity` and
+`process.severity` (clamped to INFO/TRACE) **only when those new keys are absent**.
+A deprecation warning lists what was migrated. Existing four-section configs are
+untouched.
