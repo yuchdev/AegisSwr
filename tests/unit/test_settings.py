@@ -1,5 +1,8 @@
 
-from aegis_swr.config.settings import AISettings, Settings
+import pytest
+from pydantic import ValidationError
+
+from aegis_swr.config.settings import AISettings, BedrockSettings, Settings
 from aegis_swr.core.fault_codes import FaultClass
 
 
@@ -15,6 +18,39 @@ def test_default_ai_settings(settings: Settings):
     assert settings.backends.ai.provider == "anthropic"
     assert settings.backends.ai.model == "claude-sonnet-4-6"
     assert settings.backends.ai.temperature == 0.2
+
+
+def test_bedrock_settings_defaults():
+    bedrock = BedrockSettings()
+    assert bedrock.region == "ap-southeast-2"
+    assert bedrock.model_id == "au.anthropic.claude-sonnet-4-6"
+    assert bedrock.thinking_budget_tokens == 0
+    assert bedrock.connect_timeout_seconds == 10
+    assert bedrock.read_timeout_seconds == 300
+    assert bedrock.max_attempts == 3
+
+
+def test_ai_provider_validator_accepts_bedrock():
+    ai = AISettings(provider="bedrock")
+    assert ai.provider == "bedrock"
+    with pytest.raises(ValidationError):
+        AISettings(provider="invalid-provider")
+
+
+def test_resolved_model_bedrock_returns_profile_id():
+    profile_id = "au.anthropic.claude-opus-4-1"
+    ai = AISettings(
+        provider="bedrock",
+        model="claude-sonnet-4-6",
+        bedrock=BedrockSettings(model_id=profile_id),
+    )
+    assert ai.resolved_model == profile_id
+
+
+def test_bedrock_env_override(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("AEGIS__BACKENDS__AI__BEDROCK__REGION", "us-west-2")
+    settings = Settings()
+    assert settings.backends.ai.bedrock.region == "us-west-2"
 
 
 def test_resolved_model_openai_substitutes_default():

@@ -26,7 +26,7 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "python .claude/hooks/session_start.py" }
+          { "type": "command", "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/session_start.py" }
         ]
       }
     ],
@@ -34,13 +34,13 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "python .claude/hooks/guard_bash.py" }
+          { "type": "command", "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/guard_bash.py" }
         ]
       },
       {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
-          { "type": "command", "command": "python .claude/hooks/secret_scan.py" }
+          { "type": "command", "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/secret_scan.py" }
         ]
       }
     ],
@@ -48,23 +48,23 @@
       {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
-          { "type": "command", "command": "python .claude/hooks/post_edit_format.py" },
-          { "type": "command", "command": "python .claude/hooks/dep_audit.py" },
-          { "type": "command", "command": "python .claude/hooks/doc_link_check.py" }
+          { "type": "command", "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_format.py" },
+          { "type": "command", "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/dep_audit.py" },
+          { "type": "command", "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/doc_link_check.py" }
         ]
       },
       {
         "matcher": "mcp__github__.*",
         "hooks": [
-          { "type": "command", "command": "python .claude/hooks/github_audit.py" }
+          { "type": "command", "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/github_audit.py" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "python .claude/hooks/run_tests.py" },
-          { "type": "command", "command": "python .claude/hooks/doc_link_check.py" }
+          { "type": "command", "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/run_tests.py" },
+          { "type": "command", "command": "python $CLAUDE_PROJECT_DIR/.claude/hooks/doc_link_check.py" }
         ]
       }
     ]

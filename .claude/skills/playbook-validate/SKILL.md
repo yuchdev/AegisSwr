@@ -1,10 +1,6 @@
 ---
 name: playbook-validate
-description: >-
-  User-invoked as /playbook-validate <path>. Validates an Aegis remediation
-  playbook or consensus-weight file (e.g. agents.example.json or a playbook
-  YAML/JSON) for step ordering, required fields, idempotency, and rollback
-  coverage. Use before a playbook is trusted to run automated remediation.
+description: User-invoked as /playbook-validate <path>. Validates an Aegis remediation playbook or consensus-weight file (e.g. agents.example.json or a playbook YAML/JSON) for step ordering, required fields, idempotency, and rollback coverage. Use before a playbook is trusted to run automated remediation.
 allowed-tools: Read, Grep, Glob, Bash
 invocation: /playbook-validate <path>
 ---

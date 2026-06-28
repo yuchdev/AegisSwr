@@ -1,9 +1,6 @@
 ---
 name: runbook-write
-description: >-
-  User-invoked as /runbook-write <incident-type>. Drafts a new operational
-  runbook in docs/runbooks/ using the Aegis runbook template. Use to document
-  how on-call responds to a given incident/fault class.
+description: User-invoked as /runbook-write <incident-type>. Drafts a new operational runbook in docs/runbooks/ using the Aegis runbook template. Use to document how on-call responds to a given incident/fault class.
 allowed-tools: Read, Grep, Glob, Bash, Write
 invocation: /runbook-write <incident-type>
 ---

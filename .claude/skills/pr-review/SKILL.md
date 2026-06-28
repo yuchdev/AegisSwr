@@ -1,10 +1,6 @@
 ---
 name: pr-review
-description: >-
-  User-invoked as /pr-review [PR number or branch]. Spawns the feature-reviewer
-  and security-auditor agents in parallel, waits for both, and synthesises a
-  single unified review comment with one merge verdict. Use before merging any
-  PR or finishing a feature branch.
+description: User-invoked as /pr-review [PR number or branch]. Spawns the feature-reviewer and security-auditor agents in parallel, waits for both, and synthesises a single unified review comment with one merge verdict. Use before merging any PR or finishing a feature branch.
 allowed-tools: Read, Grep, Glob, Bash, Agent
 invocation: /pr-review [pr|branch]
 ---

@@ -1,10 +1,6 @@
 ---
 name: link-check
-description: >-
-  User-invoked as /link-check [path ...]. Validates that documentation relative
-  links and heading anchors resolve across docs/ (plus repo-root *.md and
-  .claude/), using scripts/check_doc_links.py. Use after editing, splitting,
-  merging, or renaming docs to catch dangling references.
+description: User-invoked as /link-check [path ...]. Validates that documentation relative links and heading anchors resolve across docs/ (plus repo-root Markdown files and .claude/), using scripts/check_doc_links.py. Use after editing, splitting, merging, or renaming docs to catch dangling references.
 allowed-tools: Bash, Read, Grep, Glob, Edit
 invocation: /link-check [path ...]
 ---

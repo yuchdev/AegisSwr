@@ -24,8 +24,8 @@ architecture overview see **[ARCHITECTURE.md](../ARCHITECTURE.md)** (repo root).
 
 | Document | Description |
 |---|---|
-| [implementation-spec.md](specs/implementation-spec.md) | Full implementation spec: module layout, `pyproject.toml`, all Pydantic schemas, FaultClass enum, Data Adapter pipeline (9 stages), all 5 backend ABCs, MAS LangGraph state machine, consensus algorithm, 3-tier storage schema, REST/SSE API endpoints, secure sandbox, config system, CLI, testing strategy. |
-| [agentic-fleet-design.md](specs/agentic-fleet-design.md) | Design and operational details for the Claude Code dev fleet: agent definitions, hooks, MCP connections, model tiering, orchestration, worktree policy, secrets management, and scheduled tasks. |
+| [implementation_spec.md](specs/implementation_spec.md) | Full implementation spec: module layout, `pyproject.toml`, all Pydantic schemas, FaultClass enum, Data Adapter pipeline (9 stages), all 5 backend ABCs, MAS LangGraph state machine, consensus algorithm, 3-tier storage schema, REST/SSE API endpoints, secure sandbox, config system, CLI, testing strategy. |
+| [agentic_fleet_design.md](specs/agentic_fleet_design.md) | Design and operational details for the Claude Code dev fleet: agent definitions, hooks, MCP connections, model tiering, orchestration, worktree policy, secrets management, and scheduled tasks. |
 
 ---
 

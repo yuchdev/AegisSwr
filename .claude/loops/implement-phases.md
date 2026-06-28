@@ -59,7 +59,7 @@ Brief each coder/qa agent with:
 - The exact Inputs and Instructions from the spec brief
 - The cross-cutting rules from the **"Cross-Cutting Agent Guidelines"** section
   at the bottom of `agentic_implementation_plan.md`
-- The relevant parts of `docs/specs/implementation-spec.md` that the brief
+- The relevant parts of `docs/specs/implementation_spec.md` that the brief
   references (e.g. "§9 endpoint specifications")
 
 **Security-sensitive phases** (Phase 8 auth middleware, Phase 9 sandbox): spawn

@@ -1,6 +1,6 @@
 ---
 name: feature-reviewer
-description: Reviews PRs and in-session diffs for correctness, security, and Aegis domain accuracy. Use after coder finishes a change and before merge. Outputs a structured review with a single LGTM or REQUEST_CHANGES verdict. Read-only; never edits code.
+description: Use this agent to review PRs and in-session diffs for correctness, security, and Aegis domain accuracy. Use after coder finishes a change and before merge. Outputs a structured review with a single LGTM or REQUEST_CHANGES verdict. Read-only; never edits code.
 model: claude-sonnet-4-6
 tools: Read, Grep, Glob, Bash
 allowed-tools: Read, Grep, Glob, Bash

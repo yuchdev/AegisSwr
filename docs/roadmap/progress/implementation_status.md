@@ -2,16 +2,20 @@
 
 Tracks progress against [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md). Updated as each phase lands.
 
+## Current status
+
 | Phase | Name                       | Status                                            | Tests                                                          |
 |-------|----------------------------|---------------------------------------------------|----------------------------------------------------------------|
 | 1     | Foundation & Package Setup | ✅ Complete                                        | `test_schemas.py`, `test_settings.py`, `test_interfaces.py`    |
 | 2     | Data Adapter Layer         | ✅ Complete                                        | `test_data_adapter.py`                                         |
 | 3     | AI Backends                | ✅ Complete                                        | `test_ai_backends.py`, `integration/test_ai_pipeline.py`       |
-| 4     | Debug Backends             | ✅ Complete                                        | `test_debug_backends.py`, `integration/test_debug_pipeline.py` |
+| 3.1   | Classic APIs               | ✅ Complete                                        | `test_ai_backends.py`, `integration/test_ai_pipeline.py`       |
+| 3.2   | AWS Bedrock                | 🔶 In progress                                    | `test_ai_backends.py` (Bedrock cases pending)                  |
+| 4     | Debug Backends             | 🔶 In progress (only cdb complete)                | `test_debug_backends.py`, `integration/test_debug_pipeline.py` |
 | 5     | Multi-Agent System         | ✅ Complete                                        | `test_consensus.py`, `test_agents.py`, `test_orchestrator.py`  |
 | 6     | Storage Backends           | ✅ Complete (Postgres stub)                        | `test_storage_backends.py`                                     |
 | 6.1   | Code Backend               | 🔶 Partial (git + fs done; PDB spec'd, not built) | `test_code_backends.py` (git/fs)                               |
-| 6.2   | Log Backend                | 🔶 Partial (file + fluent done; ELK deferred)     | `test_log_backends.py`                                         |
+| 6.2   | Log Backend                | 🔶 Partial (file done; fluent stub; ELK deferred) | `test_log_backends.py`                                         |
 | 7     | CLI & Local Mode           | ✅ Complete                                        | `test_cli.py`, `integration/test_e2e_cli.py`                   |
 | 8     | REST API Layer             | ⬜ Not started                                     | -                                                              |
 | 9     | Secure Code Sandbox        | ⬜ Not started                                     | -                                                              |

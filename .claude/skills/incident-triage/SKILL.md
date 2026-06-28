@@ -1,11 +1,6 @@
 ---
 name: incident-triage
-description: >-
-  Use when touching incident-lifecycle / investigation-flow code in Aegis SWR
-  (orchestrator.py, events.py, consensus.py, incident_similarity.py, schemas
-  for Hypothesis/SkepticVerdict/RCAReport/HITLRequest, or any api route that
-  drives an investigation). Checks state-machine completeness, escalation
-  paths, and timeout handling before the change is considered done.
+description: Use when touching incident-lifecycle / investigation-flow code in Aegis SWR (orchestrator.py, events.py, consensus.py, incident_similarity.py, schemas for Hypothesis/SkepticVerdict/RCAReport/HITLRequest, or any api route that drives an investigation). Checks state-machine completeness, escalation paths, and timeout handling before the change is considered done.
 allowed-tools: Read, Grep, Glob, Bash
 invocation: auto
 ---

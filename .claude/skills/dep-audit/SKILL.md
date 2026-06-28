@@ -1,10 +1,6 @@
 ---
 name: dep-audit
-description: >-
-  Dependency audit for Aegis SWR. Invoke on changes to pyproject.toml /
-  poetry.lock / requirements*.txt, or on a weekly cadence, or manually as
-  /dep-audit. Runs a CVE scan and a licence-compatibility check and delegates
-  the deep write-up to the background-reviewer agent.
+description: Dependency audit for Aegis SWR. Invoke on changes to pyproject.toml / poetry.lock / requirements.txt, or on a weekly cadence, or manually as /dep-audit. Runs a CVE scan and a licence-compatibility check and delegates the deep write-up to the background-reviewer agent.
 allowed-tools: Read, Grep, Glob, Bash, Agent
 invocation: /dep-audit
 ---

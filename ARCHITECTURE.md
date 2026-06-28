@@ -3,7 +3,7 @@
 This document describes the high-level design: why the system is structured as it is,
 how the major components fit together, and what constraints shaped each decision.
 For the authoritative implementation specification (module layout, schemas, pipelines,
-API contract), see [docs/specs/implementation-spec.md](docs/specs/implementation-spec.md).
+API contract), see [docs/specs/implementation_spec.md](docs/specs/implementation_spec.md).
 
 ---
 
@@ -150,6 +150,6 @@ The human response is re-ingested through the Data Adapter and debate resumes.
 
 | Document | What it covers |
 |---|---|
-| [docs/specs/implementation-spec.md](docs/specs/implementation-spec.md) | Full implementation spec: module layout, Pydantic schemas, Data Adapter pipeline (9 stages), backend ABCs, LangGraph state machine, REST/SSE API, sandbox, config. |
+| [docs/specs/implementation_spec.md](docs/specs/implementation_spec.md) | Full implementation spec: module layout, Pydantic schemas, Data Adapter pipeline (9 stages), backend ABCs, LangGraph state machine, REST/SSE API, sandbox, config. |
 | [docs/adr/](docs/adr/) | Architecture Decision Records — point-in-time decisions with rationale. |
 | [docs/roadmap/roadmap.md](docs/roadmap/roadmap.md) | 5-phase development roadmap. |

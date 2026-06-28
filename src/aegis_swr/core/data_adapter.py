@@ -25,10 +25,23 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
-from presidio_analyzer import AnalyzerEngine
 from loguru import logger
-import pytesseract
-from PIL import Image
+
+try:
+    from presidio_analyzer import AnalyzerEngine as _AnalyzerEngine
+    _HAS_PRESIDIO = True
+except ImportError:
+    _AnalyzerEngine = None  # type: ignore[assignment,misc]
+    _HAS_PRESIDIO = False
+
+try:
+    import pytesseract as _pytesseract
+    from PIL import Image as _Image
+    _HAS_OCR = True
+except ImportError:
+    _pytesseract = None  # type: ignore[assignment]
+    _Image = None  # type: ignore[assignment]
+    _HAS_OCR = False
 
 from aegis_swr.core.schemas import (
     CommitRecord,
@@ -540,8 +553,10 @@ class DataAdapter:
             if not path.exists():
                 continue
             try:
-                data = pytesseract.image_to_data(
-                    Image.open(path), output_type=pytesseract.Output.DICT
+                if not _HAS_OCR:
+                    continue
+                data = _pytesseract.image_to_data(
+                    _Image.open(path), output_type=_pytesseract.Output.DICT
                 )
             except Exception as exc:  # pragma: no cover - depends on tesseract binary
                 logger.warning(f"OCR failed for {raw_path}: {exc}")
@@ -609,8 +624,10 @@ class DataAdapter:
     @staticmethod
     def _presidio_enhance(text: str, state: _ScrubState) -> str:
         """Optional NER pass to catch entities the regex baseline misses"""
+        if not _HAS_PRESIDIO:
+            return text
         try:
-            analyzer = AnalyzerEngine()
+            analyzer = _AnalyzerEngine()
             entities = ["PERSON", "PHONE_NUMBER", "US_SSN", "CRYPTO", "LOCATION"]
             results = analyzer.analyze(text=text, entities=entities, language="en")
             # Replace it from the end so earlier spans keep their offsets.

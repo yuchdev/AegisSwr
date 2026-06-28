@@ -1,6 +1,6 @@
 ---
 name: docs-writer
-description: MUST BE USED to craft or update project documentation. Use PROACTIVELY after major features, API changes, or when onboarding developers. Produces READMEs, API specs, architecture guides, and user manuals; delegates to other agents for deep tech details.
+description: Use this agent to craft or update project documentation. Use PROACTIVELY after major features, API changes, or when onboarding developers. Produces READMEs, API specs, architecture guides, and user manuals; delegates to other agents for deep tech details.
 model: claude-sonnet-4-6
 tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch

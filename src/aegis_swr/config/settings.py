@@ -562,7 +562,7 @@ class Settings(BaseSettings):
         return raw
 
 
-def _redact_secrets(obj: Any):
+def _redact_secrets(obj: Any) -> None:
     """Recursively redact known secret keys in a mapping or sequence.
 
     Mutates the provided structure in-place. Any dict key that contains one of

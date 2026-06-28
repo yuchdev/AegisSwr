@@ -1,10 +1,6 @@
 ---
 name: secret-scan
-description: >-
-  Scans files for hardcoded secrets, API keys, and passwords using pattern
-  matching. Runs automatically on every Write/Edit via the secret_scan.py
-  PreToolUse hook (which blocks on a hit); invoke manually as /secret-scan
-  [paths] to sweep existing files on demand.
+description: Scans files for hardcoded secrets, API keys, and passwords using pattern matching. Runs automatically on every Write/Edit via the secret_scan.py PreToolUse hook (which blocks on a hit); invoke manually as /secret-scan [paths] to sweep existing files on demand.
 allowed-tools: Read, Grep, Glob, Bash
 invocation: /secret-scan [paths]
 ---

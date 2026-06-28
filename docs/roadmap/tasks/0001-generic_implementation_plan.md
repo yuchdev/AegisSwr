@@ -7,15 +7,17 @@ This document is the execution brief for the 16-week build plan (Part I) and rec
 the completed three-channel logging redesign (Part III). The authoritative engineering
 specification — schemas, backend ABCs, MAS engine, storage topology, REST API, sandbox,
 CLI, and logging architecture — lives in
-[`docs/specs/implementation-spec.md`](../../specs/implementation-spec.md).
+[`/docs/specs/implementation_spec.md`](/docs/specs/implementation_spec.md).
 
-- [Part I - Phase Plan](#part-i--phase-plan)
-- [Part II - Data Adapter & Backend Specifications](#part-ii--data-adapter--backend-specifications)
-- [Part III - New Task: Three-Channel Logging](#part-iii--new-task-three-channel-logging-application--evidence--investigation-process)
+## Table of Contents
+
+- [Part One - Phase Plan](#part-one---phase-plan)
+- [Part Two - Data Adapter & Backend Specifications](#part-two---data-adapter--backend-specifications)
+- [Part Three - New Task: Three-Channel Logging](#part-three---new-task-three-channel-logging-application--evidence--investigation-process)
 
 ---
 
-# Part I - Phase Plan
+# Part One - Phase Plan
 
 ## Phase Overview
 
@@ -24,6 +26,8 @@ CLI, and logging architecture — lives in
 | 1     | Foundation & Package Setup | Week 1–2   | Repo skeleton, schemas, ABCs, config, CI                         |
 | 2     | Data Adapter Layer         | Week 3–4   | Preprocessing pipeline; token-dense incident brief               |
 | 3     | AI Backends                | Week 5     | Anthropic + OpenAI providers; streaming; structured output       |
+| 3.1   | Classic APIs               | Week 5     | Anthropic + OpenAI providers; streaming; structured output       |
+| 3.2   | AWS Bedrock Backend        | Week 5     | Bedrock Converse backend; multi-model gateway; IAM-governed auth |
 | 4     | Debug Backends             | Week 6     | CDB (Windows), GDB (Linux), LLDB (macOS); FaultClass mapping     |
 | 5     | Multi-Agent System         | Week 7–9   | LangGraph state graph; 4 agents; consensus; HITL trigger         |
 | 6     | Storage Backends           | Week 10    | PostgreSQL, S3/MinIO, Qdrant; dedup by content hash              |
@@ -65,7 +69,7 @@ CLI, and logging architecture — lives in
 
 ## Phase 2: Data Adapter Layer
 
-**Goal:** Implement the full nine-stage preprocessing pipeline that converts raw `IncidentSource` into a structured `IncidentBrief`. (Full algorithm in [Part II §B](#b-data-adapter-layer-coredata_adapterpy).)
+**Goal:** Implement the full nine-stage preprocessing pipeline that converts raw `IncidentSource` into a structured `IncidentBrief`.
 
 ### Deliverables
 
@@ -103,9 +107,15 @@ CLI, and logging architecture — lives in
 
 ## Phase 3: AI Backends
 
-**Goal:** Implement two production-quality LLM provider backends with structured output, prompt caching, streaming, and retry logic. (Interface and as-built behavior in [Part II §C.1](#c1-aiapibackend).)
+**Goal:** Implement production-quality LLM provider backends with structured output, prompt caching, streaming, and retry logic.
 
-### Deliverables
+This phase ships in two milestones: **3.1** delivers the classic provider HTTP APIs
+(Anthropic + OpenAI); **3.2** adds an AWS Bedrock backend that reaches multiple
+foundation models through a single managed, IAM-governed gateway.
+
+### Milestone 3.1 - Classic Provider APIs (Anthropic + OpenAI)
+
+#### Deliverables
 
 1. **`backends/ai/anthropic_provider.py`** - `AnthropicBackend(AIAPIBackend)`:
    - `generate()`: Uses `client.messages.create()` with `cache_control: {"type": "ephemeral"}` on the system block. If `output_schema` provided, uses a tool use pattern with a single tool whose `input_schema` is the Pydantic model's JSON schema. Validates response with Pydantic; on `ValidationError` raises `AIOutputValidationError` and retries once with a correction prompt.
@@ -126,18 +136,91 @@ CLI, and logging architecture — lives in
 
 5. **`tests/unit/test_ai_backends.py`** - Uses `unittest.mock` to patch `anthropic.AsyncAnthropic` and `openai.AsyncOpenAI`. Tests structured output parsing, schema validation retry, stream iteration.
 
-### Success Criteria
+#### Success Criteria
 
 - `AnthropicBackend.generate()` with a `Hypothesis` output schema returns a validated `Hypothesis` instance.
 - Stream yields at least one non-empty string token before raising `StopAsyncIteration`.
 - `AIOutputValidationError` is raised (not silently ignored) when mock LLM returns malformed JSON.
 - `pytest tests/unit/test_ai_backends.py` passes with no network calls.
 
+### Milestone 3.2 - AWS Bedrock Backend
+
+**Goal:** Add a third `AIAPIBackend` that reaches foundation models through **AWS
+Bedrock** rather than a vendor's direct HTTP API. Bedrock is attractive for the Aegis
+deployment story: model access is governed by **IAM** (no per-vendor API keys to store
+or rotate), traffic can stay inside a VPC, and a single backend can target Anthropic
+Claude, Amazon Nova, Meta Llama, and Mistral models behind one interface. The backend
+uses the Bedrock **Converse API** (`bedrock-runtime`), whose unified message/tool/usage
+shape maps cleanly onto the existing `AIAPIBackend` contract, so structured output and
+streaming work the same way they do for the direct providers in 3.1.
+
+#### Deliverables
+
+1. **`backends/ai/bedrock_provider.py`** - `BedrockBackend(AIAPIBackend)`:
+   - Wraps a `boto3` `bedrock-runtime` client. Because `boto3` is **synchronous**, every
+     network call is wrapped in `asyncio.to_thread` (the same RAII/timeout discipline the
+     other backends follow) - never block the event loop.
+   - `generate()`: Uses the **Converse API** (`client.converse(...)`). The system prompt
+     goes in the `system` block; when `output_schema` is provided, structured output is
+     requested via `toolConfig` with a single tool whose `inputSchema.json` is the Pydantic
+     model's JSON schema and `toolChoice={"tool": {"name": ...}}` to force the call.
+     Response validated with Pydantic; on `ValidationError`, raise `AIOutputValidationError`
+     and retry once with a correction prompt (reuse the `_BaseAIBackend` retry path).
+   - `stream()`: Uses `client.converse_stream(...)`; iterates the event stream
+     (`contentBlockDelta` events) and yields text deltas.
+   - **Prompt caching**: when the target model supports it, set `cachePoint` blocks on the
+     system/tool content; gracefully degrade (no cache point) on models that don't.
+   - **Token tracking**: read the `usage` block (`inputTokens` / `outputTokens`, plus
+     `cacheReadInputTokens` when present) from the response/stream metadata and append to
+     `InvestigationState.token_tracker`.
+   - **Model identifier**: accept a Bedrock **model ID or inference-profile ARN** (e.g.
+     `us.anthropic.claude-...`, `us.amazon.nova-pro-v1:0`) - do not assume an Anthropic ID.
+
+2. **`backends/ai/__init__.py`** - extend `create_ai_backend(config: AISettings)` to route
+   `provider == "bedrock"` to `BedrockBackend`. Keep the Factory-Strategy shape; no
+   provider-specific branching leaks outside the factory.
+
+3. **`AISettings` extension** (`config/settings.py` + `config.yaml`):
+   - `bedrock_region` (e.g. `us-east-1`), `bedrock_model_id` (ID or inference-profile ARN),
+     optional `bedrock_endpoint_url` (for VPC/PrivateLink or LocalStack testing).
+   - **No credentials in config** - rely on the standard AWS credential chain (IAM role,
+     instance/task profile, `AWS_*` env). Document this in `.env.example`; the
+     `SensitiveFilter` must redact any `aws_secret_access_key` / session token that could
+     surface in a boto3 error.
+   - `resolved_model` updated so `--ai bedrock` selects `bedrock_model_id`.
+
+4. **Custom exception** in `core/exceptions.py`:
+   - `BedrockBackendError(AegisSWRError)` - wraps `botocore` `ClientError` /
+     `EndpointConnectionError` / throttling (`ThrottlingException`) into the Aegis error
+     hierarchy with a defined failure path; never let a raw boto3 exception (which may carry
+     request metadata) escape unredacted.
+
+5. **`tests/unit/test_ai_backends.py`** (extended) + **`tests/integration/test_ai_pipeline.py`**:
+   - Patch the `bedrock-runtime` client with `botocore.stub.Stubber` (or `unittest.mock`) -
+     **zero network**. Cover: Converse structured-output happy path (tool-use → validated
+     `Hypothesis`), schema-validation retry, `converse_stream` delta iteration, usage/token
+     accounting, throttling → `BedrockBackendError`, and factory routing for
+     `provider="bedrock"`.
+
+#### Success Criteria
+
+- `BedrockBackend.generate()` with a `Hypothesis` output schema returns a validated
+  `Hypothesis` instance built from a stubbed Converse `toolUse` response.
+- `BedrockBackend.stream()` yields at least one non-empty token from a stubbed
+  `converse_stream` event sequence before completing.
+- A stubbed `ThrottlingException` / `ClientError` surfaces as `BedrockBackendError`, never as
+  a raw `botocore` exception, and carries no unredacted AWS credentials.
+- `create_ai_backend()` returns a `BedrockBackend` for `provider="bedrock"` and is unchanged
+  for `anthropic` / `openai`.
+- No AWS credentials are read from `config.yaml`; the standard credential chain is used.
+- `pytest tests/unit/test_ai_backends.py tests/integration/test_ai_pipeline.py` passes with
+  no network calls.
+
 ---
 
 ## Phase 4: Debug Backends
 
-**Goal:** Implement all three platform debug workers and the platform-adaptive FaultClass mapping. (Interface, WinDbg-JS design, and as-built behavior in [Part II §C.2](#c2-debugbackend).)
+**Goal:** Implement all platform debug workers and the platform-adaptive FaultClass mapping - interface, WinDbg-JS design, CDB, LLDB, and GDB. The WinDbg-JS design is a **callback bridge** that runs a local HTTP server in a daemon thread, binds to an ephemeral port, and receives the DDM JSON payload from the WinDbg JS script. This avoids any shared module-level state and allows multiple concurrent bridges to operate independently.
 
 ### Deliverables
 
@@ -170,7 +253,7 @@ CLI, and logging architecture — lives in
    - `_make_handler(queue)` closure - returns a `BaseHTTPRequestHandler` subclass that enqueues the raw POST body.
    - `_prepare_js(port, settings) -> str` - reads `backends/debug/assets/windbg_diagnostic.js`, substitutes `__CALLBACK_URL__`, `__MAX_FAULTING_FRAMES__`, `__MAX_OTHER_FRAMES__`.
    - `_build_command_sequence()` - `["cdb.exe", "-z", dump, "-y", sym_chain, "-c", ".scriptload \"{tmp_js}\"; g; q"]`.
-   - `_parse(raw_json, source) -> DebugExtractionResult` - parses DDM JSON fields (see [Part II payload mapping](#c2-debugbackend)). Faulting-thread frames become `stack_frames`; all-thread's summary becomes `raw_text_excerpt`.
+   - `_parse(raw_json, source) -> DebugExtractionResult` - parses DDM JSON fields. Faulting-thread frames become `stack_frames`; all-thread's summary becomes `raw_text_excerpt`.
    - Raises `DebugExtractionError` when `"JsProvider.dll"` string absent from subprocess output, or callback timeout expires.
 
 7. **`backends/debug/assets/windbg_diagnostic.js`** - Production JS script. Queries DDM for `ExceptionCode`, `ExceptionAddress`, faulting thread full frames (`maxFaultingFrames`), all other threads summarized (`maxOtherFrames`), module names and base addresses. Calls back via `ActiveXObject("MSXML2.XMLHTTP")` POST.
@@ -199,7 +282,7 @@ CLI, and logging architecture — lives in
 
 ## Phase 5: Multi-Agent System Engine
 
-**Goal:** Implement the complete LangGraph state graph with four agents, weighted consensus, and HITL trigger. (Full MAS spec: `docs/specs/implementation-spec.md` §7.)
+**Goal:** Implement the complete LangGraph state graph with four agents, weighted consensus, and HITL trigger. (Full MAS spec: `docs/specs/implementation_spec.md` §7.)
 
 ### Deliverables
 
@@ -252,7 +335,7 @@ CLI, and logging architecture — lives in
 
 ## Phase 6.1: Code Backend
 
-**Goal:** Implement the optional `CodeBackend` family (Data Adapter Stage 8). Three adapters behind one interface; PDB gives highest-fidelity attribution on Windows. (Interface and adapters in [Part II §C.5](#c5-codebackend).)
+**Goal:** Implement the optional `CodeBackend` family (Data Adapter Stage 8). Three adapters behind one interface; PDB gives highest-fidelity attribution on Windows.
 
 ### Deliverables
 
@@ -277,7 +360,7 @@ CLI, and logging architecture — lives in
 
 ## Phase 6.2: Log Backend
 
-**Goal:** Implement the optional `LogBackend` family queried in Data Adapter Stage 4 - a real local-file adapter plus a Fluent stub; ELK deferred. (Interface and adapters in [Part II §C.4](#c4-logbackend).)
+**Goal:** Implement the optional `LogBackend` family queried in Data Adapter Stage 4 - a real local-file adapter plus a Fluent stub; ELK deferred.
 
 ### Deliverables
 
@@ -320,14 +403,14 @@ CLI, and logging architecture — lives in
 - `pytest tests/unit/test_cli.py` and `tests/integration/test_e2e_cli.py` pass with a mocked orchestrator.
 
 > The logging/evidence/process configuration consumed by this phase is being
-> restructured into three independent channels - see
-> [Part III](#part-iii--new-task-three-channel-logging-application--evidence--investigation-process).
+> restructured into three independent channels
+
 
 ---
 
 ## Phase 8: REST API Layer
 
-**Goal:** Implement the FastAPI application with all endpoints, SSE streaming, auth middleware, and background task management. (Full API spec: `docs/specs/implementation-spec.md` §9.)
+**Goal:** Implement the FastAPI application with all endpoints, SSE streaming, auth middleware, and background task management. (Full API spec: `docs/specs/implementation_spec.md` §9.)
 
 ### Deliverables
 
@@ -351,7 +434,7 @@ CLI, and logging architecture — lives in
 
 ## Phase 9: Secure Code Sandbox
 
-**Goal:** Implement the Docker-based sandbox executor that compiles and validates AI-generated patches. (Full sandbox spec: `docs/specs/implementation-spec.md` §10.)
+**Goal:** Implement the Docker-based sandbox executor that compiles and validates AI-generated patches. (Full sandbox spec: `docs/specs/implementation_spec.md` §10.)
 
 ### Deliverables
 
@@ -421,27 +504,26 @@ Phase 1 (Foundation)
 
 ---
 
-# Part II - Data Adapter & Backend Specifications
+# Part Two - Data Adapter & Backend Specifications
 
 > The specifications previously inlined here have been consolidated into
-> [`docs/specs/implementation-spec.md`](../../specs/implementation-spec.md),
+> [`docs/specs/implementation_spec.md`](../../specs/implementation_spec.md),
 > which is now the single authoritative source. Quick-reference index:
 
-| Topic | Spec section |
-|---|---|
-| Shared data types (`IncidentSource`, `FaultClass`, `DebugExtractionResult`, Code Backend record types) | §4 |
-| Data Adapter pipeline (9 stages) | §5 |
-| `AIAPIBackend` ABC + provider notes + as-built (Phase 3) | §6.1 |
-| `DebugBackend` ABC + WinDbg JS backend + as-built (Phase 4) | §6.2 |
-| `StorageBackend` ABCs (`RelationalStore`, `ObjectStore`, `VectorStore`) | §6.3 |
-| `LogBackend` (`FileLogAdapter`, `FluentAdapter`) + factory | §6.4 |
-| `CodeBackend` (`GitCodeAdapter`, `FilesystemCodeAdapter`, `PdbCodeAdapter`) | §6.5 |
-| Three-channel logging architecture | §15 |
+| Topic                                                                                                  | Spec section |
+|--------------------------------------------------------------------------------------------------------|--------------|
+| Shared data types (`IncidentSource`, `FaultClass`, `DebugExtractionResult`, Code Backend record types) | §4           |
+| Data Adapter pipeline (9 stages)                                                                       | §5           |
+| `AIAPIBackend` ABC + provider notes + as-built (Phase 3)                                               | §6.1         |
+| `DebugBackend` ABC + WinDbg JS backend + as-built (Phase 4)                                            | §6.2         |
+| `StorageBackend` ABCs (`RelationalStore`, `ObjectStore`, `VectorStore`)                                | §6.3         |
+| `LogBackend` (`FileLogAdapter`, `FluentAdapter`) + factory                                             | §6.4         |
+| `CodeBackend` (`GitCodeAdapter`, `FilesystemCodeAdapter`, `PdbCodeAdapter`)                            | §6.5         |
+| Three-channel logging architecture                                                                     | §15          |
 
 ---
 
-
-# Part III - New Task: Three-Channel Logging (Application / Evidence / Investigation-Process)
+# Part Three - New Task: Three-Channel Logging (Application / Evidence / Investigation-Process)
 
 **Status: COMPLETE.** All phases landed - A–F (the split), H (docs), and J (legacy
 migration); Phase G (wiring) was absorbed into C/E/F and Phase I (tests) shipped
@@ -450,7 +532,7 @@ emitters (Phase E step 9) - accepted by schema + CLI today as warn-and-fall-back
 This chapter splits today's single, overloaded severity knob into three channels:
 application logging, the Evidence Stream, and the Investigation Process pane.
 
-## III.0 Motivation - the current conflation
+## P3.0 Motivation - the current conflation
 
 Today one value (`--log-severity` → the `logging.severity` config key) is fed to
 **both** of these unrelated consumers:
@@ -465,10 +547,10 @@ Today one value (`--log-severity` → the `logging.severity` config key) is fed 
 
 Worse, the `logging.provider`/`logging.service` keys are not application logging at
 all - they configure the **log-ingestion** backend (`backends.log.provider` and the
-`metadata["service"]` passed to `LogBackend.query_window`; see [Part II §C.4](#c4-logbackend)).
+`metadata["service"]` passed to `LogBackend.query_window`.
 So the single `logging` section mixes three concerns. This task separates them.
 
-## III.1 The three channels
+## P3.1 The three channels
 
 | Channel                           | What it controls                                   | UI surface                                      | Severity range                                       |
 |-----------------------------------|----------------------------------------------------|-------------------------------------------------|------------------------------------------------------|
@@ -479,7 +561,7 @@ So the single `logging` section mixes three concerns. This task separates them.
 Evidence and process are configured **independently** (D4): turning on full agent
 reasoning at `process.severity = TRACE` is orthogonal to the evidence verbosity.
 
-## III.2 Target configuration shape
+## P3.2 Target configuration shape
 
 > `<config-dir>` = `~/.aegis-swr/`
 
@@ -528,20 +610,20 @@ Internally `AnalyzeConfig` keeps **flat** field names (`log_provider`, `log_serv
 `process_severity`), each 1:1 with its CLI option; the nesting is purely a
 JSON-layout translation at the file boundary (dotted-path flatten/nest).
 
-## III.3 Resolved decisions
+## P3.3 Resolved decisions
 
 - **D1** - ingestion `provider`/`service` live under `ingest.log_source` (so `logging`
   is application diagnostics only).
 - **D2** - evidence has exactly two levels; the former `DEBUG` evidence detail folds
   into `TRACE`.
 - **D3** - `logging.sink = elk|fluent` is accepted by schema + CLI but the emitters
-  are **stubs** (warn + fall back to file/stderr); real sinks land later.
+  are **stubs** (warn and fall back to file/stderr); real sinks land later.
 - **D4** - evidence and investigation-process are **separate** channels; agent
   reasoning prints at `process.severity = TRACE`, toggled independently of evidence.
 - **D5** - evidence persistence is **configurable, off by default**; agent dialogue
   is already persisted in the report files, so no separate process sink is added.
 
-## III.4 Development phases
+## P3.4 Development phases
 
 ### Phase A - Internal decoupling (no behavior change) ✅
 
@@ -557,7 +639,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    and forwards both to `make_view`; `WarRoomView` stores `_process_level` alongside
    `_level` (not yet consulted by the renderers - Phase D switches the process pane to
    it). The existing `level=` parameter on `make_view`/`WarRoomView` is retained for
-   backward compatibility. No behavior change; all suites green.
+   backward compatibility. No behavior change; all suites are green.
 
 ### Phase B - Config schema split (`cli/_config.py`) ✅
 
@@ -569,13 +651,13 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
    `log_severity → logging.severity`, `evidence_severity → evidence.severity`,
    `process_severity → process.severity`, …). Update `from_dict`/`merge`/`load`/`save`;
    register `ingest`/`logging`/`evidence`/`process` so they are consumed before
-   unknown-key detection. *Done when* save↔load round-trips all four sections and the
+   unknown-key detection. *Done when* save↔load round-trips all four sections, and the
    legacy-flat-key-wins rule still holds.
 
    *As built:* `_FIELD_TO_PATH` maps each flat field to a dotted path; generic
    `_dig`/`_bury` + `_flatten_sections`/`_nest_sections` replace the single-section
    helpers; consumed sections are derived into `_ANALYZE_SECTION_KEYS` and popped
-   during flatten (so they never read as unknown keys). The strict CLI↔schema
+   during flattening (so they never read as unknown keys). The strict CLI↔schema
    equality test was relaxed to *CLI ⊆ schema* with an explicit pending-flags set
    (Phase C restores equality). Config data files (`config.example.json`, user
    `config.json`) and the test fixtures moved to the four-section layout; prose docs
@@ -651,7 +733,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
 
     *As built (post-run dump, not a streaming sink):* `WarRoomView.evidence_transcript()`
     returns the plain-text Evidence Stream record (full record at the active level;
-    `_plain_text` renders each Rich line via a wide no-colour capture console).
+    `_plain_text` renders each Rich line via a wide no-color capture console).
     `stream_and_display` gained `evidence_persist`/`evidence_dir` and, after the run,
     calls `_persist_evidence(view, evidence_dir, report)` which writes
     `<evidence_dir>/evidence-<incident_id>.log` (fails open with a warning on `OSError`).
@@ -660,7 +742,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     through. **Limitations surfaced, not silent:** persistence is a WarRoomView feature
     (terminal width ≥ 80) - on the narrow-terminal RichView fallback it is skipped with
     a warning; and `--output quiet` (no rendered stream) also warns. Coverage: unit
-    (`evidence_transcript` TRACE-full vs INFO-summary; `_persist_evidence` writes the
+    (`evidence_transcript` TRACE-full vs. INFO-summary; `_persist_evidence` writes the
     file / no-ops without a dir), mock (`--evidence-persist` reaches `stream_and_display`
     with a resolved dir; quiet-mode warning), integration (CLI run with a wide terminal
     drives the real view via a mocked event stream and writes the transcript file).
@@ -681,7 +763,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
 
 12. Update `docs/configuration/config.md` (four sections: `ingest.log_source`,
     `logging`, `evidence`, `process`, and the distinction from `backends.log`),
-    `docs/configuration/cli.md` (new flag rows + validation), `config.example.json`,
+    `docs/configuration/cli.md` (new flag rows and validation), `config.example.json`,
     and `<config-dir>/config.json`.
 
     *As built:* `config.md` - the "Flat analyze keys" section became "Analyze keys"
@@ -712,9 +794,9 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     *As built:* rather than a trailing test phase, each phase shipped its own unit +
     mock + integration coverage (B: schema/IO + flatten/nest; C: validation and
     independent threading; D: pane split + collapse + independence; E: sinks; F:
-    evidence transcript + persistence; J: legacy migration). Full suite green throughout.
+    evidence transcript and persistence; J: legacy migration). Full suite green throughout.
 
-### Phase J - Backward-compatibility & migration ✅
+### Phase J - Backward-compatibility and migration ✅
 
 17. If a legacy conflated `logging.severity` exists and `evidence`/`process` are absent,
     seed both from it (clamped to INFO/TRACE) with a one-time deprecation warning; old
@@ -727,7 +809,7 @@ JSON-layout translation at the file boundary (dotted-path flatten/nest).
     new keys are absent**, so current configs are untouched. One deprecation warning
     lists what migrated. `logging.severity`/`logging.dir` still map to the unchanged
     `logging` section, and top-level flat `log_*` keys still win via the override path.
-    Coverage: unit (conflated section migrated; non-stream severity clamped to INFO;
+    Coverage: unit (a conflated section migrated; non-stream severity clamped to INFO;
     new sections suppress migration and no warning), integration (legacy config.json
     flows through the CLI and `logging.service` reaches `metadata["service"]`).
 
