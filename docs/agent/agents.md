@@ -4,12 +4,13 @@ This document describes every agent in the `.claude/agents/` fleet: its
 responsibility, the model it uses, which tools it has access to, and exactly
 when to delegate to it. For practical examples see `tutorial.md`.
 
-> **Two separate fleets, one repo.** The product contains its own analysis
-> agents inside `src/aegis_swr/agents/` (`os_kernel`, `code_analyst`,
-> `log_historian`, `skeptic`). Those run inside the Aegis pipeline at runtime
-> to produce crash-analysis reports. The agents described here are **dev-time**
-> assistants that help engineers build and maintain the codebase. Never
-> conflate them.
+These agents are **not** the same as the Aegis SWR **product**, described in `docs/specs/agentic_fleet_design.md`. 
+The product contains its own analytical agents inside `src/aegis_swr/agents/` 
+(`os_kernel`, `code_analyst`, `log_historian`, `skeptic`) that run inside the Aegis pipeline at runtime 
+to produce incident reports. 
+
+The agents described here are **dev-time** assistants that help engineers build and maintain the codebase. 
+Never conflate them!
 
 ---
 

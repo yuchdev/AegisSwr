@@ -119,7 +119,7 @@ there. The `.claude/` architect session does **not** edit `src/`.
 
 Every session is seeded by the `SessionStart` hook with: current branch, last 5
 commits, and open P0/P1 issues. Always-in-context: this file, the product
-`../CLAUDE.md`, and the domain glossary in `AEGIS_AGENTIC_FLEET.md`. When acting
+`../CLAUDE.md`, and the domain glossary in `agentic_fleet_design.md`. When acting
 on a live incident, also surface the active on-call name and open incident count
 (via the `pagerduty`/`slack` MCP).
 
@@ -133,8 +133,7 @@ Log contents are git-ignored; the directory is kept via `.gitkeep`.
 
 ## 12. Recurring / scheduled work
 
-- **dep-audit** - weekly + on manifest change (`/dep-audit`).
+- **dep-audit** - weekly and on manifest change (`/dep-audit`).
 - **Coverage report** - on every PR (`/test-gap`).
-- **Daily incident-metric summary** - optional cron posting to the incident
-  Slack channel.
-See `AEGIS_AGENTIC_FLEET.md` §Scheduled tasks for the proposed cron/loop setup.
+- **Daily incident-metric summary** - optional cron posting to the incident Slack channel.
+See `agentic_fleet_design.md` §Scheduled tasks for the proposed cron/loop setup.

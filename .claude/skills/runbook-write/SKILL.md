@@ -1,7 +1,7 @@
 ---
 name: runbook-write
 description: User-invoked as /runbook-write <incident-type>. Drafts a new operational runbook in docs/runbooks/ using the Aegis runbook template. Use to document how on-call responds to a given incident/fault class.
-allowed-tools: Read, Grep, Glob, Bash, Write
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 invocation: /runbook-write <incident-type>
 ---
 
@@ -55,3 +55,11 @@ violation`, `deadlock`, `resource-exhaustion`, `log-forensics-anomaly`).
 
 Print the runbook path. Recommend the `incident-analyst` agent review the
 mitigation/escalation steps for safety before the runbook is trusted.
+
+## Completion checklist
+
+- [ ] Fault class cross-referenced against `agents.example.json` and `IncidentMode`
+- [ ] Every state-changing mitigation step has rollback and `requires AEGIS_PROD_CONFIRMED` documented
+- [ ] `docs/README.md` and `docs/runbooks/` index updated
+- [ ] `incident-analyst` review requested before runbook is marked trusted for automated use
+- [ ] `/link-check` passes on the new file

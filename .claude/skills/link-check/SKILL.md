@@ -30,3 +30,6 @@ heading. Backed by `scripts/check_doc_links.py` (the same checker the
 Report the findings fixed and confirm a clean `exit 0`. Note any link left
 intentionally dangling (e.g. a planned-but-unwritten doc) so reviewers know it is
 deliberate.
+
+Complement: `/doc-xref <target>` patches *inbound* references from other docs and
+code docstrings — link-check covers outbound, doc-xref covers inbound. Run both after a rename.

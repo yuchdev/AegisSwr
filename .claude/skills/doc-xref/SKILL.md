@@ -34,3 +34,13 @@ instead of leaving stale pointers.
 
 List each reference updated (`file:line`, old → new) and confirm `/link-check`
 passes. Flag any reference you could not safely auto-update for human review.
+
+Complement: `/link-check` validates *outbound* links from any file you edited —
+doc-xref covers inbound, link-check covers outbound. Run both after a rename.
+
+## Completion checklist
+
+- [ ] Every hit from `git grep` is updated — file:line list provided in output
+- [ ] Any reference not safely auto-updated is explicitly flagged for human review
+- [ ] `docs/README.md` registry line updated if file was renamed or moved
+- [ ] `/link-check` exits 0 after all edits

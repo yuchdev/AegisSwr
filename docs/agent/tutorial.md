@@ -502,7 +502,7 @@ OVERRIDES
 - **`docs/agent/agents.md`** - deep reference for every agent
 - **`docs/agent/skills.md`** - deep reference for every skill
 - **`docs/agent/hooks.md`** - deep reference for every hook and its logs
-- **`AEGIS_AGENTIC_FLEET.md`** - architectural design decisions behind the fleet
+- **`/docs/specs/agentic_fleet_design.md`** - architectural design decisions behind the fleet
 - **`.claude/CLAUDE.md`** - the operating manual loaded into every session
 - **`CLAUDE.md`** (repo root) - the product architecture guide
 - **`docs/README.md`** - index of all project docs

@@ -1,10 +1,7 @@
 # Aegis SWR - Agentic Fleet Design
 
-> The agentic operating layer for **Aegis SWR (Synthetic War Room)** - a
-> crash-dump and incident-response forensics platform. This document is the
-> design; the corresponding files live under `.claude/` (plus `.mcp.json` and
-> `.worktreeinclude` at the repo root) and are real, working artifacts, not
-> stubs.
+NOTE: The agentic operating layer for **Aegis SWR (Synthetic War Room)** - an incident-response forensics platform. 
+This document describes agents required for the application of the Aegis SWR, not for the development process!
 
 ---
 

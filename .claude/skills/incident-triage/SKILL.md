@@ -5,6 +5,10 @@ allowed-tools: Read, Grep, Glob, Bash
 invocation: auto
 ---
 
+<!-- Triggered automatically by: PostToolUse(Write|Edit) hook when the edited
+path matches orchestrator.py, events.py, consensus.py, incident_similarity.py,
+or schemas containing Hypothesis / SkepticVerdict / RCAReport / HITLRequest -->
+
 # Incident Triage Review
 
 You are reviewing a change to Aegis SWR's incident-lifecycle code. Verify the

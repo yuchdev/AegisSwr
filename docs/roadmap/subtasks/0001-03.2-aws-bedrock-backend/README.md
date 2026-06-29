@@ -39,19 +39,19 @@ their full spec so the milestone can be re-derived or re-reviewed end to end.
 
 ## Subtasks
 
-| # | Subtask | Primary files | State |
-|---|---------|---------------|-------|
-| [01](01-configuration-model.md) | Configuration model (`BedrockSettings` + `AISettings`) | `config/settings.py` | ✅ Done - verify |
-| [02](02-error-taxonomy-and-mapping.md) | Error taxonomy & sanitised botocore mapping | `core/exceptions.py`, provider | ✅ Done - broaden coverage |
-| [03](03-client-and-authentication.md) | Client construction & dual-mode auth | provider | ✅ Done - add region-precedence test |
-| [04](04-converse-generate-structured-output.md) | Converse `generate()`: request, structured output, parse, usage | provider | ✅ Done |
-| [05](05-streaming.md) | Streaming via `converse_stream` | provider | ✅ Done - add interruption test |
-| [06](06-extended-thinking-and-reasoning.md) | Extended thinking & `has_reasoning` | provider, `config/settings.py` | ✅ Done - add reasoningContent test |
-| [07](07-factory-routing.md) | Factory routing for `provider="bedrock"` | `backends/ai/__init__.py` | ✅ Done |
-| [08](08-cli-config-and-env-exposure.md) | CLI flag, config template & `.env.example` | `cli/`, `config.example.json`, `.env.example` | 🔶 Partial |
-| [09](09-documentation.md) | Configuration & CLI documentation | `docs/config/` | ✅ Done - verify |
-| [10](10-integration-tests.md) | End-to-end integration tests | `tests/integration/` | ✅ Done - extend |
-| [11](11-prompt-caching-optional.md) | Prompt caching via `cachePoint` (optional) | provider | ⬜ Deferred |
+| #                                               | Subtask                                                         | Primary files                                 | State                               |
+|-------------------------------------------------|-----------------------------------------------------------------|-----------------------------------------------|-------------------------------------|
+| [01](01-configuration-model.md)                 | Configuration model (`BedrockSettings` + `AISettings`)          | `config/settings.py`                          | ✅ Done - verify                     |
+| [02](02-error-taxonomy-and-mapping.md)          | Error taxonomy & sanitised botocore mapping                     | `core/exceptions.py`, provider                | ✅ Done - broaden coverage           |
+| [03](03-client-and-authentication.md)           | Client construction & dual-mode auth                            | provider                                      | ✅ Done - add region-precedence test |
+| [04](04-converse-generate-structured-output.md) | Converse `generate()`: request, structured output, parse, usage | provider                                      | ✅ Done                              |
+| [05](05-streaming.md)                           | Streaming via `converse_stream`                                 | provider                                      | ✅ Done - add interruption test      |
+| [06](06-extended-thinking-and-reasoning.md)     | Extended thinking & `has_reasoning`                             | provider, `config/settings.py`                | ✅ Done - add reasoningContent test  |
+| [07](07-factory-routing.md)                     | Factory routing for `provider="bedrock"`                        | `backends/ai/__init__.py`                     | ✅ Done                              |
+| [08](08-cli-config-and-env-exposure.md)         | CLI flag, config template & `.env.example`                      | `cli/`, `config.example.json`, `.env.example` | 🔶 Partial                          |
+| [09](09-documentation.md)                       | Configuration & CLI documentation                               | `docs/config/`                                | ✅ Done - verify                     |
+| [10](10-integration-tests.md)                   | End-to-end integration tests                                    | `tests/integration/`                          | ✅ Done - extend                     |
+| [11](11-prompt-caching-optional.md)             | Prompt caching via `cachePoint` (optional)                      | provider                                      | ⬜ Deferred                          |
 
 ## Dependency / sequencing
 

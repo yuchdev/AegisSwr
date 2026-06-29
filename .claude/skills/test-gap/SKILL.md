@@ -1,6 +1,6 @@
 ---
 name: test-gap
-description: User-invoked as /test-gap [path]. Spawns the qa agent to analyse test coverage and returns a prioritised list of missing tests, risk-ranked (consensus/payload-parsing logic first). Use to decide what to test next.
+description: User-invoked as /test-gap [path]. Spawns the testing-expert agent to analyse test coverage and returns a prioritised list of missing tests, risk-ranked (consensus/payload-parsing logic first). Use to decide what to test next.
 allowed-tools: Read, Grep, Glob, Bash, Agent
 invocation: /test-gap [path]
 ---
@@ -21,7 +21,7 @@ whole package if empty).
      HITL paths, security-relevant branches.
    - **P1**: backend strategies, orchestrator transitions, schema validation.
    - **P2**: CLI/view formatting, logging.
-3. Return the qa agent's prioritised list.
+3. Return the testing-expert agent's prioritised list.
 
 ## Output
 

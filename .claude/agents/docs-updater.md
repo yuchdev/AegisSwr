@@ -1,6 +1,6 @@
 ---
 name: docs-updater
-description: Use this agent as the documentation engineer for Aegis SWR. Use to keep `docs/` in sync with code - README sections, API references, runbooks, on-call guides, post-mortem templates, and the OpenAPI spec when REST endpoints change. Writes prose, not product code.
+description: Use this agent to keep existing docs/ in sync when code changes. Use when code has changed and its existing documentation needs updating — not for creating new docs from scratch (that is docs-writer). Covers README sections, API references, runbooks, on-call guides, and the OpenAPI spec when REST endpoints change.
 model: claude-sonnet-4-6
 tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch

@@ -1,7 +1,7 @@
 ---
 name: post-mortem
 description: User-invoked as /post-mortem [incident-id]. Guides a blameless post-mortem; reconstructs a timeline from git log and incident data, runs five-whys, and produces action items with owners. Writes to docs/post-mortems/.
-allowed-tools: Read, Grep, Glob, Bash, Write
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 invocation: /post-mortem [incident-id]
 ---
 
@@ -15,7 +15,7 @@ factors, never on individual faults.
 
 1. **Reconstruct the timeline.**
    - From git: `git log --since=<window> --pretty=format:'%h %ad %s' --date=short` for changes around the incident.
-   - From incident data: query stored `RCAReport`s (via the `postgres`/`sqlite` MCP or the filesystem store) for the incident id - detection time, consensus outcome, `SkepticVerdict`, `ConfidenceLevel`, any `HITLRequest`.
+   - From incident data: query stored `RCAReport`s from the filesystem store (JSON files under the configured store path) or the SQLite DB via Bash for the incident id - detection time, consensus outcome, `SkepticVerdict`, `ConfidenceLevel`, any `HITLRequest`.
 2. **Five why's** - drill from symptom to root cause; record each "why" and its evidence.
 3. **Contributing factors** - what made detection/diagnosis/remediation slower (gaps in runbooks, missing tests, alert fatigue, etc.).
 4. **Action items** - concrete, each with an owner and a tracking issue; route code fixes to `python-expert`, tests to `testing-expert`, doc/runbook updates to `docs-updater`, design changes to `app-architect`.
@@ -44,3 +44,11 @@ factors, never on individual faults.
 
 Print the post-mortem path. Keep tone factual and blameless throughout. Offer to
 open the action-item issues via the `github` MCP.
+
+## Completion checklist
+
+- [ ] Timeline covers detection through resolution with UTC timestamps
+- [ ] Every action item has an owner (person or agent) and a tracking issue link
+- [ ] Code fixes routed to `python-expert`; tests to `testing-expert`; docs to `docs-updater`
+- [ ] Tone is blameless — no individual faults named, only system factors
+- [ ] `docs/post-mortems/` index updated; `/link-check` passes

@@ -1,18 +1,13 @@
 ---
-name: implement-phases
-description: >-
-  Implements one pending phase per iteration from
-  docs/specs/agentic_implementation_plan.md, runs quality gates, and
-  updates docs/specs/implementation_status.md. Self-terminates when
-  all phases reach ✅ Complete.
-invoke: /loop implement-phases
+name: task-name
+description: Implements one pending phase per iteration from docs/roadmap/subtasks/{task-name}/NN-*.md, where NN is number in the task queue; runs quality gates, and updates docs/roadmap/progress/implementation_status.md. Self-terminates when all phases reach ✅ Complete.
+invoke: /loop task-name
 terminates-when: All rows in implementation_status.md show ✅ Complete
 ---
 
-# implement-phases - per-phase implementation loop
+# task-name - per-phase implementation loop
 
-Each iteration of this loop implements **exactly one** pending phase, verifies
-it, invokes the relevant quality-gate skills, and updates the status table.
+Each iteration of this loop implements **exactly one** pending phase, verifies it, invokes the relevant quality-gate skills, and updates the status table.
 The loop re-schedules itself until every phase is complete.
 
 ---
@@ -21,25 +16,20 @@ The loop re-schedules itself until every phase is complete.
 
 ### Step 1 - identify the next phase
 
-Read `docs/specs/implementation_status.md`. Scan the status table top-to-bottom.
+Read `docs/roadmap/progress/implementation_status.md`. Scan the status of the high-level strategic tasks.
 
-- If every row shows `✅ Complete`: print "All phases complete - loop done." and
-  **stop** (do NOT call ScheduleWakeup).
-- Otherwise, take the first row whose Status cell begins with `⬜` (not started)
-  or `🔶` (partial). Record its Phase number, Name, and current Status.
+- If every row shows `✅ Complete`: print "All phases complete - loop done." and **stop** (do NOT call ScheduleWakeup).
+- Otherwise, take the first row whose Status cell begins with `⬜` (not started) or `🔶` (partial). Record its Phase number, Name, and current Status.
 
-> Partial phases are prioritized over not-started ones because unfinished work
-> carries higher regression risk than new work.
+Partial phases are prioritized over not-started ones because unfinished work carries higher regression risk than new work.
+
+Find the required `task-name` in `docs/roadmap/subtasks/{task-name}/{NN}-{slug}.md`, where `NN` is the subtask number to be implemented one by one.
+
+Start implementation from `0001-{slug}.md` subtask.
 
 ### Step 2 - load the implementation brief
 
-Read `docs/specs/agentic_implementation_plan.md` and locate the section titled
-**"Step N: <Phase Name>"** that matches the phase identified above.
-
-Extract:
-- The **Agent Matrix** table (role → responsibility mapping)
-- Every **Agentic Execution Brief** subsection, including Inputs, Instructions,
-  and Verification commands.
+TODO: load the implementation brief
 
 ### Step 3 - implement via the dev-fleet agents
 
@@ -47,13 +37,13 @@ Delegate each Agentic Execution Brief to the appropriate fleet agent in parallel
 where the spec allows it (independent briefs within one step can run concurrently;
 briefs with stated ordering dependencies run sequentially):
 
-| Spec role keyword            | Fleet agent                                                         |
-|------------------------------|---------------------------------------------------------------------|
-| `*Engineer` (implementation) | `python-expert`                                                     |
-| `*TestEngineer`              | `testing-expert`                                                    |
-| `*Architect` / `*Designer`   | `app-architect`                                                         |
-| Security / Auth / Middleware | `security-auditor` (advisory) then `python-expert` (implementation) |
-| `*DocumentationEngineer`     | `docs-writer` then `docs-updater`                                   |
+| Spec role keyword  | Fleet agent                             | Agentic action               |
+|--------------------|-----------------------------------------|------------------------------|
+| `Architect`        | `app-architect`                         | evaluate design              |
+| `Python Expert`    | `python-expert`                         | subtask implementation       |
+| `Testing Expert`   | `testing-expert` then `python-expert`   | QA then fix regressions      |
+| `Security Auditor` | `security-auditor` then `python-expert` | advisory then implementation |
+| `Docs Writer`      | `docs-writer` or `docs-updater`         | write or update docs         |
 
 Brief each coder/qa agent with:
 - The exact Inputs and Instructions from the spec brief
@@ -81,16 +71,17 @@ If any verification fails:
 
 After verification is green, invoke the following skills as applicable:
 
-| Condition                                                    | Skill                                                                                                        |
-|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
+| Condition                                                    | Skill                                                                                                                    |
+|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
 | Always                                                       | `/test-gap src/aegis_swr/<phase-module>/` - report coverage delta; if < 85 % delegate missing tests to `testing-expert`. |
-| `pyproject.toml` or any `requirements*.txt` changed          | `/dep-audit`                                                                                                 |
-| Any file under `api/`, `sandbox/`, or any middleware changed | `/secret-scan src/aegis_swr/<changed-module>/`                                                               |
-| Phase is complete (before updating status)                   | `/pr-review` - must get LGTM or REQUEST_CHANGES resolved before advancing.                                   |
+| `pyproject.toml` or any `requirements*.txt` changed          | `/dep-audit`                                                                                                             |
+| Any file under `api/`, `sandbox/`, or any middleware changed | `/secret-scan src/aegis_swr/<changed-module>/`                                                                           |
+| Phase is complete (before updating status)                   | `/pr-review` - must get LGTM or REQUEST_CHANGES resolved before advancing.                                               |
 
 ### Step 6 - update the status table
 
-Edit `docs/specs/implementation_status.md`:
+After all subtasks are implemented, edit `docs/roadmap/progress/implementation_status.md`:
+
 - Change the phase row's Status cell to `✅ Complete`.
 - Update the Tests cell with the new test file names introduced this phase.
 - Append a one-paragraph summary under the relevant `## Phase N` heading (or
@@ -100,7 +91,7 @@ Edit `docs/specs/implementation_status.md`:
 ### Step 7 - reschedule
 
 Call ScheduleWakeup with:
-- `prompt`: the literal text `/loop implement-phases`
+- `prompt`: the literal text `/loop task-name`
 - `delaySeconds`: `270`  ← keeps the cache window warm (< 300 s TTL)
 - `reason`: "advancing to next pending phase after completing Phase N: <Name>"
 

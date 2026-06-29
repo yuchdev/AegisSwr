@@ -29,7 +29,12 @@ a malformed one is a safety hazard.
    guard convention.
 6. **Weight files** - if validating `agents.example.json`-style consensus
    weights: each fault class's agent weights sum to ~1.0 (±0.01) and no single
-   agent exceeds a sane ceiling.
+   agent exceeds a sane ceiling. Example valid entry:
+   ```json
+   { "crash_dump": { "os_kernel": 0.35, "code_analyst": 0.30,
+                     "log_historian": 0.20, "skeptic":  0.15 } }
+   ```
+   (sum = 1.00 ✓ | max single weight = 0.35 ✓)
 
 ## Output
 

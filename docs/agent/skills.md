@@ -336,7 +336,7 @@ the full skill is the authoritative version).
 
 ### When to use it
 
-- Weekly (or set up as a scheduled cron - see `AEGIS_AGENTIC_FLEET.md §12`)
+- Weekly (or set up as a scheduled cron - see [agentic_fleet_design.md](/docs/specs/agentic_fleet_design.md))
 - When adding a significant number of new dependencies
 - Before any external release
 

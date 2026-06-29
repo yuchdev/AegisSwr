@@ -1,7 +1,7 @@
 ---
 name: adr-write
 description: User-invoked as /adr-write <title>. Scaffolds a new Architecture Decision Record in docs/adr/ using the MADR template, pre-filling context from recent git log and open GitHub issues. Use when a design decision needs to be recorded before implementation.
-allowed-tools: Read, Grep, Glob, Bash, Write
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 invocation: /adr-write <title>
 ---
 
@@ -59,3 +59,11 @@ Chosen option: "<option>", because <justification>.
 Print the path of the created ADR and a one-line summary. Note that the
 `app-architect` agent owns the decision content - this skill only scaffolds and
 seeds it. Leave it `Proposed` for human/architect sign-off.
+
+## Completion checklist
+
+- [ ] File created at `docs/adr/NNNN-<kebab-title>.md` with correct zero-padded sequence number
+- [ ] Status is `Proposed` — not Accepted (that requires human/architect sign-off)
+- [ ] `docs/README.md` has a new index line for the ADR
+- [ ] `/link-check` passes on the new file
+- [ ] Consequences section lists follow-up tasks for `python-expert` and `testing-expert`
