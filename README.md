@@ -38,15 +38,13 @@ authoritative implementation specification (schemas, pipelines, API contract).
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-organization/aegis-swr.git
-cd aegis-swr
-
+git clone https://github.com/your-organization/AegisSwr.git
+cd AegisSwr
 ```
 
 2. Install dependencies using Poetry:
 ```bash
 poetry install
-
 ```
 
 
@@ -65,7 +63,7 @@ cp agents.example.json <config-dir>/agents.json
 {
   "core": { "max_debate_rounds": 4, "consensus_threshold": 0.85 },
   "backends": {
-    "ai": { "provider": "anthropic", "model": "claude-sonnet-4-6" },
+    "ai": { "provider": "anthropic", "anthropic": { "model": "claude-sonnet-4-6" } },
     "debug": { "engine": "auto", "symbol_server_url": "https://symbols.internal.net" },
     "storage": {
       "database_url": "postgresql://user:pass@localhost:5432/aegis",
@@ -75,7 +73,7 @@ cp agents.example.json <config-dir>/agents.json
 }
 ```
 Individual keys can be edited with `aegis config set <dotted.key> <value>`
-(e.g. `aegis config set backends.ai.model claude-opus-4-8`), or overridden at
+(e.g. `aegis config set backends.ai.anthropic.model claude-opus-4-8`), or overridden at
 runtime with `AEGIS__*` environment variables. `aegis config show` prints the
 resolved settings with secrets redacted.
 
@@ -83,7 +81,6 @@ resolved settings with secrets redacted.
 4. Launch the core orchestration server:
 ```bash
 poetry run python -m aegis.core.server
-
 ```
 
 ## 💻 Examples

@@ -13,7 +13,7 @@ import openai
 from pydantic import BaseModel
 
 from aegis_swr.backends.ai._base import _BaseAIBackend
-from aegis_swr.config.settings import AISettings
+from aegis_swr.config.settings import OpenAISettings
 
 
 def _to_openai_strict_schema(model: type[BaseModel]) -> dict[str, Any]:
@@ -43,25 +43,20 @@ def _to_openai_strict_schema(model: type[BaseModel]) -> dict[str, Any]:
 # Reasoning models gpt-5 family reject `max_tokens` and any
 # non-default `temperature`; they require `max_completion_tokens`. Their
 # completion budget is also shared with internal reasoning tokens, so a small
-# cap can starve the visible answer - give structured output ample headroom.
+# cap can starve the visible answer - configure ample headroom via
+# ``OpenAISettings.max_completion_tokens``.
 _REASONING_PREFIXES = ("gpt-5",)
-_REASONING_MIN_COMPLETION_TOKENS = 16000
 
 
-# A multi-agent investigation issues many sequential calls; one transient
-# timeout must not abort the whole run. Reasoning models can also have high
-# tail latency, so allow a generous per-request timeout and SDK-level retries
-# (exponential backoff on timeouts / 429 / 5xx).
-_REQUEST_TIMEOUT_SECONDS = 300.0
-_MAX_RETRIES = 4
-
-
-class OpenAIBackend(_BaseAIBackend):
-    def __init__(self, settings: AISettings):
+class OpenAIBackend(_BaseAIBackend[OpenAISettings]):
+    def __init__(self, settings: OpenAISettings):
         super().__init__(settings)
+        # A multi-agent investigation issues many sequential calls; one
+        # transient timeout must not abort the whole run. Reasoning models can
+        # have high tail latency, so timeout and retries are configurable.
         self._client: Any = openai.AsyncOpenAI(
-            timeout=_REQUEST_TIMEOUT_SECONDS,
-            max_retries=_MAX_RETRIES,
+            timeout=settings.timeout_seconds,
+            max_retries=settings.max_retries,
         )
 
     def _is_reasoning_model(self) -> bool:
@@ -78,11 +73,12 @@ class OpenAIBackend(_BaseAIBackend):
         """Token/temperature kwargs that match the model family's API contract"""
         if self._is_reasoning_model():
             # Default temperature only; reasoning needs room beyond the answer.
-            return {
-                "max_completion_tokens": max(
-                    self._settings.max_tokens, _REASONING_MIN_COMPLETION_TOKENS
-                )
+            kwargs: dict[str, Any] = {
+                "max_completion_tokens": self._settings.max_completion_tokens
             }
+            if self._settings.reasoning_effort is not None:
+                kwargs["reasoning_effort"] = self._settings.reasoning_effort
+            return kwargs
         return {
             "temperature": self._settings.temperature,
             "max_tokens": self._settings.max_tokens,

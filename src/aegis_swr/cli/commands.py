@@ -617,7 +617,7 @@ def config_show():
 
 @config_app.command("set")
 def config_set(
-    key: Annotated[str, typer.Argument(help="Dotted key path, e.g. backends.ai.model")],
+    key: Annotated[str, typer.Argument(help="Dotted key path, e.g. backends.ai.anthropic.model")],
     value: Annotated[str, typer.Argument(help="New value.")],
 ):
     """Set a single value in ~/.aegis-swr/config.json"""

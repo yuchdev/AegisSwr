@@ -16,11 +16,17 @@ __all__ = [
 
 
 def create_ai_backend(settings: AISettings) -> AIAPIBackend:
-    """Construct the AI backend named by ``settings.provider``"""
+    """Construct the AI backend named by ``settings.provider``.
+
+    The matching provider sub-config is resolved (and merged with any per-model
+    override via :meth:`~aegis_swr.config.settings.ProviderSettingsBase.for_model`)
+    and passed to the backend, so each backend receives only its own typed
+    settings rather than the whole :class:`AISettings`.
+    """
     if settings.provider == "anthropic":
-        return AnthropicBackend(settings)
+        return AnthropicBackend(settings.anthropic.for_model())
     if settings.provider == "openai":
-        return OpenAIBackend(settings)
+        return OpenAIBackend(settings.openai.for_model())
     if settings.provider == "bedrock":
-        return AwsBedrockBackend(settings)
+        return AwsBedrockBackend(settings.bedrock.for_model())
     raise ValueError(f"Unknown AI provider: {settings.provider!r}")

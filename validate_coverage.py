@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 """
-Validate test coverage configuration for 85% threshold.
+Validate test coverage configuration for the 85% threshold.
 
 This script checks that:
 1. pytest-cov is installed
 2. Coverage configuration files exist
-3. Coverage threshold is set to 85%
+3. The coverage threshold is set to 85%
 """
 
 import sys
-import json
 from pathlib import Path
 from typing import Tuple
 
 
 def check_main_project() -> Tuple[bool, list[str]]:
-    """Check main project coverage configuration."""
+    """Check the main project coverage configuration."""
     issues = []
     root = Path(__file__).parent
 

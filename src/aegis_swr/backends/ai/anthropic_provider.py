@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from aegis_swr.backends.ai._base import _BaseAIBackend
 from aegis_swr.core.exceptions import AIOutputValidationError
-from aegis_swr.config.settings import AISettings
+from aegis_swr.config.settings import AnthropicSettings
 
 _STRUCTURED_TOOL_NAME = "structured_output"
 
@@ -28,13 +28,20 @@ _REASONING_MODEL_MARKERS = (
     "claude-3-7",
 )
 
+# Claude rejects an extended-thinking budget below this floor, so a sub-minimum
+# budget is treated as "thinking disabled".
+_THINKING_BUDGET_MIN = 1_024
 
-class AnthropicBackend(_BaseAIBackend):
-    def __init__(self, settings: AISettings):
+
+class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
+    def __init__(self, settings: AnthropicSettings):
         super().__init__(settings)
         # Typed as Any so the rest of the module is not coupled to the SDK's
         # internal TypedDict parameter types.
-        self._client: Any = anthropic.AsyncAnthropic()
+        self._client: Any = anthropic.AsyncAnthropic(
+            timeout=settings.timeout_seconds,
+            max_retries=settings.max_retries,
+        )
 
     @property
     def has_reasoning(self) -> bool:
@@ -42,13 +49,23 @@ class AnthropicBackend(_BaseAIBackend):
         return any(marker in self.model_name for marker in _REASONING_MODEL_MARKERS)
 
     def _system_blocks(self, system_prompt: str) -> list[dict[str, Any]]:
-        return [
-            {
-                "type": "text",
-                "text": system_prompt,
-                "cache_control": {"type": "ephemeral"},
-            }
-        ]
+        block: dict[str, Any] = {"type": "text", "text": system_prompt}
+        if self._settings.prompt_caching:
+            block["cache_control"] = {"type": "ephemeral"}
+        return [block]
+
+    def _thinking_enabled(self, output_schema: Optional[type[BaseModel]]) -> bool:
+        """Extended thinking applies only to free-form output on a capable model.
+
+        Claude rejects extended thinking alongside a forced tool choice, so any
+        structured (schema) request disables it regardless of the budget.
+        """
+        if output_schema is not None:
+            return False
+        return (
+            self._settings.thinking_budget_tokens >= _THINKING_BUDGET_MIN
+            and self.has_reasoning
+        )
 
     async def _invoke(
         self,
@@ -56,13 +73,20 @@ class AnthropicBackend(_BaseAIBackend):
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]],
     ) -> tuple[str | dict[str, Any], dict[str, int]]:
+        thinking = self._thinking_enabled(output_schema)
         kwargs: dict[str, Any] = {
             "model": self.model_name,
             "max_tokens": self._settings.max_tokens,
-            "temperature": self._settings.temperature,
+            # Claude requires temperature == 1 whenever extended thinking is on.
+            "temperature": 1.0 if thinking else self._settings.temperature,
             "system": self._system_blocks(system_prompt),
             "messages": messages,
         }
+        if thinking:
+            kwargs["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": self._settings.thinking_budget_tokens,
+            }
         if output_schema is not None:
             kwargs["tools"] = [
                 {
@@ -97,12 +121,19 @@ class AnthropicBackend(_BaseAIBackend):
         system_prompt: str,
         messages: list[dict[str, Any]],
     ) -> AsyncGenerator[str, None]:
-        async with self._client.messages.stream(
-            model=self.model_name,
-            max_tokens=self._settings.max_tokens,
-            temperature=self._settings.temperature,
-            system=self._system_blocks(system_prompt),
-            messages=messages,
-        ) as stream:
+        thinking = self._thinking_enabled(output_schema=None)
+        kwargs: dict[str, Any] = {
+            "model": self.model_name,
+            "max_tokens": self._settings.max_tokens,
+            "temperature": 1.0 if thinking else self._settings.temperature,
+            "system": self._system_blocks(system_prompt),
+            "messages": messages,
+        }
+        if thinking:
+            kwargs["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": self._settings.thinking_budget_tokens,
+            }
+        async with self._client.messages.stream(**kwargs) as stream:
             async for text in stream.text_stream:
                 yield text

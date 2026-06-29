@@ -16,7 +16,7 @@ from typing import Any
 from unittest import mock
 
 from aegis_swr.backends.ai.anthropic_provider import AnthropicBackend
-from aegis_swr.config.settings import AISettings, Settings
+from aegis_swr.config.settings import AnthropicSettings, Settings
 from aegis_swr.core.data_adapter import DataAdapter
 from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.schemas import (
@@ -131,7 +131,7 @@ async def test_adapter_to_anthropic_backend_structured(
     with mock.patch("anthropic.AsyncAnthropic") as cls:
         client = mock.MagicMock()
         cls.return_value = client
-        backend = AnthropicBackend(AISettings(provider="anthropic", model="claude-sonnet-4-6"))
+        backend = AnthropicBackend(AnthropicSettings(model="claude-sonnet-4-6"))
     client.messages.create = mock.AsyncMock(
         return_value=SimpleNamespace(
             content=[SimpleNamespace(type="tool_use", input=_os_kernel_payload())],

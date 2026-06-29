@@ -35,7 +35,7 @@ from loguru import logger
 from pydantic import BaseModel
 
 from aegis_swr.backends.ai._base import _BaseAIBackend
-from aegis_swr.config.settings import AISettings
+from aegis_swr.config.settings import BedrockSettings
 from aegis_swr.core.exceptions import AIBackendError, AIOutputValidationError
 
 _STRUCTURED_TOOL_NAME = "structured_output"
@@ -61,17 +61,17 @@ def _thinking_supported(model_id: str) -> bool:
     return any(pat in lowered for pat in _THINKING_SUPPORTED_PATTERNS)
 
 
-class AwsBedrockBackend(_BaseAIBackend):
+class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
     """AI backend backed by Amazon Bedrock's Converse API.
 
-    :param settings: The AI settings block; Bedrock-specific options are read
-        from ``settings.bedrock`` and the model identity from
-        ``settings.resolved_model`` (the configured inference-profile ID).
+    :param settings: The Bedrock provider sub-config; the model identity is
+        read from ``settings.resolved_model`` (the configured inference-profile
+        ID) and all other knobs (region, budgets, timeouts, auth) directly from
+        the typed fields.
     """
 
-    def __init__(self, settings: AISettings):
+    def __init__(self, settings: BedrockSettings):
         super().__init__(settings)
-        self._bedrock = settings.bedrock
         # Typed as Any so the module is not coupled to botocore's generated
         # client type stubs.
         self._client: Any = self._build_client()
@@ -81,14 +81,16 @@ class AwsBedrockBackend(_BaseAIBackend):
     def _build_client(self) -> Any:
         """Create a bedrock-runtime client wired for the configured auth mode.
 
-        Region precedence: explicit ``settings.bedrock.region`` wins, falling
-        back to ``AWS_DEFAULT_REGION`` only when the setting is blank.
+        Region precedence: explicit ``settings.region`` wins, falling back to
+        ``AWS_DEFAULT_REGION`` only when the setting is blank. ``auth_mode``
+        selects bearer-token vs SigV4 auth (``"auto"`` prefers a bearer token
+        when one is present, otherwise SigV4).
         """
-        region = self._bedrock.region or os.environ.get("AWS_DEFAULT_REGION")
+        region = self._settings.region or os.environ.get("AWS_DEFAULT_REGION")
         config = botocore.config.Config(
-            retries={"max_attempts": self._bedrock.max_attempts, "mode": "standard"},
-            connect_timeout=self._bedrock.connect_timeout_seconds,
-            read_timeout=self._bedrock.read_timeout_seconds,
+            retries={"max_attempts": self._settings.max_attempts, "mode": "standard"},
+            connect_timeout=self._settings.connect_timeout_seconds,
+            read_timeout=self._settings.read_timeout_seconds,
         )
         client = boto3.Session(region_name=region).client(
             service_name="bedrock-runtime",
@@ -96,7 +98,9 @@ class AwsBedrockBackend(_BaseAIBackend):
             config=config,
         )
 
-        token = os.environ.get(_BEARER_TOKEN_ENV)
+        token = None
+        if self._settings.auth_mode in ("auto", "bearer"):
+            token = os.environ.get(_BEARER_TOKEN_ENV)
         if token:
             self._register_bearer_auth_hook(client, token)
             logger.debug(
@@ -158,7 +162,7 @@ class AwsBedrockBackend(_BaseAIBackend):
         if output_schema is not None:
             return False
         return (
-            self._bedrock.thinking_budget_tokens >= _THINKING_BUDGET_MIN
+            self._settings.thinking_budget_tokens >= _THINKING_BUDGET_MIN
             and _thinking_supported(self.model_name)
         )
 
@@ -185,7 +189,7 @@ class AwsBedrockBackend(_BaseAIBackend):
             request["additionalModelRequestFields"] = {
                 "thinking": {
                     "type": "enabled",
-                    "budget_tokens": self._bedrock.thinking_budget_tokens,
+                    "budget_tokens": self._settings.thinking_budget_tokens,
                 }
             }
 

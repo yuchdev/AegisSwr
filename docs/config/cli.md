@@ -170,11 +170,11 @@ its parent directory) if needed.
 
 | Argument | Description |
 |---|---|
-| `KEY` | Dotted key path, e.g. `backends.ai.model`. Intermediate objects are created as needed. |
+| `KEY` | Dotted key path, e.g. `backends.ai.anthropic.model`. Intermediate objects are created as needed. |
 | `VALUE` | New value (written as a JSON string; Pydantic coerces it to the field's type on load). |
 
 ```bash
-aegis config set backends.ai.model claude-opus-4-8
+aegis config set backends.ai.anthropic.model claude-opus-4-8
 aegis config set core.max_debate_rounds 6
 ```
 
