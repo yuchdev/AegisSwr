@@ -640,6 +640,108 @@ def test_evidence_persist_quiet_mode_warns(tmp_path: Path):
     assert any("evidence-persist" in str(call.args) for call in mock_logger.warning.call_args_list)
 
 
+# ---------------------------------------------------------------------------
+# AWS Bedrock CLI wiring
+# ---------------------------------------------------------------------------
+
+
+def test_cli_ai_bedrock_sets_provider(tmp_path: Path):
+    """``aegis analyze --ai bedrock ...`` must pass provider='bedrock' to the
+    AI backend factory; no actual Bedrock client is constructed."""
+    from aegis_swr.config.settings import AISettings
+
+    captured: dict[str, object] = {}
+
+    def _capture_factory(settings: AISettings) -> object:
+        captured["provider"] = settings.provider
+        m = mock.MagicMock()
+        m.model_name = "au.anthropic.claude-sonnet-4-6"
+        return m
+
+    async def mock_run(self, source):  # type: ignore[override]
+        return _report()
+
+    with (
+        mock.patch(_MOCK_RUN, mock_run),
+        mock.patch("aegis_swr.backends.ai.create_ai_backend", side_effect=_capture_factory),
+    ):
+        result = runner.invoke(
+            app,
+            [
+                "analyze",
+                "--ai",
+                "bedrock",
+                "--output",
+                "quiet",
+                "--store",
+                "filesystem",
+                "--store-config",
+                str(tmp_path / "reports"),
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert captured.get("provider") == "bedrock"
+
+
+def test_config_example_has_bedrock_section():
+    """The repo-root config.example.json must parse into Settings AND contain a
+    backends.ai.bedrock block whose keys match BedrockSettings fields."""
+    import json
+
+    from aegis_swr.config.settings import BedrockSettings, Settings
+
+    config_path = Path(__file__).parent.parent.parent / "config.example.json"
+    assert config_path.exists(), f"config.example.json not found at {config_path}"
+    data = json.loads(config_path.read_text(encoding="utf-8"))
+
+    # The file must be valid Settings-compatible JSON (extra keys are ignored).
+    bedrock_block = data.get("backends", {}).get("ai", {}).get("bedrock", None)
+    assert bedrock_block is not None, "config.example.json missing backends.ai.bedrock block"
+    assert isinstance(bedrock_block, dict)
+
+    # Every key present in the example block must be a recognized BedrockSettings field.
+    known_fields = set(BedrockSettings.model_fields.keys())
+    for key in bedrock_block:
+        assert key in known_fields, (
+            f"config.example.json backends.ai.bedrock has unknown key {key!r}; "
+            f"valid keys: {sorted(known_fields)}"
+        )
+
+    # The required identity fields must be present.
+    assert "region" in bedrock_block
+    assert "model_id" in bedrock_block
+
+
+def test_env_example_documents_bedrock_auth():
+    """The repo-root .env.example must exist, mention both AWS_BEARER_TOKEN_BEDROCK
+    and AWS_DEFAULT_REGION, and must not assign any real secret value to either."""
+    env_path = Path(__file__).parent.parent.parent / ".env.example"
+    assert env_path.exists(), f".env.example not found at {env_path}"
+    content = env_path.read_text(encoding="utf-8")
+
+    assert "AWS_BEARER_TOKEN_BEDROCK" in content, (
+        ".env.example must document AWS_BEARER_TOKEN_BEDROCK"
+    )
+    assert "AWS_DEFAULT_REGION" in content, ".env.example must document AWS_DEFAULT_REGION"
+
+    # Both vars must appear as empty placeholders (KEY= with no value after the '=').
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("AWS_BEARER_TOKEN_BEDROCK="):
+            value = stripped[len("AWS_BEARER_TOKEN_BEDROCK="):]
+            assert value == "", (
+                f"AWS_BEARER_TOKEN_BEDROCK must be an empty placeholder in .env.example, "
+                f"got {value!r}"
+            )
+        if stripped.startswith("AWS_DEFAULT_REGION="):
+            value = stripped[len("AWS_DEFAULT_REGION="):]
+            assert value == "", (
+                f"AWS_DEFAULT_REGION must be an empty placeholder in .env.example, "
+                f"got {value!r}"
+            )
+
+
 def test_evidence_persist_is_wired_to_stream_and_display(tmp_path: Path):
     """--evidence-persist reaches stream_and_display with a resolved evidence dir."""
     captured: dict[str, object] = {}

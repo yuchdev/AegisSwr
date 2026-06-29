@@ -17,9 +17,18 @@ _FILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}
 LOG_FILENAME = "aegis-swr.log"
 
 # Matches common API key patterns in log output.
+#
+# Clauses, in order:
+#   * ``<KEYWORD>=value`` / ``<KEYWORD>: value`` env- and config-style assignments
+#     (e.g. ``AWS_BEARER_TOKEN_BEDROCK=...``, ``api_key: ...``).
+#   * ``Bearer <token>`` - the live HTTP ``Authorization: Bearer <token>`` header
+#     form, where ``Bearer`` is followed by whitespace (no ``=``/``:``). The
+#     optional ``authorization`` prefix is consumed so the whole header redacts.
+#   * Anthropic / OpenAI raw secret-key shapes.
 _REDACT_RE = re.compile(
-    r"(ANTHROPIC_API_KEY|OPENAI_API_KEY|AWS_BEARER_TOKEN_BEDROCK|api[_-]?key|"
-    r"bearer)\s*[=:]\s*\S+"
+    r"(authorization\s*[=:]\s*)?bearer\s+\S+"
+    r"|(ANTHROPIC_API_KEY|OPENAI_API_KEY|AWS_BEARER_TOKEN_BEDROCK|api[_-]?key|"
+    r"bearer|authorization)\s*[=:]\s*\S+"
     r"|sk-ant-[A-Za-z0-9_-]+"
     r"|sk-[A-Za-z0-9_-]{10,}",
     re.IGNORECASE,
@@ -28,12 +37,23 @@ _REDACT_RE = re.compile(
 # Third-party loggers that emit verbose HTTP request/response bodies and
 # other debug-level details; always clamped to WARNING to prevent sensitive
 # data leakage at user-requested TRACE / DEBUG / INFO levels.
+#
+# botocore/boto3/urllib3 (the Bedrock backend's transport) log full request
+# bodies (incident payloads) and wire headers (the bearer token) at DEBUG, and
+# being stdlib loggers they bypass loguru's ``_sensitive_filter`` entirely.
+# Clamping them to WARNING is the robust fix: such detail is never emitted
+# regardless of the operator-selected level, so redaction is never relied upon.
 NOISY_LIBRARY_LOGGERS = (
     "anthropic",
     "openai",
     "httpx",
     "google.auth",
     "google.api_core",
+    "boto3",
+    "botocore",
+    "botocore.endpoint",
+    "botocore.auth",
+    "urllib3",
 )
 
 

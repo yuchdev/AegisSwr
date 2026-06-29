@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 import pytest
 from loguru import logger
@@ -148,6 +149,66 @@ def test_sink_registration_seams_return_false():
 
     assert _register_elk_sink("INFO", elk_url="http://elk:9200") is False
     assert _register_fluent_sink("INFO", fluent_host="fluentd", fluent_port=24224) is False
+
+
+# ---------------------------------------------------------------------------
+# Redaction regression tests - security threat-model Finding 2
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "input_text, must_redact, must_keep",
+    [
+        # Full Authorization header form: "Authorization: Bearer <token>"
+        (
+            "Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.payload.sig",
+            "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.payload.sig",
+            None,
+        ),
+        # Bare "Bearer <token>" (space-separated, no header label).
+        (
+            "incoming request Bearer tok-abc-XYZ-9876543210",
+            "tok-abc-XYZ-9876543210",
+            None,
+        ),
+        # Legacy env-var assignment form: "AWS_BEARER_TOKEN_BEDROCK=<value>"
+        (
+            "AWS_BEARER_TOKEN_BEDROCK=my-secret-bedrock-token",
+            "my-secret-bedrock-token",
+            None,
+        ),
+        # Benign prose must be left untouched.
+        (
+            "The service recovered after a brief outage at 14:32 UTC.",
+            None,
+            "The service recovered after a brief outage at 14:32 UTC.",
+        ),
+    ],
+)
+def test_redact_re_covers_bearer_and_legacy_forms(
+    input_text: str,
+    must_redact: Optional[str],
+    must_keep: Optional[str],
+    tmp_path: Path,
+):
+    """_REDACT_RE must redact Authorization: Bearer, bare Bearer, and the legacy
+    AWS_BEARER_TOKEN_BEDROCK=value form, and must leave benign prose untouched."""
+    from aegis_swr.cli.aegis_logging import _REDACT_RE
+
+    result = _REDACT_RE.sub("[REDACTED]", input_text)
+
+    if must_redact is not None:
+        assert must_redact not in result, (
+            f"Secret {must_redact!r} survived redaction in {result!r}"
+        )
+        assert "[REDACTED]" in result, (
+            f"Expected [REDACTED] marker in result {result!r}"
+        )
+
+    if must_keep is not None:
+        assert result == input_text, (
+            f"Benign prose was mutated: original={input_text!r}, result={result!r}"
+        )
 
 
 def test_file_sink_is_delayed_until_first_record(tmp_path: Path):

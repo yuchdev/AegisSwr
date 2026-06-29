@@ -18,8 +18,12 @@ thread with :func:`asyncio.to_thread` to keep the event loop free.
 
 Security: the bearer token is read from the environment, never logged, and
 never stored on the instance beyond what botocore needs to sign a request.
-botocore/urllib3 request-body logging is left to the project ``SensitiveFilter``
-applied at the logging layer; this module logs only non-sensitive metadata.
+This module logs only non-sensitive metadata. The ``botocore``/``boto3``/
+``urllib3`` stdlib loggers (which would emit full request bodies and wire
+headers, including the bearer token, at DEBUG) are stdlib loggers that bypass
+loguru's ``SensitiveFilter``; they are therefore clamped to WARNING in
+:mod:`aegis_swr.cli.aegis_logging` (``NOISY_LIBRARY_LOGGERS``) so that request
+bodies and headers are never emitted regardless of the operator log level.
 """
 from __future__ import annotations
 

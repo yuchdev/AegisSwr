@@ -501,6 +501,229 @@ def test_bedrock_no_bearer_hook_without_token(monkeypatch: pytest.MonkeyPatch):
     client.meta.events.register.assert_not_called()
 
 
+# ---------------------------------------------------------------------------
+# AWS Bedrock - new spec-compliance tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "error_code",
+    [
+        "AccessDeniedException",
+        "ServiceUnavailableException",
+        "ValidationException",
+        "ModelTimeoutException",
+    ],
+)
+async def test_bedrock_client_error_codes_parametrized(
+    monkeypatch: pytest.MonkeyPatch, error_code: str
+):
+    """Each stubbed ClientError code from converse surfaces as AIBackendError."""
+    import botocore.exceptions
+
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
+    client = mock.MagicMock()
+    session = mock.MagicMock()
+    session.client.return_value = client
+    with mock.patch("boto3.Session", return_value=session):
+        backend = AwsBedrockBackend(BedrockSettings())
+    client.converse = mock.MagicMock(
+        side_effect=botocore.exceptions.ClientError(
+            {"Error": {"Code": error_code, "Message": "error detail"}}, "Converse"
+        )
+    )
+    with pytest.raises(AIBackendError, match=error_code):
+        await backend.generate("system", _USER)
+
+
+async def test_bedrock_error_message_is_sanitised(monkeypatch: pytest.MonkeyPatch):
+    """ClientError message (potentially containing secrets) must not appear in the
+    raised AIBackendError; only the error code is surfaced."""
+    import botocore.exceptions
+
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
+    secret_fragment = "sk-secret-ABCDEF1234567890"
+    client = mock.MagicMock()
+    session = mock.MagicMock()
+    session.client.return_value = client
+    with mock.patch("boto3.Session", return_value=session):
+        backend = AwsBedrockBackend(BedrockSettings())
+    client.converse = mock.MagicMock(
+        side_effect=botocore.exceptions.ClientError(
+            {
+                "Error": {
+                    "Code": "ValidationException",
+                    "Message": f"invalid request, token={secret_fragment}",
+                }
+            },
+            "Converse",
+        )
+    )
+    with pytest.raises(AIBackendError) as exc_info:
+        await backend.generate("system", _USER)
+    error_str = str(exc_info.value)
+    assert "ValidationException" in error_str
+    assert secret_fragment not in error_str
+
+
+def test_bedrock_region_precedence(monkeypatch: pytest.MonkeyPatch):
+    """(a) explicit BedrockSettings(region=...) wins; (b) blank region uses AWS_DEFAULT_REGION."""
+    # Part (a): explicit region in settings takes precedence.
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
+
+    session_a = mock.MagicMock()
+    session_a.client.return_value = mock.MagicMock()
+    with mock.patch("boto3.Session", return_value=session_a) as mock_session_cls:
+        AwsBedrockBackend(BedrockSettings(region="eu-west-1"))
+    # boto3.Session is called with the explicit region.
+    call_kwargs = mock_session_cls.call_args.kwargs
+    assert call_kwargs["region_name"] == "eu-west-1"
+
+    # Part (b): blank region falls back to AWS_DEFAULT_REGION.
+    session_b = mock.MagicMock()
+    session_b.client.return_value = mock.MagicMock()
+    with mock.patch("boto3.Session", return_value=session_b) as mock_session_cls_b:
+        AwsBedrockBackend(BedrockSettings(region=""))
+    call_kwargs_b = mock_session_cls_b.call_args.kwargs
+    assert call_kwargs_b["region_name"] == "us-east-1"
+
+
+def test_bedrock_bearer_hook_does_not_log_token(
+    monkeypatch: pytest.MonkeyPatch, capfd: pytest.CaptureFixture[str]
+):
+    """The bearer token value must never appear in log output during client construction;
+    the auth-mode label 'bearer-token' must appear."""
+    import io
+
+    from loguru import logger
+
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "super-secret-bearer-xyz9876")
+    log_records: list[str] = []
+
+    sink_id = logger.add(log_records.append, level="DEBUG", format="{message}")
+    try:
+        client = mock.MagicMock()
+        session = mock.MagicMock()
+        session.client.return_value = client
+        with mock.patch("boto3.Session", return_value=session):
+            AwsBedrockBackend(BedrockSettings())
+    finally:
+        logger.remove(sink_id)
+
+    combined = "\n".join(log_records)
+    assert "super-secret-bearer-xyz9876" not in combined
+    assert "bearer-token" in combined
+
+
+async def test_bedrock_stream_interruption_raises_backend_error(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """A BotoCoreError raised mid-stream iteration surfaces as AIBackendError."""
+    import botocore.exceptions
+
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
+    client = mock.MagicMock()
+    session = mock.MagicMock()
+    session.client.return_value = client
+    with mock.patch("boto3.Session", return_value=session):
+        backend = AwsBedrockBackend(BedrockSettings())
+
+    # The stream returns one good event then raises ReadTimeoutError on next().
+    class _FaultingIterator:
+        def __init__(self) -> None:
+            self._count = 0
+
+        def __iter__(self) -> "_FaultingIterator":
+            return self
+
+        def __next__(self) -> dict[str, Any]:
+            if self._count == 0:
+                self._count += 1
+                return {"contentBlockDelta": {"delta": {"text": "first "}}}
+            raise botocore.exceptions.ReadTimeoutError(endpoint_url="https://bedrock.test")
+
+    client.converse_stream = mock.MagicMock(return_value={"stream": _FaultingIterator()})
+
+    with pytest.raises(AIBackendError, match="ReadTimeoutError"):
+        async for _ in backend.stream("system", _USER):
+            pass
+
+
+async def test_bedrock_thinking_disabled_for_structured(monkeypatch: pytest.MonkeyPatch):
+    """A qualifying thinking_budget_tokens + thinking-capable model + output_schema
+    must produce NO additionalModelRequestFields/thinking in the Converse request."""
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
+    # Use a thinking-capable model and a qualifying budget.
+    settings = BedrockSettings(
+        model_id="au.anthropic.claude-sonnet-4-6",
+        thinking_budget_tokens=2048,
+    )
+    client = mock.MagicMock()
+    session = mock.MagicMock()
+    session.client.return_value = client
+    with mock.patch("boto3.Session", return_value=session):
+        backend = AwsBedrockBackend(settings)
+    client.converse = mock.MagicMock(
+        return_value=_bedrock_tool_response({"root_cause": "uaf", "confidence": 0.75})
+    )
+    await backend.generate("system", _USER, Hypothesis)
+    kwargs = client.converse.call_args.kwargs
+    # Forced tool use disables thinking - the field must be absent.
+    assert "additionalModelRequestFields" not in kwargs
+
+
+def test_bedrock_thinking_disabled_for_unsupported_model(monkeypatch: pytest.MonkeyPatch):
+    """A qualifying budget with an unsupported model_id produces no thinking key."""
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
+    # Nova-2-Lite is not in _THINKING_SUPPORTED_PATTERNS.
+    settings = BedrockSettings(
+        model_id="global.amazon.nova-2-lite-v1:0",
+        thinking_budget_tokens=2048,
+    )
+    client = mock.MagicMock()
+    session = mock.MagicMock()
+    session.client.return_value = client
+    with mock.patch("boto3.Session", return_value=session):
+        backend = AwsBedrockBackend(settings)
+
+    # Build a free-form request directly to inspect the request body.
+    request = backend._build_request("system", _USER, output_schema=None)
+    assert "additionalModelRequestFields" not in request
+
+
+async def test_bedrock_parse_ignores_reasoning_blocks(monkeypatch: pytest.MonkeyPatch):
+    """A Converse response with reasoningContent + text blocks → generate() returns
+    only the concatenated text, not the reasoning content."""
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
+    client = mock.MagicMock()
+    session = mock.MagicMock()
+    session.client.return_value = client
+    with mock.patch("boto3.Session", return_value=session):
+        backend = AwsBedrockBackend(BedrockSettings())
+
+    # Mix a reasoningContent block with text blocks.
+    response_with_reasoning: dict[str, Any] = {
+        "output": {
+            "message": {
+                "content": [
+                    {"reasoningContent": {"text": "internal chain-of-thought that must be hidden"}},
+                    {"text": "root cause is "},
+                    {"text": "a use-after-free."},
+                ]
+            }
+        },
+        "usage": {"inputTokens": 20, "outputTokens": 10},
+        "stopReason": "end_turn",
+    }
+    client.converse = mock.MagicMock(return_value=response_with_reasoning)
+
+    result = await backend.generate("system", _USER)
+    assert result == "root cause is a use-after-free."
+    # The reasoning block text must not appear in the result.
+    assert "chain-of-thought" not in result
+
+
 async def test_bedrock_thinking_enabled_for_free_form(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     settings = BedrockSettings(thinking_budget_tokens=2048)

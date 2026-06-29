@@ -80,7 +80,7 @@
         "model_id": "au.anthropic.claude-sonnet-4-6",
         "max_tokens": 20000,
         "temperature": 0.2,
-        "thinking_budget_tokens": 4096,
+        "thinking_budget_tokens": 0,
         "connect_timeout_seconds": 10,
         "read_timeout_seconds": 300,
         "max_attempts": 3,

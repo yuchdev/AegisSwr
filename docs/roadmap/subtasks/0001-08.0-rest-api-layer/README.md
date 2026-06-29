@@ -3,7 +3,7 @@
 Atomic decomposition of milestone **8 REST API Layer** from
 [`docs/roadmap/tasks/0001-generic_implementation_plan.md`](../../tasks/0001-generic_implementation_plan.md).
 Progress is tracked in
-[`docs/roadmap/progress/implementation_status.md`](../../progress/implementation_status.md).
+[`docs/roadmap/progress/implementation_status.md`](../../progress/0001-generic_implementation_status.md).
 
 ## Goal
 

@@ -4,7 +4,16 @@ Atomic decomposition of milestone **3.2 AWS Bedrock Backend** from
 [`docs/roadmap/tasks/0001-generic_implementation_plan.md`](../../tasks/0001-generic_implementation_plan.md#milestone-32---aws-bedrock-backend).
 
 Progress is tracked in
-[`docs/roadmap/progress/implementation_status.md`](../../progress/implementation_status.md).
+[`docs/roadmap/progress/implementation_status.md`](../../progress/0001-generic_implementation_status.md).
+
+> **Status (2026-06-29): ✅ Milestone complete.** Subtasks 01-10 satisfied and
+> green (`poetry run pytest tests/unit/ tests/integration/ -q` → 478 passed, 3
+> skipped, 86.58% coverage); subtask 11 (prompt caching) is explicitly deferred.
+> Validated live against Amazon Bedrock (`au.anthropic.claude-sonnet-4-6`,
+> `ap-southeast-2`) through the real `AwsBedrockBackend`, authenticating with
+> `AWS_BEARER_TOKEN_BEDROCK` only. Security review:
+> [`docs/security/2026-06-29-aws-bedrock-backend.md`](../../../security/2026-06-29-aws-bedrock-backend.md)
+> (PASS_WITH_FOLLOWUP; both MEDIUM logging findings fixed).
 
 ## Scope & current reality
 
@@ -41,16 +50,16 @@ their full spec so the milestone can be re-derived or re-reviewed end to end.
 
 | #                                               | Subtask                                                         | Primary files                                 | State                               |
 |-------------------------------------------------|-----------------------------------------------------------------|-----------------------------------------------|-------------------------------------|
-| [01](01-configuration-model.md)                 | Configuration model (`BedrockSettings` + `AISettings`)          | `config/settings.py`                          | ✅ Done - verify                     |
-| [02](02-error-taxonomy-and-mapping.md)          | Error taxonomy & sanitised botocore mapping                     | `core/exceptions.py`, provider                | ✅ Done - broaden coverage           |
-| [03](03-client-and-authentication.md)           | Client construction & dual-mode auth                            | provider                                      | ✅ Done - add region-precedence test |
-| [04](04-converse-generate-structured-output.md) | Converse `generate()`: request, structured output, parse, usage | provider                                      | ✅ Done                              |
-| [05](05-streaming.md)                           | Streaming via `converse_stream`                                 | provider                                      | ✅ Done - add interruption test      |
-| [06](06-extended-thinking-and-reasoning.md)     | Extended thinking & `has_reasoning`                             | provider, `config/settings.py`                | ✅ Done - add reasoningContent test  |
-| [07](07-factory-routing.md)                     | Factory routing for `provider="bedrock"`                        | `backends/ai/__init__.py`                     | ✅ Done                              |
-| [08](08-cli-config-and-env-exposure.md)         | CLI flag, config template & `.env.example`                      | `cli/`, `config.example.json`, `.env.example` | 🔶 Partial                          |
-| [09](09-documentation.md)                       | Configuration & CLI documentation                               | `docs/config/`                                | ✅ Done - verify                     |
-| [10](10-integration-tests.md)                   | End-to-end integration tests                                    | `tests/integration/`                          | ✅ Done - extend                     |
+| [01](01-configuration-model.md)                 | Configuration model (`BedrockSettings` + `AISettings`)          | `config/settings.py`                          | ✅ Complete                          |
+| [02](02-error-taxonomy-and-mapping.md)          | Error taxonomy & sanitised botocore mapping                     | `core/exceptions.py`, provider                | ✅ Complete                          |
+| [03](03-client-and-authentication.md)           | Client construction & dual-mode auth                            | provider                                      | ✅ Complete                          |
+| [04](04-converse-generate-structured-output.md) | Converse `generate()`: request, structured output, parse, usage | provider                                      | ✅ Complete                          |
+| [05](05-streaming.md)                           | Streaming via `converse_stream`                                 | provider                                      | ✅ Complete                          |
+| [06](06-extended-thinking-and-reasoning.md)     | Extended thinking & `has_reasoning`                             | provider, `config/settings.py`                | ✅ Complete                          |
+| [07](07-factory-routing.md)                     | Factory routing for `provider="bedrock"`                        | `backends/ai/__init__.py`                     | ✅ Complete                          |
+| [08](08-cli-config-and-env-exposure.md)         | CLI flag, config template & `.env.example`                      | `cli/`, `config.example.json`, `.env.example` | ✅ Complete                          |
+| [09](09-documentation.md)                       | Configuration & CLI documentation                               | `docs/config/`                                | ✅ Complete                          |
+| [10](10-integration-tests.md)                   | End-to-end integration tests                                    | `tests/integration/`                          | ✅ Complete                          |
 | [11](11-prompt-caching-optional.md)             | Prompt caching via `cachePoint` (optional)                      | provider                                      | ⬜ Deferred                          |
 
 ## Dependency / sequencing

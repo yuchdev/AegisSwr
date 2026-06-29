@@ -36,7 +36,7 @@ Development timeline, per-phase task briefs, and live progress tracking.
 | Document | Description |
 |---|---|
 | [roadmap.md](roadmap/roadmap.md) | Full 5-phase development roadmap: Phase 1 Prototype Deconstruction → Phase 2 Data Adapter → Phase 3 Multi-Agent System → Phase 4 Output Synthesis → Phase 5 Hardening. Covers consensus threshold logic and token budget guardrails. |
-| [progress/implementation_status.md](roadmap/progress/implementation_status.md) | Live tracker: which phases are complete, current lint/type/test gate status, delivered artifacts. |
+| [progress/implementation_status.md](roadmap/progress/0001-generic_implementation_status.md) | Live tracker: which phases are complete, current lint/type/test gate status, delivered artifacts. |
 | [tasks/0001-generic_implementation_plan.md](roadmap/tasks/0001-generic_implementation_plan.md) | 10-phase implementation plan with per-phase deliverables and a dependency graph; inlines the Data Adapter and Backend specifications. |
 | [tasks/0002-implement_forensic_agents.md](roadmap/tasks/0002-implement_forensic_agents.md) | Agentic execution brief per phase: agent matrix, verbatim per-agent instructions, inputs, verification gates. |
 | [tasks/0003-aegis-swr-litellm-routing-task.md](roadmap/tasks/0003-aegis-swr-litellm-routing-task.md) | LiteLLM routing task brief. |

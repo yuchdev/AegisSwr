@@ -178,3 +178,130 @@ async def test_bedrock_transport_error_raises_backend_error(
     )
     with pytest.raises(AIBackendError, match="ReadTimeoutError"):
         await backend.generate("system", [{"role": "user", "content": "x"}])
+
+
+# ---------------------------------------------------------------------------
+# New spec-compliance integration tests
+# ---------------------------------------------------------------------------
+
+
+async def test_bedrock_token_usage_propagates_to_state(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """After generate() with a response carrying a usage block, backend.last_usage
+    must be non-zero - the values that feed InvestigationState.token_tracker."""
+    converse_return = {
+        "output": {"message": {"content": [{"text": "root cause identified"}]}},
+        "usage": {"inputTokens": 850, "outputTokens": 120},
+        "stopReason": "end_turn",
+    }
+    backend, _ = _make_backend(monkeypatch, converse_return=converse_return)
+
+    result = await backend.generate("system", [{"role": "user", "content": "analyze"}])
+
+    assert result == "root cause identified"
+    usage = backend.last_usage
+    assert usage["input_tokens"] == 850, f"expected 850 input tokens, got {usage['input_tokens']}"
+    assert usage["output_tokens"] == 120, f"expected 120 output tokens, got {usage['output_tokens']}"
+    # Combined usage must be non-zero (the feed into InvestigationState.token_tracker).
+    assert usage["input_tokens"] + usage["output_tokens"] > 0
+
+
+async def test_bedrock_structured_retry_end_to_end(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """First stubbed converse returns an invalid structured payload, second returns a
+    valid one → the backend yields a validated structured object after one retry,
+    exercising the base class retry loop through the real Bedrock backend."""
+    from aegis_swr.core.schemas import Hypothesis
+
+    # First call: toolUse input missing required `confidence` field.
+    first_response = {
+        "output": {
+            "message": {
+                "content": [
+                    {"toolUse": {"name": "structured_output", "input": {"root_cause": "uaf"}}}
+                ]
+            }
+        },
+        "usage": {"inputTokens": 200, "outputTokens": 50},
+        "stopReason": "tool_use",
+    }
+    # Second call: fully valid Hypothesis.
+    second_response = {
+        "output": {
+            "message": {
+                "content": [
+                    {
+                        "toolUse": {
+                            "name": "structured_output",
+                            "input": {"root_cause": "uaf in serialize()", "confidence": 0.84},
+                        }
+                    }
+                ]
+            }
+        },
+        "usage": {"inputTokens": 400, "outputTokens": 80},
+        "stopReason": "tool_use",
+    }
+    backend, client = _make_backend(
+        monkeypatch,
+        converse_side_effect=[first_response, second_response],
+    )
+
+    result = await backend.generate(
+        "You are the OS Kernel Agent.",
+        [{"role": "user", "content": "crash at 0xdeadbeef"}],
+        Hypothesis,
+    )
+
+    assert isinstance(result, Hypothesis)
+    assert result.root_cause == "uaf in serialize()"
+    assert abs(result.confidence - 0.84) < 1e-6
+    # Two calls: initial attempt + one correction retry.
+    assert client.converse.call_count == 2
+    # Accumulated usage spans both calls.
+    assert backend.last_usage["input_tokens"] == 600
+    assert backend.last_usage["output_tokens"] == 130
+
+
+async def test_bedrock_pii_never_reaches_request(
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Drive an IncidentSource carrying PII through the adapter (when presidio is
+    available) and then through to the stubbed Converse call; assert that no raw
+    PII value appears in the Converse request body."""
+    pytest.importorskip("presidio_analyzer")
+    from aegis_swr.core.data_adapter import DataAdapter
+
+    pii_log_path = str(FIXTURES / "sample_logs_with_pii.txt")
+    source = IncidentSource(
+        mode=IncidentMode.LOG_FORENSICS,
+        log_paths=[pii_log_path],
+    )
+    adapter = DataAdapter(settings)
+    brief = await adapter.process(source)
+
+    converse_return = {
+        "output": {"message": {"content": [{"text": "analysis done"}]}},
+        "usage": {"inputTokens": 100, "outputTokens": 20},
+        "stopReason": "end_turn",
+    }
+    backend, client = _make_backend(monkeypatch, converse_return=converse_return)
+
+    messages = _brief_to_messages(brief)
+    await backend.generate("You are the OS Kernel Agent.", messages)
+
+    # Collect all text that was submitted to Converse.
+    converse_kwargs = client.converse.call_args.kwargs
+    submitted_text = json.dumps(converse_kwargs)
+
+    # Read the known PII strings from the fixture file.
+    fixture_text = Path(pii_log_path).read_text(encoding="utf-8")
+    # alice@example.com is the canonical PII address in the sample fixture.
+    assert "alice@example.com" not in submitted_text, (
+        "Raw PII email found in Converse request body"
+    )
+    # The fixture content itself contains PII to make the assertion meaningful.
+    assert "alice@example.com" in fixture_text

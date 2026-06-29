@@ -94,6 +94,7 @@ and confidential.
 | Lifecycle/escalation/playbook safety                   | `incident-analyst`    |
 | Threat models, security gate                           | `security-auditor`    |
 | Multi-step "ticket → merged PR" coordination           | `agent-orchestrator`        |
+| Spec adherence check (post-implementation)             | `subtask-verifier`          |
 
 ## 8. Model tiering (cost vs capability)
 

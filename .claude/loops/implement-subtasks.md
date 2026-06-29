@@ -1,8 +1,8 @@
 ---
 name: task-name
-description: Implements one pending phase per iteration from docs/roadmap/subtasks/{task-name}/NN-*.md, where NN is number in the task queue; runs quality gates, and updates docs/roadmap/progress/implementation_status.md. Self-terminates when all phases reach ✅ Complete.
+description: Implements one pending phase per iteration from docs/roadmap/subtasks/{task-name}/NN-*.md, where NN is number in the task queue; runs quality gates, and updates docs/roadmap/progress/0001-generic_implementation_status.md. Self-terminates when all phases reach ✅ Complete.
 invoke: /loop task-name
-terminates-when: All rows in implementation_status.md show ✅ Complete
+terminates-when: All rows in 0001-generic_implementation_status.md show ✅ Complete
 ---
 
 # task-name - per-phase implementation loop
@@ -67,9 +67,22 @@ If any verification fails:
   spec ambiguity requiring human input (in that case, stop the loop and surface
   the blocker to the user).
 
-### Step 5 - run quality-gate skills
+### Step 5 - spec-compliance gate
 
-After verification is green, invoke the following skills as applicable:
+After the verification gate is green, run `/verify-subtask {subtask-path}` where
+`{subtask-path}` is the path identified in Step 1 (relative to `docs/roadmap/subtasks/`,
+without the `.md` extension).
+
+- **PASS** → continue to Step 6.
+- **PARTIAL** → log the deviations; continue to Step 6 but include the deviation list in
+  the `/pr-review` context so the reviewer is aware.
+- **FAIL** → delegate the blocking gaps back to `python-expert` (max 1 retry). After the
+  fix, re-run Step 4 (verification), then this step again. If still FAIL after one retry,
+  surface the gaps to the user and stop the loop.
+
+### Step 6 - run quality-gate skills
+
+After the spec-compliance gate passes (or PARTIAL is noted), invoke the following skills as applicable:
 
 | Condition                                                    | Skill                                                                                                                    |
 |--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
@@ -78,7 +91,7 @@ After verification is green, invoke the following skills as applicable:
 | Any file under `api/`, `sandbox/`, or any middleware changed | `/secret-scan src/aegis_swr/<changed-module>/`                                                                           |
 | Phase is complete (before updating status)                   | `/pr-review` - must get LGTM or REQUEST_CHANGES resolved before advancing.                                               |
 
-### Step 6 - update the status table
+### Step 7 - update the status table
 
 After all subtasks are implemented, edit `docs/roadmap/progress/implementation_status.md`:
 
@@ -88,7 +101,7 @@ After all subtasks are implemented, edit `docs/roadmap/progress/implementation_s
   create it if this phase had no summary yet) describing what was delivered,
   key implementation decisions, and test coverage numbers.
 
-### Step 7 - reschedule
+### Step 8 - reschedule
 
 Call ScheduleWakeup with:
 - `prompt`: the literal text `/loop task-name`

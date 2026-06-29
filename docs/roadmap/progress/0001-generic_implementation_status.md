@@ -10,7 +10,7 @@ Tracks progress against [0001-generic_implementation_plan.md](/docs/roadmap/task
 | 2     | Data Adapter Layer         | ✅ Complete                                        | `test_data_adapter.py`                                         |
 | 3     | AI Backends                | ✅ Complete                                        | `test_ai_backends.py`, `integration/test_ai_pipeline.py`       |
 | 3.1   | Classic APIs               | ✅ Complete                                        | `test_ai_backends.py`, `integration/test_ai_pipeline.py`       |
-| 3.2   | AWS Bedrock                | 🔶 In progress                                    | `test_ai_backends.py` (Bedrock cases pending)                  |
+| 3.2   | AWS Bedrock                | ✅ Complete                                        | `test_ai_backends.py`, `test_settings.py`, `test_cli.py`, `test_logging.py`, `integration/test_bedrock_integration.py` |
 | 4     | Debug Backends             | 🔶 In progress (only cdb complete)                | `test_debug_backends.py`, `integration/test_debug_pipeline.py` |
 | 5     | Multi-Agent System         | ✅ Complete                                        | `test_consensus.py`, `test_agents.py`, `test_orchestrator.py`  |
 | 6     | Storage Backends           | ✅ Complete (Postgres stub)                        | `test_storage_backends.py`                                     |
@@ -21,7 +21,9 @@ Tracks progress against [0001-generic_implementation_plan.md](/docs/roadmap/task
 | 9     | Secure Code Sandbox        | ⬜ Not started                                     | -                                                              |
 | 10    | Testing & Hardening        | ⬜ Not started                                     | -                                                              |
 
-**Current gate status:** 416 tests passing (unit and integration). Phases 6.1 (git + filesystem adapters) and 6.2 (file and fluent adapters) are partially shipped; PDB adapter described in specs, not yet implemented. The **log-subsystem re-engineering** (Part III of the plan) is complete - see [below](#log-subsystem-re-engineering-).
+**Current gate status:** 478 tests passing, 3 skipped (unit and integration). Phases 6.1 (git + filesystem adapters) and 6.2 (file and fluent adapters) are partially shipped; PDB adapter described in specs, not yet implemented. The **log-subsystem re-engineering** (Part III of the plan) is complete - see [below](#log-subsystem-re-engineering-).
+
+**Bedrock milestone (3.2) closed (2026-06-29):** Subtasks 01-10 of [`0001-03.2-aws-bedrock-backend`](/docs/roadmap/subtasks/0001-03.2-aws-bedrock-backend/README.md) satisfied and green; subtask 11 (prompt caching via `cachePoint`) is an explicitly deferred enhancement. Closed gaps: created `.env.example`, corrected the `config.example.json` Bedrock `thinking_budget_tokens` default, added the 15 spec-named unit/CLI/integration tests, and applied two `security-auditor` MEDIUM logging fixes (clamp `botocore`/`boto3`/`urllib3` stdlib loggers so request bodies/bearer headers are never emitted; extend the redaction regex to the `Authorization: Bearer <token>` form). Threat model: [`docs/security/2026-06-29-aws-bedrock-backend.md`](/docs/security/2026-06-29-aws-bedrock-backend.md) (verdict PASS_WITH_FOLLOWUP). **Live validation:** connected to Amazon Bedrock (`au.anthropic.claude-sonnet-4-6`, region `ap-southeast-2`) via the real `AwsBedrockBackend` for a NULL-pointer-write test incident and received a correct RCA - authenticating with `AWS_BEARER_TOKEN_BEDROCK` only (`AWS_ENDPOINT_NAME_BEDROCK` and `AWS_BEDROCK_URL` are not consumed by the code).
 
 **End-to-end validation (real dump, 2026-05-31):** reproduced the prototype's resolution of `CrashUi.exe.1324.dmp` (deterministic NULL-pointer write in `CrashUi!Crash_Window::on_access_violation_click`) through the full Aegis pipeline - `CdbBackend` → `DataAdapter` → 4-agent MAS → `FilesystemStore`, with `--ai openai` (gpt-5.4). Consensus 0.97 (HIGH), converged in 1 round, and the panel additionally emitted a probabilistic-fix diff. Backend engine fixes made during this run (all in [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md) C.1 AIAPIBackend / C.2 DebugBackend):
 - `AISettings.resolved_model` - `--ai openai` now uses an OpenAI model instead of the Anthropic default.
@@ -147,7 +149,6 @@ Delivered:
 - `backends/base.py` + all storage backends - added `load_recent(limit)` to `RelationalStore` ABC.
 - Typer upgraded 0.13.1 → 0.26.3 to fix Click 8.4 `make_metavar(ctx)` incompatibility.
 - `pyproject.toml` - `typer = "^0.26"`.
-- Spec updated: `PRODUCTION_DESIGN_SPEC.md §12`, `IMPLEMENTATION_PLAN.md Phase 7`, `AGENTIC_IMPLEMENTATION_PLAN.md Step 7`.
 
 Unit coverage (`test_cli.py`, 12 tests): help flags, --save-config writes JSON, --config sets defaults, CLI flag overrides config, json/rich output, HITL exit code 1, config show redacts, a config set writes YAML, config helpers.  
 Integration coverage (`test_e2e_cli.py`, 4 tests): JSON output E2E, rich output, log-only mode, config round-trip.

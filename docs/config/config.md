@@ -286,6 +286,11 @@ token budgets: `max_tokens` is the absolute output cap, while
 - `auth_mode: sigv4` - force the SigV4 credential chain (env vars / shared config
   / IAM role) even when a bearer token is present.
 
+> A ready-to-copy template for all three auth variables (`AWS_BEARER_TOKEN_BEDROCK`,
+> `AWS_DEFAULT_REGION`, and the standard AWS credential-chain fallback) is in
+> [`.env.example`](../../.env.example) at the repo root. Credentials are never stored
+> in `config.json`.
+
 **Environment overrides** follow the nested-key convention (case-insensitive),
 targeting the active provider's sub-config:
 
