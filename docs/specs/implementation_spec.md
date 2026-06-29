@@ -6,7 +6,7 @@
 **Source root:** `src/aegis_swr/`
 
 > **Related documents:** For the 16-week execution phasing and per-agent task matrix see
-> [`docs/roadmap/tasks/0001-generic_implementation_plan.md`](../roadmap/tasks/0001-generic_implementation_plan.md).
+> [`docs/roadmap/0001-generic-implementation/plan.md`](/docs/roadmap/0001-generic-implementation/plan.md).
 > For the high-level design rationale (deployment strategy, agent personas, HITL)
 > see [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
 > For the three-channel logging architecture see [§15](#15-logging-architecture).
@@ -1861,7 +1861,7 @@ After each significant change to the Data Adapter, run `tests/benchmarks/token_b
 
 Aegis SWR operates three independent logging channels. The implementation history
 (phases A–J) lives in
-[`docs/roadmap/tasks/0001-generic_implementation_plan.md` Part III](../roadmap/tasks/0001-generic_implementation_plan.md#part-iii--new-task-three-channel-logging-application--evidence--investigation-process);
+[`docs/roadmap/0001-generic-implementation/plan.md` Part III](/docs/roadmap/0001-generic-implementation/plan.md#part-three---new-task-three-channel-logging-application--evidence--investigation-process);
 this section records the resolved design.
 
 ### 15.1 The three channels

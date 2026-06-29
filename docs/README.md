@@ -35,11 +35,12 @@ Development timeline, per-phase task briefs, and live progress tracking.
 
 | Document | Description |
 |---|---|
-| [roadmap.md](roadmap/roadmap.md) | Full 5-phase development roadmap: Phase 1 Prototype Deconstruction → Phase 2 Data Adapter → Phase 3 Multi-Agent System → Phase 4 Output Synthesis → Phase 5 Hardening. Covers consensus threshold logic and token budget guardrails. |
-| [progress/implementation_status.md](roadmap/progress/0001-generic_implementation_status.md) | Live tracker: which phases are complete, current lint/type/test gate status, delivered artifacts. |
-| [tasks/0001-generic_implementation_plan.md](roadmap/tasks/0001-generic_implementation_plan.md) | 10-phase implementation plan with per-phase deliverables and a dependency graph; inlines the Data Adapter and Backend specifications. |
-| [tasks/0002-implement_forensic_agents.md](roadmap/tasks/0002-implement_forensic_agents.md) | Agentic execution brief per phase: agent matrix, verbatim per-agent instructions, inputs, verification gates. |
-| [tasks/0003-aegis-swr-litellm-routing-task.md](roadmap/tasks/0003-aegis-swr-litellm-routing-task.md) | LiteLLM routing task brief. |
+| [roadmap/README.md](/docs/roadmap/README.md) | Roadmap index and conventions: the Milestone → Task → Subtask hierarchy, folder/file naming, the absolute-link rule, and the milestone list. Start here. |
+| [roadmap.md](/docs/roadmap/roadmap.md) | Full 5-phase development roadmap: Phase 1 Prototype Deconstruction → Phase 2 Data Adapter → Phase 3 Multi-Agent System → Phase 4 Output Synthesis → Phase 5 Hardening. Covers consensus threshold logic and token budget guardrails. |
+| [0001-generic-implementation/status.md](/docs/roadmap/0001-generic-implementation/status.md) | Live tracker: which tasks are complete, current lint/type/test gate status, delivered artifacts. |
+| [0001-generic-implementation/plan.md](/docs/roadmap/0001-generic-implementation/plan.md) | 10-task implementation plan with per-task deliverables and a dependency graph; inlines the Data Adapter and Backend specifications. |
+| [0002-forensic-agents/plan.md](/docs/roadmap/0002-forensic-agents/plan.md) | Agentic execution brief per task: agent matrix, verbatim per-agent instructions, inputs, verification gates. |
+| [0003-litellm-routing/plan.md](/docs/roadmap/0003-litellm-routing/plan.md) | LiteLLM routing task brief. |
 
 ---
 

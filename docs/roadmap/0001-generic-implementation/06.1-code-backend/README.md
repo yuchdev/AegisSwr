@@ -1,6 +1,6 @@
 # 6.1 Code Backend – PDB Adapter (Windows Source Server)
 
-**Parent task:** Phase 6.1 – Code Backend ([0001-generic_implementation_plan.md](../../tasks/0001-generic_implementation_plan.md#phase-61-code-backend))
+**Parent task:** Task 6.1 – Code Backend ([plan.md](/docs/roadmap/0001-generic-implementation/plan.md#task-61-code-backend))
 **Status:** 🔶 Partial — `GitCodeAdapter` and `FilesystemCodeAdapter` done; `PdbCodeAdapter` not started
 
 ## Scope

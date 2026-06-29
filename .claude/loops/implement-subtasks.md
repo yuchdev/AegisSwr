@@ -1,31 +1,31 @@
 ---
 name: task-name
-description: Implements one pending phase per iteration from docs/roadmap/subtasks/{task-name}/NN-*.md, where NN is number in the task queue; runs quality gates, and updates docs/roadmap/progress/0001-generic_implementation_status.md. Self-terminates when all phases reach ✅ Complete.
+description: Implements one pending subtask per iteration from `docs/roadmap/{NNNN}-{milestone-slug}/{TT.t}-{task-slug}/{NN}-{subtask}.md`, where NN is the subtask number in the queue; runs quality gates, and updates `docs/roadmap/{NNNN}-{milestone-slug}/status.md`. Self-terminates when all subtasks reach ✅ Complete.
 invoke: /loop task-name
-terminates-when: All rows in 0001-generic_implementation_status.md show ✅ Complete
+terminates-when: All rows in status.md show ✅ Complete
 ---
 
-# task-name - per-phase implementation loop
+# task-name - per-subtask implementation loop
 
-Each iteration of this loop implements **exactly one** pending phase, verifies it, invokes the relevant quality-gate skills, and updates the status table.
-The loop re-schedules itself until every phase is complete.
+Each iteration of this loop implements **exactly one** pending subtask, verifies it, invokes the relevant quality-gate skills, and updates the status table.
+The loop re-schedules itself until every subtask is complete.
 
 ---
 
 ## Iteration algorithm
 
-### Step 1 - identify the next phase
+### Step 1 - identify the next subtask
 
-Read `docs/roadmap/progress/implementation_status.md`. Scan the status of the high-level strategic tasks.
+Read `docs/roadmap/{NNNN}-{milestone-slug}/status.md`. Scan the status of the tasks listed in the `## Tasks` table.
 
-- If every row shows `✅ Complete`: print "All phases complete - loop done." and **stop** (do NOT call ScheduleWakeup).
-- Otherwise, take the first row whose Status cell begins with `⬜` (not started) or `🔶` (partial). Record its Phase number, Name, and current Status.
+- If every row shows `✅ Complete`: print "All subtasks complete - loop done." and **stop** (do NOT call ScheduleWakeup).
+- Otherwise, take the first row whose Status cell begins with `⬜` (not started) or `🔶` (partial). Record its Task number, Name, and current Status.
 
-Partial phases are prioritized over not-started ones because unfinished work carries higher regression risk than new work.
+Partial tasks are prioritized over not-started ones because unfinished work carries higher regression risk than new work.
 
-Find the required `task-name` in `docs/roadmap/subtasks/{task-name}/{NN}-{slug}.md`, where `NN` is the subtask number to be implemented one by one.
+Find the required subtask file in `docs/roadmap/{NNNN}-{milestone-slug}/{TT.t}-{task-slug}/{NN}-{subtask}.md`, where `NN` is the subtask number to be implemented one by one.
 
-Start implementation from `0001-{slug}.md` subtask.
+Start implementation from the first `{NN}-{subtask}.md` file that is not yet complete.
 
 ### Step 2 - load the implementation brief
 
@@ -70,7 +70,7 @@ If any verification fails:
 ### Step 5 - spec-compliance gate
 
 After the verification gate is green, run `/verify-subtask {subtask-path}` where
-`{subtask-path}` is the path identified in Step 1 (relative to `docs/roadmap/subtasks/`,
+`{subtask-path}` is the path identified in Step 1 (relative to `docs/roadmap/`,
 without the `.md` extension).
 
 - **PASS** → continue to Step 6.
@@ -93,12 +93,12 @@ After the spec-compliance gate passes (or PARTIAL is noted), invoke the followin
 
 ### Step 7 - update the status table
 
-After all subtasks are implemented, edit `docs/roadmap/progress/implementation_status.md`:
+After all subtasks are implemented, edit `docs/roadmap/{NNNN}-{milestone-slug}/status.md`:
 
-- Change the phase row's Status cell to `✅ Complete`.
-- Update the Tests cell with the new test file names introduced this phase.
-- Append a one-paragraph summary under the relevant `## Phase N` heading (or
-  create it if this phase had no summary yet) describing what was delivered,
+- Change the task row's Status cell to `✅ Complete`.
+- Update the Tests cell with the new test file names introduced this task.
+- Append a one-paragraph summary under the relevant `## Task N` heading (or
+  create it if this task had no summary yet) describing what was delivered,
   key implementation decisions, and test coverage numbers.
 
 ### Step 8 - reschedule
@@ -106,13 +106,13 @@ After all subtasks are implemented, edit `docs/roadmap/progress/implementation_s
 Call ScheduleWakeup with:
 - `prompt`: the literal text `/loop task-name`
 - `delaySeconds`: `270`  ← keeps the cache window warm (< 300 s TTL)
-- `reason`: "advancing to next pending phase after completing Phase N: <Name>"
+- `reason`: "advancing to next pending subtask after completing Task N: <Name>"
 
 ---
 
-## Phase-specific notes
+## Task-specific notes
 
-### Phase 8 - REST API Layer
+### Task 8 - REST API Layer
 
 Run `security-auditor` first on the auth middleware spec (§9 auth section).
 The `python-expert` reads the threat model before implementing `api/middleware/auth.py`.
@@ -122,7 +122,7 @@ from Phase 7 must be wired to the real `uvicorn.run` call).
 Integration tests (`test_api.py`) require `httpx` - add it to the `[test]`
 extras group in `pyproject.toml` if not already present; trigger `/dep-audit`.
 
-### Phase 9 - Secure Code Sandbox
+### Task 9 - Secure Code Sandbox
 
 Run `security-auditor` first on the full `PRODUCTION_DESIGN_SPEC.md §10`.
 Key invariant from the spec: **path traversal must be blocked at the temp-dir
@@ -133,7 +133,7 @@ The Sandbox Dockerfiles (`sandbox/Dockerfile.cpp`, `sandbox/Dockerfile.python`)
 are implementation artifacts, not product code - the `python-expert` writes them, but they
 do not need mypy/ruff passes.
 
-### Phase 10 - Testing & Hardening
+### Task 10 - Testing & Hardening
 
 `GroundTruthEngineer` needs real fixture dumps from `prototype/tests/`. Delegate
 to `python-expert` with the explicit instruction to **not** invoke real AI backends --

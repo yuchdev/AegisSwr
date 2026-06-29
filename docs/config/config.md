@@ -323,7 +323,7 @@ for that provider, including a per-model override.
     "timeout_seconds": 300.0,
     "max_retries": 4,
     "models": {
-      "gpt-4o": {
+      "gpt-5.4": {
         "temperature": 0.1,
         "max_tokens": 8192
       }

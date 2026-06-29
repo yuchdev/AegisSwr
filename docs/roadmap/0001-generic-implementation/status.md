@@ -1,31 +1,31 @@
 # Aegis SWR - Implementation Status
 
-Tracks progress against [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md). Updated as each phase lands.
+Tracks progress against [plan.md](/docs/roadmap/0001-generic-implementation/plan.md). Updated as each task lands.
 
 ## Current status
 
-| Phase | Name                       | Status                                            | Tests                                                          |
-|-------|----------------------------|---------------------------------------------------|----------------------------------------------------------------|
-| 1     | Foundation & Package Setup | ✅ Complete                                        | `test_schemas.py`, `test_settings.py`, `test_interfaces.py`    |
-| 2     | Data Adapter Layer         | ✅ Complete                                        | `test_data_adapter.py`                                         |
-| 3     | AI Backends                | ✅ Complete                                        | `test_ai_backends.py`, `integration/test_ai_pipeline.py`       |
-| 3.1   | Classic APIs               | ✅ Complete                                        | `test_ai_backends.py`, `integration/test_ai_pipeline.py`       |
+| Task  | Name                       | Status                                            | Tests                                                                                                                  |
+|-------|----------------------------|---------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| 1     | Foundation & Package Setup | ✅ Complete                                        | `test_schemas.py`, `test_settings.py`, `test_interfaces.py`                                                            |
+| 2     | Data Adapter Layer         | ✅ Complete                                        | `test_data_adapter.py`                                                                                                 |
+| 3     | AI Backends                | ✅ Complete                                        | `test_ai_backends.py`, `integration/test_ai_pipeline.py`                                                               |
+| 3.1   | Classic APIs               | ✅ Complete                                        | `test_ai_backends.py`, `integration/test_ai_pipeline.py`                                                               |
 | 3.2   | AWS Bedrock                | ✅ Complete                                        | `test_ai_backends.py`, `test_settings.py`, `test_cli.py`, `test_logging.py`, `integration/test_bedrock_integration.py` |
-| 4     | Debug Backends             | 🔶 In progress (only cdb complete)                | `test_debug_backends.py`, `integration/test_debug_pipeline.py` |
-| 5     | Multi-Agent System         | ✅ Complete                                        | `test_consensus.py`, `test_agents.py`, `test_orchestrator.py`  |
-| 6     | Storage Backends           | ✅ Complete (Postgres stub)                        | `test_storage_backends.py`                                     |
-| 6.1   | Code Backend               | 🔶 Partial (git + fs done; PDB spec'd, not built) | `test_code_backends.py` (git/fs)                               |
-| 6.2   | Log Backend                | 🔶 Partial (file done; fluent stub; ELK deferred) | `test_log_backends.py`                                         |
-| 7     | CLI & Local Mode           | ✅ Complete                                        | `test_cli.py`, `integration/test_e2e_cli.py`                   |
-| 8     | REST API Layer             | ⬜ Not started                                     | -                                                              |
-| 9     | Secure Code Sandbox        | ⬜ Not started                                     | -                                                              |
-| 10    | Testing & Hardening        | ⬜ Not started                                     | -                                                              |
+| 4     | Debug Backends             | 🔶 In progress (only cdb complete)                | `test_debug_backends.py`, `integration/test_debug_pipeline.py`                                                         |
+| 5     | Multi-Agent System         | ✅ Complete                                        | `test_consensus.py`, `test_agents.py`, `test_orchestrator.py`                                                          |
+| 6     | Storage Backends           | ✅ Complete (Postgres stub)                        | `test_storage_backends.py`                                                                                             |
+| 6.1   | Code Backend               | 🔶 Partial (git + fs done; PDB spec'd, not built) | `test_code_backends.py` (git/fs)                                                                                       |
+| 6.2   | Log Backend                | 🔶 Partial (file done; fluent stub; ELK deferred) | `test_log_backends.py`                                                                                                 |
+| 7     | CLI & Local Mode           | ✅ Complete                                        | `test_cli.py`, `integration/test_e2e_cli.py`                                                                           |
+| 8     | REST API Layer             | ⬜ Not started                                     | -                                                                                                                      |
+| 9     | Secure Code Sandbox        | ⬜ Not started                                     | -                                                                                                                      |
+| 10    | Testing & Hardening        | ⬜ Not started                                     | -                                                                                                                      |
 
-**Current gate status:** 478 tests passing, 3 skipped (unit and integration). Phases 6.1 (git + filesystem adapters) and 6.2 (file and fluent adapters) are partially shipped; PDB adapter described in specs, not yet implemented. The **log-subsystem re-engineering** (Part III of the plan) is complete - see [below](#log-subsystem-re-engineering-).
+**Current gate status:** 478 tests passing, 3 skipped (unit and integration). Tasks 6.1 (git + filesystem adapters) and 6.2 (file and fluent adapters) are partially shipped; PDB adapter described in specs, not yet implemented. The **log-subsystem re-engineering** (Part III of the plan) is complete - see [below](#log-subsystem-re-engineering-).
 
-**Bedrock milestone (3.2) closed (2026-06-29):** Subtasks 01-10 of [`0001-03.2-aws-bedrock-backend`](/docs/roadmap/subtasks/0001-03.2-aws-bedrock-backend/README.md) satisfied and green; subtask 11 (prompt caching via `cachePoint`) is an explicitly deferred enhancement. Closed gaps: created `.env.example`, corrected the `config.example.json` Bedrock `thinking_budget_tokens` default, added the 15 spec-named unit/CLI/integration tests, and applied two `security-auditor` MEDIUM logging fixes (clamp `botocore`/`boto3`/`urllib3` stdlib loggers so request bodies/bearer headers are never emitted; extend the redaction regex to the `Authorization: Bearer <token>` form). Threat model: [`docs/security/2026-06-29-aws-bedrock-backend.md`](/docs/security/2026-06-29-aws-bedrock-backend.md) (verdict PASS_WITH_FOLLOWUP). **Live validation:** connected to Amazon Bedrock (`au.anthropic.claude-sonnet-4-6`, region `ap-southeast-2`) via the real `AwsBedrockBackend` for a NULL-pointer-write test incident and received a correct RCA - authenticating with `AWS_BEARER_TOKEN_BEDROCK` only (`AWS_ENDPOINT_NAME_BEDROCK` and `AWS_BEDROCK_URL` are not consumed by the code).
+**Bedrock task (3.2) closed (2026-06-29):** Subtasks 01-10 of [`03.2-aws-bedrock-backend`](/docs/roadmap/0001-generic-implementation/03.2-aws-bedrock-backend/README.md) satisfied and green; subtask 11 (prompt caching via `cachePoint`) is an explicitly deferred enhancement. Closed gaps: created `.env.example`, corrected the `config.example.json` Bedrock `thinking_budget_tokens` default, added the 15 spec-named unit/CLI/integration tests, and applied two `security-auditor` MEDIUM logging fixes (clamp `botocore`/`boto3`/`urllib3` stdlib loggers so request bodies/bearer headers are never emitted; extend the redaction regex to the `Authorization: Bearer <token>` form). Threat model: [`docs/security/2026-06-29-aws-bedrock-backend.md`](/docs/security/2026-06-29-aws-bedrock-backend.md) (verdict PASS_WITH_FOLLOWUP). **Live validation:** connected to Amazon Bedrock (`au.anthropic.claude-sonnet-4-6`, region `ap-southeast-2`) via the real `AwsBedrockBackend` for a NULL-pointer-write test incident and received a correct RCA - authenticating with `AWS_BEARER_TOKEN_BEDROCK` only (`AWS_ENDPOINT_NAME_BEDROCK` and `AWS_BEDROCK_URL` are not consumed by the code).
 
-**End-to-end validation (real dump, 2026-05-31):** reproduced the prototype's resolution of `CrashUi.exe.1324.dmp` (deterministic NULL-pointer write in `CrashUi!Crash_Window::on_access_violation_click`) through the full Aegis pipeline - `CdbBackend` → `DataAdapter` → 4-agent MAS → `FilesystemStore`, with `--ai openai` (gpt-5.4). Consensus 0.97 (HIGH), converged in 1 round, and the panel additionally emitted a probabilistic-fix diff. Backend engine fixes made during this run (all in [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md) C.1 AIAPIBackend / C.2 DebugBackend):
+**End-to-end validation (real dump, 2026-05-31):** reproduced the prototype's resolution of `CrashUi.exe.1324.dmp` (deterministic NULL-pointer write in `CrashUi!Crash_Window::on_access_violation_click`) through the full Aegis pipeline - `CdbBackend` → `DataAdapter` → 4-agent MAS → `FilesystemStore`, with `--ai openai` (gpt-5.4). Consensus 0.97 (HIGH), converged in 1 round, and the panel additionally emitted a probabilistic-fix diff. Backend engine fixes made during this run (all in [plan.md](/docs/roadmap/0001-generic-implementation/plan.md) C.1 AIAPIBackend / C.2 DebugBackend):
 - `AISettings.resolved_model` - `--ai openai` now uses an OpenAI model instead of the Anthropic default.
 - `OpenAIBackend` reasoning-model contract - `max_completion_tokens` (16k floor), no `temperature`; client `timeout=300s` + `max_retries=4`.
 - `CdbBackend._extract_exception_code` - multi-key fault-code extraction (`EXCEPTION_CODE` / `ERROR_CODE` / `EXCEPTION_CODE_STR` / `ExceptionCode`); fixes a prototype-ported defect that mapped NULL_POINTER_WRITE dumps to `FaultClass.UNKNOWN`.
@@ -36,7 +36,7 @@ Tracks progress against [0001-generic_implementation_plan.md](/docs/roadmap/task
 
 ## Log subsystem re-engineering ✅
 
-Cross-cutting refactor (plan [Phase 6.2](/docs/roadmap/tasks/0001-generic_implementation_plan.md#phase-62-log-backend)) that split one overloaded `--log-severity` knob into three independent channels and regrouped config.json into four nested analyze sections.
+Cross-cutting refactor (plan [Task 6.2](/docs/roadmap/0001-generic-implementation/plan.md#task-62-log-backend)) that split one overloaded `--log-severity` knob into three independent channels and regrouped config.json into four nested analyze sections.
 
 - **Channels:** **application logging** (`logging.*` - severity + sink + dir), **evidence** (`evidence.*` - war-room left pane, INFO/TRACE), **investigation process** (`process.*` - war-room right pane, INFO/TRACE). Log **ingestion** moved to `ingest.log_source.*` (overrides `backends.log`).
 - **CLI:** added `--log-sink`, `--evidence-severity`, `--process-severity`, `--evidence-persist`; `--log-severity` is now application-only; `--log-provider`/`--log-service` configure `ingest.log_source`. Out-of-range stream levels / unknown sink exit `2`.
@@ -48,7 +48,7 @@ Cross-cutting refactor (plan [Phase 6.2](/docs/roadmap/tasks/0001-generic_implem
 
 ---
 
-## Phase 1 - Foundation & Package Setup ✅
+## Task 1 - Foundation & Package Setup ✅
 
 Delivered:
 - `pyproject.toml` (Poetry, `aegis-swr`, `src/aegis_swr/` root, `aegis` CLI entry point, ruff/mypy/pytest config)
@@ -61,7 +61,7 @@ Delivered:
 - `config/settings.py` + `config.yaml` - Pydantic Settings v2 with YAML source + `AEGIS__*` env overrides
 - `.env.example`, `.github/workflows/ci.yml`, `tests/conftest.py`
 
-## Phase 2 - Data Adapter Layer ✅
+## Task 2 - Data Adapter Layer ✅
 
 Delivered:
 - `core/tokens.py` - `count_tokens` / `truncate_to_tokens` with tiktoken + offline fallback
@@ -76,13 +76,13 @@ Delivered:
   8. Code-history query (optional `CodeBackend`)
   9. `IncidentBrief` assembly
 - `core/schemas.py` - added `IncidentBrief` model
-- Refinements recorded in [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md) 5. Data Adapter Layer
+- Refinements recorded in [plan.md](/docs/roadmap/0001-generic-implementation/plan.md) Task 2: Data Adapter Layer
 
 Test coverage (29 tests): hashing, format detection, every noise-filter rule, ≥60 % token reduction on the canonical CDB fixture, temporal windowing (inner/outer/out-of-window), Drain3 heartbeat dedup, PII scrubbing (emails/AWS keys/IPs/DB strings + stable tokens + map recovery), assumption cap, history-injection rule, and full-pipeline integration (crash-dump, low-symbol-coverage, log-only modes).
 
 Fixtures: `sample_cdb_output.txt`, `sample_logs_with_pii.txt`, `sample_logs_timestamped.txt`.
 
-## Phase 3 - AI Backends ✅
+## Task 3 - AI Backends ✅
 
 Delivered:
 - `backends/ai/_base.py` - `_BaseAIBackend`: structured-output validation, one-shot correction retry, `last_usage` token accounting
@@ -90,11 +90,11 @@ Delivered:
 - `backends/ai/openai_provider.py` - `OpenAIBackend`: `json_schema` strict structured output (`_to_openai_strict_schema`), `stream_options.include_usage` streaming
 - `backends/ai/__init__.py` - `create_ai_backend(settings)` factory
 - ABC change: `AIAPIBackend.stream` is now a plain `def` returning `AsyncGenerator` (see spec 6.1 AIAPIBackend)
-- As-built decisions recorded in [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md) 6.1 AIAPIBackend
+- As-built decisions recorded in [plan.md](/docs/roadmap/0001-generic-implementation/plan.md) Task 3.1 Classic Provider APIs
 
 Mock/unit coverage (`test_ai_backends.py`, 20 tests): structured-output happy path, retry-then-valid, raise-after-retry, unstructured text, streaming, cache-control + tool assertion, no-tool-block error, OpenAI strict-schema adapter, malformed-JSON handling, and the provider factory (anthropic/openai/unknown). All SDK clients patched - no network.
 
-## Phase 5 - Multi-Agent System Engine ✅
+## Task 5 - Multi-Agent System Engine ✅
 
 Delivered:
 - `core/consensus.py` - `ConsensusEvaluator`: `calculate(agent_scores, fault_class)` (per-FaultClass weight matrix), `is_converged(score, threshold, same_hypothesis)`, `is_deadlocked(score, round_num, max_rounds, hitl_threshold)`
@@ -112,7 +112,7 @@ Unit coverage (35 tests across `test_consensus.py`, `test_agents.py`, `test_orch
 
 Integration coverage (`integration/test_ai_pipeline.py`, 5 tests): `IncidentSource → DataAdapter → IncidentBrief → AI backend → validated structured output`, driven both by the in-process `MockAIBackend` and the real `AnthropicBackend` over a mocked SDK; asserts adapter-extracted fields reach the prompt, PII stays scrubbed, token usage is tracked, and the low-symbol-coverage warning propagates. These integration tests retroactively cover the Phase 1 + Phase 2 contracts as well.
 
-## Phase 4 - Debug Backends ✅
+## Task 4 - Debug Backends ✅
 
 Delivered:
 - `backends/debug/_base.py` - `_BaseDebugBackend`: `extract()` template (validate → build argv → RAII subprocess w/ timeout → parse), `_symbol_score`, `normalize_address`
@@ -122,7 +122,7 @@ Delivered:
 - `backends/debug/_symbol_path.py` - `resolve_symbol_path` (config → `AEGIS_SYMBOL_CACHE` → platform default)
 - `backends/debug/__init__.py` - `create_debug_backend(settings, platform=None)` factory
 - `core/exceptions.py` - added `DebugExtractionError`
-- As-built decisions recorded in [0001-generic_implementation_plan.md](/docs/roadmap/tasks/0001-generic_implementation_plan.md) 6.2 DebugBackend
+- As-built decisions recorded in [plan.md](/docs/roadmap/0001-generic-implementation/plan.md) Task 4: Debug Backends
 
 Unit coverage (`test_debug_backends.py`, 22 tests): per-backend fault-class mapping, structured field + stack-frame parsing, `symbol_resolution_score`, noise-filter application, CDB timestamp + source-line parsing, command-sequence construction, validation errors (no dump / missing file), subprocess errors (missing binary → `PlatformNotSupportedError`, timeout → `DebugExtractionError`), the platform factory (win32/linux/darwin/unsupported), and symbol-path resolution. All `subprocess.run` calls mocked - no debugger binary required.
 
@@ -137,7 +137,7 @@ Additional Phase 4 deliverables (WinDbg JS backend):
 - `config/settings.py` + `config.yaml` - `DebugSettings` extended with `engine`, `callback_timeout_seconds`, `max_faulting_frames`, `max_other_thread_frames`
 - `tests/unit/fixtures/sample_windbg_js_payload.json` - realistic DDM JSON fixture (5 faulting frames, 2 other threads)
 
-## Phase 7 - CLI & Local Mode ✅
+## Task 7 - CLI & Local Mode ✅
 
 > `<config-dir>` = `~/.aegis-swr/`
 

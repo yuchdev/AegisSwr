@@ -57,7 +57,7 @@ build-backend = "poetry.core.masonry.api"
 # Selects which custom X-rules tests/flake8_lint/test_plugin_direct.py exercises.
 #   include: when non-empty, only these rule codes are tested (whitelist).
 #   exclude: rule codes to skip (blacklist); applied after include, so it wins.
-# Leaving both empty (the default) tests every rule X001-X011.
+# Leaving both empty (the default) tests every rule.
 include = []
 exclude = []
 

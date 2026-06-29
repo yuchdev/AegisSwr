@@ -1,9 +1,9 @@
 # Subtask set 0001-08.0 - REST API Layer
 
-Atomic decomposition of milestone **8 REST API Layer** from
-[`docs/roadmap/tasks/0001-generic_implementation_plan.md`](../../tasks/0001-generic_implementation_plan.md).
+Atomic decomposition of task **8 REST API Layer** from
+[`docs/roadmap/0001-generic-implementation/plan.md`](/docs/roadmap/0001-generic-implementation/plan.md).
 Progress is tracked in
-[`docs/roadmap/progress/implementation_status.md`](../../progress/0001-generic_implementation_status.md).
+[`docs/roadmap/0001-generic-implementation/status.md`](/docs/roadmap/0001-generic-implementation/status.md).
 
 ## Goal
 

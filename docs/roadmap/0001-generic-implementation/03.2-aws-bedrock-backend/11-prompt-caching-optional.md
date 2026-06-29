@@ -61,7 +61,6 @@ adapted to Converse.
 
 - [ ] `cachePoint` is inserted only when opt-in **and** the model supports it.
 - [ ] Cache token counters are surfaced in usage, defaulting to 0.
-- [ ] Unsupported/disabled paths send no `cachePoint` and raise no
-      `ValidationException`.
+- [ ] Unsupported/disabled paths send no `cachePoint` and raise no `ValidationException`.
 - [ ] All four unit tests pass with the client stubbed.
 - [ ] Explicitly **excluded** from the milestone's definition of done.

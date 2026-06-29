@@ -19,9 +19,9 @@ CLI, and logging architecture — lives in
 
 # Part One - Phase Plan
 
-## Phase Overview
+## Tasks
 
-| Phase | Name                       | Duration   | Output                                                           |
+| Task  | Name                       | Duration   | Output                                                           |
 |-------|----------------------------|------------|------------------------------------------------------------------|
 | 1     | Foundation & Package Setup | Week 1–2   | Repo skeleton, schemas, ABCs, config, CI                         |
 | 2     | Data Adapter Layer         | Week 3–4   | Preprocessing pipeline; token-dense incident brief               |
@@ -40,7 +40,7 @@ CLI, and logging architecture — lives in
 
 ---
 
-## Phase 1: Foundation & Package Setup
+## Task 1: Foundation & Package Setup
 
 **Goal:** Establish a compilable, importable, fully typed Python package. No business logic yet - only structure, contracts, and tooling.
 
@@ -67,7 +67,7 @@ CLI, and logging architecture — lives in
 
 ---
 
-## Phase 2: Data Adapter Layer
+## Task 2: Data Adapter Layer
 
 **Goal:** Implement the full nine-stage preprocessing pipeline that converts raw `IncidentSource` into a structured `IncidentBrief`.
 
@@ -105,7 +105,7 @@ CLI, and logging architecture — lives in
 
 ---
 
-## Phase 3: AI Backends
+## Task 3: AI Backends
 
 **Goal:** Implement production-quality LLM provider backends with structured output, prompt caching, streaming, and retry logic.
 
@@ -113,7 +113,7 @@ This phase ships in two milestones: **3.1** delivers the classic provider HTTP A
 (Anthropic + OpenAI); **3.2** adds an AWS Bedrock backend that reaches multiple
 foundation models through a single managed, IAM-governed gateway.
 
-### Milestone 3.1 - Classic Provider APIs (Anthropic + OpenAI)
+### Task 3.1 - Classic Provider APIs (Anthropic + OpenAI)
 
 #### Deliverables
 
@@ -143,7 +143,7 @@ foundation models through a single managed, IAM-governed gateway.
 - `AIOutputValidationError` is raised (not silently ignored) when mock LLM returns malformed JSON.
 - `pytest tests/unit/test_ai_backends.py` passes with no network calls.
 
-### Milestone 3.2 - AWS Bedrock Backend
+### Task 3.2 - AWS Bedrock Backend
 
 **Goal:** Add a third `AIAPIBackend` that reaches foundation models through **AWS
 Bedrock** rather than a vendor's direct HTTP API. Bedrock is attractive for the Aegis
@@ -218,7 +218,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Phase 4: Debug Backends
+## Task 4: Debug Backends
 
 **Goal:** Implement all platform debug workers and the platform-adaptive FaultClass mapping - interface, WinDbg-JS design, CDB, LLDB, and GDB. The WinDbg-JS design is a **callback bridge** that runs a local HTTP server in a daemon thread, binds to an ephemeral port, and receives the DDM JSON payload from the WinDbg JS script. This avoids any shared module-level state and allows multiple concurrent bridges to operate independently.
 
@@ -280,7 +280,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Phase 5: Multi-Agent System Engine
+## Task 5: Multi-Agent System Engine
 
 **Goal:** Implement the complete LangGraph state graph with four agents, weighted consensus, and HITL trigger. (Full MAS spec: `docs/specs/implementation_spec.md` §7.)
 
@@ -310,7 +310,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Phase 6: Storage Backends
+## Task 6: Storage Backends
 
 **Goal:** Implement filesystem, SQLite, and S3 storage backends plus a PostgreSQL stub, all behind the same `RelationalStore`/`ObjectStore` interface. (Interface in Part II C.3.)
 
@@ -333,7 +333,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Phase 6.1: Code Backend
+## Task 6.1: Code Backend
 
 **Goal:** Implement the optional `CodeBackend` family (Data Adapter Stage 8). Three adapters behind one interface; PDB gives highest-fidelity attribution on Windows.
 
@@ -358,7 +358,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Phase 6.2: Log Backend
+## Task 6.2: Log Backend
 
 **Goal:** Implement the optional `LogBackend` family queried in Data Adapter Stage 4 - a real local-file adapter plus a Fluent stub; ELK deferred.
 
@@ -380,7 +380,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Phase 7: CLI & Local Mode
+## Task 7: CLI & Local Mode
 
 **Goal:** Implement the Typer CLI supporting local (in-process) analysis. Options come from explicit CLI flags OR a JSON config file with the same key names; CLI flag > JSON config > hardcoded default.
 
@@ -408,7 +408,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Phase 8: REST API Layer
+## Task 8: REST API Layer
 
 **Goal:** Implement the FastAPI application with all endpoints, SSE streaming, auth middleware, and background task management. (Full API spec: `docs/specs/implementation_spec.md` §9.)
 
@@ -432,7 +432,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Phase 9: Secure Code Sandbox
+## Task 9: Secure Code Sandbox
 
 **Goal:** Implement the Docker-based sandbox executor that compiles and validates AI-generated patches. (Full sandbox spec: `docs/specs/implementation_spec.md` §10.)
 
@@ -453,7 +453,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Phase 10: Testing & Hardening
+## Task 10: Testing & Hardening
 
 **Goal:** Achieve 80%+ ground-truth accuracy, sub-12k-token average, passing CI, and production-ready security.
 
@@ -475,32 +475,32 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Dependency Graph (phases with hard prerequisites)
+## Dependency Graph (tasks with hard prerequisites)
 
 ```
-Phase 1 (Foundation)
+Task 1 (Foundation)
   │
-  ├──► Phase 2 (Data Adapter)          ← needs schemas
-  │       └──► Phase 5 (MAS)           ← needs adapter output schema
-  ├──► Phase 3 (AI Backends)
-  │       └──► Phase 5 (MAS)           ← needs AIAPIBackend
-  ├──► Phase 4 (Debug Backends)
-  │       └──► Phase 2 (Data Adapter)  ← adapter calls debug backend
-  ├──► Phase 6 (Storage)
-  │       └──► Phase 5 (MAS)           ← orchestrator calls storage
-  ├──► Phase 6.1 (Code Backend)        ← optional; Stage 8 calls it
-  │       └──► Phase 7 (CLI)           ← --code-provider / --repo wire it in
-  ├──► Phase 6.2 (Log Backend)         ← optional; Stage 4 calls it
-  │       └──► Phase 7 (CLI)           ← log ingestion wired in
-  Phase 5 (MAS Engine)
-  ├──► Phase 7 (CLI)                   ← CLI calls orchestrator; first E2E gate
-  │       └──► Phase 8 (API)           ← API wraps orchestrator
-  └──► Phase 9 (Sandbox)               ← Code Analyst calls sandbox
-  Phases 7, 8, 9 ──► Phase 10 (Testing & Hardening)
+  ├──► Task 2 (Data Adapter)          ← needs schemas
+  │       └──► Task 5 (MAS)           ← needs adapter output schema
+  ├──► Task 3 (AI Backends)
+  │       └──► Task 5 (MAS)           ← needs AIAPIBackend
+  ├──► Task 4 (Debug Backends)
+  │       └──► Task 2 (Data Adapter)  ← adapter calls debug backend
+  ├──► Task 6 (Storage)
+  │       └──► Task 5 (MAS)           ← orchestrator calls storage
+  ├──► Task 6.1 (Code Backend)        ← optional; Stage 8 calls it
+  │       └──► Task 7 (CLI)           ← --code-provider / --repo wire it in
+  ├──► Task 6.2 (Log Backend)         ← optional; Stage 4 calls it
+  │       └──► Task 7 (CLI)           ← log ingestion wired in
+  Task 5 (MAS Engine)
+  ├──► Task 7 (CLI)                   ← CLI calls orchestrator; first E2E gate
+  │       └──► Task 8 (API)           ← API wraps orchestrator
+  └──► Task 9 (Sandbox)               ← Code Analyst calls sandbox
+  Tasks 7, 8, 9 ──► Task 10 (Testing & Hardening)
 ```
 
-**Minimum viable product** (end-to-end pipeline, no API): Phases 1 → 4 → 2 → 3 → 5 → 6 → 7. Phases 6.1 / 6.2 are optional enrichers.
-**Full production deployment:** all 10 phases.
+**Minimum viable product** (end-to-end pipeline, no API): Tasks 1 → 4 → 2 → 3 → 5 → 6 → 7. Tasks 6.1 / 6.2 are optional enrichers.
+**Full production deployment:** all 10 tasks.
 
 ---
 

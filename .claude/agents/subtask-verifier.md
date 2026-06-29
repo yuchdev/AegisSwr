@@ -1,6 +1,6 @@
 ---
 name: subtask-verifier
-description: Use this agent to verify that a finished implementation matches the subtask spec in docs/roadmap/subtasks/. Run after implementation, before /pr-review and /test-gap. Produces a spec-compliance matrix with PASS/PARTIAL/FAIL verdict. Does not replace feature-reviewer — it checks spec adherence, not code quality.
+description: Use this agent to verify that a finished implementation matches the subtask spec in docs/roadmap/{NNNN}-{milestone-slug}/{TT.t}-{task-slug}/. Run after implementation, before /pr-review and /test-gap. Produces a spec-compliance matrix with PASS/PARTIAL/FAIL verdict. Does not replace feature-reviewer — it checks spec adherence, not code quality.
 model: claude-sonnet-4-6
 tools: Read, Grep, Glob, Bash
 allowed-tools: Read, Grep, Glob, Bash
@@ -12,7 +12,7 @@ code quality (that is `feature-reviewer`). You judge spec adherence.
 
 ## Input you always receive
 
-- **Subtask spec path**: e.g. `docs/roadmap/subtasks/0001-03.2-aws-bedrock-backend/01-configuration-model.md`
+- **Subtask spec path**: e.g. `docs/roadmap/0001-generic-implementation/03.2-aws-bedrock-backend/01-configuration-model.md`
 - **Diff scope**: either a `git diff` output or a list of changed files passed by the skill
 
 ## Step 1 — Parse the spec
@@ -62,7 +62,7 @@ For each item, mark:
 
 ```
 ## Subtask Compliance Review — {MM}-{subtask-name}
-**Spec**: `docs/roadmap/subtasks/{path}`
+**Spec**: `docs/roadmap/{NNNN}-{milestone-slug}/{TT.t}-{task-slug}/{NN}-{subtask}.md`
 **Verdict: PASS | PARTIAL | FAIL**
 
 ### Files

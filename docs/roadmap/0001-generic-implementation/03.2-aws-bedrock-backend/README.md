@@ -1,10 +1,10 @@
 # Subtask set 0001-03.2 - AWS Bedrock Backend
 
-Atomic decomposition of milestone **3.2 AWS Bedrock Backend** from
-[`docs/roadmap/tasks/0001-generic_implementation_plan.md`](../../tasks/0001-generic_implementation_plan.md#milestone-32---aws-bedrock-backend).
+Atomic decomposition of task **3.2 AWS Bedrock Backend** from
+[`docs/roadmap/0001-generic-implementation/plan.md`](/docs/roadmap/0001-generic-implementation/plan.md#task-32---aws-bedrock-backend).
 
 Progress is tracked in
-[`docs/roadmap/progress/implementation_status.md`](../../progress/0001-generic_implementation_status.md).
+[`docs/roadmap/0001-generic-implementation/status.md`](/docs/roadmap/0001-generic-implementation/status.md).
 
 > **Status (2026-06-29): ✅ Milestone complete.** Subtasks 01-10 satisfied and
 > green (`poetry run pytest tests/unit/ tests/integration/ -q` → 478 passed, 3

@@ -1,6 +1,6 @@
 # 6.2 Log Backend – Fluentd Stack
 
-**Parent task:** Phase 6.2 – Log Backend ([0001-generic_implementation_plan.md](../../tasks/0001-generic_implementation_plan.md#phase-62-log-backend))
+**Parent task:** Task 6.2 – Log Backend ([plan.md](/docs/roadmap/0001-generic-implementation/plan.md#task-62-log-backend))
 **Status:** 🔶 Partial — `FileLogAdapter` done, `FluentAdapter` is a stub
 
 ## Scope
