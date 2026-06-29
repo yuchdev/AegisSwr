@@ -1462,7 +1462,7 @@ def my_method(
                      list[MyLongType2]],
     second_var: list[dict[
         MyLongType3, MyLongType4]],
-) -> None:
+):
   ...
 ```
 
@@ -1475,7 +1475,7 @@ Yes:
 def my_function(
     long_variable_name:
         long_module_name.LongTypeName,
-) -> None:
+):
   ...
 ```
 
@@ -1484,7 +1484,7 @@ No:
 def my_function(
     long_variable_name: long_module_name.
         LongTypeName,
-) -> None:
+):
   ...
 ```
 
@@ -1501,7 +1501,7 @@ Yes:
 from __future__ import annotations
 
 class MyClass:
-  def __init__(self, stack: Sequence[MyClass], item: OtherClass) -> None:
+  def __init__(self, stack: Sequence[MyClass], item: OtherClass):
 
 class OtherClass:
   ...
@@ -1510,7 +1510,7 @@ class OtherClass:
 ``` highlight
 Yes:
 class MyClass:
-  def __init__(self, stack: Sequence['MyClass'], item: 'OtherClass') -> None:
+  def __init__(self, stack: Sequence['MyClass'], item: 'OtherClass'):
 
 class OtherClass:
   ...
@@ -1759,8 +1759,8 @@ prefer built-in types like `tuple` over the parametric type aliases from the
 ``` highlight
 from typing import List, Tuple
 
-def transform_coordinates(original: List[Tuple[float, float]]) ->
-    List[Tuple[float, float]]:
+def transform_coordinates(original: list[tuple[float, float]]) ->
+    list[tuple[float, float]]:
   ...
 ```
 
@@ -1818,7 +1818,7 @@ from typing import Any
 some_mod = Any  # some_mod.py imports this module.
 ...
 
-def my_method(self, var: "some_mod.SomeType") -> None:
+def my_method(self, var: "some_mod.SomeType"):
   ...
 ```
 

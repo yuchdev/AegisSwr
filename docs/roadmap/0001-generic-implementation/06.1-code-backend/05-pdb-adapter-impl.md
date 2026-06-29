@@ -43,7 +43,7 @@ class PdbCodeAdapter(CodeBackend):
 
     SUPPORTED_PLATFORMS: ClassVar[list[str]] = ["Windows"]
 
-    def __init__(self, settings: CodeBackendSettings) -> None:
+    def __init__(self, settings: CodeBackendSettings):
         if not _is_windows():
             raise CodeBackendError(
                 "PdbCodeAdapter is Windows-only. "
@@ -284,9 +284,9 @@ def _pdb_mtime(pdb_path: Path) -> datetime:
     """Return the PDB file's mtime as a UTC-aware datetime."""
     from datetime import timezone
     try:
-        return datetime.fromtimestamp(pdb_path.stat().st_mtime, tz=timezone.utc)
+        return datetime.fromtimestamp(pdb_path.stat().st_mtime, tz=UTC)
     except OSError:
-        return datetime.fromtimestamp(0, tz=timezone.utc)
+        return datetime.fromtimestamp(0, tz=UTC)
 ```
 
 Module-level function (not a method) so it can be mocked in tests.

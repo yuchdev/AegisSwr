@@ -43,7 +43,7 @@ class FluentAdapter(LogBackend):
         providing all connection and query parameters.
     """
 
-    def __init__(self, settings: LogBackendSettings) -> None:
+    def __init__(self, settings: LogBackendSettings):
         self._settings = settings
         _validate_fluent_settings(settings)  # raises ValueError if host/port missing
 
@@ -135,7 +135,7 @@ def _make_client(self):
 ### Pre-flight validation
 
 ```python
-def _validate_fluent_settings(settings: LogBackendSettings) -> None:
+def _validate_fluent_settings(settings: LogBackendSettings):
     if not settings.fluent_host:
         raise ValueError("FluentAdapter requires fluent_host to be set")
     if not settings.fluent_port:

@@ -58,9 +58,9 @@ absolute-from-repo-root Markdown link:
 | # | Milestone | Spec | Status |
 |---|-----------|------|--------|
 | 0001 | Generic implementation (backends, MAS, CLI, …) | [plan.md](/docs/roadmap/0001-generic-implementation/plan.md) | [status.md](/docs/roadmap/0001-generic-implementation/status.md) |
-| 0002 | Forensic agents (agentic execution brief) | [plan.md](/docs/roadmap/0002-forensic-agents/plan.md) | — |
+| 0002 | Forensic agents (specialist panel + synthesis tier) | [plan.md](/docs/roadmap/0002-forensic-agents/plan.md) | [status.md](/docs/roadmap/0002-forensic-agents/status.md) |
 | 0003 | LiteLLM model-router integration | [plan.md](/docs/roadmap/0003-litellm-routing/plan.md) | — |
 | 0004 | Documentation | [status.md](/docs/roadmap/0004-documentation/status.md) | — |
 
-> Only milestone 0001 is currently decomposed into the full task → subtask tree;
-> 0002–0004 hold a single planning/status document each until they are decomposed.
+> Milestones 0001 and 0002 are decomposed into the full task → subtask tree;
+> 0003–0004 hold a single planning/status document each until they are decomposed.

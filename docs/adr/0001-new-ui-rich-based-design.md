@@ -125,14 +125,14 @@ by `make_view(console, level=...)`, which the CLI derives from `--log-severity`
 from `EvidenceExtracted.brief` and the stashed `InvestigationStarted.source`).
 Indented continuation lines are rendered with a `│` gutter:
 
-| # | Category                                   | Source                                                     | Example line(s)                                                       |
-|---|--------------------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------|
-| - | Detailed fault metadata                    | `brief["dump_hash" / "exception_code_raw" / "exception_address"]` | `00:01  dump_hash      sha256:…`                                      |
-| - | Full stack (frames 3…N)                    | `brief["stack_frames"]`                                    | `00:01  stack[3]  mod!fn  (file.c:42)  @ 0x…`                          |
-| 1 | Textual core-dump analysis                 | `brief["raw_text_excerpt"]` (cdb `!analyze -v`)            | `00:01  core dump analysis (cdb !analyze -v):` then `│ <lines>` (cap 40) |
-| 2 | ±2-minute window per analyzed log file     | `source.log_paths` + `source.incident_timestamp`           | `00:01  log  app.log  (1.2 KB, modified …)` then `│ window 14:00:11 → 14:04:11  (±2m)` |
-| 3 | Screenshot name & properties               | `source.screenshot_paths` + `brief["ui_context"]`          | `00:01  screenshot  error.png  (48 B, modified …)` then `│ OCR: 3 elements, 19 chars` |
-| 4 | Network traffic capture metadata           | `source.network_capture_paths` (parsed by `_evidence_detail.pcap_metadata`) | `00:01  netcap  traffic.pcap  (…)` then `│ pcap v2.4  little-endian  microsecond ts` / `│ link-layer ETHERNET  snaplen 65535` / `│ packets 1` / `│ span …` |
+| # | Category                               | Source                                                                      | Example line(s)                                                                                                                                            |
+|---|----------------------------------------|-----------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| - | Detailed fault metadata                | `brief["dump_hash" / "exception_code_raw" / "exception_address"]`           | `00:01  dump_hash      sha256:…`                                                                                                                           |
+| - | Full stack (frames 3…N)                | `brief["stack_frames"]`                                                     | `00:01  stack[3]  mod!fn  (file.c:42)  @ 0x…`                                                                                                              |
+| 1 | Textual core-dump analysis             | `brief["raw_text_excerpt"]` (cdb `!analyze -v`)                             | `00:01  core dump analysis (cdb !analyze -v):` then `│ <lines>` (cap 40)                                                                                   |
+| 2 | ±2-minute window per analyzed log file | `source.log_paths` + `source.incident_timestamp`                            | `00:01  log  app.log  (1.2 KB, modified …)` then `│ window 14:00:11 → 14:04:11  (±2m)`                                                                     |
+| 3 | Screenshot name & properties           | `source.screenshot_paths` + `brief["ui_context"]`                           | `00:01  screenshot  error.png  (48 B, modified …)` then `│ OCR: 3 elements, 19 chars`                                                                      |
+| 4 | Network traffic capture metadata       | `source.network_capture_paths` (parsed by `_evidence_detail.pcap_metadata`) | `00:01  netcap  traffic.pcap  (…)` then `│ pcap v2.4  little-endian  microsecond ts` / `│ link-layer ETHERNET  snaplen 65535` / `│ packets 1` / `│ span …` |
 
 The ±2-minute display window is a fixed constant (`_evidence_detail.LOG_WINDOW`),
 independent of the Data Adapter's processing window. Network captures are a new
@@ -190,13 +190,13 @@ A spinner + status line and a stage progress bar (`_bar(ratio, …)`, `completed
 
 The agent-to-agent communication - *the process of the investigation, not evidence*. Backed by the same `_StreamLog` as the Evidence Stream, so it behaves identically: each message is appended to the full record the instant its event fires, revealed at `_REVEAL_INTERVAL`, and shown as a trailing window. New lines appear at the bottom; older ones scroll off the top once they exceed the pane height (tailed to `_process_inner_height()` with a one-row clipping margin). The complete transcript lives in the report files; the user never scrolls it back in the UI.
 
-| Category        | Trigger                       | Example line                            | Style                               |
-|-----------------|-------------------------------|-----------------------------------------|-------------------------------------|
-| Agent finding   | `AgentSpoke` (first message line) | `00:32  OS Kernel » UAF on freed heap`  | agent name `bold`, finding `italic` |
-| Agent reasoning | `AgentSpoke` (DEBUG only)     | `        │ supporting detail…`          | `grey62`, gutter - full message     |
-| Consensus       | `ConsensusEvaluated`          | `01:30  consensus R1  61%  MEDIUM`      | color from confidence level         |
-| Re-deliberation | new round began (internal)    | `01:30  threshold not reached - re-deliberating round 2` | `dim italic`     |
-| Completion      | `InvestigationCompleted` / `HumanInputRequired` | `02:10  ✔  investigation complete` | `bold green` / `bold red` |
+| Category        | Trigger                                         | Example line                                             | Style                               |
+|-----------------|-------------------------------------------------|----------------------------------------------------------|-------------------------------------|
+| Agent finding   | `AgentSpoke` (first message line)               | `00:32  OS Kernel » UAF on freed heap`                   | agent name `bold`, finding `italic` |
+| Agent reasoning | `AgentSpoke` (DEBUG only)                       | `        │ supporting detail…`                           | `grey62`, gutter - full message     |
+| Consensus       | `ConsensusEvaluated`                            | `01:30  consensus R1  61%  MEDIUM`                       | color from confidence level         |
+| Re-deliberation | new round began (internal)                      | `01:30  threshold not reached - re-deliberating round 2` | `dim italic`                        |
+| Completion      | `InvestigationCompleted` / `HumanInputRequired` | `02:10  ✔  investigation complete`                       | `bold green` / `bold red`           |
 
 At `DEBUG` the conversation is more verbose: each agent's full multi-line message is surfaced (gutter-prefixed continuation lines), not just the headline. `_consensus_history` state is still tracked for convergence bookkeeping (`✔`/`✗` on each round), but is no longer drawn as a separate block - convergence is conveyed inline by the re-deliberation and completion lines.
 
@@ -369,7 +369,7 @@ class WarRoomView:
     def _render_evidence(self) -> Panel: ...
     def _render_agents(self) -> Panel: ...
     def _render_process(self) -> Panel: ...
-    def _refresh(self) -> None: ...
+    def _refresh(self): ...
 ```
 
 ### 7.2 `AgentState` dataclass
@@ -436,17 +436,17 @@ def make_view(console: Console) -> RichView | WarRoomView:
 
 ## 8. Files Changed
 
-| File                               | Change                                                                                                                                                |
-|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `src/aegis_swr/views/rich_view.py` | Added `SPINNER_FRAMES`, `AGENT_SEQUENCE`, `AgentState`, `WarRoomView`, `make_view`, pure helpers (`_spinner_char`, `_fmt_elapsed`, `_fmt_stamp`, `_truncate`); rewrote `render_verdict` (now `model=`) around `_build_diagnosis`; kept `RichView`, `make_console`. Evidence Stream verbosity: `EvidenceLevel`, `_EvidenceLine`, `level` on `WarRoomView`/`make_view`, `_emit_debug_evidence`, level-aware `_render_evidence` |
-| `src/aegis_swr/views/_evidence_detail.py` | **New.** Pure, UI-free helpers for the DEBUG stream: `format_size`, `FileProps`/`file_properties`, `log_window`/`describe_log_window` (`LOG_WINDOW = ±2m`), `PcapInfo`/`pcap_metadata` |
-| `src/aegis_swr/views/__init__.py`  | Export `WarRoomView` and `make_view`                                                                                                                   |
-| `src/aegis_swr/core/schemas.py`    | Added `IncidentSource.network_capture_paths` (parallels `screenshot_paths`)                                                                            |
-| `src/aegis_swr/cli/_formatters.py` | `stream_and_display` gained `level=`, passes it to `make_view`; `rich_formatter` gained `model=` and forwards it to `render_verdict`                    |
-| `src/aegis_swr/cli/commands.py`    | `analyze` adds the `--pcap` flag → `network_capture_paths`, passes `level=--log-severity` to `stream_and_display` and `model=` to `rich_formatter`         |
-| `src/aegis_swr/cli/_config.py`     | `pcaps` added to `ANALYZE_CONFIG_KEYS` (config persistence)                                                                                            |
-| `tests/unit/test_views.py`         | Unit tests for the pure helpers, `make_view` selection, `WarRoomView` event/state lifecycle, render smoke tests, `_build_diagnosis`/`render_verdict`, and the INFO/DEBUG split + four DEBUG categories |
-| `tests/unit/test_evidence_detail.py` | **New.** Unit tests for `format_size`, `file_properties`, the ±2-minute window, and the pcap parser (little/big-endian, link types, pcapng, malformed) |
+| File                                      | Change                                                                                                                                                                                                                                                                                                                                                                                                                       |
+|-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `src/aegis_swr/views/rich_view.py`        | Added `SPINNER_FRAMES`, `AGENT_SEQUENCE`, `AgentState`, `WarRoomView`, `make_view`, pure helpers (`_spinner_char`, `_fmt_elapsed`, `_fmt_stamp`, `_truncate`); rewrote `render_verdict` (now `model=`) around `_build_diagnosis`; kept `RichView`, `make_console`. Evidence Stream verbosity: `EvidenceLevel`, `_EvidenceLine`, `level` on `WarRoomView`/`make_view`, `_emit_debug_evidence`, level-aware `_render_evidence` |
+| `src/aegis_swr/views/_evidence_detail.py` | **New.** Pure, UI-free helpers for the DEBUG stream: `format_size`, `FileProps`/`file_properties`, `log_window`/`describe_log_window` (`LOG_WINDOW = ±2m`), `PcapInfo`/`pcap_metadata`                                                                                                                                                                                                                                       |
+| `src/aegis_swr/views/__init__.py`         | Export `WarRoomView` and `make_view`                                                                                                                                                                                                                                                                                                                                                                                         |
+| `src/aegis_swr/core/schemas.py`           | Added `IncidentSource.network_capture_paths` (parallels `screenshot_paths`)                                                                                                                                                                                                                                                                                                                                                  |
+| `src/aegis_swr/cli/_formatters.py`        | `stream_and_display` gained `level=`, passes it to `make_view`; `rich_formatter` gained `model=` and forwards it to `render_verdict`                                                                                                                                                                                                                                                                                         |
+| `src/aegis_swr/cli/commands.py`           | `analyze` adds the `--pcap` flag → `network_capture_paths`, passes `level=--log-severity` to `stream_and_display` and `model=` to `rich_formatter`                                                                                                                                                                                                                                                                           |
+| `src/aegis_swr/cli/_config.py`            | `pcaps` added to `ANALYZE_CONFIG_KEYS` (config persistence)                                                                                                                                                                                                                                                                                                                                                                  |
+| `tests/unit/test_views.py`                | Unit tests for the pure helpers, `make_view` selection, `WarRoomView` event/state lifecycle, render smoke tests, `_build_diagnosis`/`render_verdict`, and the INFO/DEBUG split + four DEBUG categories                                                                                                                                                                                                                       |
+| `tests/unit/test_evidence_detail.py`      | **New.** Unit tests for `format_size`, `file_properties`, the ±2-minute window, and the pcap parser (little/big-endian, link types, pcapng, malformed)                                                                                                                                                                                                                                                                       |
 
 No changes to `backends/`. The `core/schemas.py` change is an additive optional field; the `cli/` changes thread the model name, the `--pcap` input, and the DEBUG verbosity through to the view.
 

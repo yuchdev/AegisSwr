@@ -125,10 +125,10 @@ class FluentRecordParser:
 
 | Input shape | Parser action |
 |-------------|---------------|
-| `time` is a plain `int` | `datetime.fromtimestamp(time, tz=timezone.utc)` |
-| `time` is a `float` | `datetime.fromtimestamp(time, tz=timezone.utc)` |
+| `time` is a plain `int` | `datetime.fromtimestamp(time, tz=UTC)` |
+| `time` is a `float` | `datetime.fromtimestamp(time, tz=UTC)` |
 | `time` is a `str` | `datetime.fromisoformat(time)` (strip trailing `Z` first) |
-| `time` is `{"type":"EventTime","second":…,"nanosecond":…}` | `datetime.fromtimestamp(second + nanosecond / 1e9, tz=timezone.utc)` |
+| `time` is `{"type":"EventTime","second":…,"nanosecond":…}` | `datetime.fromtimestamp(second + nanosecond / 1e9, tz=UTC)` |
 | Fluent Bit flat: `date` field present | Same rules applied to `date` |
 | None of the above | Raise `FluentRecordParseError` with the raw value |
 

@@ -29,7 +29,7 @@ stored in config or logged.
 ### `api/middleware/auth.py`
 
 ```python
-def verify_api_key(request: Request, settings: Settings = Depends(get_settings)) -> None:
+def verify_api_key(request: Request, settings: Settings = Depends(get_settings)):
     """FastAPI dependency: 401 unless a valid X-Aegis-API-Key is presented."""
 
 _EXEMPT_PATHS = frozenset({"/health", "/docs", "/openapi.json", "/redoc"})

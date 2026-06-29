@@ -1,1013 +1,367 @@
-# Aegis SWR - Agentic Implementation Plan
+# Milestone 0002 — Forensic Agents
 
-**Purpose:** Each section below is a self-contained agentic execution brief for one implementation phase. Each brief specifies which AI agents to use, what to give them, what they must produce, and how to verify the output before moving on.
+**Package:** `aegis-swr` | **Module root:** `src/aegis_swr/agents/`
+**Depends on:** Milestone 0001 (Multi-Agent System engine, schemas, consensus, orchestrator)
 
-**Reference documents:**
-- `docs/specs/tasks/0001-generic_implementation_plan.md` - schemas, interfaces, algorithms
-- `docs/specs/progress/implementation_status.md` - track deliverables completion
+This milestone grows the **Synthetic War Room** from the four generalist base
+agents (`os_kernel`, `code_analyst`, `log_historian`, `skeptic`) into a richer,
+**composable panel** of specialist *forensic* agents plus a *synthesis*-tier
+remediation planner. It is primarily an `src/aegis_swr/agents/*.py`
+implementation effort, but it begins with two infrastructure tasks because the
+current code **hard-wires exactly four agents** and cannot accept new ones
+without refactoring first.
 
----
+> **Why the infrastructure tasks come first.** `core/consensus.py` keys on a
+> fixed tuple `("os_kernel", "code_analyst", "log_historian", "skeptic")`,
+> `AgentWeightEntry` has one `float` field per agent, and `core/orchestrator.py`
+> registers four fixed nodes in a linear chain. Adding agents is therefore not
+> "write one file" — the panel must first become *data-driven*.
 
-## Foundation & Setup Agents
+## Table of contents
 
-### Agent Matrix
-
-| Agent Role          | Responsibility                                                                   |
-|---------------------|----------------------------------------------------------------------------------|
-| `PackageArchitect`  | Creates `pyproject.toml`, all `__init__.py` skeletons, CI config                 |
-| `SchemaEngineer`    | Implements all Pydantic v2 models in `core/schemas.py` and `core/fault_codes.py` |
-| `InterfaceDesigner` | Implements all abstract base classes in `backends/base.py` and `agents/base.py`  |
-| `ConfigEngineer`    | Implements `config/settings.py` + `config.yaml`                                  |
-
-### Agentic Execution Brief
-
-#### Agent: PackageArchitect
-
-**Inputs provided:**
-- Target directory: `src/aegis_swr/`
-- Package name: `aegis-swr`, module root: `aegis_swr`
-- Dependency list from `0001-generic_implementation_plan.md`
-- Full directory tree from `0001-generic_implementation_plan.md`
-
-**Instructions:**
-1. Create `pyproject.toml` at repo root with exact content from spec. Include all dependencies, extras, dev group, and the `aegis` CLI script entry point.
-2. Create all `__init__.py` files for every directory in the tree. Each `__init__.py` is empty except for a module-level `__all__ = []`.
-3. Create `src/aegis_swr/py.typed` (empty marker file for PEP 561).
-4. Create `.env.example` documenting all required environment variables.
-5. Create `.github/workflows/ci.yml` with three jobs: `lint` (ruff), `typecheck` (mypy), `unit-test` (pytest tests/unit/).
-6. Create `Makefile` with targets: `install`, `lint`, `typecheck`, `test`.
-
-**Verification:** Run `poetry install` and `python -c "import aegis_swr; print('ok')"`. Must succeed.
+- [Tasks](#tasks)
+- [Target agent package layout](#target-agent-package-layout)
+- [Shared contracts (authoritative)](#shared-contracts-authoritative)
+- [Per-task specifications](#per-task-specifications)
+- [Specialist → fault-class authority matrix](#specialist--fault-class-authority-matrix)
+- [Dependency graph](#dependency-graph)
 
 ---
 
-#### Agent: SchemaEngineer
+## Tasks
 
-**Inputs provided:**
-- Full schema definitions from `0001-generic_implementation_plan.md`
-- Pydantic v2 docs context (model validators, field definitions, `model_dump_json`)
+| Task  | Name                                  | Category       | Output                                                                       |
+|-------|---------------------------------------|----------------|------------------------------------------------------------------------------|
+| 01.0  | Agent Package Restructure             | infrastructure | Move base agents into `agents/base/`; scaffold `forensic/`, `synthesis/`     |
+| 02.0  | Extensible Panel (Registry/Consensus) | infrastructure | Data-driven consensus weights, agent registry, dynamic orchestrator panel    |
+| 03.0  | Memory Forensics Agent                | forensic       | `agents/forensic/memory_forensics.py`; heap-corruption specialist            |
+| 04.0  | Concurrency Analyst Agent             | forensic       | `agents/forensic/concurrency_analyst.py`; deadlock/race specialist           |
+| 05.0  | Exploitability Analyst Agent          | forensic       | `agents/forensic/exploitability_analyst.py`; vuln/exploit-assessment agent   |
+| 06.0  | Resource Exhaustion Agent             | forensic       | `agents/forensic/resource_analyst.py`; leak/OOM specialist                   |
+| 07.0  | Remediation Planner Agent             | synthesis      | `agents/synthesis/remediation_planner.py`; ordered, rollback-covered plan    |
+| 08.0  | Panel Integration, Docs & Hardening   | integration    | Default per-fault panels, config/examples, docs, regression, directory tree  |
 
-**Instructions:**
-1. Implement `src/aegis_swr/core/schemas.py` with all models exactly as specified in: `IncidentMode`, `DumpFormat`, `IncidentSource`, `StackFrame`, `DebugExtractionResult`, `ConfidenceLevel`, `Hypothesis`, `AgentTurn`, `SkepticVerdict`, `HITLRequest`, `RCAReport`, `InvestigationState` (TypedDict), `OSKernelOutput`, `CodeAnalystOutput`, `LogHistorianOutput`, `ValidationResult`, `UIContext`, `CommitRecord`, `BlameRecord`.
-2. All models use Pydantic v2 syntax (`model_config = ConfigDict(...)` not class `Config`).
-3. All `datetime` fields are `datetime` with `timezone.utc` default factory where autopopulated.
-4. Add `model_json_schema()` class method verification: call it on each model at import time in tests.
-5. Implement `src/aegis_swr/core/fault_codes.py` with `FaultClass` enum and the full platform mapping table from spec. Include `map_windows_ntstatus(code: str) -> FaultClass`, `map_linux_signal(signal: int) -> FaultClass`, `map_macos_exception(code: int) -> FaultClass` functions.
-6. Write `tests/unit/test_schemas.py`: test that each model can be instantiated with required fields, serialized to JSON, and deserialized back without data loss. Test all three FaultClass mapping functions with boundary inputs.
-
-**Verification:** `pytest tests/unit/test_schemas.py -v` must pass. `mypy src/aegis_swr/core/schemas.py` must pass.
-
----
-
-#### Agent: InterfaceDesigner
-
-**Inputs provided:**
-- All ABC definitions from `0001-generic_implementation_plan.md`
-- `BaseAgent` spec from `0001-generic_implementation_plan.md`
-- Type hints from schemas (available after SchemaEngineer completes)
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/base.py` with all ABCs: `AIAPIBackend`, `DebugBackend`, `RelationalStore`, `ObjectStore`, `VectorStore`, `LogBackend`, `CodeBackend`. Use Python `abc.ABC` and `abc.abstractmethod`. Include `ClassVar` annotations on `DebugBackend.SUPPORTED_FORMATS` and `SUPPORTED_PLATFORMS`. Full docstrings on every abstract method.
-2. Implement `src/aegis_swr/agents/base.py` with `BaseAgent(ABC)`: constructor takes `ai_backend: AIAPIBackend`, `settings: Settings`; abstract method `run(state: InvestigationState) -> AgentTurn`; protected helper `_append_turn(state: InvestigationState, turn: AgentTurn) -> None` that appends to `state["discussion_history"]`.
-3. Implement `src/aegis_swr/core/exceptions.py` with: `AegisSWRError(Exception)`, `AIOutputValidationError(AegisSWRError)`, `PlatformNotSupportedError(AegisSWRError)`, `SandboxExecutionError(AegisSWRError)`, `IncidentNotFoundError(AegisSWRError)`.
-4. Write `tests/unit/test_interfaces.py`: verify that instantiating any ABC directly raises `TypeError`. Verify that a minimal concrete subclass satisfying all abstract methods can be instantiated.
-
-**Verification:** `mypy src/aegis_swr/backends/base.py src/aegis_swr/agents/base.py` passes. Tests pass.
+Tasks 01.0 → 02.0 are sequential foundations. Tasks 03.0–06.0 (the four forensic
+specialists) share an identical subtask shape and may proceed **in parallel**
+once 02.0 lands. Task 07.0 depends on 02.0. Task 08.0 closes the milestone.
 
 ---
 
-#### Agent: ConfigEngineer
+## Target agent package layout
 
-**Inputs provided:**
-- Full config schema from `0001-generic_implementation_plan.md`
-
-**Instructions:**
-1. Implement `src/aegis_swr/config/settings.py` using Pydantic Settings v2. Define nested `BaseSettings` subclasses: `CoreSettings`, `AISettings`, `DebugSettings`, `StorageSettings`, `APISettings`, `SandboxSettings`, `AgentWeightsSettings`. Compose into `Settings(BaseSettings)` with `model_config = SettingsConfigDict(yaml_file="config.yaml", env_prefix="AEGIS__", env_nested_delimiter="__")`.
-2. Create `config.yaml` at repo root with all default values from spec.
-3. Add `tests/unit/test_settings.py` that creates a `Settings` object with `config.yaml` defaults and asserts key values (max_debate_rounds=4, consensus_threshold=0.85).
-
-**Verification:** `python -c "from aegis_swr.config.settings import Settings; s = Settings(); print(s.core.max_debate_rounds)"` prints `4`.
-
----
-
-## Data Adapter Layer Agents
-
-### Agent Matrix
-
-| Agent Role         | Responsibility                                             |
-|--------------------|------------------------------------------------------------|
-| `PipelineEngineer` | Core `DataAdapter` class with all nine stages              |
-| `NLPEngineer`      | Drain3 clustering, Presidio PII scrubbing, OCR integration |
-| `TestEngineer`     | Fixtures and unit tests for all pipeline stages            |
-
-### Agentic Execution Brief
-
-#### Agent: PipelineEngineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - full pipeline stage definitions, `IncidentBrief` structure
-- `docs/prototype-analysis-specs/TOKEN_WASTE_REPORT.md` - all 6 algorithmic rules for the Data Adapter
-- `docs/prototype-analysis-specs/PROMPT_HEURISTICS.md` - all regex patterns for noise removal
-
-**Instructions:**
-1. Implement `src/aegis_swr/core/data_adapter.py` - `DataAdapter(settings: Settings)` with `async def process(source: IncidentSource, debug_backend: DebugBackend | None) -> IncidentBrief`.
-2. Implement `_compute_hash()`: SHA-256 in 8192-byte chunks using `hashlib`.
-3. Implement `_detect_format()`: read first 8 bytes; check magic bytes - Windows minidump: `MDMP`; ELF core: `\x7fELF`; Apple crashreport: JSON starting with `{`; default to `WINDOWS_MINIDUMP` on `.dmp` extension.
-4. Implement `_apply_noise_filter()` using the exact regex patterns from `PROMPT_HEURISTICS.md`: DBGHELP strip, fill pattern replace (`0xCCCCCCCC`, `0xDDDDDDDD`, `0xFEEEFEEE`, `0xABABABAB`, `0xBAADF00D` → `<fill>`), DLL list drop (between `*** WARNING:` and `EXCEPTION_ANALYSIS:`), head+tail truncation at 8,000 chars (4,000 / 4,000 split).
-5. Implement `_enforce_assumption_limit()` using `tiktoken` (cl100k_base encoding) to count tokens.
-6. Implement `_assemble_brief()` that constructs the `IncidentBrief` dict matching the JSON structure in spec.
-7. Implement conditional history injection logic check in `_should_inject_history(source, recent_incidents)`.
-
-**Verification:** `mypy src/aegis_swr/core/data_adapter.py` passes.
+```
+src/aegis_swr/agents/
+  __init__.py                      # back-compat re-exports + create_agent_panel
+  registry.py                      # AGENT_REGISTRY, create_agent_panel()
+  base/
+    __init__.py                    # re-exports BaseAgent + the four base agents
+    base.py                        # generalized BaseAgent (agent_key/category/display_name)
+    os_kernel.py                   # OSKernelAgent          (moved)
+    code_analyst.py                # CodeAnalystAgent       (moved)
+    log_historian.py               # LogHistorianAgent      (moved)
+    skeptic.py                     # SkepticAgent           (moved)
+  forensic/
+    __init__.py
+    memory_forensics.py            # MemoryForensicsAgent       (Task 03.0)
+    concurrency_analyst.py         # ConcurrencyAnalystAgent    (Task 04.0)
+    exploitability_analyst.py      # ExploitabilityAnalystAgent (Task 05.0)
+    resource_analyst.py            # ResourceExhaustionAgent    (Task 06.0)
+  synthesis/
+    __init__.py
+    remediation_planner.py         # RemediationPlannerAgent    (Task 07.0)
+```
 
 ---
 
-#### Agent: NLPEngineer
+## Shared contracts (authoritative)
 
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - stages 4 (log processing), 5 (OCR), 6 (PII scrubbing)
-- `TOKEN_WASTE_REPORT.md` - Rule 2 (temporal windowing), Rule 3 (noise filter)
+These contracts are defined once here and referenced by every subtask. Changing
+one means updating this section and the affected subtask specs.
 
-**Instructions:**
-1. Implement `DataAdapter._process_logs()`:
-   - For each log path, open and read lines.
-   - Apply a temporal window: keep lines within ±30 seconds of `incident_timestamp`. If no timestamp: keep the last 500 lines with a warning.
-   - Apply Drain3: `TemplateMiner` with `SimpleProfiler()`. Group lines by template; for each template appearing >3 times, replace with `"{template} (×{count})"`.
-   - Severity filter: discard `INFO`/`DEBUG` lines outside the ±5 s window. Keep all `WARNING`/`ERROR`/`FATAL`/`CRITICAL` lines regardless of timestamp.
-   - Enforce a 2,000-token budget on combined log output (truncate oldest lines first).
-2. Implement `DataAdapter._process_screenshot()`:
-   - Conditionally import `pytesseract` (guarded with `try/except ImportError`).
-   - Run `pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)`.
-   - Filter to words with `conf > 60`.
-   - Assemble into `UIContext { error_message: str, visible_timestamp: str | None, ui_elements: list[str] }`.
-   - Return `None` if pytesseract not installed or confidence too lows.
-3. Implement `DataAdapter._scrub_pii()`:
-   - Conditionally import `presidio_analyzer` and `presidio_anonymizer`.
-   - Configure `AnalyzerEngine` with entity types from spec stage 6.
-   - Run `analyzer.analyze()` then `anonymizer.anonymize()`.
-   - Build substitution map `{ "[REDACTED_EMAIL_1]": "user@example.com", ... }`.
-   - Return scrubbed text and substitution map.
-   - If Presidio is not installed: log warning and return the original text and empty map (fail open - never block analysis).
+### C1 — Canonical agent keys
 
-**Verification:** Write a test string with known PII; assert all entities are replaced and the substitution map has correct entries.
+| `agent_key`           | Class                        | Category   | Tier   |
+|-----------------------|------------------------------|------------|--------|
+| `os_kernel`           | `OSKernelAgent`              | base       | debate |
+| `code_analyst`        | `CodeAnalystAgent`           | base       | debate |
+| `log_historian`       | `LogHistorianAgent`          | base       | debate |
+| `skeptic`             | `SkepticAgent`               | base       | debate (always last) |
+| `memory_forensics`    | `MemoryForensicsAgent`       | forensic   | debate |
+| `concurrency_analyst` | `ConcurrencyAnalystAgent`    | forensic   | debate |
+| `exploitability`      | `ExploitabilityAnalystAgent` | forensic   | debate |
+| `resource_exhaustion` | `ResourceExhaustionAgent`    | forensic   | debate |
+| `remediation_planner` | `RemediationPlannerAgent`    | synthesis  | post-debate |
 
----
+### C2 — Generalized `BaseAgent`
 
-#### Agent: TestEngineer (Data Adapter)
+`agents/base/base.py` keeps the existing constructor and `run`/`system_prompt`
+contract and adds three `ClassVar`s so the registry and consensus can address
+agents generically:
 
-**Inputs provided:**
-- All implemented pipeline stages from PipelineEngineer and NLPEngineer
-- Sample files needed for fixtures
+```python
+class BaseAgent(ABC):
+    agent_key: ClassVar[str]        # canonical key from C1, e.g. "memory_forensics"
+    category: ClassVar[str]         # "base" | "forensic" | "synthesis"
+    display_name: ClassVar[str]     # human label, e.g. "Memory Forensics Agent"
+```
 
-**Instructions:**
-1. Create `tests/unit/fixtures/` directory with:
-   - `sample_cdb_output.txt` - realistic 200-line CDB `!analyze -v` output containing DBGHELP noise, DLL list, fill patterns, and an EXCEPTION_ANALYSIS block.
-   - `sample_logs_with_pii.txt` - 50 lines including email addresses, IP addresses, an AWS key pattern, and heartbeat repetitions.
-   - `sample_logs_timestamped.txt` - 200 lines with ISO timestamps spanning 10 minutes; known crash at line 100.
-2. Write `tests/unit/test_data_adapter.py` with these test cases:
-   - `test_noise_filter_removes_dbghelp`: assert zero DBGHELP lines in output.
-   - `test_noise_filter_replaces_fill_patterns`: assert no `0xCCCCCCCC` in output; `<fill>` present.
-   - `test_noise_filter_truncates_to_8k`: input > 8k chars → output ≤ 8k chars with truncation marker.
-   - `test_temporal_window_slices_correctly`: logs from `±30s` window kept; logs from `±2min` discarded.
-   - `test_drain3_deduplicates_heartbeats`: 100 identical heartbeat lines → one template line with count.
-   - `test_pii_scrubbing_emails`: all emails replaced with `[REDACTED_EMAIL_*]`.
-   - `test_pii_scrubbing_aws_keys`: AWS key pattern replaced.
-   - `test_assumption_token_cap`: 1000-token assumption string truncated to ≤500 tokens.
-   - `test_hash_consistency`: same file hashed twice → same SHA-256.
-   - `test_format_detection_minidump`: file with `MDMP` magic → `DumpFormat.WINDOWS_MINIDUMP`.
-   - `test_full_pipeline_produces_brief`: end-to-end with mock DebugBackend returning a fixture result; assert `IncidentBrief` has all required fields.
+`display_name` MUST equal the `AgentTurn.agent` string the agent already emits
+(e.g. `"OS Kernel Agent"`), so existing turn-matching logic keeps working.
 
-**Verification:** `pytest tests/unit/test_data_adapter.py -v` passes. Coverage on `data_adapter.py` ≥ 85%.
+### C3 — Data-driven consensus weights
 
----
+`AgentWeightEntry` stops being four fixed float fields and becomes a single
+normalized map keyed by `agent_key`:
 
-## AI Backend Agents
+```python
+class AgentWeightEntry(BaseSettings):
+    weights: dict[str, float] = Field(default_factory=dict)
+    # validator: drop unknown keys is NOT done here; missing keys read as 0.0
+```
 
-### Agent Matrix
+`ConsensusEvaluator.calculate(agent_scores, fault_class)` iterates the union of
+keys present in the entry's `weights` (skipping `remediation_planner`, which is
+not a voter — see C5). The legacy four-field constructor signature
+(`AgentWeightEntry(os_kernel=…, code_analyst=…, …)`) is preserved as a
+compatibility shim that folds kwargs into `weights`. **Default weights for the
+existing ten fault classes reproduce 0001's matrix exactly** (back-compat gate).
 
-| Agent Role            | Responsibility                                                     |
-|-----------------------|--------------------------------------------------------------------|
-| `AnthropicEngineer`   | `anthropic_provider.py` with caching, structured output, streaming |
-| `OpenAIEngineer`      | `openai_provider.py` with JSON schema output, streaming            |
-| `BackendTestEngineer` | Unit tests with mocked LLM clients                                 |
+### C4 — Agent registry & panel factory
 
-### Agentic Execution Brief
+`agents/registry.py`:
 
-#### Agent: AnthropicEngineer
+```python
+AGENT_REGISTRY: dict[str, type[BaseAgent]]    # agent_key -> class, from C1
 
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - AIAPIBackend interface and implementation notes
-- Claude API documentation context: `cache_control`, tool use pattern for structured output, `messages.stream()`
+def create_agent_panel(
+    ai_backend: AIAPIBackend,
+    settings: Settings,
+    fault_class: Optional[FaultClass] = None,
+) -> list[BaseAgent]:
+    """Return the ordered *debate* panel (synthesis agents excluded).
 
-**Instructions:**
-1. Implement `src/aegis_swr/backends/ai/anthropic_provider.py` - `AnthropicBackend(AIAPIBackend)`.
-2. Constructor: `__init__(self, settings: AISettings)` - creates `anthropic.AsyncAnthropic()` client; sets `model_name = settings.model`.
-3. Implement `generate()`:
-   - Build system message with `cache_control: {"type": "ephemeral"}`.
-   - If `output_schema` is not None: define a single tool with `name="structured_output"`, `description="Output the analysis as structured JSON"`, `input_schema=output_schema.model_json_schema()`. Add `tool_choice={"type": "tool", "name": "structured_output"}`.
-   - Call `await self._client.messages.create(...)`.
-   - If structured output: extract `tool_use` block, parse JSON, validate with `output_schema.model_validate(json_data)`. On `ValidationError`: construct a correction message and retry once.
-   - Update `state["token_tracker"]` with `response.usage`.
-   - Raise `AIOutputValidationError` if retry also fails.
-4. Implement `stream()`: use `async with self._client.messages.stream(...) as stream: async for text in stream.text_stream: yield text`.
-5. Implement `src/aegis_swr/backends/ai/__init__.py` factory.
+    Order invariant: skeptic is always last; remaining debate agents follow
+    their configured order. fault_class selects the per-fault panel override
+    when one is configured, else the default panel.
+    """
+```
 
-**Key invariant:** The system prompt block MUST always include `cache_control: {"type": "ephemeral"}`. Never omit it - this is the primary token-cost reduction mechanism (system prompt re-billed at ~10% on cache hits).
+Synthesis-tier agents (`remediation_planner`) are **never** returned by
+`create_agent_panel`; they are instantiated separately by the orchestrator's
+output-synthesizer path.
 
-**Verification:** `mypy src/aegis_swr/backends/ai/anthropic_provider.py` passes.
+### C5 — Orchestrator integration
 
----
+- The debate sub-graph is built **dynamically** from `create_agent_panel(...)`:
+  one node per panel agent, chained in panel order, `skeptic_node` terminal with
+  the existing `_route_after_skeptic` conditional edges. The fixed
+  `os_kernel → code_analyst → log_historian → skeptic` chain is replaced by the
+  panel sequence; the **default panel must reproduce that exact chain** so 0001
+  behavior is unchanged when no specialists are enabled.
+- `remediation_planner` runs **once** inside `output_synthesizer_node`, after
+  convergence/skeptic confirmation, consuming the confirmed `RCAReport`. It is
+  skipped on the HITL (low-confidence) path.
 
-#### Agent: OpenAIEngineer
+### C6 — Output schemas (`core/schemas.py`)
 
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - OpenAI implementation notes
-- OpenAI structured output documentation context
+Each debate specialist mirrors the existing `OSKernelOutput` shape (a list of
+`Hypothesis` + a `confidence_score: float`) and adds domain-specific fields:
+`MemoryForensicsOutput`, `ConcurrencyAnalystOutput`, `ExploitabilityOutput`,
+`ResourceExhaustionOutput`. The synthesis agent adds `RemediationStep` +
+`RemediationPlan`, and `RCAReport` gains an optional `remediation_plan` field.
 
-**Instructions:**
-1. Implement `src/aegis_swr/backends/ai/openai_provider.py` - `OpenAIBackend(AIAPIBackend)`.
-2. Constructor: `__init__(self, settings: AISettings)` - creates `openai.AsyncOpenAI()` client.
-3. Implement `generate()`:
-   - If `output_schema`: use `response_format={"type": "json_schema", "json_schema": {"name": output_schema.__name__, "schema": output_schema.model_json_schema(), "strict": True}}`.
-   - Parse response JSON and validate with Pydantic. Same retry logic as Anthropic.
-4. Implement `stream()`: `async for chunk in await self._client.chat.completions.create(..., stream=True, stream_options={"include_usage": True}): if chunk.choices[0].delta.content: yield chunk.choices[0].delta.content`.
+### C7 — Cross-cutting project invariants (inherited from 0001)
 
-**Verification:** mypy passes on the file.
+- `Optional[T]` from `typing`, never `T | None` (run `scripts/replace_optional.py --check`).
+- `mypy --strict` clean; `ruff` clean.
+- Mandatory `cache_control: {"type": "ephemeral"}` on every system prompt block
+  (handled by `_BaseAIBackend`; agents pass the system prompt through).
+- **Untrusted payload text** (stack frames, log lines, register values) flows
+  into prompts only after the Data Adapter's PII scrub — agents never re-introduce
+  raw payload into a shell, SQL, or unsanitised sink.
+- Every new feature ships unit + mock tests; every integration ships an
+  integration test with mocked externals. The Stop hook runs the unit suite.
 
 ---
 
-#### Agent: BackendTestEngineer (AI Backends)
+## Per-task specifications
 
-**Instructions:**
-1. Write `tests/unit/test_ai_backends.py` using `unittest.mock.AsyncMock` to patch `anthropic.AsyncAnthropic` and `openai.AsyncOpenAI`.
-2. Test cases:
-   - `test_anthropic_structured_output_valid`: mock returns valid JSON matching `Hypothesis` schema → `generate()` returns `Hypothesis` instance.
-   - `test_anthropic_retry_on_invalid_schema`: first mock call returns malformed JSON; second returns valid → retried once successfully.
-   - `test_anthropic_raises_validation_error_after_retry`: both calls return malformed JSON → `AIOutputValidationError` raised.
-   - `test_anthropic_stream_yields_tokens`: mock stream yields 3 text deltas → `stream()` yields same 3 strings.
-   - `test_openai_structured_output_valid`: same pattern for OpenAI.
-   - `test_factory_returns_anthropic`: `create_ai_backend(AISettings(provider="anthropic"))` returns `AnthropicBackend`.
-   - `test_factory_returns_openai`: returns `OpenAIBackend`.
+### Task 01.0 — Agent Package Restructure
 
-**Verification:** `pytest tests/unit/test_ai_backends.py -v` passes with no network calls.
+**Goal:** Reorganize `agents/` into category subpackages with **zero behavior
+change**. This is the enabling move the rest of the milestone builds on.
 
----
+**Subtasks:** see [`01.0-agent-package-restructure/README.md`](/docs/roadmap/0002-forensic-agents/01.0-agent-package-restructure/README.md)
 
-## Debug Backends Agents
+| # | Subtask | Summary |
+|---|---------|---------|
+| 01 | Move base agents into `agents/base/` | Move `base.py` + four agent modules; fix intra-package imports |
+| 02 | Update consumers & back-compat shims | Repoint `orchestrator.py`, tests; `agents/__init__.py` re-exports old paths |
+| 03 | Scaffold `forensic/` & `synthesis/` packages | Empty packages + `category` convention + `agents/base/__init__.py` |
+| 04 | Regression gate | Full suite green; import-path tests; mypy/ruff clean |
 
-### Agent Matrix
-
-| Agent Role             | Responsibility                                                                   |
-|------------------------|----------------------------------------------------------------------------------|
-| `WindowsDebugEngineer` | `cdb_worker.py` - full CDB implementation with all regex parsers                 |
-| `WinDbgJSEngineer`     | `windbg_js_worker.py` + `assets/windbg_diagnostic.js` - WinDbg JS engine backend |
-| `LinuxDebugEngineer`   | `gdb_worker.py` and `lldb_worker.py` - Linux/macOS stubs                         |
-| `DebugTestEngineer`    | Unit tests with fixture subprocess output for all backends                       |
-
-### Agentic Execution Brief
-
-#### Agent: WindowsDebugEngineer
-
-**Inputs provided:**
-- `docs/prototype-analysis-specs/WIN_DEPENDENCIES.md` - full CDB command sequence and all regex patterns
-- `docs/prototype-analysis-specs/PROMPT_HEURISTICS.md` - extraction regexes
-- `0001-generic_implementation_plan.md` - DebugBackend interface
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/debug/cdb_worker.py` - `CdbBackend(DebugBackend)`.
-2. Port all regex extractors from prototype's `cdb.py` exactly as documented in `WIN_DEPENDENCIES.md` and `PROMPT_HEURISTICS.md`. Extractors must produce structured fields: `exception_code_raw`, `exception_address`, `faulting_module`, `faulting_function`, debug timestamp.
-3. Implement `_parse_stack_frames(text: str) -> list[StackFrame]`: parse numbered frame lines in CDB bt output. Handle both resolved (`module!function+offset`) and unresolved (`module+offset`) formats.
-4. Compute `symbol_resolution_score = len([f for f in frames if f.function is not None]) / max(len(frames), 1)`.
-5. Apply noise filter to `raw_text_excerpt` using `DataAdapter._apply_noise_filter()` logic (duplicated or imported - prefer importing from `core/data_adapter.py` as a standalone function).
-6. Implement `_symbol_path_string(symbol_path: Path) -> str`: builds `srv*{cache}*https://msdl.microsoft.com/download/symbols;{local_path}` format.
-7. RAII: use `subprocess.run()` inside a `try/finally` block; never leave subprocess open on exception.
-8. Implement `src/aegis_swr/backends/debug/_symbol_path.py` - `resolve_symbol_path()` with platform defaults.
-
-**Verification:** mypy passes.
+**Success criteria:** all 478+ existing tests pass unchanged; `from
+aegis_swr.agents.os_kernel import OSKernelAgent` still resolves (shim);
+`from aegis_swr.agents.base import OSKernelAgent` resolves (new home).
 
 ---
 
-#### Agent: WinDbgJSEngineer
+### Task 02.0 — Extensible Panel (Registry / Consensus / Orchestration)
 
-**Inputs provided:**
-- `0001-generic_implementation_plan.md.2` - full WinDbg JS backend specification (architecture, bridge design, JS asset, JSON→result mapping, prototype-defect table)
-- `prototype/wincrash_analyzer/backends/debug/js_provider.py` - prototype implementation to supersede
-- `prototype/wincrash_analyzer/core/windbg_server.py` - prototype HTTP bridge to supersede
-- `docs/prototype-analysis-specs/WIN_DEPENDENCIES.md,,` - COM dependency, DDM query API, bridge TCP notes
-- All previously implemented debug backend code (`_base.py`, `cdb_worker.py`, `_symbol_path.py`) for import style and conventions
+**Goal:** Make the panel data-driven so agents can be added by configuration.
 
-**Instructions:**
+**Subtasks:** see [`02.0-extensible-panel/README.md`](/docs/roadmap/0002-forensic-agents/02.0-extensible-panel/README.md)
 
-**Part 1 - `backends/debug/assets/windbg_diagnostic.js`:**
+| # | Subtask | Summary |
+|---|---------|---------|
+| 01 | Generalize `BaseAgent` (C2) | Add `agent_key`/`category`/`display_name` `ClassVar`s to the four base agents |
+| 02 | Data-driven consensus weights (C3) | `AgentWeightEntry.weights` map + legacy-kwargs shim; iterate the panel |
+| 03 | Agent registry & panel factory (C4) | `agents/registry.py`; `AgentPanelSettings`; `create_agent_panel` |
+| 04 | Dynamic orchestrator panel (C5) | Build debate nodes from the panel; default panel == legacy chain |
+| 05 | Config model & examples | `agents.example.json` / `config.yaml` panel + weights schema |
+| 06 | Tests | Consensus with N agents; registry; orchestrator with a variable panel; back-compat |
 
-1. Create directory `src/aegis_swr/backends/debug/assets/`.
-2. Write the JS file exactly as specified in 0001-generic_implementation_plan.md.2 ("Production JS Diagnostic Script"). Do not embed it in Python code.
-3. Use exactly three substitution tokens: `__CALLBACK_URL__`, `__MAX_FAULTING_FRAMES__`, `__MAX_OTHER_FRAMES__`. No others.
-4. Script structure must be: `initializeScript()` export (DDM API version declaration), then an IIFE that queries the DDM and POSTs JSON via `ActiveXObject("MSXML2.XMLHTTP")`.
-5. All DDM accesses must be wrapped in `try/catch` - the DDM is not guaranteed to expose every field for every dump type; a missing attribute must not abort the script and must not prevent the callback POST from firing.
-
-**Part 2 - `backends/debug/windbg_js_worker.py`:**
-
-1. Implement `_make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]`:
-   - Returns a class whose `do_POST` reads `Content-Length` bytes, enqueues the raw body string, responds 200. Suppresses HTTP access logs via a no-op `log_message`.
-   - Uses a **closure** over `data_queue` - NOT a class-level attribute. This eliminates the prototype's race condition.
-
-2. Implement `class _CallbackBridge` as a RAII context manager:
-   - `__init__(self, callback_timeout: int)` - stores timeout, initialises `self.port = 0`.
-   - `__enter__`: creates `self._queue: queue.Queue[str] = queue.Queue()`, calls `_make_handler(self._queue)`, binds `HTTPServer(("127.0.0.1", 0), handler)`, reads `httpd.server_address[1]` → `self.port`, starts daemon thread.
-   - `__exit__`: `httpd.shutdown(); httpd.server_close()`.
-   - `wait_for_payload(self) -> str`: `self._queue.get(timeout=self._timeout)`; on `queue.Empty` raise `DebugExtractionError("Timed out waiting for WinDbg JS callback")`.
-
-3. Implement `class WinDbgJSBackend(_BaseDebugBackend)`:
-   - `SUPPORTED_FORMATS = [DumpFormat.WINDOWS_MINIDUMP]`
-   - `SUPPORTED_PLATFORMS = ["Windows"]`
-   - `_asset_path(self) -> Path`: `Path(__file__).parent / "assets" / "windbg_diagnostic.js"`.
-   - `_prepare_js(self, port: int) -> str`: reads the asset file, substitutes all three tokens. Raises `DebugExtractionError` if the asset file is absent.
-   - `_build_command_sequence(self, source, symbol_path) -> list[str]`: `["cdb.exe", "-z", str(source.dump_path), "-y", self._symbol_path_string(symbol_path), "-c", f'.scriptload "{tmp_js_path}"; g; q']`. The `tmp_js_path` is passed as a parameter (written by `_parse` before calling `_run`).
-   - Override `extract()` from the base: orchestrates the bridge + temp file lifecycle using `contextlib.ExitStack` for RAII. Sequence: (a) start bridge, (b) write temp JS, (c) run subprocess, (d) validate JsProvider loaded, (e) wait for payload, (f) parse, (g) cleanup all resources in reverse order.
-   - `_parse(self, raw_json: str, source) -> DebugExtractionResult`: parse JSON from the bridge payload. Map fields per spec.2 table. Use `map_windows_ntstatus` for `ExceptionCode`. Build `StackFrame` list from `FaultingThread.Frames`. `raw_text_excerpt = apply_noise_filter(raw_json[:8000])`.
-
-4. **`_build_command_sequence` must not write any temp file itself** - file lifecycle belongs in `extract()` with RAII. `_build_command_sequence` receives `tmp_js_path` as a parameter (override the signature: `_build_command_sequence(self, source, symbol_path, tmp_js_path="")` with a default to satisfy the ABC).
-
-5. **No `shell=True` anywhere.** All subprocess invocations use list-form argv.
-
-**Part 3 - Factory update (`backends/debug/__init__.py`):**
-
-1. Add `WinDbgJSBackend` to imports and `__all__`.
-2. Add `_windbg_js_available() -> bool` - probes for `JsProvider.dll` by running `cdb.exe -version` and checking if `JsProvider` appears in stdout. Catches `FileNotFoundError` → `False`. Caches result via `functools.lru_cache(maxsize=1)` so the probe only runs once per process.
-3. Update `create_debug_backend` for Windows per spec.2 ("Factory Update") - `engine="auto"` → try `WinDbgJSBackend` if available, else `CdbBackend`; `engine="windbg_js"` → always `WinDbgJSBackend`; `engine="cdb"` → always `CdbBackend`.
-
-**Part 4 - Config + Settings:**
-
-1. Add to `config.yaml` under `backends.debug`: `engine: "auto"`, `callback_timeout_seconds: 60`, `max_faulting_frames: 20`, `max_other_thread_frames: 3`.
-2. Add these four fields to `DebugSettings` in `config/settings.py` with matching defaults.
-
-**Invariants (must hold):**
-- `_CallbackBridge` never uses a module-level or class-level queue - each `with _CallbackBridge(...)` block gets its own `queue.Queue` instance.
-- The temp JS file is always deleted, even if `subprocess.run` raises. Use `try/finally` or `contextlib.ExitStack`.
-- `_windbg_js_available()` never raises - it returns `False` on any failure.
-- The JS asset is read from the disk at extraction time, not at import time, so it can be patched in tests without reloading the module.
-
-**Verification:**
-- `mypy src/` passes with no new errors.
-- All existing tests continue to pass (`pytest tests/ -q`).
+**Success criteria:** with no specialists enabled the orchestrator and consensus
+produce byte-identical results to 0001; with a specialist enabled it appears as a
+debate node and contributes a weighted vote.
 
 ---
 
-#### Agent: LinuxDebugEngineer
+### Tasks 03.0–06.0 — Forensic specialists (shared shape)
 
-**Inputs provided:**
-- `WIN_DEPENDENCIES.md` cross-platform replacement strategy sections
-- `0001-generic_implementation_plan.md`
+Each forensic-specialist task has the **same five subtasks**. The per-task README
+fills in the domain content (system prompt heuristics, output fields, authoritative
+fault classes).
 
-**Instructions:**
-1. Implement `src/aegis_swr/backends/debug/gdb_worker.py` - `GdbBackend(DebugBackend)`:
-   - `SUPPORTED_PLATFORMS = ["Linux"]`
-   - Command: `["gdb", "--batch", "--quiet", "-ex", f"core-file {dump_path}", "-ex", "bt 20", "-ex", "info registers rip rsp rbp", "-ex", "quit"]`
-   - Parse GDB `bt` output: frame lines match `#N  0x... in function (args) at file:line`.
-   - Map POSIX signals to `FaultClass` using `fault_codes.map_linux_signal()`.
-2. Implement `src/aegis_swr/backends/debug/lldb_worker.py` - `LldbBackend(DebugBackend)`:
-   - `SUPPORTED_PLATFORMS = ["Darwin"]`
-   - Command: `["lldb", "--batch", "-c", str(dump_path), "-o", "bt all", "-o", "register read pc sp", "-o", "quit"]`
-   - Parse LLDB bt output: frame lines match `frame #N: 0x... module\`function at file:line`.
-   - Map macOS exception types to `FaultClass`.
-3. Implement `src/aegis_swr/backends/debug/__init__.py` factory.
+| # | Subtask | Summary |
+|---|---------|---------|
+| 01 | Output schema (C6) | New `*Output` model in `core/schemas.py` + schema tests |
+| 02 | Consensus weight integration (C3) | Add the agent's `agent_key` weight to its authoritative fault classes; re-normalize |
+| 03 | Agent implementation | `system_prompt` + `run()` with domain pre-checks and heuristics |
+| 04 | Registry & panel wiring (C4/C5) | Register in `AGENT_REGISTRY`; add to default panels for authoritative fault classes |
+| 05 | Tests | Unit (schema request, prompt content, deterministic pre-checks), mock pipeline, integration |
 
-**Verification:** mypy passes.
+#### Task 03.0 — Memory Forensics Agent
+`agents/forensic/memory_forensics.py` → `MemoryForensicsAgent` (`memory_forensics`).
+Specialism: heap corruption, use-after-free, double-free, buffer over/underflow,
+allocator/heap-metadata tells, guard-page hits, fill-pattern signatures
+(`0xCCCC…`/`0xFEEEFEEE`/`0xBAADF00D`). Authoritative on `memory_access_violation`,
+`null_pointer_dereference`, `use_after_free`. Output adds
+`corruption_signatures: list[str]`, `suspected_allocation_site: Optional[str]`,
+`heap_state: Optional[str]`.
+See [`03.0-memory-forensics-agent/README.md`](/docs/roadmap/0002-forensic-agents/03.0-memory-forensics-agent/README.md).
 
----
+#### Task 04.0 — Concurrency Analyst Agent
+`agents/forensic/concurrency_analyst.py` → `ConcurrencyAnalystAgent`
+(`concurrency_analyst`). Specialism: deadlocks, lock-ordering inversions, race
+conditions, TOCTOU, thread wait-chains, starvation. Authoritative on `deadlock`,
+`use_after_free` (race-induced), `assertion_failure`. Output adds
+`wait_chain: list[str]`, `lock_order_inversions: list[str]`,
+`suspected_race: Optional[str]`.
+See [`04.0-concurrency-analyst-agent/README.md`](/docs/roadmap/0002-forensic-agents/04.0-concurrency-analyst-agent/README.md).
 
-#### Agent: DebugTestEngineer
+#### Task 05.0 — Exploitability Analyst Agent
+`agents/forensic/exploitability_analyst.py` → `ExploitabilityAnalystAgent`
+(`exploitability`). Specialism: is the crash a security vulnerability? Whether
+attacker-controlled data reaches the fault, write-what-where primitives,
+control-flow hijack potential, mitigation state (ASLR/DEP/stack canary).
+Authoritative on `memory_access_violation`, `use_after_free`, `stack_overflow`.
+Output adds `exploitable: bool`, `severity: str`, `attacker_control: Optional[str]`,
+`mitigations_present: list[str]`. **Security-sensitive — Task 08 requires a
+`security-auditor` pass** (this agent reasons over attacker-influenced payload).
+See [`05.0-exploitability-analyst-agent/README.md`](/docs/roadmap/0002-forensic-agents/05.0-exploitability-analyst-agent/README.md).
 
-**Instructions:**
-
-**Existing tests (already implemented, verify still pass):**
-CDB/GDB/LLDB per-backend extraction, fault-class mapping, frame parsing, symbol score, noise filter, factory platform selection (win32/linux/darwin/unsupported).
-
-**New tests for `WinDbgJSBackend` - add to `tests/unit/test_debug_backends.py`:**
-
-1. Create `tests/unit/fixtures/sample_windbg_js_payload.json` - a realistic DDM JSON payload with:
-   - `ExceptionCode: "0xc0000005"`, `ExceptionAddress: "0x00007ff8016a1c3f"`, `FaultingModule: "db_writer"`
-   - `FaultingThread.Frames`: 5 frames, 4 with non-empty `Function`, 1 with empty `Function`
-   - `AllThreadsSummary`: 2 additional threads, each with 2-3 summarized frames
-
-2. Write the following tests, all using `mock.patch("aegis_swr.backends.debug._base.subprocess.run")`:
-
-   - `test_windbg_js_parses_ddm_json`: fixture payload and mock subprocess output that includes `"JsProvider.dll"` string → `WinDbgJSBackend.extract()` returns `DebugExtractionResult` with `fault_class = MEMORY_ACCESS_VIOLATION`, `exception_address = "0x00007ff8016a1c3f"`, `faulting_module = "db_writer"`, `len(stack_frames) == 5`, `symbol_resolution_score == 0.8`.
-   
-     Implementation hint: the backend calls `bridge.wait_for_payload()`; patch `_CallbackBridge.wait_for_payload` (or mock the full bridge) to return the fixture JSON without actually starting a thread.
-   
-   - `test_windbg_js_command_uses_scriptload`: `_build_command_sequence` result contains `".scriptload"` string.
-   
-   - `test_windbg_js_raises_on_missing_jsprovider`: mock subprocess stdout does NOT contain `"JsProvider.dll"` (but payload is ready in bridge) → `DebugExtractionError` raised.
-   
-   - `test_windbg_js_raises_on_callback_timeout`: bridge's `wait_for_payload` raises `queue.Empty` → `DebugExtractionError` raised.
-   
-   - `test_windbg_js_missing_asset_raises`: delete (or mock) the JS asset path → `DebugExtractionError` raised before subprocess is invoked.
-
-3. Write the following bridge-unit tests (no subprocess involved):
-
-   - `test_callback_bridge_assigns_ephemeral_port`: `with _CallbackBridge(timeout=5) as b:` asserts `b.port > 0`. (Does start a real local socket - short-lived.)
-   
-   - `test_callback_bridge_per_instance_queue_isolation`: open two bridges simultaneously; POST to each port independently; `wait_for_payload()` on each return only the payload sent to that specific port.
-
-4. New factory tests:
-
-   - `test_factory_returns_windbg_js_when_engine_forced`: `DebugSettings(engine="windbg_js")`, `platform="win32"` → `WinDbgJSBackend`.
-   - `test_factory_returns_cdb_when_engine_forced`: `DebugSettings(engine="cdb")`, `platform="win32"` → `CdbBackend`.
-   - `test_factory_auto_returns_cdb_when_js_unavailable`: `engine="auto"`, `platform="win32"`, patch `_windbg_js_available` → `False` → `CdbBackend`.
-   - `test_factory_auto_returns_windbg_js_when_available`: `engine="auto"`, `platform="win32"`, patch `_windbg_js_available` → `True` → `WinDbgJSBackend`.
-
-**Verification:** `pytest tests/unit/test_debug_backends.py -v` passes. `mypy src/` clean.
+#### Task 06.0 — Resource Exhaustion Agent
+`agents/forensic/resource_analyst.py` → `ResourceExhaustionAgent`
+(`resource_exhaustion`). Specialism: handle/fd/thread/memory leaks, OOM,
+connection-pool and GDI/kernel-object exhaustion, unbounded growth — the "silent
+logical lockup / resource leak" gap from the product roadmap §1.1. Authoritative
+on `resource_exhaustion`, `stack_overflow`, `deadlock` (thread starvation).
+Output adds `exhausted_resource: Optional[str]`, `leak_indicators: list[str]`,
+`growth_trend: Optional[str]`.
+See [`06.0-resource-exhaustion-agent/README.md`](/docs/roadmap/0002-forensic-agents/06.0-resource-exhaustion-agent/README.md).
 
 ---
 
-## Multi-Agent System Engine Orchestration Agents
+### Task 07.0 — Remediation Planner Agent (synthesis tier)
 
-### Agent Matrix
+**Goal:** Turn the confirmed RCA into an ordered, **idempotent, rollback-covered**
+remediation playbook, compatible with the `/playbook-validate` skill.
 
-| Agent Role             | Responsibility                                                                                       |
-|------------------------|------------------------------------------------------------------------------------------------------|
-| `ConsensusEngineer`    | `core/consensus.py` - weighted CS formula + convergence logic                                        |
-| `AgentPersonaEngineer` | All four agent implementations (`os_kernel.py`, `code_analyst.py`, `log_historian.py`, `skeptic.py`) |
-| `OrchestratorEngineer` | `core/orchestrator.py` - LangGraph state graph wiring                                                |
-| `MASTestEngineer`      | Unit tests with mock AI backends                                                                     |
+**Subtasks:** see [`07.0-remediation-planner-agent/README.md`](/docs/roadmap/0002-forensic-agents/07.0-remediation-planner-agent/README.md)
 
-### Agentic Execution Brief
+| # | Subtask | Summary |
+|---|---------|---------|
+| 01 | `RemediationPlan` / `RemediationStep` schema | New models in `core/schemas.py`; `RCAReport.remediation_plan` optional field |
+| 02 | Agent implementation | `system_prompt` + `run()` consuming the confirmed `RCAReport`; step ordering + rollback per step |
+| 03 | Synthesis-tier wiring (C5) | Invoked in `output_synthesizer_node` post-convergence; skipped on the HITL path |
+| 04 | `/playbook-validate` alignment | Output shape passes the playbook validator; HITL when synthesis confidence is low |
+| 05 | Tests | Unit, mock, integration; idempotency/rollback assertions; playbook-validate run |
 
-#### Agent: ConsensusEngineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - CS formula, weight matrix, termination conditions
-
-**Instructions:**
-1. Implement `src/aegis_swr/core/consensus.py` - `ConsensusEvaluator(settings: AgentWeightsSettings)`.
-2. Implement `calculate(agent_scores: dict[str, float], fault_class: FaultClass) -> float`: apply weight matrix lookup; compute the weighted sum; normalize; return CS in [0.0, 1.0].
-3. Implement `is_converged(current_score: float, previous_score: float | None, threshold: float, same_hypothesis: bool) -> bool`: True only if `current_score >= threshold` AND `same_hypothesis` is True (the primary hypothesis identity hasn't changed since last round).
-4. Implement `is_deadlocked(score: float, round_num: int, max_rounds: int, hitl_threshold: float) -> bool`.
-5. Write `tests/unit/test_consensus.py` with:
-   - `test_formula_weights_memory`: all agents score 1.0 on MEMORY_ACCESS_VIOLATION → CS = 1.0.
-   - `test_formula_not_converged_below_threshold`: CS = 0.70 < 0.85 → `is_converged` = False.
-   - `test_convergence_requires_same_hypothesis`: same score but hypothesis changed → `is_converged` = False.
-   - `test_deadlock_at_max_rounds`: CS = 0.40, round = 4, max = 4 → `is_deadlocked` = True.
+**Success criteria:** a converged investigation yields an `RCAReport` whose
+`remediation_plan` validates under `/playbook-validate`; a HITL outcome carries
+**no** remediation plan (escalate, don't auto-remediate).
 
 ---
 
-#### Agent: AgentPersonaEngineer
+### Task 08.0 — Panel Integration, Docs & Hardening
 
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - all four agent persona definitions, system prompts, output schemas
-- `PROMPT_HEURISTICS.md` - all extracted heuristics to incorporate into system prompts
-- `GAP_ANALYSIS.md §Gap 1, §Gap 6` - Skeptic agent assertion requirements
+**Goal:** Compose the full default panels, finalize config, document the roster,
+and run the milestone exit gates.
 
-**Instructions:**
-1. Implement `src/aegis_swr/agents/os_kernel.py` - `OSKernelAgent(BaseAgent)`:
-   - System prompt verbatim from spec OS Kernel section.
-   - Incorporate heuristic from `PROMPT_HEURISTICS.md`: exception code to fault type mapping as few-shot examples in the system prompt.
-   - `run()`: build message context from `incident_brief`; prepend low-symbol-coverage warning if `symbol_resolution_score < 0.50`; call `ai_backend.generate(output_schema=OSKernelOutput)`; return `AgentTurn`.
-2. Implement `src/aegis_swr/agents/code_analyst.py` - `CodeAnalystAgent(BaseAgent)`:
-   - Include `user_assumption` as a labeled block in the user message (not in system prompt).
-   - Include `OSKernelOutput` from the previous turn.
-   - System prompt incorporates a structured output format from `PROMPT_HEURISTICS.md`.
-3. Implement `src/aegis_swr/agents/log_historian.py` - `LogHistorianAgent(BaseAgent)`:
-   - `run()` accepts `vector_store: VectorStore | None` as an additional parameter.
-   - Applies conditional injection rule from spec.
-   - If no history available (first incident): returns a no-op `AgentTurn` with `confidence_score = 0.0` adjustment.
-4. Implement `src/aegis_swr/agents/skeptic.py` - `SkepticAgent(BaseAgent)`:
-   - Runs three programmatic pre-checks BEFORE calling the LLM (spec Skeptic section). If any check fails deterministically: set `confirmed=False` immediately without an LLM call.
-   - Only calls LLM if pre-checks pass.
-   - Output schema: `SkepticVerdict`.
+**Subtasks:** see [`08.0-panel-integration-and-docs/README.md`](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/README.md)
 
-**Verification:** mypy passes on all four agent files.
+| # | Subtask | Summary |
+|---|---------|---------|
+| 01 | Default per-fault panels & weight audit | Finalize the [authority matrix](#specialist--fault-class-authority-matrix); assert weights sum sanely |
+| 02 | Config & examples | `agents.example.json`, `config.yaml`, `.env.example` (if any new keys) |
+| 03 | Docs | Product roster in `docs/agent/agents.md`/`docs/config/agents.md`; `docs/specs/agentic_fleet_design.md` glossary; `docs/README.md` index |
+| 04 | Hardening gates | Full regression + ground-truth; `security-auditor` (Task 05 surface) + `incident-analyst` (consensus/escalation) passes |
+| 05 | Milestone closeout | Write the final directory tree; flip `status.md` to ✅; update roadmap index |
 
 ---
 
-#### Agent: OrchestratorEngineer
+## Specialist → fault-class authority matrix
 
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - full LangGraph state graph definition with node names and conditional edges
-- LangGraph v0.2 API: `StateGraph`, `add_node`, `add_edge`, `add_conditional_edges`, `compile`
+Default debate-panel membership and **primary** weight share per fault class.
+Base agents always participate; a ✓ marks a specialist that joins the panel and
+carries meaningful weight for that fault class. Task 08.0 ratifies the exact
+floats; the rule is *re-normalize so each fault class's debate weights sum to 1.0*.
 
-**Instructions:**
-1. Implement `src/aegis_swr/core/orchestrator.py` - `Orchestrator(settings: Settings, ...)`.
-2. Constructor accepts all backends: `ai_backend, debug_backend, relational_store, object_store, vector_store, log_backend, code_backend`.
-3. Build `StateGraph(InvestigationState)`:
-   - Node `data_adapter_node`: calls `DataAdapter.process()` and updates `state["incident_brief"]`.
-   - Node `os_kernel_node`: calls `OSKernelAgent.run(state)`.
-   - Node `code_analyst_node`: calls `CodeAnalystAgent.run(state)`.
-   - Node `log_historian_node`: calls `LogHistorianAgent.run(state)` with `vector_store`.
-   - Node `skeptic_node`: calls `SkepticAgent.run(state)`; calls `ConsensusEvaluator.calculate()`; updates `state["consensus_score"]` and `state["is_converged"]`.
-   - Node `output_synthesizer_node`: constructs `RCAReport` from state; calls `SandboxExecutor.validate()` on `probabilistic_fix` if present; saves to `relational_store`; upserts to `vector_store`.
-   - Node `hitl_node`: constructs `HITLRequest`; sets `state["hitl_pending"] = True`; saves state to DB.
-4. Conditional edges from `skeptic_node`:
-   - `is_converged` → `output_synthesizer_node`
-   - `round_number >= max_rounds` and `is_deadlocked` → `hitl_node`
-   - Otherwise, → `os_kernel_node` (next round; increment `round_number`)
-5. Compile: `self._graph = builder.compile()`.
-6. Implement `async def run(source: IncidentSource) -> RCAReport`:
-   - Check `relational_store.find_by_hash(source.dump_hash)` first - return the cached report if exists.
-   - Initialize `InvestigationState` with `incident_id`, empty history, `round_number=1`.
-   - `await self._graph.ainvoke(initial_state)` → extract final `RCAReport`.
-7. Implement `async def run_streaming(source: IncidentSource) -> AsyncGenerator[dict, None]`:
-   - Use LangGraph `.astream()` on the compiled graph.
-   - Yield event dicts matching SSE event types from spec.
-8. Implement `async def continue_investigation(incident_id: UUID, user_data: dict) -> RCAReport` for HITL continuation.
+| FaultClass                 | memory_forensics | concurrency_analyst | exploitability | resource_exhaustion |
+|----------------------------|:----------------:|:-------------------:|:--------------:|:-------------------:|
+| memory_access_violation    | ✓ (primary)      |                     | ✓              |                     |
+| null_pointer_dereference   | ✓                |                     |                |                     |
+| use_after_free             | ✓ (primary)      | ✓                   | ✓              |                     |
+| stack_overflow             |                  |                     | ✓              | ✓                   |
+| integer_divide_by_zero     |                  |                     |                |                     |
+| deadlock                   |                  | ✓ (primary)         |                | ✓                   |
+| assertion_failure          |                  | ✓                   |                |                     |
+| resource_exhaustion        |                  |                     |                | ✓ (primary)         |
+| unhandled_exception        |                  |                     |                |                     |
+| unknown                    | (base panel only)|                     |                |                     |
 
-**Verification:** mypy passes.
+`remediation_planner` is **not** in this matrix — it is a post-debate synthesis
+agent, not a weighted voter.
 
 ---
 
-#### Agent: MASTestEngineer
-
-**Inputs provided:**
-- All MAS components implemented above
-
-**Instructions:**
-1. Create `tests/unit/fixtures/mock_ai_backend.py` - `MockAIBackend(AIAPIBackend)` that accepts a list of pre-scripted responses per call index. Rotates through them. Tracks call count.
-2. Write `tests/unit/test_orchestrator.py`:
-   - `test_full_pipeline_converges`: mock agents return `confidence=0.90` → completes in ≤2 rounds with `is_converged=True`.
-   - `test_skeptic_rejection_triggers_next_round`: Skeptic returns `confirmed=False` in round 1 → round 2 starts; `discussion_history` has OS Kernel entry in round 2.
-   - `test_deadlock_produces_hitl_request`: all rounds have CS < 0.50 → `RCAReport.hitl_request` is not None.
-   - `test_cache_hit_skips_analysis`: relational store mock returns the existing report for hash → `Orchestrator.run()` returns it immediately without calling any agent.
-   - `test_token_tracker_accumulates`: three rounds × 2 agent calls each → `token_tracker["input_tokens"]` is sum of all mock usage values.
-3. Write `tests/unit/test_agents.py`:
-   - Per-agent: verify that the correct output schema class is requested from `ai_backend.generate()`.
-   - `test_skeptic_fails_prechecks_without_llm_call`: provide a state where the stated module is absent from stack frames → `confirmed=False` returned without calling `ai_backend.generate()`.
-   - `test_os_kernel_prepends_low_symbol_warning`: `symbol_resolution_score=0.30` → system prompt includes `[LOW SYMBOL COVERAGE: 30%]`.
-
-**Verification:** `pytest tests/unit/test_orchestrator.py tests/unit/test_agents.py -v` all pass.
-
----
-
-## Storage Backend Agents
-
-### Agent Matrix
-
-| Agent Role            | Responsibility                                              |
-|-----------------------|-------------------------------------------------------------|
-| `FilesystemEngineer`  | `filesystem_store.py` - JSON files + binary objects on disk |
-| `SQLiteEngineer`      | `sqlite_store.py` - SQLite database                         |
-| `S3Engineer`          | `s3_store.py` - S3/MinIO reports and raw objects            |
-| `StubEngineer`        | `postgres_store.py` - NotImplementedError stub              |
-| `StorageTestEngineer` | Unit tests for all four backends + factory                  |
-
-### Agentic Execution Brief
-
-#### Agent: FilesystemEngineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - filesystem layout and hash-index design
-- `prototype/wincrash_analyzer/backends/store/filesystem.py` - reference implementation
-- `backends/base.py` - `RelationalStore` and `ObjectStore` ABC signatures
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/storage/filesystem_store.py` - `FilesystemStore(RelationalStore, ObjectStore)`.
-2. Constructor: `__init__(self, settings: StorageSettings)` - resolve `reports_dir` and `objects_dir` from settings using `pathlib.Path(x).expanduser().resolve()`.
-3. Path-traversal guard helper `_safe_path(base: Path, *parts: str) -> Path`: resolves the joined path, asserts it starts with `base`, raises `ValueError` otherwise.
-4. **`RelationalStore` methods** (all wrapped in `asyncio.to_thread`):
-   - `save_report(report)`: mkdir reports_dir; write `{reports_dir}/{incident_id}.json`; if `dump_hash`: write `{reports_dir}/_hash_index/{dump_hash}` with content = incident_id string.
-   - `get_report(incident_id)`: read `{incident_id}.json`; `FileNotFoundError` → `None`.
-   - `find_by_hash(dump_hash)`: read `_hash_index/{dump_hash}` → incident_id; load and return report; any `FileNotFoundError` → `None`.
-   - `update_hitl_response(incident_id, response)`: load report; update `hitl_request` from `response`; write back.
-5. **`ObjectStore` methods** (wrapped in `asyncio.to_thread`):
-   - `upload_raw(incident_id, filename, data)`: write to `{objects_dir}/{incident_id}/{filename}`; return key `f"{incident_id}/{filename}"`.
-   - `get_raw(object_key)`: read from `{objects_dir}/{object_key}`; `FileNotFoundError` → raise `IncidentNotFoundError`.
-
-**Invariants:** `_safe_path` is called on every user-supplied path component. No `shell=True`. No `os.system`.
-
-**Verification:** mypy passes.
-
----
-
-#### Agent: SQLiteEngineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - SQLite schema
-- `prototype/wincrash_analyzer/backends/store/sqlite.py` - reference implementation
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/storage/sqlite_store.py` - `SQLiteStore(RelationalStore)`.
-2. Constructor: resolve `db_path` with `pathlib.Path(settings.db_path).expanduser()`. Call `_init_db()` synchronously in `__init__`.
-3. `_init_db()`: `sqlite3.connect(db_path)` → execute `CREATE TABLE IF NOT EXISTS reports (...)` and `CREATE UNIQUE INDEX IF NOT EXISTS ...` per spec.
-4. Helper `_connect(self) -> sqlite3.Connection`: returns `sqlite3.connect(str(self._db_path), timeout=30)`. Used in each operation (new connection per call for thread-safety).
-5. **`RelationalStore` methods** (all wrapped in `asyncio.to_thread`):
-   - `save_report(report)`: `INSERT OR REPLACE INTO reports ...` (all four columns).
-   - `get_report(incident_id)`: `SELECT report_json WHERE incident_id = ?`; `None` if no row.
-   - `find_by_hash(dump_hash)`: `SELECT report_json WHERE dump_hash = ?`; `None` if no row.
-   - `update_hitl_response(incident_id, response)`: `SELECT report_json WHERE incident_id = ?`; mutate the parsed dict; `UPDATE reports SET report_json = ?`.
-
-**Verification:** mypy passes.
-
----
-
-#### Agent: S3Engineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - S3 key layout, MinIO support, find_by_hash algorithm
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/storage/s3_store.py` - `S3Store(RelationalStore, ObjectStore)`.
-2. Constructor: parse bucket from `settings.object_store_url` (strip `s3://` prefix). Create `self._client = boto3.client("s3", region_name=..., endpoint_url=settings.s3_endpoint_url or None)`. Store as `Any`.
-3. Helper `_run(fn)`: `await asyncio.to_thread(fn)` - wraps any sync boto3 lambda.
-4. Helper `_put_text(key, text)` and `_get_text(key) -> str | None`: `_get_text` returns `None` on `ClientError` with code `"NoSuchKey"`.
-5. **`RelationalStore` methods**:
-   - `save_report(report)`: `_put_text(f"reports/{incident_id}.json", report.model_dump_json())`; if dump_hash: `_put_text(f"hash-index/{dump_hash}", str(incident_id))`.
-   - `get_report(incident_id)`: `_get_text(f"reports/{incident_id}.json")` → parse; `None` if missing.
-   - `find_by_hash(dump_hash)`: `_get_text(f"hash-index/{dump_hash}")` → incident_id → `get_report(incident_id)`.
-   - `update_hitl_response(incident_id, response)`: load report; update; re-save.
-6. **`ObjectStore` methods**:
-   - `upload_raw(incident_id, filename, data)`: `PutObject(Key=f"objects/{incident_id}/{filename}", Body=data)`; return `f"{incident_id}/{filename}"`.
-   - `get_raw(object_key)`: `GetObject(Key=f"objects/{object_key}")['Body'].read();` `NoSuchKey` → raise `IncidentNotFoundError`.
-
-**Verification:** mypy passes.
-
----
-
-#### Agent: StubEngineer
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/storage/postgres_store.py` - `PostgresStore(RelationalStore)`.
-2. Constructor: `__init__(self, settings: StorageSettings)` - store settings, log a warning that this is a stub.
-3. All four methods raise `NotImplementedError("PostgresStore is a stub. Implement with SQLAlchemy async in a future phase.")`.
-4. Update `backends/storage/__init__.py` with the `create_storage_backends` factory from spec. Add `StorageSettings.provider` validator.
-5. Extend `StorageSettings` in `config/settings.py` with: `provider: str = "filesystem"`, `reports_dir: str = str(CONFIG_DIR / "reports")`, `objects_dir: str = str(CONFIG_DIR / "objects")`, `db_path: str = str(CONFIG_DIR / "db" / "reports.db")`, `s3_endpoint_url: str | None = None`. (`CONFIG_DIR = Path("~/.aegis-swr").expanduser()` is the only hardcoded literal.)
-6. Update `config.yaml` with the new storage keys.
-
----
-
-#### Agent: StorageTestEngineer
-
-**Instructions:**
-1. Write `tests/unit/test_storage_backends.py`. All tests run without any external service.
-2. **FilesystemStore** (in `tmp_path`): `test_filesystem_save_get_roundtrip`, `test_filesystem_find_by_hash`, `test_filesystem_find_by_hash_unknown`, `test_filesystem_update_hitl_response`, `test_filesystem_upload_raw_get_raw`, `test_filesystem_path_traversal_blocked`.
-3. **SQLiteStore** (`:memory:` db): same six operations as filesystem. Use `SQLiteStore` with `db_path=":memory:"`. Note: `:memory:` creates a new DB per connection - create the store and call all operations within the same `asyncio.to_thread` call, OR use a real temp-file DB (recommended: `tmp_path / "test.db"`).
-4. **S3Store** (mocked `boto3.client`): patch `boto3.client` to return a `MagicMock`; configure mock return values for `put_object`, `get_object`, `delete_object`; test all six operations.
-5. **PostgresStore**: each of the four methods raises `NotImplementedError`.
-6. **Factory**: `provider="filesystem"` → `(FilesystemStore, FilesystemStore)`; `provider="sqlite"` → `(SQLiteStore, None)`; `provider="s3"` → `(S3Store, S3Store)`; `provider="postgres"` → `(PostgresStore, None)`; unknown provider raises `ValueError`.
-
-**Verification:** `pytest tests/unit/test_storage_backends.py -v` passes with zero external calls.
-
----
-
-## Code Backend Agents
-
-Implements the `CodeBackend` family (`0001-generic_implementation_plan.md`) consumed by
-Data Adapter Stage 8. Three adapters: a real Git backend, a no-VCS filesystem
-fallback, and a Windows PDB Source Server adapter that gives the **exact** build
-revision rather than a time-window approximation. All are optional - when
-`enabled=false` the factory returns `None` and Stage 8 is skipped.
-
-### Agent Matrix
-
-| Agent Role               | Responsibility                                                                          |
-|--------------------------|-----------------------------------------------------------------------------------------|
-| `GitCodeEngineer`        | `code/git_adapter.py` - `git log`/`show`/`blame` via subprocess                         |
-| `FilesystemCodeEngineer` | `code/filesystem_adapter.py` - directory walk, no VCS                                   |
-| `PdbCodeEngineer`        | `code/pdb_adapter.py` - Windows PDB SrcSrv stream → exact build revision (Windows-only) |
-| `CodeFactoryEngineer`    | `code/__init__.py` factory, `CodeBackendSettings`, `config.yaml`, `CodeBackendError`    |
-| `CodeTestEngineer`       | `tests/unit/test_code_backends.py`                                                      |
-
-### Agentic Execution Brief
-
-#### Agent: GitCodeEngineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` +.1 - `CodeBackend` ABC and Git command design
-- `0001-generic_implementation_plan.md` - `CommitRecord` / `BlameRecord` schemas
-- `prototype/` has no code backend - this is a net-new component
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/code/git_adapter.py` - `GitCodeAdapter(CodeBackend)`.
-2. Constructor `__init__(self, settings: CodeSettings)` - store settings; resolve `repo_path` with `pathlib.Path(...).expanduser()` lazily per call (the ABC takes `repo_path` per method, so the per-call value wins; settings supply `window_hours`, `commit_limit`, `git_timeout_seconds` defaults).
-3. Helper `_git(self, repo_path: Path, *args: str) -> str` - `subprocess.run(["git", *args], cwd=str(repo_path), capture_output=True, text=True, timeout=settings.git_timeout_seconds)`. **List-form argv, never `shell=True`.** `FileNotFoundError` (no git binary) → `CodeBackendError`. Non-zero exit → `CodeBackendError` with stderr.
-4. Helper `_assert_repo(repo_path)` - raise `CodeBackendError` if `repo_path / ".git"` is absent.
-5. `get_commits_before(repo_path, before, window_hours=2, limit=10)`: run `git log` with `--since`/`--until` from the window, `--max-count={limit}`, `--date=iso-strict`, `--name-only`, and a `\x1f`/`\x1e`-delimited `--pretty=format`. Parse into `CommitRecord`s (newest first). `changed_files` from the trailing path lines.
-6. `get_file_diff(repo_path, file_path, commit_sha)`: `git show {sha} -- {file_path}`; return the diff text; unknown sha/path → `""`.
-7. `blame(repo_path, file_path, line_range)`: `git blame -L {start},{end} --line-porcelain -- {file_path}`; parse porcelain blocks → `BlameRecord`s.
-8. Path-safety helper `_safe_rel(repo_path, file_path)` - resolve and assert the path stays within `repo_path`; traversal → `ValueError`.
-
-**Invariants:** list-form argv only; no `shell=True`; every method tolerant of empty output. The Data Adapter (Stage 8) is responsible for catching `CodeBackendError` and degrading - this backend raises, it does not swallow.
-
-**Verification:** mypy passes.
-
----
-
-#### Agent: FilesystemCodeEngineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md.2` - no-VCS degradation rules
-- `0001-generic_implementation_plan.md` - record schemas
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/code/filesystem_adapter.py` - `FilesystemCodeAdapter(CodeBackend)`.
-2. `get_commits_before(repo_path, before, window_hours=2, limit=10)`: walk `repo_path` with `os.walk`, pruning `.git`, `node_modules`, and dot-directories. For each file whose mtime (UTC) is within `[before − window_hours, before]`, build a `CommitRecord` with `sha="fs:"+sha1(relpath).hexdigest()[:12]`, `author="unknown"`, `authored_at=mtime`, `message="filesystem mtime"`, `changed_files=[relpath]`. Sort newest-mtime first; cap to `limit`.
-3. `get_file_diff(repo_path, file_path, commit_sha)`: read current file contents (UTF-8, errors="replace"); return them prefixed with `"--- (no VCS history)\n"`. Missing file → `""`.
-4. `blame(repo_path, file_path, line_range)`: read the file; for each line in `line_range` emit a `BlameRecord(line_number, sha="fs:"+…, author="unknown", authored_at=None, line_content=line)`.
-5. Reuse the same `_safe_rel` traversal guard as `GitCodeAdapter` (factor it into a small shared `_paths.py` helper or duplicate - keep it dependency-free).
-
-**Invariants:** never raise on a *missing* file (return empty); only raise `ValueError` on path traversal. Pure stdlib (`os`, `hashlib`, `pathlib`, `datetime`).
-
-**Verification:** mypy passes.
-
----
-
-#### Agent: PdbCodeEngineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md.4` - full PdbCodeAdapter design
-- `0001-generic_implementation_plan.md` - `CommitRecord` / `BlameRecord` schemas
-- As-built `GitCodeAdapter` in `code/git_adapter.py` - reuse its `blame()` parser for the git-fallback blame path
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/code/pdb_adapter.py` - `PdbCodeAdapter(CodeBackend)`.
-2. Constructor `__init__(self, settings: CodeBackendSettings)` - store settings; compute `self._pdb_timeout = settings.pdbstr_timeout_seconds`.
-3. Helper `_resolve_pdb(repo_path: str) -> str`: use `settings.pdb_path` if set; else try `{repo_path}/{stem}.pdb` where `stem` is derived from the nearest `.pdb` in the symbol cache; raise `CodeBackendError("No PDB path configured …")` if unresolvable.
-4. Helper `_extract_srcsrv(pdb_path: str) -> str`: run `subprocess.run(["pdbstr.exe", "-r", f"-p:{pdb_path}", "-s:srcsrv"], …)` with list-form argv, `timeout=self._pdb_timeout`. `FileNotFoundError` → `CodeBackendError("pdbstr.exe not found…")`. Non-zero exit → `""` (no SrcSrv stream, not an error). **Windows-only guard:** check `sys.platform == "win32"` in the constructor; on other platforms raise `CodeBackendError("PdbCodeAdapter requires Windows (pdbstr.exe)")`.
-5. `_parse_srcsrv(stream: str) -> tuple[str, str, dict[str, str]]`: parse the SrcSrv INI-like format; return `(verctrl, repo_url, {file_path: revision_sha})`. Unknown `VERCTRL` → `verctrl="unknown"`.
-6. `get_commits_before(repo_path, before, window_hours, limit)`:
-   - Resolve PDB, extract SrcSrv, parse. If stream is empty → `[]`.
-   - Collect unique revision SHAs; `timestamp = pdb_file.stat().st_mtime` coerced to `datetime`. Return one `CommitRecord` per unique SHA with `author="PdbSourceServer"`, `message="SrcSrv build revision"`, `files_changed=[list of files at that SHA]`. Ignore `before`/`window_hours`/`limit`.
-7. `get_file_diff(repo_path, file_path, commit_sha)`: if `verctrl == "git"` delegate to `subprocess.run(["git", "show", f"{commit_sha}:{file_path}"], cwd=repo_path, …)`. Unknown VCS → `""`. Any failure → `""` (fail open).
-8. `blame(repo_path, file_path, line_range)`: if `verctrl == "git"` run `git blame -L {start},{end} --line-porcelain {commit_sha} -- {file_path}` (using the SHA from the SrcSrv map); parse via `_parse_blame_porcelain` imported from `git_adapter`. Any failure → `[]` (fail open).
-
-**Invariants:** list-form argv; Windows-only guard in constructor; every method fail-open on empty/missing SrcSrv.
-
-**Verification:** mypy passes; adapter raises `CodeBackendError` on non-Windows platform import.
-
----
-
-#### Agent: CodeFactoryEngineer
-
-**Instructions:**
-1. Add `CodeBackendError(AegisSWRError)` to `core/exceptions.py`.
-2. Implement `backends/code/__init__.py` with `create_code_backend(settings: CodeBackendSettings) -> CodeBackend | None`. Provider routing: `enabled=false` → `None`; `git` → `GitCodeAdapter`; `filesystem` → `FilesystemCodeAdapter`; `pdb` → `PdbCodeAdapter`; unknown → `ValueError`.
-3. Update `CodeBackendSettings` in `config/settings.py`: add `pdb_path: str | None = None`, `pdbstr_timeout_seconds: int = 15`; extend the `provider` validator to allow `"pdb"` alongside `"git"` | `"filesystem"`.
-4. Update `config.yaml` `backends.code` block per spec (add `pdb_path: null` and `pdbstr_timeout_seconds: 15`).
-5. **Amend Step 2 (Data Adapter):** `DataAdapter.process` already accepts `code_backend`; confirm Stage 8 catches `CodeBackendError`, logs a warning, and continues with empty `code_history` (the "fail open" rule).
-
-**Verification:** `python -c "from aegis_swr.backends.code import create_code_backend"` succeeds; mypy passes.
-
----
-
-#### Agent: CodeTestEngineer
-
-**Instructions:**
-1. Write `tests/unit/test_code_backends.py`. All tests run without a network and without requiring a real system binary.
-2. **GitCodeAdapter** (mock `subprocess.run`): `test_git_get_commits_before_parses_records`, `test_git_blame_parses_porcelain`, `test_git_missing_repo_raises` (no `.git` → `CodeBackendError`), `test_git_missing_binary_raises` (`FileNotFoundError` → `CodeBackendError`), `test_git_path_traversal_blocked`.
-3. **FilesystemCodeAdapter** (in `tmp_path`): `test_fs_commits_within_window`, `test_fs_commits_respects_limit`, `test_fs_file_diff_returns_contents`, `test_fs_blame_line_range`, `test_fs_path_traversal_blocked`.
-4. **PdbCodeAdapter** (mock `subprocess.run`, mock `sys.platform`):
-   - `test_pdb_non_windows_raises`: mock `sys.platform = "linux"` → constructor raises `CodeBackendError`.
-   - `test_pdb_get_commits_parses_srcsrv`: mock `pdbstr.exe` stdout to return a fixture SrcSrv stream (2 files, 1 SHA, `VERCTRL=git`) → one `CommitRecord` with correct SHA, `author="PdbSourceServer"`, both files in `files_changed`.
-   - `test_pdb_missing_pdbstr_raises`: `FileNotFoundError` on `pdbstr.exe` subprocess → `CodeBackendError("pdbstr.exe not found")`.
-   - `test_pdb_empty_srcsrv_returns_empty`: `pdbstr.exe` exits 1 (no SrcSrv stream) → `get_commits_before` returns `[]` (no error).
-   - `test_pdb_get_file_diff_git_verctrl`: mock `git show` → returns diff text.
-   - `test_pdb_blame_git_verctrl`: mock `git blame --line-porcelain` → returns `BlameRecord`s.
-5. **Factory:** `enabled=False` → `None`; `git` → `GitCodeAdapter`; `filesystem` → `FilesystemCodeAdapter`; `pdb` → `PdbCodeAdapter`; unknown → `ValueError`.
-
-**Fixture:** `tests/unit/fixtures/sample_srcsrv_stream.txt` - realistic SrcSrv INI block with `VERCTRL=git`, `GITREPO=https://…`, two source file entries.
-
-**Verification:** `pytest tests/unit/test_code_backends.py -v` passes with zero external calls.
-
----
-
-## Log Backend Agents
-
-Implements the `LogBackend` family (`0001-generic_implementation_plan.md`) queried by
-Data Adapter Stage 4. A real local-file adapter plus a Fluent plugin stub. ELK is
-deferred.
-
-### Agent Matrix
-
-| Agent Role           | Responsibility                                                          |
-|----------------------|-------------------------------------------------------------------------|
-| `FileLogEngineer`    | `log/file_adapter.py` - windowed/severity-filtered local log reads      |
-| `FluentStubEngineer` | `log/fluent_adapter.py` - `NotImplementedError` plugin stub             |
-| `LogFactoryEngineer` | `log/__init__.py` factory, `LogSettings`, `config.yaml`, Stage 4 wiring |
-| `LogTestEngineer`    | `tests/unit/test_log_backends.py`                                       |
-
-### Agentic Execution Brief
-
-#### Agent: FileLogEngineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` +.1 - `LogBackend` ABC and file-resolution rules
-- `core/data_adapter.py` - existing Stage 4 temporal-window + severity logic to reuse
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/log/file_adapter.py` - `FileLogAdapter(LogBackend)`.
-2. Constructor stores `settings: LogSettings` (provides `file_root`, `default_severity_levels`).
-3. `async def query_window(service, start_time, end_time, severity_levels=None) -> list[str]`:
-   - Resolve candidate files: if `settings.file_root` is set, glob `{file_root}/{service}*.log` and `{file_root}/{service}*.txt`; otherwise return `[]` (the Data Adapter still has the `IncidentSource.log_paths` file path covered).
-   - Read each file in `asyncio.to_thread`; for each line best-effort parse a leading ISO-8601 / syslog timestamp; keep lines whose timestamp ∈ `[start_time, end_time]` (retain unparseable lines only when the window endpoints are absent).
-   - Apply `severity_levels or settings.default_severity_levels` as a case-insensitive token filter when provided.
-4. Path safety: resolved file paths must stay within `file_root` (traversal → `ValueError`).
-
-**Invariants:** all file I/O via `asyncio.to_thread`; never raise on a missing file (skip it). Reuse the timestamp/severity helpers from `core/data_adapter` where practical rather than duplicating regexes.
-
-**Verification:** mypy passes.
-
----
-
-#### Agent: FluentStubEngineer
-
-**Instructions:**
-1. Implement `src/aegis_swr/backends/log/fluent_adapter.py` - `FluentAdapter(LogBackend)`.
-2. Constructor stores `settings`; log a warning that this is a stub (mirrors `PostgresStore`, spec).
-3. `async def query_window(...)` raises `NotImplementedError("FluentAdapter is a stub. Implement the Fluent forward/HTTP query in a future phase.")`.
-4. Add a module docstring describing the intended production design (connect to `fluent_host:fluent_port`, tag-scoped `fluent_tag_prefix.{service}` time-range query) for the future implementer.
-
-**Verification:** mypy passes; importing the module makes no network connection.
-
----
-
-#### Agent: LogFactoryEngineer
-
-**Instructions:**
-1. Implement `backends/log/__init__.py` with `create_log_backend(settings: LogSettings) -> LogBackend | None` per spec.3 (`file` → `FileLogAdapter`; `fluent` → `FluentAdapter`; `elk` → `NotImplementedError`; unknown → `ValueError`).
-2. Add `LogSettings` to `config/settings.py`: `provider: str = "file"`, `file_root: str | None = None`, `default_severity_levels: list[str] = ["FATAL", "CRITICAL", "ERROR", "WARNING"]`, `fluent_host: str | None = None`, `fluent_port: int | None = None`, `fluent_tag_prefix: str | None = None`. Add a `provider` validator. Wire under `BackendsSettings.log` (replacing the placeholder `elk_url`/`fluent_*` pair).
-3. Update `config.yaml` `backends.log` block per spec.
-4. **Amend Step 2 (Data Adapter):** extend `DataAdapter.process` signature with `log_backend: LogBackend | None = None`. In Stage 4, when `log_backend` is not None AND a `service` name (from `IncidentSource.metadata["service"]` or the CLI `--log-service`) and `incident_timestamp` are present, call `await log_backend.query_window(...)` and merge the returned lines with the file-based lines **before** Drain3 clustering. Wrap the call in try/except - a stub `NotImplementedError` or a transient query error logs a warning and falls back to file-only logs (fail open).
-
-**Verification:** `python -c "from aegis_swr.backends.log import create_log_backend"` succeeds; mypy passes.
-
----
-
-#### Agent: LogTestEngineer
-
-**Instructions:**
-1. Write `tests/unit/test_log_backends.py` - no network, no Fluent service.
-2. **FileLogAdapter** (in `tmp_path` with `file_root`): `test_file_window_filters_by_time` (lines inside vs outside the window), `test_file_severity_filter`, `test_file_no_file_root_returns_empty`, `test_file_path_traversal_blocked`, `test_file_missing_file_skipped`.
-3. **FluentAdapter:** `test_fluent_query_window_raises_notimplemented`.
-4. **Factory:** `provider="file"` → `FileLogAdapter`; `provider="fluent"` → `FluentAdapter`; `provider="elk"` → `NotImplementedError`; unknown → `ValueError`.
-5. **Stage 4 merge:** add `test_data_adapter_merges_log_backend_lines` to `tests/unit/test_data_adapter.py` - a fake `LogBackend` returning two windowed lines; assert they appear in the brief's `log_summary` alongside file lines; assert a stub raising `NotImplementedError` degrades to file-only without failing.
-
-**Verification:** `pytest tests/unit/test_log_backends.py -v` passes with zero external calls.
-
----
-
-## REST API Agents
-
-### Agent Matrix
-
-| Agent Role         | Responsibility                         |
-|--------------------|----------------------------------------|
-| `APIEngineer`      | FastAPI app, all routes, SSE streaming |
-| `SecurityEngineer` | Auth middleware, rate limiting         |
-| `APITestEngineer`  | Integration tests with httpx           |
-
-### Agentic Execution Brief
-
-#### Agent: APIEngineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - all endpoint specifications
-- `cli/commands.py` from Step 7 - `aegis server` stub to complete
-
-**Instructions:**
-1. Implement `src/aegis_swr/api/app.py` - `create_app(settings: Settings) -> FastAPI`.
-2. Implement `api/routes/incidents.py`:
-   - `POST /v1/incidents/analyze`: validate multipart form; upload to `ObjectStore`; create DB record; start `Orchestrator.run()` as `BackgroundTasks`; return 202.
-   - `POST /v1/incidents/{id}/continue`: HITL continuation endpoint.
-   - `GET /v1/incidents/`: paginated list with filters.
-3. Implement `api/routes/stream.py`:
-   - Use an `asyncio.Queue` registry: `incident_event_queues: dict[str, asyncio.Queue]`.
-   - `Orchestrator.run_streaming()` pushes events to the queue.
-   - SSE endpoint pulls from queue and formats as `data: {json}\n\nevent: {type}\n\n`.
-   - Heartbeat every 15 s using `asyncio.sleep(15)` in a concurrent task.
-4. Implement `api/routes/reports.py`: `GET /v1/incidents/{id}/report`.
-5. Add `GET /health` endpoint (no auth) returning `{ "status": "ok" }`.
-6. Complete the `aegis server` stub from Step 7: replace the placeholder message with `uvicorn.run(create_app(settings), host=..., port=..., reload=...)`.
-
----
-
-#### Agent: SecurityEngineer
-
-**Instructions:**
-1. Implement `api/middleware/auth.py` - `AuthMiddleware(BaseHTTPMiddleware)`. Add `api_keys` table to Alembic migration (columns: `key_hash TEXT`, `org_slug TEXT`, `created_at TIMESTAMPTZ`). Hash with `bcrypt.hashpw`.
-2. Implement `api/middleware/rate_limit.py` using `slowapi`.
-3. Implement `SensitiveFilter` in `src/aegis_swr/core/logging.py` (ported from prototype's pattern): attach to `loguru` logger; redacts `sk-ant-*`, `sk-*`, and all API key patterns.
-
----
-
-#### Agent: APITestEngineer
-
-**Instructions:**
-1. Write `tests/integration/test_api.py` using `httpx.AsyncClient(app=app)`:
-   - `test_analyze_returns_202`: valid multipart form → 202 with `incident_id`.
-   - `test_report_returns_202_while_analyzing`: status not complete → 202.
-   - `test_report_returns_200_when_complete`: mock orchestrator completes → 200 + full report.
-   - `test_sse_stream_delivers_events`: connect to stream; mock orchestrator pushes 2 turns + complete → assert all received in order.
-   - `test_auth_blocks_missing_key`: no `X-Aegis-API-Key` header → 401.
-   - `test_health_no_auth_required`: `GET /health` with no header → 200.
-
----
-
-## Secure Code Sandbox Agents
-
-### Agent Matrix
-
-| Agent Role            | Responsibility                                              |
-|-----------------------|-------------------------------------------------------------|
-| `SandboxEngineer`     | `sandbox/executor.py`, `sandbox/validators.py`, Dockerfiles |
-| `SandboxTestEngineer` | Unit tests with mocked subprocess                           |
-
-### Agentic Execution Brief
-
-#### Agent: SandboxEngineer
-
-**Inputs provided:**
-- `0001-generic_implementation_plan.md` - full sandbox architecture, Docker flags, validation flow
-
-**Instructions:**
-1. Implement `src/aegis_swr/sandbox/executor.py` - `SandboxExecutor(settings: SandboxSettings)`.
-2. `async def validate(patch: str, language: str) -> ValidationResult`:
-   - Write patch to a secure temp file (use `tempfile.NamedTemporaryFile` inside the configured temp dir; validate the resolved path stays within the temp dir to prevent path traversal).
-   - Build Docker command with all security flags from spec: `--rm`, `--network=none`, `--read-only`, `--tmpfs /tmp:rw,exec,size=50m`, `--memory={memory_mb}m`, `--cpus={cpu_limit}`, `--cap-drop ALL`.
-   - Run with `asyncio.create_subprocess_exec` with `timeout`.
-   - Parse exit code and stdout/stderr into `ValidationResult`.
-3. Implement graceful degradation: if Docker binary not found → `ValidationResult(passed=None, compiler_output="Sandbox unavailable")`.
-4. Write `sandbox/Dockerfile.cpp`, `sandbox/Dockerfile.python` (minimal Alpine + build tools only).
-5. Add `Makefile` target `build-sandbox-images`.
-
----
-
-#### Agent: SandboxTestEngineer
-
-**Instructions:**
-1. Write `tests/unit/test_sandbox.py`:
-   - `test_valid_cpp_patch`: mock `asyncio.create_subprocess_exec` returning exit 0 → `passed=True`.
-   - `test_invalid_patch_exit_nonzero`: exit 1 + compiler error output → `passed=False`, `compiler_output` non-empty.
-   - `test_docker_unavailable`: mock `FileNotFoundError` on subprocess → `passed=None`.
-   - `test_path_traversal_blocked`: patch content containing `../../../etc/passwd` in a filename used for output → path stays within temp dir.
-
----
-
-## Testing & Hardening Agents
-
-### Agent Matrix
-
-| Agent Role              | Responsibility                                       |
-|-------------------------|------------------------------------------------------|
-| `GroundTruthEngineer`   | Creates 10 ground truth incidents + `eval_runner.py` |
-| `HardeningEngineer`     | Docker Compose, Makefile targets, security checklist |
-| `DocumentationEngineer` | Updates `docs/README.md` registry                    |
-
-### Agentic Execution Brief
-
-#### Agent: GroundTruthEngineer
-
-**Inputs provided:**
-- Prototype test assets in `prototype/tests/` (real dump files and log fixtures)
-- GAP_ANALYSIS.md - known failure modes to include as ground truth cases
-
-**Instructions:**
-1. Create `tests/ground_truth/incidents/` with at least 10 subdirectories.
-2. For each incident, create:
-   - `inputs/` directory with appropriate files (dump, log, screenshot where applicable).
-   - `expected_output.json` with `fault_class`, `faulting_module`, `root_cause_keywords` list.
-   - `README.md` with human description of true root cause and how it was determined.
-3. Coverage must include: access violation, stack overflow, deadlock, resource exhaustion, log-only incident (no dump).
-4. Write `tests/ground_truth/eval_runner.py`:
-   - Iterates all incident directories.
-   - Runs `Orchestrator.run()` for each with real AI backend.
-   - Scores PASS/PARTIAL/FAIL.
-   - Asserts PASS rate ≥ 80% with a clear failure message listing each failing incident.
-   - Prints token usage table per incident.
-
----
-
-#### Agent: HardeningEngineer
-
-**Inputs provided:**
-- All completed source files
-
-**Instructions:**
-1. Create `docker-compose.yml` for local production stack: `aegis-api`, `postgres:16-alpine`, `minio`, `qdrant/qdrant`. Include health checks and depends_on conditions.
-2. Create `docker-compose.test.yml` for CI integration tests: `postgres`, `minio` only (no `aegis-api`).
-3. Create `tests/benchmarks/token_budget.py`: runs Data Adapter on 5 canonical input pairs; tokenizes output with `tiktoken`; asserts average ≤ 12,000 tokens.
-4. Complete all Makefile targets: `install`, `lint`, `typecheck`, `test`, `test-integration`, `test-ground-truth`, `benchmark-tokens`, `build-sandbox-images`, `up`, `down`, `migrate`.
-5. Review all `subprocess.run()` calls - verify list-form args (no `shell=True` anywhere). Report any violations.
-6. Verify all file path operations use `Path.resolve()` and stay within configured root directories.
-
----
-
-#### Agent: DocumentationEngineer
-
-**Instructions:**
-1. Update `docs/README.md` to add a new `specs/` section to the documentation registry table with entries for all three new spec files.
-2. Update the root `README.md` Quick Start section to reflect the `aegis-swr` package name and the `src/aegis_swr/` structure.
-3. Verify all internal links in all `docs/` files are still valid after the new `specs/` directory is added.
-
----
-
-## Cross-Cutting Agent Guidelines
-
-These rules apply to every agent in every step:
-
-1. **Schemas are the source of truth.** Always import from `aegis_swr.core.schemas`. Never redefine a model that already exists.
-2. **No shell=True.** All `subprocess.run()` and `subprocess.Popen()` calls use list-form arguments. This is a security invariant, not a style preference.
-3. **Prompt caching is mandatory.** Every `AIAPIBackend.generate()` call MUST include `cache_control: {"type": "ephemeral"}` on the system prompt block. Never submit a system prompt without it.
-4. **Fail open on optional features.** Presidio (PII scrubbing), pytesseract (OCR), and sandbox (code validation) are all optional. When their libraries are absent or their services are unavailable: log a warning, continue the pipeline with graceful degradation. Never fail the analysis because an enhancement is missing.
-5. **Hash before analyze.** The dump SHA-256 hash MUST be computed before calling any backend. The deduplication check (find_by_hash) MUST happen before starting any analysis. This is the fix for prototype Gap 4.
-6. **Type annotations on all public APIs.** All public functions and methods must have complete type annotations. `mypy src/` must pass after every step.
-7. **Tests before next step.** Each step ends with a `pytest` verification gate. The next step does not begin until the current step's tests pass.
+## Dependency graph
+
+```
+Task 01.0 (Restructure)
+   │
+   └──► Task 02.0 (Extensible Panel)         ← registry/consensus/orchestrator
+           │
+           ├──► Task 03.0 (Memory Forensics)        ┐
+           ├──► Task 04.0 (Concurrency Analyst)     │  parallel
+           ├──► Task 05.0 (Exploitability)          │  (shared shape)
+           ├──► Task 06.0 (Resource Exhaustion)     ┘
+           │
+           └──► Task 07.0 (Remediation Planner)     ← synthesis tier
+                   │
+   Tasks 03–07 ────┴──► Task 08.0 (Integration, Docs & Hardening)   ← milestone exit
+```
+
+**Minimum viable forensic panel:** 01.0 → 02.0 → any one specialist → 08.0.
+**Full milestone:** all eight tasks.

@@ -213,10 +213,10 @@ class LiteLLMClient:
     Raises RouterException on all errors - never re-raises litellm internals.
     """
 
-    def __init__(self, provider_configs: dict[str, ProviderConfig]) -> None:
+    def __init__(self, provider_configs: dict[str, ProviderConfig]):
         self._configure_providers(provider_configs)
 
-    def _configure_providers(self, providers: dict[str, ProviderConfig]) -> None:
+    def _configure_providers(self, providers: dict[str, ProviderConfig]):
         """
         Set litellm API keys and base URLs for each configured provider.
         Called once at construction; not called again during the object's lifetime.
@@ -265,7 +265,7 @@ class ModelRouter:
         response = await router.complete(role="primary_reasoning", messages=[...])
     """
 
-    def __init__(self, config: RouterConfig, client: LiteLLMClient, bus: EventBus) -> None:
+    def __init__(self, config: RouterConfig, client: LiteLLMClient, bus: EventBus):
         ...
 
     @classmethod
@@ -398,7 +398,7 @@ class ConfigValidationError(Exception):
     """Raised when agents.yaml fails validation."""
 
 class AllProvidersExhausted(RouterException):
-    def __init__(self, role: str, tried: list[str], errors: list[str]) -> None:
+    def __init__(self, role: str, tried: list[str], errors: list[str]):
         self.role = role
         self.tried = tried
         self.errors = errors
@@ -699,7 +699,7 @@ from aegis.router.router import ModelRouter
 from aegis.router.exceptions import AllProvidersExhausted
 
 class BaseAgent:
-    def __init__(self, router: ModelRouter, bus: EventBus) -> None:
+    def __init__(self, router: ModelRouter, bus: EventBus):
         self._router = router
         self._bus = bus
 

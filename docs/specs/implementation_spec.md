@@ -667,7 +667,7 @@ WinDbgJSBackend.extract(source, symbol_path)
 class _CallbackBridge:
     """RAII: starts an ephemeral HTTP listener, shuts it down on __exit__."""
 
-    def __init__(self, callback_timeout: int) -> None: ...
+    def __init__(self, callback_timeout: int): ...
 
     def __enter__(self) -> _CallbackBridge: ...
         # Binds HTTPServer to ("127.0.0.1", 0) - port 0 forces OS assignment.
@@ -675,7 +675,7 @@ class _CallbackBridge:
         # Starts daemon thread running httpd.serve_forever().
         # self.port is set from httpd.server_address[1] after binding.
 
-    def __exit__(self, *_: object) -> None: ...
+    def __exit__(self, *_: object): ...
         # httpd.shutdown(); httpd.server_close()
 
     def wait_for_payload(self) -> str: ...
@@ -688,9 +688,9 @@ The handler factory closes over the instance queue to avoid the prototype's bug 
 ```python
 def _make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]:
     class _Handler(BaseHTTPRequestHandler):
-        def do_POST(self) -> None:
+        def do_POST(self):
             ...  # read body, enqueue raw string, respond 200
-        def log_message(self, *args: object) -> None:
+        def log_message(self, *args: object):
             pass  # suppress noisy HTTP access log
     return _Handler
 ```
@@ -870,13 +870,13 @@ The factory `create_storage_backends(settings)` returns `(RelationalStore | None
 ```python
 class RelationalStore(ABC):
     @abstractmethod
-    async def save_report(self, report: RCAReport) -> None: ...
+    async def save_report(self, report: RCAReport): ...
     @abstractmethod
     async def get_report(self, incident_id: UUID) -> RCAReport | None: ...
     @abstractmethod
     async def find_by_hash(self, dump_hash: str) -> RCAReport | None: ...
     @abstractmethod
-    async def update_hitl_response(self, incident_id: UUID, response: dict) -> None: ...
+    async def update_hitl_response(self, incident_id: UUID, response: dict): ...
 
 class ObjectStore(ABC):
     @abstractmethod
@@ -886,7 +886,7 @@ class ObjectStore(ABC):
 
 class VectorStore(ABC):
     @abstractmethod
-    async def upsert_incident(self, report: RCAReport) -> None: ...
+    async def upsert_incident(self, report: RCAReport): ...
     @abstractmethod
     async def search_similar(
         self,

@@ -45,7 +45,7 @@ class PdbstrWrapper:
         providing ``pdbstr_timeout_seconds``.
     """
 
-    def __init__(self, settings: CodeBackendSettings) -> None:
+    def __init__(self, settings: CodeBackendSettings):
         if not _is_windows():
             raise CodeBackendError(
                 "PdbCodeAdapter (and PdbstrWrapper) are Windows-only. "

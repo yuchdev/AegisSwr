@@ -1,12 +1,20 @@
-[tool.ruff]
 src = ["src"]
 line-length = 120
 target-version = "py312"
+exclude = ["samples"]
 
 [lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "C4"]
 
 # Disable the pyupgrade rules that rewrite it to the `X | None` shorthand:
-#   UP007 - Union[...]  -> X | Y
-#   UP045 - Optional[X] -> X | None
-ignore = ["UP007", "UP045"]
+#   UP007 - Union[...] -> X | Y; Optional[X] -> X | None
+#   UP038 - ininstance(X, Y) -> X | Y
+#   SIM300 - Yoda condition x == f(a, b)
+#   E501 - line too long
+ignore = [
+    "UP007",
+    "UP038",
+    "SIM300",
+    "E501"
+]
+

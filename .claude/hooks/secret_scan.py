@@ -15,8 +15,8 @@ from __future__ import annotations
 
 import re
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from _common import REPO_ROOT, allow, append_log, block, edited_path, read_event, tool_input
 

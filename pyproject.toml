@@ -7,12 +7,12 @@ packages = [{ include = "aegis_swr", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-fastapi = "^0.115"
+fastapi = "0.138.2"
 uvicorn = { version = "^0.32", extras = ["standard"] }
 typer = { version = "^0.26", extras = ["all"] }
 pydantic = "^2.9"
 pydantic-settings = "^2.5"
-langgraph = "^0.2"
+langgraph = "1.0.10"
 anthropic = "^0.40"
 openai = "^1.55"
 sqlalchemy = { version = "^2.0", extras = ["asyncio"] }
@@ -59,7 +59,7 @@ build-backend = "poetry.core.masonry.api"
 #   exclude: rule codes to skip (blacklist); applied after include, so it wins.
 # Leaving both empty (the default) tests every rule.
 include = []
-exclude = []
+exclude = ["tests/flake8_lint/samples/"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

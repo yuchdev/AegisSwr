@@ -382,7 +382,7 @@ Run with:
 poetry run pytest tests/unit/ tests/integration/ \
   -q \
   --cov=aegis_swr.backends.code \
-  --cov=aegis_swr.cli._config \
+  --cov=aegis_swr.cli.config \
   --cov=aegis_swr.cli.commands \
   --cov-report=term-missing
 ```

@@ -10,10 +10,9 @@ This script checks that:
 
 import sys
 from pathlib import Path
-from typing import Tuple
 
 
-def check_main_project() -> Tuple[bool, list[str]]:
+def check_main_project() -> tuple[bool, list[str]]:
     """Check the main project coverage configuration."""
     issues = []
     root = Path(__file__).parent
@@ -45,7 +44,7 @@ def check_main_project() -> Tuple[bool, list[str]]:
     return len(issues) == 0, issues
 
 
-def check_prototype() -> Tuple[bool, list[str]]:
+def check_prototype() -> tuple[bool, list[str]]:
     """Check prototype project coverage configuration."""
     issues = []
     proto = Path(__file__).parent / "prototype"
@@ -87,7 +86,7 @@ def check_prototype() -> Tuple[bool, list[str]]:
     return len(issues) == 0, issues
 
 
-def check_documentation() -> Tuple[bool, list[str]]:
+def check_documentation() -> tuple[bool, list[str]]:
     """Check that documentation exists."""
     issues = []
     doc = Path(__file__).parent / "docs" / "configuration" / "coverage.md"

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Optional
 
@@ -51,21 +51,21 @@ def edited_path(event: dict[str, Any]) -> Optional[Path]:
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def append_log(filename: str, line: str) -> None:
+def append_log(filename: str, line: str):
     """Append a single timestamped line to a file under .claude/logs/."""
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     with (LOG_DIR / filename).open("a", encoding="utf-8") as fh:
         fh.write(f"{now_iso()} {line}\n")
 
 
-def block(message: str) -> "None":
+def block(message: str):
     """Emit a blocking decision: stderr + exit 2."""
     sys.stderr.write(message.rstrip() + "\n")
     sys.exit(2)
 
 
-def allow() -> "None":
+def allow():
     sys.exit(0)

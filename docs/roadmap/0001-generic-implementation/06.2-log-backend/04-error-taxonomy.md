@@ -48,7 +48,7 @@ class LogBackendError(AegisSWRError):
     :param message: Short, redaction-safe description of the failure.
     :param cause: Original exception, if any.
     """
-    def __init__(self, message: str, cause: Optional[Exception] = None) -> None:
+    def __init__(self, message: str, cause: Optional[Exception] = None):
         super().__init__(message)
         self.cause: Optional[Exception] = cause
 
@@ -77,7 +77,7 @@ class FluentRecordParseError(LogBackendError):
     """
     def __init__(
         self, message: str, raw: Optional[Any] = None, cause: Optional[Exception] = None
-    ) -> None:
+    ):
         super().__init__(message, cause)
         self.raw: Optional[Any] = raw
 ```
