@@ -1647,7 +1647,8 @@ aegis analyze \
   --shot    ./error.png          # screenshot (repeatable)
   --pcap    ./traffic.pcap       # network traffic capture (repeatable; metadata shown at --log-severity DEBUG)
   --sym     ./symbols/           # symbol path
-  --assume  "DB pool reduced"    # user context / assumption text
+  --prompt  "DB pool reduced"    # operator prompt / context text (maps to user_assumption)
+  --prompt-file ./PROMPT.md      # read the prompt from a markdown/text file (wins over --prompt)
   --engine  auto                 # debug engine: auto | cdb | windbg_js
   --ai      anthropic            # AI provider: anthropic | openai
   --store   filesystem           # storage backend: filesystem | sqlite | s3 | postgres
@@ -1682,7 +1683,7 @@ Prototype options carried forward:
 - `--engine` (maps to `DebugSettings.engine`)
 - `--ai` (maps to `AISettings.provider`)
 - `--store` / `--store-config` (maps to `StorageSettings.provider` / path)
-- `--assume` (maps to `IncidentSource.user_assumption`)
+- `--prompt` / `--prompt-file` (maps to `IncidentSource.user_assumption`; `--prompt-file` reads the prompt from a markdown/text file and wins over `--prompt`; when neither is given an artifact-aware default prompt is synthesised. Legacy `--assume` / `assume` key is migrated to `--prompt` / `prompt`.)
 - `--log-severity` (application log verbosity; replaces prototype `--report-severity`)
 - `--config` / `--save-config` (JSON file round-trip)
 
@@ -1709,7 +1710,8 @@ options exactly:
   "shots":         [],
   "pcaps":         [],
   "sym":           null,
-  "assume":        null,
+  "prompt":        null,
+  "prompt_file":   null,
   "engine":        "auto",
   "store":         "filesystem",
   "store_config":  null,

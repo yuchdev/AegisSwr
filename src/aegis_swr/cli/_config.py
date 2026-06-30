@@ -55,9 +55,7 @@ from aegis_swr.config.settings import DEFAULT_CONFIG_PATH as DEFAULT_CONFIG_PATH
 #: schema. ``config.json`` is unified - it carries both the flat analyze options
 #: *and* these nested sections - so they are expected here and ignored without a
 #: warning (unlike genuine typos in analyze keys).
-_RUNTIME_SECTION_KEYS: frozenset[str] = frozenset(
-    {"core", "backends", "sandbox", "api", "agent_weights"}
-)
+_RUNTIME_SECTION_KEYS: frozenset[str] = frozenset({"core", "backends", "sandbox", "api", "agent_weights"})
 
 #: Flat ``AnalyzeConfig`` field → dotted JSON path inside config.json. The
 #: dataclass keeps the flat field names (each 1:1 with a CLI option); config.json
@@ -87,9 +85,12 @@ _FIELD_TO_PATH: dict[str, str] = {
 #: Top-level section names consumed by :func:`_flatten_sections`, derived from the
 #: path map (never hand-maintained). Popped during flattening so they are never
 #: mistaken for unknown (typo) analyze keys.
-_ANALYZE_SECTION_KEYS: frozenset[str] = frozenset(
-    path.split(".", 1)[0] for path in _FIELD_TO_PATH.values()
-)
+_ANALYZE_SECTION_KEYS: frozenset[str] = frozenset(path.split(".", 1)[0] for path in _FIELD_TO_PATH.values())
+
+#: Legacy flat keys renamed to a new field. A value under the old name is lifted
+#: to the new field (only when the new field is absent, so an explicit new key
+#: wins) with a one-time deprecation warning. ``--assume`` became ``--prompt``.
+_LEGACY_FIELD_RENAMES: dict[str, str] = {"assume": "prompt"}
 
 #: Sentinel for "no value at this path" - distinct from a legitimate ``None``.
 _MISSING = object()
@@ -187,6 +188,13 @@ def _flatten_sections(data: Mapping[str, Any]) -> dict[str, Any]:
     recognised section is returned unchanged.
     """
     flat = _migrate_legacy(data)
+    for old_name, new_name in _LEGACY_FIELD_RENAMES.items():
+        if old_name in flat and new_name not in flat:
+            flat[new_name] = flat.pop(old_name)
+            logger.warning(
+                f"Deprecated config key {old_name!r} migrated to {new_name!r}. "
+                f"Update config.json - see docs/config/config.md."
+            )
     for field_name, path in _FIELD_TO_PATH.items():
         if field_name in flat:
             continue  # an explicit flat key wins over the nested section
@@ -232,7 +240,8 @@ class AnalyzeConfig:
     shots: list[str] = field(default_factory=list)
     pcaps: list[str] = field(default_factory=list)
     sym: list[str] = field(default_factory=list)
-    assume: Optional[str] = None
+    prompt: Optional[str] = None
+    prompt_file: Optional[str] = None
     engine: str = "auto"
     store: str = "filesystem"
     store_config: Optional[str] = None

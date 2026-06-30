@@ -79,7 +79,8 @@ maps to a CLI flag - see [cli.md](cli.md#aegis-analyze).
 | `shots`         | string[]       | `[]`           | -                                        |
 | `pcaps`         | string[]       | `[]`           | -                                        |
 | `sym`           | string or null | `null`         | -                                        |
-| `assume`        | string or null | `null`         | -                                        |
+| `prompt`        | string or null | `null`         | - (legacy key `assume` is migrated)      |
+| `prompt_file`   | string or null | `null`         | path to a markdown/text prompt file      |
 | `engine`        | string         | `"auto"`       | `auto`, `cdb`, `windbg_js`               |
 | `store`         | string         | `"filesystem"` | `filesystem`, `sqlite`, `s3`, `postgres` |
 | `store_config`  | string or null | `null`         | -                                        |

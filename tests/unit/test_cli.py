@@ -240,9 +240,7 @@ def test_save_config_default_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 
 def test_config_file_sets_defaults(tmp_path: Path):
     config_file = tmp_path / "cfg.json"
-    config_file.write_text(
-        json.dumps({"backends": {"ai": {"provider": "openai"}}, "output": "json"})
-    )
+    config_file.write_text(json.dumps({"backends": {"ai": {"provider": "openai"}}, "output": "json"}))
 
     async def mock_run(self, source):  # type: ignore[override]
         return _report()
@@ -376,6 +374,81 @@ def test_config_nested_ingest_service_reaches_metadata(tmp_path: Path):
 
     assert result.exit_code == 0, result.output
     assert captured["service"] == "billing-api"
+
+
+# ---------------------------------------------------------------------------
+# Prompt resolution (--prompt / --prompt-file / synthesised default)
+# ---------------------------------------------------------------------------
+
+
+def _run_capturing_assumption(args: list[str], tmp_path: Path) -> tuple[object, str]:
+    """Invoke ``analyze`` with *args*, capturing ``source.user_assumption``."""
+    captured: dict[str, object] = {}
+
+    async def mock_run(self, source):  # type: ignore[override]
+        captured["assumption"] = source.user_assumption
+        return _report()
+
+    with mock.patch(_MOCK_RUN, mock_run):
+        result = runner.invoke(
+            app,
+            [
+                "analyze",
+                *args,
+                "--output",
+                "quiet",
+                "--store",
+                "filesystem",
+                "--store-config",
+                str(tmp_path / "reports"),
+            ],
+        )
+    return captured.get("assumption"), result
+
+
+def test_prompt_flag_reaches_user_assumption(tmp_path: Path):
+    assumption, result = _run_capturing_assumption(["--prompt", "Suspect the new cache layer"], tmp_path)
+    assert result.exit_code == 0, result.output
+    assert assumption == "Suspect the new cache layer"
+
+
+def test_prompt_file_is_read_and_wins_over_prompt(tmp_path: Path):
+    prompt_file = tmp_path / "PROMPT.md"
+    prompt_file.write_text("# Investigate the deadlock in the writer pool\n", encoding="utf-8")
+    assumption, result = _run_capturing_assumption(
+        ["--prompt", "inline text that must be ignored", "--prompt-file", str(prompt_file)],
+        tmp_path,
+    )
+    assert result.exit_code == 0, result.output
+    assert assumption == "# Investigate the deadlock in the writer pool"
+
+
+def test_prompt_file_missing_falls_back_to_prompt(tmp_path: Path):
+    assumption, result = _run_capturing_assumption(
+        ["--prompt", "fallback hypothesis", "--prompt-file", str(tmp_path / "nope.md")],
+        tmp_path,
+    )
+    assert result.exit_code == 0, result.output
+    assert assumption == "fallback hypothesis"
+
+
+def test_no_prompt_synthesises_artifact_aware_default(tmp_path: Path):
+    log_file = tmp_path / "app.log"
+    log_file.write_text("boom", encoding="utf-8")
+    assumption, result = _run_capturing_assumption(["--log", str(log_file)], tmp_path)
+    assert result.exit_code == 0, result.output
+    assert isinstance(assumption, str)
+    # The synthesised prompt names the supplied artifact and asks for a root cause.
+    assert "log file" in assumption
+    assert "root cause" in assumption.lower()
+
+
+def test_legacy_assume_config_key_migrates_to_prompt(tmp_path: Path):
+    config_file = tmp_path / "cfg.json"
+    config_file.write_text(json.dumps({"assume": "legacy context note"}))
+    assumption, result = _run_capturing_assumption(["--config", str(config_file)], tmp_path)
+    assert result.exit_code == 0, result.output
+    assert assumption == "legacy context note"
 
 
 # ---------------------------------------------------------------------------
@@ -689,7 +762,7 @@ def test_config_example_has_bedrock_section():
     backends.ai.bedrock block whose keys match BedrockSettings fields."""
     import json
 
-    from aegis_swr.config.settings import BedrockSettings, Settings
+    from aegis_swr.config.settings import BedrockSettings
 
     config_path = Path(__file__).parent.parent.parent / "config.example.json"
     assert config_path.exists(), f"config.example.json not found at {config_path}"
@@ -704,8 +777,7 @@ def test_config_example_has_bedrock_section():
     known_fields = set(BedrockSettings.model_fields.keys())
     for key in bedrock_block:
         assert key in known_fields, (
-            f"config.example.json backends.ai.bedrock has unknown key {key!r}; "
-            f"valid keys: {sorted(known_fields)}"
+            f"config.example.json backends.ai.bedrock has unknown key {key!r}; " f"valid keys: {sorted(known_fields)}"
         )
 
     # The required identity fields must be present.
@@ -720,26 +792,20 @@ def test_env_example_documents_bedrock_auth():
     assert env_path.exists(), f".env.example not found at {env_path}"
     content = env_path.read_text(encoding="utf-8")
 
-    assert "AWS_BEARER_TOKEN_BEDROCK" in content, (
-        ".env.example must document AWS_BEARER_TOKEN_BEDROCK"
-    )
+    assert "AWS_BEARER_TOKEN_BEDROCK" in content, ".env.example must document AWS_BEARER_TOKEN_BEDROCK"
     assert "AWS_DEFAULT_REGION" in content, ".env.example must document AWS_DEFAULT_REGION"
 
     # Both vars must appear as empty placeholders (KEY= with no value after the '=').
     for line in content.splitlines():
         stripped = line.strip()
         if stripped.startswith("AWS_BEARER_TOKEN_BEDROCK="):
-            value = stripped[len("AWS_BEARER_TOKEN_BEDROCK="):]
+            value = stripped[len("AWS_BEARER_TOKEN_BEDROCK=") :]
             assert value == "", (
-                f"AWS_BEARER_TOKEN_BEDROCK must be an empty placeholder in .env.example, "
-                f"got {value!r}"
+                f"AWS_BEARER_TOKEN_BEDROCK must be an empty placeholder in .env.example, " f"got {value!r}"
             )
         if stripped.startswith("AWS_DEFAULT_REGION="):
-            value = stripped[len("AWS_DEFAULT_REGION="):]
-            assert value == "", (
-                f"AWS_DEFAULT_REGION must be an empty placeholder in .env.example, "
-                f"got {value!r}"
-            )
+            value = stripped[len("AWS_DEFAULT_REGION=") :]
+            assert value == "", f"AWS_DEFAULT_REGION must be an empty placeholder in .env.example, " f"got {value!r}"
 
 
 def test_evidence_persist_is_wired_to_stream_and_display(tmp_path: Path):

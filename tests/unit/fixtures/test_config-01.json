@@ -1,7 +1,7 @@
 {
   "dump": "C:/dumps/CrashUi.dmp",
   "sym": "C:/symbols",
-  "assume": "The renderer was recently refactored.",
+  "prompt": "The renderer was recently refactored.",
   "engine": "cdb",
   "store": "sqlite",
   "store_config": "C:/data/reports.db",

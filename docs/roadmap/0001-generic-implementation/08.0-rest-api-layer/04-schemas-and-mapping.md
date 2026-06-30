@@ -22,7 +22,7 @@ backend selection the orchestrator needs.
 ### `api/schemas.py`
 
 - `AnalyzeOptions(BaseModel)` - 1:1 with the **non-file** `AnalyzeConfig` fields
-  (`assume`, `engine`, `ai`, `store`, `store_config`, `code_provider`, `repo`,
+  (`prompt`, `prompt_file`, `engine`, `ai`, `store`, `store_config`, `code_provider`, `repo`,
   `log_provider`, `log_service`, `output`, severities, `log_sink`, …). Field
   validators mirror the CLI: `evidence_severity`/`process_severity` ∈
   `{INFO, TRACE}`, `log_sink` ∈ `{file, elk, fluent}`, enums for engine/ai/store.

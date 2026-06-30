@@ -50,9 +50,7 @@ def _validate_log_options(config: AnalyzeConfig) -> None:
     """
     errors: list[str] = []
     if config.evidence_severity.upper() not in _STREAM_LEVELS:
-        errors.append(
-            f"--evidence-severity must be INFO or TRACE (got {config.evidence_severity!r})"
-        )
+        errors.append(f"--evidence-severity must be INFO or TRACE (got {config.evidence_severity!r})")
     if config.process_severity.upper() not in _STREAM_LEVELS:
         errors.append(f"--process-severity must be INFO or TRACE (got {config.process_severity!r})")
     if config.log_sink.lower() not in _LOG_SINKS:
@@ -117,15 +115,9 @@ app.add_typer(config_app, name="config")
 @app.command("analyze")
 def analyze(  # noqa: PLR0913
     ctx: typer.Context,
-    dump: Annotated[
-        Optional[Path], typer.Option("--dump", help="Crash dump file (.dmp / .core / .ips).")
-    ] = None,
-    logs: Annotated[
-        Optional[list[Path]], typer.Option("--log", help="Log file (repeatable).")
-    ] = None,
-    shots: Annotated[
-        Optional[list[Path]], typer.Option("--shot", help="Screenshot file (repeatable).")
-    ] = None,
+    dump: Annotated[Optional[Path], typer.Option("--dump", help="Crash dump file (.dmp / .core / .ips).")] = None,
+    logs: Annotated[Optional[list[Path]], typer.Option("--log", help="Log file (repeatable).")] = None,
+    shots: Annotated[Optional[list[Path]], typer.Option("--shot", help="Screenshot file (repeatable).")] = None,
     pcaps: Annotated[
         Optional[list[Path]],
         typer.Option("--pcap", help="Network traffic capture file, e.g. .pcap (repeatable)."),
@@ -137,15 +129,25 @@ def analyze(  # noqa: PLR0913
             help="Symbol search path (repeatable). Each value is appended to the debugger symbol chain.",
         ),
     ] = None,
-    assume: Annotated[
-        Optional[str], typer.Option("--assume", help="User context / assumption text.")
+    prompt: Annotated[
+        Optional[str],
+        typer.Option(
+            "--prompt",
+            help="Operator prompt / context fed to the agents (your hypothesis or "
+            "what to investigate). Ignored when --prompt-file points at a real file.",
+        ),
     ] = None,
-    engine: Annotated[
-        str, typer.Option("--engine", help="Debug engine: auto | cdb | windbg_js.")
-    ] = "auto",
-    ai: Annotated[
-        Optional[str], typer.Option("--ai", help="AI provider: anthropic | openai | bedrock.")
+    prompt_file: Annotated[
+        Optional[str],
+        typer.Option(
+            "--prompt-file",
+            help="Path to a markdown/text file whose contents are used as the prompt "
+            "(e.g. --prompt-file ./PROMPT.md). Takes precedence over --prompt when "
+            "it points at a readable file.",
+        ),
     ] = None,
+    engine: Annotated[str, typer.Option("--engine", help="Debug engine: auto | cdb | windbg_js.")] = "auto",
+    ai: Annotated[Optional[str], typer.Option("--ai", help="AI provider: anthropic | openai | bedrock.")] = None,
     store: Annotated[
         str,
         typer.Option("--store", help="Storage backend: filesystem | sqlite | s3 | postgres."),
@@ -173,8 +175,7 @@ def analyze(  # noqa: PLR0913
         Optional[str],
         typer.Option(
             "--log-service",
-            help="Service name for LogBackend.query_window "
-            "(sets ingest.log_source.service -> metadata['service']).",
+            help="Service name for LogBackend.query_window " "(sets ingest.log_source.service -> metadata['service']).",
         ),
     ] = None,
     output: Annotated[
@@ -267,7 +268,8 @@ def analyze(  # noqa: PLR0913
         "shots": [str(p) for p in (shots or [])],
         "pcaps": [str(p) for p in (pcaps or [])],
         "sym": [str(p) for p in (sym or [])],
-        "assume": assume,
+        "prompt": prompt,
+        "prompt_file": prompt_file,
         "engine": engine,
         "store": store,
         "store_config": store_config,
@@ -288,9 +290,7 @@ def analyze(  # noqa: PLR0913
     if save_config:
         target = config_path or DEFAULT_CONFIG_PATH
         # AI provider lives in backends.ai, not the flat analyze keys.
-        ai_extra: dict[str, object] = (
-            {"backends": {"ai": {"provider": ai}}} if ai is not None else {}
-        )
+        ai_extra: dict[str, object] = {"backends": {"ai": {"provider": ai}}} if ai is not None else {}
         save_analyze_config(cli_values, target, extra=ai_extra)
         console.print(f"[green]Config saved to:[/green] {target}")
         raise typer.Exit()
@@ -320,8 +320,7 @@ def analyze(  # noqa: PLR0913
     evidence_dir = config.evidence_dir or _DEFAULT_EVIDENCE_DIR
     if config.evidence_persist and config.output == "quiet":
         logger.warning(
-            "--evidence-persist has no effect with --output quiet (no Evidence "
-            "Stream is rendered to persist)."
+            "--evidence-persist has no effect with --output quiet (no Evidence " "Stream is rendered to persist)."
         )
 
     # Re-apply logging at the effective severity, sink, and log directory
@@ -347,6 +346,10 @@ def analyze(  # noqa: PLR0913
         metadata["service"] = config.log_service
 
     mode = IncidentMode.CRASH_DUMP if config.dump else IncidentMode.LOG_FORENSICS
+    # Resolve the operator prompt: --prompt-file (if a readable file) wins over
+    # --prompt; when neither is supplied, synthesise an artifact-aware default
+    # that tells the agents to resolve the incident efficiently.
+    resolved_prompt = _resolve_prompt(config.prompt, config.prompt_file, config)
     source = IncidentSource(
         mode=mode,
         dump_path=config.dump,
@@ -354,7 +357,7 @@ def analyze(  # noqa: PLR0913
         screenshot_paths=list(config.shots),
         network_capture_paths=list(config.pcaps),
         symbol_path=config.sym,
-        user_assumption=config.assume,
+        user_assumption=resolved_prompt,
         metadata=metadata,
     )
 
@@ -382,9 +385,7 @@ def analyze(  # noqa: PLR0913
     if config.repo:
         settings.backends.code.enabled = True
         settings.backends.code.repo_path = config.repo
-        settings.backends.code.provider = (
-            "git" if code_provider_opt == "none" else code_provider_opt
-        )
+        settings.backends.code.provider = "git" if code_provider_opt == "none" else code_provider_opt
     else:
         settings.backends.code.enabled = code_provider_opt != "none"
         if code_provider_opt != "none":
@@ -499,6 +500,71 @@ def analyze(  # noqa: PLR0913
         raise typer.Exit(code=1)
 
 
+def _resolve_prompt(
+    prompt: Optional[str],
+    prompt_file: Optional[str],
+    config: AnalyzeConfig,
+) -> str:
+    """Resolve the operator prompt fed to the agents.
+
+    Precedence: ``--prompt-file`` (when it points at a readable file) wins over
+    the inline ``--prompt`` text; if neither yields usable text, an artifact-aware
+    default is synthesised so the agents still get a clear objective.
+
+    :param prompt: Inline prompt text from ``--prompt`` (or config.json), if any.
+    :param prompt_file: Path from ``--prompt-file`` (or config.json), if any.
+    :param config: The merged analyze config, used to tailor the default prompt
+        to the artifacts that were actually supplied.
+    :return: The resolved, non-empty prompt string.
+    """
+    if prompt_file:
+        path = Path(prompt_file).expanduser()
+        if path.is_file():
+            try:
+                text = path.read_text(encoding="utf-8").strip()
+            except OSError as exc:
+                logger.warning(f"Could not read --prompt-file {path}: {exc}; falling back.")
+            else:
+                if text:
+                    return text
+                logger.warning(f"--prompt-file {path} is empty; falling back to --prompt.")
+        else:
+            logger.warning(f"--prompt-file {path} is not a readable file; falling back to --prompt.")
+
+    if prompt and prompt.strip():
+        return prompt.strip()
+
+    return _default_prompt(config)
+
+
+def _default_prompt(config: AnalyzeConfig) -> str:
+    """Synthesise a default prompt when the operator supplied none.
+
+    Lists the artifacts actually provided so the agents know what they have to
+    work with and are directed to reach a root cause as efficiently as possible.
+
+    :param config: The merged analyze config, inspected for supplied artifacts.
+    :return: A default investigation prompt.
+    """
+    artifacts: list[str] = []
+    if config.dump:
+        artifacts.append("a crash dump")
+    if config.logs:
+        artifacts.append(f"{len(config.logs)} log file(s)")
+    if config.shots:
+        artifacts.append(f"{len(config.shots)} screenshot(s)")
+    if config.pcaps:
+        artifacts.append(f"{len(config.pcaps)} network capture(s)")
+    artifact_list = ", ".join(artifacts) if artifacts else "the supplied artifacts"
+    return (
+        "No operator hypothesis was supplied. Investigate this incident using "
+        f"{artifact_list} and determine the most likely root cause as efficiently "
+        "as possible. Prioritise the evidence with the highest diagnostic value, "
+        "avoid speculation that the artifacts cannot support, and state the "
+        "remediation and your confidence in the conclusion."
+    )
+
+
 def _report_file_path(settings: object, incident_id: str) -> Optional[Path]:
     """Path of the saved report file for filesystem storage, else ``None``.
 
@@ -535,15 +601,9 @@ def _apply_store_config(settings: object, store: str, value: str):
 @app.command("export")
 def export(
     store: Annotated[str, typer.Option("--store", help="Source storage backend.")] = "filesystem",
-    store_config: Annotated[
-        Optional[str], typer.Option("--store-config", help="Source config value.")
-    ] = None,
-    to_store: Annotated[
-        str, typer.Option("--to-store", help="Destination storage backend.")
-    ] = "filesystem",
-    to_config: Annotated[
-        Optional[str], typer.Option("--to-config", help="Destination config value.")
-    ] = None,
+    store_config: Annotated[Optional[str], typer.Option("--store-config", help="Source config value.")] = None,
+    to_store: Annotated[str, typer.Option("--to-store", help="Destination storage backend.")] = "filesystem",
+    to_config: Annotated[Optional[str], typer.Option("--to-config", help="Destination config value.")] = None,
 ):
     """Migrate reports between storage backends"""
     from aegis_swr.backends.storage import create_storage_backends
@@ -590,14 +650,11 @@ def export(
 def server(
     host: Annotated[str, typer.Option("--host", help="Bind host.")] = "0.0.0.0",
     port: Annotated[int, typer.Option("--port", help="Bind port.")] = 8000,
-    reload: Annotated[
-        bool, typer.Option("--reload/--no-reload", help="Enable hot-reload.")
-    ] = False,
+    reload: Annotated[bool, typer.Option("--reload/--no-reload", help="Enable hot-reload.")] = False,
 ):
     """Start the FastAPI API server. (Phase 8 - not yet implemented.)"""
     typer.echo(
-        "API server not yet implemented - available in Phase 8.\n"
-        f"Configured for {host}:{port} (reload={reload})."
+        "API server not yet implemented - available in Phase 8.\n" f"Configured for {host}:{port} (reload={reload})."
     )
 
 
