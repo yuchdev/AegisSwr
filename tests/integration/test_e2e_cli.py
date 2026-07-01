@@ -56,6 +56,24 @@ async def _mock_run(self: object, source: object) -> RCAReport:  # type: ignore[
 
 
 def test_e2e_analyze_json_output(tmp_path: Path):
+    """
+    [E2E] e2e cli: verifies e2e analyze json output.
+
+    Scenario:
+        Given test inputs and fixtures for e2e analyze json output
+        When test_e2e_analyze_json_output executes the target flow
+        Then the expected outcome for e2e analyze json output is confirmed.
+
+    Boundaries:
+        - Focus: e2e analyze json output
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to e2e analyze json output
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by e2e cli
+    """
     dump = _write_dump(tmp_path)
     with mock.patch(_MOCK_RUN, _mock_run):
         result = runner.invoke(
@@ -83,6 +101,24 @@ def test_e2e_analyze_json_output(tmp_path: Path):
 
 
 def test_e2e_analyze_json_full_output(tmp_path: Path):
+    """
+    [E2E] e2e cli: verifies e2e analyze json full output.
+
+    Scenario:
+        Given test inputs and fixtures for e2e analyze json full output
+        When test_e2e_analyze_json_full_output executes the target flow
+        Then the expected outcome for e2e analyze json full output is confirmed.
+
+    Boundaries:
+        - Focus: e2e analyze json full output
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to e2e analyze json full output
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by e2e cli
+    """
     dump = _write_dump(tmp_path)
     with mock.patch(_MOCK_RUN, _mock_run):
         result = runner.invoke(
@@ -117,6 +153,24 @@ def test_e2e_analyze_json_full_output(tmp_path: Path):
 
 
 def test_e2e_analyze_rich_output(tmp_path: Path):
+    """
+    [E2E] e2e cli: verifies e2e analyze rich output.
+
+    Scenario:
+        Given test inputs and fixtures for e2e analyze rich output
+        When test_e2e_analyze_rich_output executes the target flow
+        Then the expected outcome for e2e analyze rich output is confirmed.
+
+    Boundaries:
+        - Focus: e2e analyze rich output
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to e2e analyze rich output
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by e2e cli
+    """
     dump = _write_dump(tmp_path)
     with mock.patch(_MOCK_RUN, _mock_run):
         result = runner.invoke(
@@ -151,6 +205,24 @@ def test_e2e_analyze_rich_output(tmp_path: Path):
 
 
 def test_e2e_analyze_log_only_mode(tmp_path: Path):
+    """
+    [E2E] e2e cli: verifies e2e analyze log only mode.
+
+    Scenario:
+        Given test inputs and fixtures for e2e analyze log only mode
+        When test_e2e_analyze_log_only_mode executes the target flow
+        Then the expected outcome for e2e analyze log only mode is confirmed.
+
+    Boundaries:
+        - Focus: e2e analyze log only mode
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to e2e analyze log only mode
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by e2e cli
+    """
     log_file = tmp_path / "app.log"
     log_file.write_text("2026-05-30T14:02:11 FATAL unhandled exception\n")
 

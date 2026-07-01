@@ -70,6 +70,24 @@ def _brief_to_messages(brief: IncidentBrief) -> list[dict[str, Any]]:
 
 
 async def test_adapter_to_mock_backend_structured(settings: Settings, tmp_path: Path):
+    """
+    [Integration] ai pipeline: verifies adapter to mock backend structured.
+
+    Scenario:
+        Given test inputs and fixtures for adapter to mock backend structured
+        When test_adapter_to_mock_backend_structured executes the target flow
+        Then the expected outcome for adapter to mock backend structured is confirmed.
+
+    Boundaries:
+        - Focus: adapter to mock backend structured
+        - Fixtures/params: settings, tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to adapter to mock backend structured
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by ai pipeline
+    """
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 64)
     source = IncidentSource(
@@ -97,6 +115,24 @@ async def test_adapter_to_mock_backend_structured(settings: Settings, tmp_path: 
 
 
 async def test_adapter_to_mock_backend_stream(settings: Settings):
+    """
+    [Integration] ai pipeline: verifies adapter to mock backend stream.
+
+    Scenario:
+        Given test inputs and fixtures for adapter to mock backend stream
+        When test_adapter_to_mock_backend_stream executes the target flow
+        Then the expected outcome for adapter to mock backend stream is confirmed.
+
+    Boundaries:
+        - Focus: adapter to mock backend stream
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to adapter to mock backend stream
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by ai pipeline
+    """
     source = IncidentSource(
         mode=IncidentMode.LOG_FORENSICS,
         incident_timestamp=datetime(2026, 5, 30, 14, 2, 11),
@@ -118,6 +154,24 @@ async def test_adapter_to_mock_backend_stream(settings: Settings):
 async def test_adapter_to_anthropic_backend_structured(
     settings: Settings, tmp_path: Path
 ):
+    """
+    [Integration] ai pipeline: verifies adapter to anthropic backend structured.
+
+    Scenario:
+        Given test inputs and fixtures for adapter to anthropic backend structured
+        When test_adapter_to_anthropic_backend_structured executes the target flow
+        Then the expected outcome for adapter to anthropic backend structured is confirmed.
+
+    Boundaries:
+        - Focus: adapter to anthropic backend structured
+        - Fixtures/params: settings, tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to adapter to anthropic backend structured
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by ai pipeline
+    """
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 64)
     source = IncidentSource(
@@ -154,6 +208,24 @@ async def test_adapter_to_anthropic_backend_structured(
 async def test_adapter_low_symbol_coverage_flows_to_brief(
     settings: Settings, tmp_path: Path
 ):
+    """
+    [Integration] ai pipeline: verifies adapter low symbol coverage flows to brief.
+
+    Scenario:
+        Given test inputs and fixtures for adapter low symbol coverage flows to brief
+        When test_adapter_low_symbol_coverage_flows_to_brief executes the target flow
+        Then the expected outcome for adapter low symbol coverage flows to brief is confirmed.
+
+    Boundaries:
+        - Focus: adapter low symbol coverage flows to brief
+        - Fixtures/params: settings, tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to adapter low symbol coverage flows to brief
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by ai pipeline
+    """
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 16)
     source = IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path=str(dump))
@@ -166,5 +238,23 @@ async def test_adapter_low_symbol_coverage_flows_to_brief(
 
 def test_pytest_can_import_shared_fixtures():
     # Guards the test-package import path used across unit + integration suites.
+    """
+    [Integration] ai pipeline: verifies pytest can import shared fixtures.
+
+    Scenario:
+        Given test inputs and fixtures for pytest can import shared fixtures
+        When test_pytest_can_import_shared_fixtures executes the target flow
+        Then the expected outcome for pytest can import shared fixtures is confirmed.
+
+    Boundaries:
+        - Focus: pytest can import shared fixtures
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to pytest can import shared fixtures
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by ai pipeline
+    """
     assert MockAIBackend is not None
     assert MockDebugBackend is not None

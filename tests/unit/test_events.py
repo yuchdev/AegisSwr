@@ -27,6 +27,24 @@ def _turn(agent: str = "OS Kernel Agent") -> AgentTurn:
 
 
 def test_subscribe_exact_type_receives_event():
+    """
+    [Unit] events: verifies subscribe exact type receives event.
+
+    Scenario:
+        Given test inputs and fixtures for subscribe exact type receives event
+        When test_subscribe_exact_type_receives_event executes the target flow
+        Then the expected outcome for subscribe exact type receives event is confirmed.
+
+    Boundaries:
+        - Focus: subscribe exact type receives event
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to subscribe exact type receives event
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by events
+    """
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(AgentSpoke, received.append)
@@ -38,6 +56,24 @@ def test_subscribe_exact_type_receives_event():
 
 
 def test_subscribe_base_class_receives_all_events():
+    """
+    [Unit] events: verifies subscribe base class receives all events.
+
+    Scenario:
+        Given test inputs and fixtures for subscribe base class receives all events
+        When test_subscribe_base_class_receives_all_events executes the target flow
+        Then the expected outcome for subscribe base class receives all events is confirmed.
+
+    Boundaries:
+        - Focus: subscribe base class receives all events
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to subscribe base class receives all events
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by events
+    """
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(DomainEvent, received.append)
@@ -49,6 +85,24 @@ def test_subscribe_base_class_receives_all_events():
 
 
 def test_subscriber_does_not_receive_unrelated_events():
+    """
+    [Unit] events: verifies subscriber does not receive unrelated events.
+
+    Scenario:
+        Given test inputs and fixtures for subscriber does not receive unrelated events
+        When test_subscriber_does_not_receive_unrelated_events executes the target flow
+        Then the expected outcome for subscriber does not receive unrelated events is confirmed.
+
+    Boundaries:
+        - Focus: subscriber does not receive unrelated events
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to subscriber does not receive unrelated events
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by events
+    """
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(EvidenceExtracted, received.append)
@@ -59,6 +113,24 @@ def test_subscriber_does_not_receive_unrelated_events():
 
 
 def test_unsubscribe_stops_delivery():
+    """
+    [Unit] events: verifies unsubscribe stops delivery.
+
+    Scenario:
+        Given test inputs and fixtures for unsubscribe stops delivery
+        When test_unsubscribe_stops_delivery executes the target flow
+        Then the expected outcome for unsubscribe stops delivery is confirmed.
+
+    Boundaries:
+        - Focus: unsubscribe stops delivery
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to unsubscribe stops delivery
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by events
+    """
     bus = EventBus()
     received: list[DomainEvent] = []
     unsubscribe = bus.subscribe(ConsensusEvaluated, received.append)
@@ -71,6 +143,24 @@ def test_unsubscribe_stops_delivery():
 
 
 def test_failing_subscriber_does_not_break_others():
+    """
+    [Unit] events: verifies failing subscriber does not break others.
+
+    Scenario:
+        Given test inputs and fixtures for failing subscriber does not break others
+        When test_failing_subscriber_does_not_break_others executes the target flow
+        Then the expected outcome for failing subscriber does not break others is confirmed.
+
+    Boundaries:
+        - Focus: failing subscriber does not break others
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to failing subscriber does not break others
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by events
+    """
     bus = EventBus()
     received: list[DomainEvent] = []
 
@@ -95,6 +185,24 @@ def _log_only_source() -> IncidentSource:
 
 
 async def test_orchestrator_publishes_events_to_bus(settings: Settings):
+    """
+    [Unit] events: verifies orchestrator publishes events to bus.
+
+    Scenario:
+        Given test inputs and fixtures for orchestrator publishes events to bus
+        When test_orchestrator_publishes_events_to_bus executes the target flow
+        Then the expected outcome for orchestrator publishes events to bus is confirmed.
+
+    Boundaries:
+        - Focus: orchestrator publishes events to bus
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to orchestrator publishes events to bus
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by events
+    """
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(DomainEvent, received.append)
@@ -114,6 +222,24 @@ async def test_orchestrator_publishes_events_to_bus(settings: Settings):
 
 
 async def test_orchestrator_publishes_hitl_on_deadlock(settings: Settings):
+    """
+    [Unit] events: verifies orchestrator publishes hitl on deadlock.
+
+    Scenario:
+        Given test inputs and fixtures for orchestrator publishes hitl on deadlock
+        When test_orchestrator_publishes_hitl_on_deadlock executes the target flow
+        Then the expected outcome for orchestrator publishes hitl on deadlock is confirmed.
+
+    Boundaries:
+        - Focus: orchestrator publishes hitl on deadlock
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to orchestrator publishes hitl on deadlock
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by events
+    """
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(DomainEvent, received.append)

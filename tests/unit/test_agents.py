@@ -119,6 +119,24 @@ def _skeptic_rejected() -> SkepticVerdict:
 
 
 async def test_os_kernel_requests_correct_schema(settings: Settings):
+    """
+    [Unit] agents: verifies os kernel requests correct schema.
+
+    Scenario:
+        Given test inputs and fixtures for os kernel requests correct schema
+        When test_os_kernel_requests_correct_schema executes the target flow
+        Then the expected outcome for os kernel requests correct schema is confirmed.
+
+    Boundaries:
+        - Focus: os kernel requests correct schema
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to os kernel requests correct schema
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_os_kernel_response()])
     agent = OSKernelAgent(ai, settings)
     turn = await agent.run(_base_state())
@@ -130,6 +148,24 @@ async def test_os_kernel_requests_correct_schema(settings: Settings):
 
 
 async def test_os_kernel_prepends_low_symbol_warning(settings: Settings):
+    """
+    [Unit] agents: verifies os kernel prepends low symbol warning.
+
+    Scenario:
+        Given test inputs and fixtures for os kernel prepends low symbol warning
+        When test_os_kernel_prepends_low_symbol_warning executes the target flow
+        Then the expected outcome for os kernel prepends low symbol warning is confirmed.
+
+    Boundaries:
+        - Focus: os kernel prepends low symbol warning
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to os kernel prepends low symbol warning
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_os_kernel_response()])
     agent = OSKernelAgent(ai, settings)
     state = _base_state()
@@ -140,6 +176,24 @@ async def test_os_kernel_prepends_low_symbol_warning(settings: Settings):
 
 
 async def test_os_kernel_injects_skeptic_corrections_on_round_2(settings: Settings):
+    """
+    [Unit] agents: verifies os kernel injects skeptic corrections on round 2.
+
+    Scenario:
+        Given test inputs and fixtures for os kernel injects skeptic corrections on round 2
+        When test_os_kernel_injects_skeptic_corrections_on_round_2 executes the target flow
+        Then the expected outcome for os kernel injects skeptic corrections on round 2 is confirmed.
+
+    Boundaries:
+        - Focus: os kernel injects skeptic corrections on round 2
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to os kernel injects skeptic corrections on round 2
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_os_kernel_response()])
     agent = OSKernelAgent(ai, settings)
     skeptic_turn = AgentTurn(
@@ -164,6 +218,24 @@ async def test_os_kernel_injects_skeptic_corrections_on_round_2(settings: Settin
 
 
 async def test_code_analyst_requests_correct_schema(settings: Settings):
+    """
+    [Unit] agents: verifies code analyst requests correct schema.
+
+    Scenario:
+        Given test inputs and fixtures for code analyst requests correct schema
+        When test_code_analyst_requests_correct_schema executes the target flow
+        Then the expected outcome for code analyst requests correct schema is confirmed.
+
+    Boundaries:
+        - Focus: code analyst requests correct schema
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to code analyst requests correct schema
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_code_analyst_response()])
     agent = CodeAnalystAgent(ai, settings)
     os_turn = AgentTurn(
@@ -178,6 +250,24 @@ async def test_code_analyst_requests_correct_schema(settings: Settings):
 
 
 async def test_code_analyst_includes_user_assumption(settings: Settings):
+    """
+    [Unit] agents: verifies code analyst includes user assumption.
+
+    Scenario:
+        Given test inputs and fixtures for code analyst includes user assumption
+        When test_code_analyst_includes_user_assumption executes the target flow
+        Then the expected outcome for code analyst includes user assumption is confirmed.
+
+    Boundaries:
+        - Focus: code analyst includes user assumption
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to code analyst includes user assumption
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_code_analyst_response()])
     agent = CodeAnalystAgent(ai, settings)
     state = _base_state()
@@ -193,6 +283,24 @@ async def test_code_analyst_includes_user_assumption(settings: Settings):
 
 
 async def test_log_historian_requests_correct_schema(settings: Settings):
+    """
+    [Unit] agents: verifies log historian requests correct schema.
+
+    Scenario:
+        Given test inputs and fixtures for log historian requests correct schema
+        When test_log_historian_requests_correct_schema executes the target flow
+        Then the expected outcome for log historian requests correct schema is confirmed.
+
+    Boundaries:
+        - Focus: log historian requests correct schema
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to log historian requests correct schema
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_log_historian_response()])
     agent = LogHistorianAgent(ai, settings)
     turn = await agent.run(_base_state())
@@ -222,6 +330,24 @@ def _prior_report() -> RCAReport:
 
 
 async def test_log_historian_detects_recurrence_from_history(settings: Settings):
+    """
+    [Unit] agents: verifies log historian detects recurrence from history.
+
+    Scenario:
+        Given test inputs and fixtures for log historian detects recurrence from history
+        When test_log_historian_detects_recurrence_from_history executes the target flow
+        Then the expected outcome for log historian detects recurrence from history is confirmed.
+
+    Boundaries:
+        - Focus: log historian detects recurrence from history
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to log historian detects recurrence from history
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_log_historian_response()])
     agent = LogHistorianAgent(ai, settings)
 
@@ -239,6 +365,24 @@ async def test_log_historian_detects_recurrence_from_history(settings: Settings)
 
 
 async def test_log_historian_reports_first_observation_without_matches(settings: Settings):
+    """
+    [Unit] agents: verifies log historian reports first observation without matches.
+
+    Scenario:
+        Given test inputs and fixtures for log historian reports first observation without matches
+        When test_log_historian_reports_first_observation_without_matches executes the target flow
+        Then the expected outcome for log historian reports first observation without matches is confirmed.
+
+    Boundaries:
+        - Focus: log historian reports first observation without matches
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to log historian reports first observation without matches
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_log_historian_response()])
     agent = LogHistorianAgent(ai, settings)
 
@@ -269,6 +413,24 @@ async def test_log_historian_reports_first_observation_without_matches(settings:
 
 
 async def test_skeptic_confirmed_sets_high_confidence(settings: Settings):
+    """
+    [Unit] agents: verifies skeptic confirmed sets high confidence.
+
+    Scenario:
+        Given test inputs and fixtures for skeptic confirmed sets high confidence
+        When test_skeptic_confirmed_sets_high_confidence executes the target flow
+        Then the expected outcome for skeptic confirmed sets high confidence is confirmed.
+
+    Boundaries:
+        - Focus: skeptic confirmed sets high confidence
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to skeptic confirmed sets high confidence
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_skeptic_confirmed()])
     agent = SkepticAgent(ai, settings)
     state = _base_state(
@@ -280,6 +442,24 @@ async def test_skeptic_confirmed_sets_high_confidence(settings: Settings):
 
 
 async def test_skeptic_rejected_sets_low_confidence(settings: Settings):
+    """
+    [Unit] agents: verifies skeptic rejected sets low confidence.
+
+    Scenario:
+        Given test inputs and fixtures for skeptic rejected sets low confidence
+        When test_skeptic_rejected_sets_low_confidence executes the target flow
+        Then the expected outcome for skeptic rejected sets low confidence is confirmed.
+
+    Boundaries:
+        - Focus: skeptic rejected sets low confidence
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to skeptic rejected sets low confidence
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_skeptic_rejected()])
     agent = SkepticAgent(ai, settings)
     state = _base_state(
@@ -296,6 +476,24 @@ async def test_skeptic_rejected_sets_low_confidence(settings: Settings):
 
 
 async def test_skeptic_fails_prechecks_without_llm_call(settings: Settings):
+    """
+    [Unit] agents: verifies skeptic fails prechecks without llm call.
+
+    Scenario:
+        Given test inputs and fixtures for skeptic fails prechecks without llm call
+        When test_skeptic_fails_prechecks_without_llm_call executes the target flow
+        Then the expected outcome for skeptic fails prechecks without llm call is confirmed.
+
+    Boundaries:
+        - Focus: skeptic fails prechecks without llm call
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to skeptic fails prechecks without llm call
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend()  # empty responses - any call would raise
     agent = SkepticAgent(ai, settings)
     state = _base_state(
@@ -313,6 +511,24 @@ async def test_skeptic_fails_prechecks_without_llm_call(settings: Settings):
 
 
 async def test_skeptic_skips_precheck_when_no_primary_hypothesis(settings: Settings):
+    """
+    [Unit] agents: verifies skeptic skips precheck when no primary hypothesis.
+
+    Scenario:
+        Given test inputs and fixtures for skeptic skips precheck when no primary hypothesis
+        When test_skeptic_skips_precheck_when_no_primary_hypothesis executes the target flow
+        Then the expected outcome for skeptic skips precheck when no primary hypothesis is confirmed.
+
+    Boundaries:
+        - Focus: skeptic skips precheck when no primary hypothesis
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to skeptic skips precheck when no primary hypothesis
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(responses=[_skeptic_confirmed()])
     agent = SkepticAgent(ai, settings)
     # No primary_hypothesis → pre-check cannot run → falls through to LLM.
@@ -327,6 +543,24 @@ async def test_skeptic_skips_precheck_when_no_primary_hypothesis(settings: Setti
 
 
 async def test_token_tracker_accumulated_in_state(settings: Settings):
+    """
+    [Unit] agents: verifies token tracker accumulated in state.
+
+    Scenario:
+        Given test inputs and fixtures for token tracker accumulated in state
+        When test_token_tracker_accumulated_in_state executes the target flow
+        Then the expected outcome for token tracker accumulated in state is confirmed.
+
+    Boundaries:
+        - Focus: token tracker accumulated in state
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to token tracker accumulated in state
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
     ai = MockAIBackend(
         responses=[_os_kernel_response()],
         usage={"input_tokens": 300, "output_tokens": 50},

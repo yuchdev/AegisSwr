@@ -92,6 +92,24 @@ def _make_backend(
 async def test_adapter_to_bedrock_backend_structured(
     settings: Settings, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
+    """
+    [Integration] bedrock integration: verifies adapter to bedrock backend structured.
+
+    Scenario:
+        Given test inputs and fixtures for adapter to bedrock backend structured
+        When test_adapter_to_bedrock_backend_structured executes the target flow
+        Then the expected outcome for adapter to bedrock backend structured is confirmed.
+
+    Boundaries:
+        - Focus: adapter to bedrock backend structured
+        - Fixtures/params: settings, tmp_path, monkeypatch
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to adapter to bedrock backend structured
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by bedrock integration
+    """
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 64)
     # The Data Adapter requires the optional ``pii`` extra (presidio); skip the
@@ -143,6 +161,24 @@ async def test_adapter_to_bedrock_backend_structured(
 async def test_adapter_to_bedrock_backend_stream(
     settings: Settings, monkeypatch: pytest.MonkeyPatch
 ):
+    """
+    [Integration] bedrock integration: verifies adapter to bedrock backend stream.
+
+    Scenario:
+        Given test inputs and fixtures for adapter to bedrock backend stream
+        When test_adapter_to_bedrock_backend_stream executes the target flow
+        Then the expected outcome for adapter to bedrock backend stream is confirmed.
+
+    Boundaries:
+        - Focus: adapter to bedrock backend stream
+        - Fixtures/params: settings, monkeypatch
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to adapter to bedrock backend stream
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by bedrock integration
+    """
     pytest.importorskip("presidio_analyzer")
     from aegis_swr.core.data_adapter import DataAdapter
 
@@ -172,6 +208,24 @@ async def test_adapter_to_bedrock_backend_stream(
 async def test_bedrock_transport_error_raises_backend_error(
     monkeypatch: pytest.MonkeyPatch,
 ):
+    """
+    [Integration] bedrock integration: verifies bedrock transport error raises backend error.
+
+    Scenario:
+        Given test inputs and fixtures for bedrock transport error raises backend error
+        When test_bedrock_transport_error_raises_backend_error executes the target flow
+        Then the expected outcome for bedrock transport error raises backend error is confirmed.
+
+    Boundaries:
+        - Focus: bedrock transport error raises backend error
+        - Fixtures/params: monkeypatch
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to bedrock transport error raises backend error
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by bedrock integration
+    """
     backend, _ = _make_backend(
         monkeypatch,
         converse_side_effect=botocore.exceptions.ReadTimeoutError(endpoint_url="https://x"),

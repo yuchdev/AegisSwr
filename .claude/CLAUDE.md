@@ -95,13 +95,14 @@ and confidential.
 | Threat models, security gate                           | `security-auditor`    |
 | Multi-step "ticket → merged PR" coordination           | `agent-orchestrator`        |
 | Spec adherence check (post-implementation)             | `subtask-verifier`          |
+| Documenting existing tests (classify + docstring)      | `test-documenter`           |
 
 ## 8. Model tiering (cost vs capability)
 
 - **Opus 4.8** - deep reasoning where a wrong call is expensive: `app-architect`,
   `incident-analyst`, `security-auditor`, `agent-orchestrator`.
 - **Sonnet 4.6** - high-throughput execution & review: `python-expert`, `testing-expert`,
-  `feature-reviewer`, `background-reviewer`, `docs-updater`.
+  `feature-reviewer`, `background-reviewer`, `docs-updater`, `test-documenter`.
 - **Haiku** - reserve for cheap mechanical jobs (log triage, formatting sweeps,
   one-line lookups). Don't use it for anything touching incident-safety logic.
 

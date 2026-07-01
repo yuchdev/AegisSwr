@@ -71,6 +71,24 @@ def test_python_m_entry_point_runs():
 
 
 def test_analyze_help():
+    """
+    [Unit] cli: verifies analyze help.
+
+    Scenario:
+        Given test inputs and fixtures for analyze help
+        When test_analyze_help executes the target flow
+        Then the expected outcome for analyze help is confirmed.
+
+    Boundaries:
+        - Focus: analyze help
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to analyze help
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     result = runner.invoke(app, ["analyze", "--help"])
     assert result.exit_code == 0
     assert "--dump" in result.output
@@ -113,6 +131,24 @@ def test_root_help_is_recursive():
 
 
 def test_export_help():
+    """
+    [Unit] cli: verifies export help.
+
+    Scenario:
+        Given test inputs and fixtures for export help
+        When test_export_help executes the target flow
+        Then the expected outcome for export help is confirmed.
+
+    Boundaries:
+        - Focus: export help
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to export help
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     result = runner.invoke(app, ["export", "--help"])
     assert result.exit_code == 0
     assert "--store" in result.output
@@ -120,6 +156,24 @@ def test_export_help():
 
 
 def test_analyze_help_lists_backend_flags():
+    """
+    [Unit] cli: verifies analyze help lists backend flags.
+
+    Scenario:
+        Given test inputs and fixtures for analyze help lists backend flags
+        When test_analyze_help_lists_backend_flags executes the target flow
+        Then the expected outcome for analyze help lists backend flags is confirmed.
+
+    Boundaries:
+        - Focus: analyze help lists backend flags
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to analyze help lists backend flags
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     result = runner.invoke(app, ["analyze", "--help"])
     assert result.exit_code == 0
     assert "--code-provider" in result.output
@@ -134,6 +188,24 @@ def test_analyze_help_lists_backend_flags():
 
 
 def test_repo_flag_enables_git_code_backend(tmp_path: Path):
+    """
+    [Mock] cli: verifies repo flag enables git code backend.
+
+    Scenario:
+        Given test inputs and fixtures for repo flag enables git code backend
+        When test_repo_flag_enables_git_code_backend executes the target flow
+        Then the expected outcome for repo flag enables git code backend is confirmed.
+
+    Boundaries:
+        - Focus: repo flag enables git code backend
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to repo flag enables git code backend
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):  # type: ignore[override]
@@ -171,6 +243,24 @@ def test_repo_flag_enables_git_code_backend(tmp_path: Path):
 
 
 def test_log_service_sets_metadata(tmp_path: Path):
+    """
+    [Mock] cli: verifies log service sets metadata.
+
+    Scenario:
+        Given test inputs and fixtures for log service sets metadata
+        When test_log_service_sets_metadata executes the target flow
+        Then the expected outcome for log service sets metadata is confirmed.
+
+    Boundaries:
+        - Focus: log service sets metadata
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to log service sets metadata
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):  # type: ignore[override]
@@ -203,6 +293,24 @@ def test_log_service_sets_metadata(tmp_path: Path):
 
 
 def test_save_config_writes_json(tmp_path: Path):
+    """
+    [Unit] cli: verifies save config writes json.
+
+    Scenario:
+        Given test inputs and fixtures for save config writes json
+        When test_save_config_writes_json executes the target flow
+        Then the expected outcome for save config writes json is confirmed.
+
+    Boundaries:
+        - Focus: save config writes json
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to save config writes json
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     config_file = tmp_path / "analyze.json"
     result = runner.invoke(
         app,
@@ -225,6 +333,24 @@ def test_save_config_writes_json(tmp_path: Path):
 
 
 def test_save_config_default_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """
+    [Mock] cli: verifies save config default path.
+
+    Scenario:
+        Given test inputs and fixtures for save config default path
+        When test_save_config_default_path executes the target flow
+        Then the expected outcome for save config default path is confirmed.
+
+    Boundaries:
+        - Focus: save config default path
+        - Fixtures/params: tmp_path, monkeypatch
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to save config default path
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     config_file = tmp_path / "analyze.json"
     monkeypatch.setattr("aegis_swr.cli._config.DEFAULT_CONFIG_PATH", config_file)
     monkeypatch.setattr("aegis_swr.cli.commands.DEFAULT_CONFIG_PATH", config_file)
@@ -239,6 +365,24 @@ def test_save_config_default_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 
 
 def test_config_file_sets_defaults(tmp_path: Path):
+    """
+    [Mock] cli: verifies config file sets defaults.
+
+    Scenario:
+        Given test inputs and fixtures for config file sets defaults
+        When test_config_file_sets_defaults executes the target flow
+        Then the expected outcome for config file sets defaults is confirmed.
+
+    Boundaries:
+        - Focus: config file sets defaults
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to config file sets defaults
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"backends": {"ai": {"provider": "openai"}}, "output": "json"}))
 
@@ -301,6 +445,24 @@ def test_cli_reads_settings_from_config_asset(tmp_path: Path):
 
 
 def test_cli_flag_overrides_config_file(tmp_path: Path):
+    """
+    [Mock] cli: verifies cli flag overrides config file.
+
+    Scenario:
+        Given test inputs and fixtures for cli flag overrides config file
+        When test_cli_flag_overrides_config_file executes the target flow
+        Then the expected outcome for cli flag overrides config file is confirmed.
+
+    Boundaries:
+        - Focus: cli flag overrides config file
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to cli flag overrides config file
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"ai": "openai"}))
 
@@ -407,12 +569,48 @@ def _run_capturing_assumption(args: list[str], tmp_path: Path) -> tuple[object, 
 
 
 def test_prompt_flag_reaches_user_assumption(tmp_path: Path):
+    """
+    [Unit] cli: verifies prompt flag reaches user assumption.
+
+    Scenario:
+        Given test inputs and fixtures for prompt flag reaches user assumption
+        When test_prompt_flag_reaches_user_assumption executes the target flow
+        Then the expected outcome for prompt flag reaches user assumption is confirmed.
+
+    Boundaries:
+        - Focus: prompt flag reaches user assumption
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to prompt flag reaches user assumption
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     assumption, result = _run_capturing_assumption(["--prompt", "Suspect the new cache layer"], tmp_path)
     assert result.exit_code == 0, result.output
     assert assumption == "Suspect the new cache layer"
 
 
 def test_prompt_file_is_read_and_wins_over_prompt(tmp_path: Path):
+    """
+    [Unit] cli: verifies prompt file is read and wins over prompt.
+
+    Scenario:
+        Given test inputs and fixtures for prompt file is read and wins over prompt
+        When test_prompt_file_is_read_and_wins_over_prompt executes the target flow
+        Then the expected outcome for prompt file is read and wins over prompt is confirmed.
+
+    Boundaries:
+        - Focus: prompt file is read and wins over prompt
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to prompt file is read and wins over prompt
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     prompt_file = tmp_path / "PROMPT.md"
     prompt_file.write_text("# Investigate the deadlock in the writer pool\n", encoding="utf-8")
     assumption, result = _run_capturing_assumption(
@@ -424,6 +622,24 @@ def test_prompt_file_is_read_and_wins_over_prompt(tmp_path: Path):
 
 
 def test_prompt_file_missing_falls_back_to_prompt(tmp_path: Path):
+    """
+    [Unit] cli: verifies prompt file missing falls back to prompt.
+
+    Scenario:
+        Given test inputs and fixtures for prompt file missing falls back to prompt
+        When test_prompt_file_missing_falls_back_to_prompt executes the target flow
+        Then the expected outcome for prompt file missing falls back to prompt is confirmed.
+
+    Boundaries:
+        - Focus: prompt file missing falls back to prompt
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to prompt file missing falls back to prompt
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     assumption, result = _run_capturing_assumption(
         ["--prompt", "fallback hypothesis", "--prompt-file", str(tmp_path / "nope.md")],
         tmp_path,
@@ -433,6 +649,24 @@ def test_prompt_file_missing_falls_back_to_prompt(tmp_path: Path):
 
 
 def test_no_prompt_synthesises_artifact_aware_default(tmp_path: Path):
+    """
+    [Unit] cli: verifies no prompt synthesises artifact aware default.
+
+    Scenario:
+        Given test inputs and fixtures for no prompt synthesises artifact aware default
+        When test_no_prompt_synthesises_artifact_aware_default executes the target flow
+        Then the expected outcome for no prompt synthesises artifact aware default is confirmed.
+
+    Boundaries:
+        - Focus: no prompt synthesises artifact aware default
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to no prompt synthesises artifact aware default
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     log_file = tmp_path / "app.log"
     log_file.write_text("boom", encoding="utf-8")
     assumption, result = _run_capturing_assumption(["--log", str(log_file)], tmp_path)
@@ -444,6 +678,24 @@ def test_no_prompt_synthesises_artifact_aware_default(tmp_path: Path):
 
 
 def test_legacy_assume_config_key_migrates_to_prompt(tmp_path: Path):
+    """
+    [Unit] cli: verifies legacy assume config key migrates to prompt.
+
+    Scenario:
+        Given test inputs and fixtures for legacy assume config key migrates to prompt
+        When test_legacy_assume_config_key_migrates_to_prompt executes the target flow
+        Then the expected outcome for legacy assume config key migrates to prompt is confirmed.
+
+    Boundaries:
+        - Focus: legacy assume config key migrates to prompt
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to legacy assume config key migrates to prompt
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"assume": "legacy context note"}))
     assumption, result = _run_capturing_assumption(["--config", str(config_file)], tmp_path)
@@ -457,6 +709,24 @@ def test_legacy_assume_config_key_migrates_to_prompt(tmp_path: Path):
 
 
 def test_analyze_json_output(tmp_path: Path):
+    """
+    [Mock] cli: verifies analyze json output.
+
+    Scenario:
+        Given test inputs and fixtures for analyze json output
+        When test_analyze_json_output executes the target flow
+        Then the expected outcome for analyze json output is confirmed.
+
+    Boundaries:
+        - Focus: analyze json output
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to analyze json output
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     report = _report()
 
     # json/rich output drives the domain-event stream (live display goes to
@@ -491,6 +761,24 @@ def test_analyze_json_output(tmp_path: Path):
 
 
 def test_analyze_hitl_exits_nonzero(tmp_path: Path):
+    """
+    [Mock] cli: verifies analyze hitl exits nonzero.
+
+    Scenario:
+        Given test inputs and fixtures for analyze hitl exits nonzero
+        When test_analyze_hitl_exits_nonzero executes the target flow
+        Then the expected outcome for analyze hitl exits nonzero is confirmed.
+
+    Boundaries:
+        - Focus: analyze hitl exits nonzero
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to analyze hitl exits nonzero
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     report = _report(with_hitl=True)
 
     async def mock_run(self, source):  # type: ignore[override]
@@ -519,6 +807,24 @@ def test_analyze_hitl_exits_nonzero(tmp_path: Path):
 
 
 def test_config_show_redacts_secrets(monkeypatch: pytest.MonkeyPatch):
+    """
+    [Mock] cli: verifies config show redacts secrets.
+
+    Scenario:
+        Given test inputs and fixtures for config show redacts secrets
+        When test_config_show_redacts_secrets executes the target flow
+        Then the expected outcome for config show redacts secrets is confirmed.
+
+    Boundaries:
+        - Focus: config show redacts secrets
+        - Fixtures/params: monkeypatch
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to config show redacts secrets
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-supersecret")
     result = runner.invoke(app, ["config", "show"])
     assert result.exit_code == 0
@@ -527,6 +833,24 @@ def test_config_show_redacts_secrets(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_config_set_writes_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """
+    [Mock] cli: verifies config set writes json.
+
+    Scenario:
+        Given test inputs and fixtures for config set writes json
+        When test_config_set_writes_json executes the target flow
+        Then the expected outcome for config set writes json is confirmed.
+
+    Boundaries:
+        - Focus: config set writes json
+        - Fixtures/params: tmp_path, monkeypatch
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to config set writes json
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     json_path = tmp_path / "config.json"
     json_path.write_text('{"backends": {"ai": {"provider": "anthropic"}}}')
     monkeypatch.setattr("aegis_swr.cli.commands.DEFAULT_CONFIG_PATH", json_path)
@@ -542,16 +866,70 @@ def test_config_set_writes_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 
 def test_load_analyze_config_missing_file(tmp_path: Path):
+    """
+    [Unit] cli: verifies load analyze config missing file.
+
+    Scenario:
+        Given test inputs and fixtures for load analyze config missing file
+        When test_load_analyze_config_missing_file executes the target flow
+        Then the expected outcome for load analyze config missing file is confirmed.
+
+    Boundaries:
+        - Focus: load analyze config missing file
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to load analyze config missing file
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     assert load_analyze_config(tmp_path / "nonexistent.json") == {}
 
 
 def test_load_analyze_config_malformed(tmp_path: Path):
+    """
+    [Unit] cli: verifies load analyze config malformed.
+
+    Scenario:
+        Given test inputs and fixtures for load analyze config malformed
+        When test_load_analyze_config_malformed executes the target flow
+        Then the expected outcome for load analyze config malformed is confirmed.
+
+    Boundaries:
+        - Focus: load analyze config malformed
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to load analyze config malformed
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     bad = tmp_path / "bad.json"
     bad.write_text("{not valid json")
     assert load_analyze_config(bad) == {}
 
 
 def test_save_and_reload_config(tmp_path: Path):
+    """
+    [Unit] cli: verifies save and reload config.
+
+    Scenario:
+        Given test inputs and fixtures for save and reload config
+        When test_save_and_reload_config executes the target flow
+        Then the expected outcome for save and reload config is confirmed.
+
+    Boundaries:
+        - Focus: save and reload config
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to save and reload config
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     path = tmp_path / "cfg.json"
     save_analyze_config({"engine": "cdb", "dump": "/x.dmp"}, path)
     loaded = load_analyze_config(path)
@@ -565,6 +943,24 @@ def test_save_and_reload_config(tmp_path: Path):
 
 
 def test_evidence_severity_rejects_non_stream_level(tmp_path: Path):
+    """
+    [Unit] cli: verifies evidence severity rejects non stream level.
+
+    Scenario:
+        Given test inputs and fixtures for evidence severity rejects non stream level
+        When test_evidence_severity_rejects_non_stream_level executes the target flow
+        Then the expected outcome for evidence severity rejects non stream level is confirmed.
+
+    Boundaries:
+        - Focus: evidence severity rejects non stream level
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to evidence severity rejects non stream level
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     result = runner.invoke(
         app,
         [
@@ -584,6 +980,24 @@ def test_evidence_severity_rejects_non_stream_level(tmp_path: Path):
 
 
 def test_process_severity_rejects_non_stream_level(tmp_path: Path):
+    """
+    [Unit] cli: verifies process severity rejects non stream level.
+
+    Scenario:
+        Given test inputs and fixtures for process severity rejects non stream level
+        When test_process_severity_rejects_non_stream_level executes the target flow
+        Then the expected outcome for process severity rejects non stream level is confirmed.
+
+    Boundaries:
+        - Focus: process severity rejects non stream level
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to process severity rejects non stream level
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     result = runner.invoke(
         app,
         [
@@ -603,6 +1017,24 @@ def test_process_severity_rejects_non_stream_level(tmp_path: Path):
 
 
 def test_log_sink_rejects_unknown_value(tmp_path: Path):
+    """
+    [Unit] cli: verifies log sink rejects unknown value.
+
+    Scenario:
+        Given test inputs and fixtures for log sink rejects unknown value
+        When test_log_sink_rejects_unknown_value executes the target flow
+        Then the expected outcome for log sink rejects unknown value is confirmed.
+
+    Boundaries:
+        - Focus: log sink rejects unknown value
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to log sink rejects unknown value
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by cli
+    """
     result = runner.invoke(
         app,
         [

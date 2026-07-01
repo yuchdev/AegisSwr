@@ -93,6 +93,24 @@ def _log_only_source() -> IncidentSource:
 
 
 async def test_full_pipeline_converges_in_one_round(settings: Settings):
+    """
+    [Unit] orchestrator: verifies full pipeline converges in one round.
+
+    Scenario:
+        Given test inputs and fixtures for full pipeline converges in one round
+        When test_full_pipeline_converges_in_one_round executes the target flow
+        Then the expected outcome for full pipeline converges in one round is confirmed.
+
+    Boundaries:
+        - Focus: full pipeline converges in one round
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to full pipeline converges in one round
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by orchestrator
+    """
     orch = _make_orchestrator(settings, _one_round(confidence=0.90))
     report = await orch.run(_log_only_source())
 
@@ -104,6 +122,24 @@ async def test_full_pipeline_converges_in_one_round(settings: Settings):
 
 
 async def test_full_pipeline_token_tracker_accumulates(settings: Settings):
+    """
+    [Unit] orchestrator: verifies full pipeline token tracker accumulates.
+
+    Scenario:
+        Given test inputs and fixtures for full pipeline token tracker accumulates
+        When test_full_pipeline_token_tracker_accumulates executes the target flow
+        Then the expected outcome for full pipeline token tracker accumulates is confirmed.
+
+    Boundaries:
+        - Focus: full pipeline token tracker accumulates
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to full pipeline token tracker accumulates
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by orchestrator
+    """
     ai = MockAIBackend(
         responses=_one_round(0.90),
         usage={"input_tokens": 100, "output_tokens": 20},
@@ -121,6 +157,24 @@ async def test_full_pipeline_token_tracker_accumulates(settings: Settings):
 
 
 async def test_skeptic_rejection_triggers_second_round(settings: Settings):
+    """
+    [Unit] orchestrator: verifies skeptic rejection triggers second round.
+
+    Scenario:
+        Given test inputs and fixtures for skeptic rejection triggers second round
+        When test_skeptic_rejection_triggers_second_round executes the target flow
+        Then the expected outcome for skeptic rejection triggers second round is confirmed.
+
+    Boundaries:
+        - Focus: skeptic rejection triggers second round
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to skeptic rejection triggers second round
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by orchestrator
+    """
     responses = [
         # Round 1: Skeptic rejects.
         _os(0.90), _code(0.90), _historian(0.90), _skeptic_no(),
@@ -143,6 +197,24 @@ async def test_skeptic_rejection_triggers_second_round(settings: Settings):
 
 
 async def test_deadlock_produces_hitl_request(settings: Settings):
+    """
+    [Unit] orchestrator: verifies deadlock produces hitl request.
+
+    Scenario:
+        Given test inputs and fixtures for deadlock produces hitl request
+        When test_deadlock_produces_hitl_request executes the target flow
+        Then the expected outcome for deadlock produces hitl request is confirmed.
+
+    Boundaries:
+        - Focus: deadlock produces hitl request
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to deadlock produces hitl request
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by orchestrator
+    """
     low = 0.30  # well below hitl_confidence_threshold=0.50
     # max_debate_rounds=4, so we need 4 rounds all rejecting
     responses = []
@@ -162,6 +234,24 @@ async def test_deadlock_produces_hitl_request(settings: Settings):
 
 
 async def test_cache_hit_skips_analysis(settings: Settings):
+    """
+    [Mock] orchestrator: verifies cache hit skips analysis.
+
+    Scenario:
+        Given test inputs and fixtures for cache hit skips analysis
+        When test_cache_hit_skips_analysis executes the target flow
+        Then the expected outcome for cache hit skips analysis is confirmed.
+
+    Boundaries:
+        - Focus: cache hit skips analysis
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to cache hit skips analysis
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by orchestrator
+    """
     cached_report = RCAReport(
         mode=IncidentMode.CRASH_DUMP,
         dump_hash="sha256:abc123",
@@ -194,6 +284,24 @@ async def test_cache_hit_skips_analysis(settings: Settings):
 
 
 async def test_run_streaming_yields_agent_turn_events(settings: Settings):
+    """
+    [Unit] orchestrator: verifies run streaming yields agent turn events.
+
+    Scenario:
+        Given test inputs and fixtures for run streaming yields agent turn events
+        When test_run_streaming_yields_agent_turn_events executes the target flow
+        Then the expected outcome for run streaming yields agent turn events is confirmed.
+
+    Boundaries:
+        - Focus: run streaming yields agent turn events
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to run streaming yields agent turn events
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by orchestrator
+    """
     orch = _make_orchestrator(settings, _one_round(confidence=0.90))
     events = []
     async for event in orch.run_streaming(_log_only_source()):
@@ -205,6 +313,24 @@ async def test_run_streaming_yields_agent_turn_events(settings: Settings):
 
 
 async def test_run_streaming_yields_hitl_event_on_deadlock(settings: Settings):
+    """
+    [Unit] orchestrator: verifies run streaming yields hitl event on deadlock.
+
+    Scenario:
+        Given test inputs and fixtures for run streaming yields hitl event on deadlock
+        When test_run_streaming_yields_hitl_event_on_deadlock executes the target flow
+        Then the expected outcome for run streaming yields hitl event on deadlock is confirmed.
+
+    Boundaries:
+        - Focus: run streaming yields hitl event on deadlock
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to run streaming yields hitl event on deadlock
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by orchestrator
+    """
     low = 0.25
     responses = []
     for _ in range(settings.core.max_debate_rounds):

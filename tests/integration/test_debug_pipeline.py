@@ -44,6 +44,24 @@ def _os_kernel_payload() -> dict[str, object]:
 
 
 async def test_real_cdb_backend_through_adapter(settings: Settings, tmp_path: Path):
+    """
+    [Integration] debug pipeline: verifies real cdb backend through adapter.
+
+    Scenario:
+        Given test inputs and fixtures for real cdb backend through adapter
+        When test_real_cdb_backend_through_adapter executes the target flow
+        Then the expected outcome for real cdb backend through adapter is confirmed.
+
+    Boundaries:
+        - Focus: real cdb backend through adapter
+        - Fixtures/params: settings, tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to real cdb backend through adapter
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by debug pipeline
+    """
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 64)
     source = IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path=str(dump))
@@ -68,6 +86,24 @@ async def test_real_cdb_backend_through_adapter(settings: Settings, tmp_path: Pa
 
 
 async def test_real_cdb_then_mock_ai(settings: Settings, tmp_path: Path):
+    """
+    [Integration] debug pipeline: verifies real cdb then mock ai.
+
+    Scenario:
+        Given test inputs and fixtures for real cdb then mock ai
+        When test_real_cdb_then_mock_ai executes the target flow
+        Then the expected outcome for real cdb then mock ai is confirmed.
+
+    Boundaries:
+        - Focus: real cdb then mock ai
+        - Fixtures/params: settings, tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to real cdb then mock ai
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by debug pipeline
+    """
     dump = tmp_path / "app.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 64)
     source = IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path=str(dump))
@@ -87,6 +123,24 @@ async def test_real_cdb_then_mock_ai(settings: Settings, tmp_path: Path):
 
 async def test_factory_linux_backend_through_adapter(settings: Settings, tmp_path: Path):
     # ELF magic so the adapter detects LINUX_CORE; the GDB backend supports it.
+    """
+    [Integration] debug pipeline: verifies factory linux backend through adapter.
+
+    Scenario:
+        Given test inputs and fixtures for factory linux backend through adapter
+        When test_factory_linux_backend_through_adapter executes the target flow
+        Then the expected outcome for factory linux backend through adapter is confirmed.
+
+    Boundaries:
+        - Focus: factory linux backend through adapter
+        - Fixtures/params: settings, tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to factory linux backend through adapter
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by debug pipeline
+    """
     dump = tmp_path / "core.1234"
     dump.write_bytes(b"\x7fELF" + b"\x00" * 64)
     source = IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path=str(dump))

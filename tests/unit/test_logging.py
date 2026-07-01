@@ -31,6 +31,24 @@ def _restore_logger_levels():
 
 @pytest.mark.parametrize("severity", ["TRACE", "DEBUG", "INFO", "WARNING", "ERROR"])
 def test_noisy_loggers_clamped_to_warning(severity: str):
+    """
+    [Unit] logging: verifies noisy loggers clamped to warning.
+
+    Scenario:
+        Given test inputs and fixtures for noisy loggers clamped to warning
+        When test_noisy_loggers_clamped_to_warning executes the target flow
+        Then the expected outcome for noisy loggers clamped to warning is confirmed.
+
+    Boundaries:
+        - Focus: noisy loggers clamped to warning
+        - Fixtures/params: severity (parametrized, 5 cases)
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to noisy loggers clamped to warning
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     configure_logging(severity)
     for name in NOISY_LIBRARY_LOGGERS:
         assert logging.getLogger(name).level == logging.WARNING, name
@@ -39,6 +57,24 @@ def test_noisy_loggers_clamped_to_warning(severity: str):
 def test_http_body_record_suppressed_at_info():
     # The exact shape of what leaked before: an httpx/SDK INFO record carrying
     # the request body JSON (incident brief + agent resolution).
+    """
+    [Unit] logging: verifies http body record suppressed at info.
+
+    Scenario:
+        Given test inputs and fixtures for http body record suppressed at info
+        When test_http_body_record_suppressed_at_info executes the target flow
+        Then the expected outcome for http body record suppressed at info is confirmed.
+
+    Boundaries:
+        - Focus: http body record suppressed at info
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to http body record suppressed at info
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     configure_logging("INFO")
     httpx_logger = logging.getLogger("httpx")
     body = '{"incident_brief": {"root_cause": "UAF"}, "resolution": "patch"}'
@@ -49,6 +85,24 @@ def test_http_body_record_suppressed_at_info():
 
 
 def test_anthropic_child_logger_inherits_clamp():
+    """
+    [Unit] logging: verifies anthropic child logger inherits clamp.
+
+    Scenario:
+        Given test inputs and fixtures for anthropic child logger inherits clamp
+        When test_anthropic_child_logger_inherits_clamp executes the target flow
+        Then the expected outcome for anthropic child logger inherits clamp is confirmed.
+
+    Boundaries:
+        - Focus: anthropic child logger inherits clamp
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to anthropic child logger inherits clamp
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     configure_logging("INFO")
     # SDK internals log under child loggers (e.g. anthropic._base_client);
     # they inherit the WARNING clamp from the parent.
@@ -58,6 +112,24 @@ def test_anthropic_child_logger_inherits_clamp():
 
 
 def test_log_dir_writes_classic_log_file(tmp_path: Path):
+    """
+    [Unit] logging: verifies log dir writes classic log file.
+
+    Scenario:
+        Given test inputs and fixtures for log dir writes classic log file
+        When test_log_dir_writes_classic_log_file executes the target flow
+        Then the expected outcome for log dir writes classic log file is confirmed.
+
+    Boundaries:
+        - Focus: log dir writes classic log file
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to log dir writes classic log file
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     log_dir = tmp_path / "logs"
     try:
         configure_logging("INFO", log_dir=str(log_dir))
@@ -72,6 +144,24 @@ def test_log_dir_writes_classic_log_file(tmp_path: Path):
 
 
 def test_log_dir_redacts_secrets_in_file(tmp_path: Path):
+    """
+    [Unit] logging: verifies log dir redacts secrets in file.
+
+    Scenario:
+        Given test inputs and fixtures for log dir redacts secrets in file
+        When test_log_dir_redacts_secrets_in_file executes the target flow
+        Then the expected outcome for log dir redacts secrets in file is confirmed.
+
+    Boundaries:
+        - Focus: log dir redacts secrets in file
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to log dir redacts secrets in file
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     log_dir = tmp_path / "logs"
     try:
         configure_logging("INFO", log_dir=str(log_dir))
@@ -86,6 +176,24 @@ def test_log_dir_redacts_secrets_in_file(tmp_path: Path):
 
 def test_missing_log_dir_does_not_break_stderr_logging(tmp_path: Path, monkeypatch):
     # If the log directory can't be created, stderr logging must still work.
+    """
+    [Mock] logging: verifies missing log dir does not break stderr logging.
+
+    Scenario:
+        Given test inputs and fixtures for missing log dir does not break stderr logging
+        When test_missing_log_dir_does_not_break_stderr_logging executes the target flow
+        Then the expected outcome for missing log dir does not break stderr logging is confirmed.
+
+    Boundaries:
+        - Focus: missing log dir does not break stderr logging
+        - Fixtures/params: tmp_path, monkeypatch
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to missing log dir does not break stderr logging
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     import aegis_swr.cli.aegis_logging as mod
 
     def _boom(*_a, **_k):
@@ -103,6 +211,24 @@ def test_missing_log_dir_does_not_break_stderr_logging(tmp_path: Path, monkeypat
 
 
 def test_file_sink_emits_no_warning(tmp_path: Path):
+    """
+    [Unit] logging: verifies file sink emits no warning.
+
+    Scenario:
+        Given test inputs and fixtures for file sink emits no warning
+        When test_file_sink_emits_no_warning executes the target flow
+        Then the expected outcome for file sink emits no warning is confirmed.
+
+    Boundaries:
+        - Focus: file sink emits no warning
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to file sink emits no warning
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     log_dir = tmp_path / "logs"
     try:
         configure_logging("INFO", log_dir=str(log_dir), sink="file")
@@ -117,6 +243,24 @@ def test_file_sink_emits_no_warning(tmp_path: Path):
 
 @pytest.mark.parametrize("sink", ["elk", "fluent"])
 def test_unimplemented_sink_warns_and_falls_back_to_file(tmp_path: Path, sink: str):
+    """
+    [Unit] logging: verifies unimplemented sink warns and falls back to file.
+
+    Scenario:
+        Given test inputs and fixtures for unimplemented sink warns and falls back to file
+        When test_unimplemented_sink_warns_and_falls_back_to_file executes the target flow
+        Then the expected outcome for unimplemented sink warns and falls back to file is confirmed.
+
+    Boundaries:
+        - Focus: unimplemented sink warns and falls back to file
+        - Fixtures/params: tmp_path, sink (parametrized, 2 cases)
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to unimplemented sink warns and falls back to file
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     log_dir = tmp_path / "logs"
     try:
         configure_logging("INFO", log_dir=str(log_dir), sink=sink)
@@ -131,6 +275,24 @@ def test_unimplemented_sink_warns_and_falls_back_to_file(tmp_path: Path, sink: s
 
 
 def test_unknown_sink_warns_and_falls_back_to_file(tmp_path: Path):
+    """
+    [Unit] logging: verifies unknown sink warns and falls back to file.
+
+    Scenario:
+        Given test inputs and fixtures for unknown sink warns and falls back to file
+        When test_unknown_sink_warns_and_falls_back_to_file executes the target flow
+        Then the expected outcome for unknown sink warns and falls back to file is confirmed.
+
+    Boundaries:
+        - Focus: unknown sink warns and falls back to file
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to unknown sink warns and falls back to file
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     log_dir = tmp_path / "logs"
     try:
         configure_logging("INFO", log_dir=str(log_dir), sink="kafka")
@@ -145,6 +307,24 @@ def test_unknown_sink_warns_and_falls_back_to_file(tmp_path: Path):
 def test_sink_registration_seams_return_false():
     # Until the real emitters land, the seams report "not handled" so the caller
     # falls back to the file/stderr sinks.
+    """
+    [Unit] logging: verifies sink registration seams return false.
+
+    Scenario:
+        Given test inputs and fixtures for sink registration seams return false
+        When test_sink_registration_seams_return_false executes the target flow
+        Then the expected outcome for sink registration seams return false is confirmed.
+
+    Boundaries:
+        - Focus: sink registration seams return false
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to sink registration seams return false
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     from aegis_swr.cli.aegis_logging import _register_elk_sink, _register_fluent_sink
 
     assert _register_elk_sink("INFO", elk_url="http://elk:9200") is False
@@ -214,6 +394,24 @@ def test_redact_re_covers_bearer_and_legacy_forms(
 def test_file_sink_is_delayed_until_first_record(tmp_path: Path):
     # delay=True: the directory is created, but the log file itself is not written
     # until something is actually logged - so a quiet bootstrap leaves no empty file.
+    """
+    [Unit] logging: verifies file sink is delayed until first record.
+
+    Scenario:
+        Given test inputs and fixtures for file sink is delayed until first record
+        When test_file_sink_is_delayed_until_first_record executes the target flow
+        Then the expected outcome for file sink is delayed until first record is confirmed.
+
+    Boundaries:
+        - Focus: file sink is delayed until first record
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to file sink is delayed until first record
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by logging
+    """
     log_dir = tmp_path / "logs"
     try:
         configure_logging("INFO", log_dir=str(log_dir))

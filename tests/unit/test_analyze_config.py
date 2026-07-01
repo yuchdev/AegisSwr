@@ -36,6 +36,24 @@ def _asset(name: str) -> dict:
 def test_default_path_is_canonical_config_location():
     # The config file lives under ~/.aegis-swr/config.json, and the
     # CLI and runtime Settings must resolve the *same* file.
+    """
+    [Unit] analyze config: verifies default path is canonical config location.
+
+    Scenario:
+        Given test inputs and fixtures for default path is canonical config location
+        When test_default_path_is_canonical_config_location executes the target flow
+        Then the expected outcome for default path is canonical config location is confirmed.
+
+    Boundaries:
+        - Focus: default path is canonical config location
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to default path is canonical config location
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     from aegis_swr.config.settings import CONFIG_JSON
 
     normalized = str(DEFAULT_CONFIG_PATH).replace("\\", "/")
@@ -44,6 +62,24 @@ def test_default_path_is_canonical_config_location():
 
 
 def test_keys_have_no_duplicates():
+    """
+    [Unit] analyze config: verifies keys have no duplicates.
+
+    Scenario:
+        Given test inputs and fixtures for keys have no duplicates
+        When test_keys_have_no_duplicates executes the target flow
+        Then the expected outcome for keys have no duplicates is confirmed.
+
+    Boundaries:
+        - Focus: keys have no duplicates
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to keys have no duplicates
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     keys = AnalyzeConfig.keys()
     assert len(keys) == len(set(keys))
     # The public alias is derived from the schema, not hand-maintained.
@@ -94,6 +130,24 @@ def test_cli_options_have_backing_schema_keys():
 
 
 def test_from_dict_reads_full_config_01():
+    """
+    [Unit] analyze config: verifies from dict reads full config 01.
+
+    Scenario:
+        Given test inputs and fixtures for from dict reads full config 01
+        When test_from_dict_reads_full_config_01 executes the target flow
+        Then the expected outcome for from dict reads full config 01 is confirmed.
+
+    Boundaries:
+        - Focus: from dict reads full config 01
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to from dict reads full config 01
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     cfg = AnalyzeConfig.from_dict(_asset("test_config-01.json"))
     assert cfg.dump == "C:/dumps/CrashUi.dmp"
     assert cfg.sym == "C:/symbols"
@@ -111,6 +165,24 @@ def test_from_dict_reads_full_config_01():
 
 
 def test_from_dict_partial_config_02_uses_defaults():
+    """
+    [Unit] analyze config: verifies from dict partial config 02 uses defaults.
+
+    Scenario:
+        Given test inputs and fixtures for from dict partial config 02 uses defaults
+        When test_from_dict_partial_config_02_uses_defaults executes the target flow
+        Then the expected outcome for from dict partial config 02 uses defaults is confirmed.
+
+    Boundaries:
+        - Focus: from dict partial config 02 uses defaults
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to from dict partial config 02 uses defaults
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     cfg = AnalyzeConfig.from_dict(_asset("test_config-02.json"))
     # Provided values.
     assert cfg.logs == ["C:/logs/app.log", "C:/logs/render.log"]
@@ -123,6 +195,24 @@ def test_from_dict_partial_config_02_uses_defaults():
 
 
 def test_from_dict_config_03_ignores_unknown_keys_with_warning():
+    """
+    [Unit] analyze config: verifies from dict config 03 ignores unknown keys with warning.
+
+    Scenario:
+        Given test inputs and fixtures for from dict config 03 ignores unknown keys with warning
+        When test_from_dict_config_03_ignores_unknown_keys_with_warning executes the target flow
+        Then the expected outcome for from dict config 03 ignores unknown keys with warning is confirmed.
+
+    Boundaries:
+        - Focus: from dict config 03 ignores unknown keys with warning
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to from dict config 03 ignores unknown keys with warning
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     data = _asset("test_config-03.json")  # contains "verbosity" and "engien" typos
     captured: list[str] = []
     sink_id = logger.add(lambda m: captured.append(str(m)), level="WARNING")
@@ -143,11 +233,47 @@ def test_from_dict_config_03_ignores_unknown_keys_with_warning():
 
 
 def test_load_analyze_config_reads_fixture_as_dict():
+    """
+    [Unit] analyze config: verifies load analyze config reads fixture as dict.
+
+    Scenario:
+        Given test inputs and fixtures for load analyze config reads fixture as dict
+        When test_load_analyze_config_reads_fixture_as_dict executes the target flow
+        Then the expected outcome for load analyze config reads fixture as dict is confirmed.
+
+    Boundaries:
+        - Focus: load analyze config reads fixture as dict
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to load analyze config reads fixture as dict
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     data = load_analyze_config(FIXTURES / "test_config-01.json")
     assert data["engine"] == "cdb"
 
 
 def test_load_analyze_config_rejects_non_object_json(tmp_path: Path):
+    """
+    [Unit] analyze config: verifies load analyze config rejects non object json.
+
+    Scenario:
+        Given test inputs and fixtures for load analyze config rejects non object json
+        When test_load_analyze_config_rejects_non_object_json executes the target flow
+        Then the expected outcome for load analyze config rejects non object json is confirmed.
+
+    Boundaries:
+        - Focus: load analyze config rejects non object json
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to load analyze config rejects non object json
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     bad = tmp_path / "list.json"
     bad.write_text("[1, 2, 3]")
     assert load_analyze_config(bad) == {}
@@ -197,6 +323,24 @@ def test_from_dict_flattens_all_nested_sections():
 
 
 def test_from_dict_partial_sections_keep_defaults():
+    """
+    [Unit] analyze config: verifies from dict partial sections keep defaults.
+
+    Scenario:
+        Given test inputs and fixtures for from dict partial sections keep defaults
+        When test_from_dict_partial_sections_keep_defaults executes the target flow
+        Then the expected outcome for from dict partial sections keep defaults is confirmed.
+
+    Boundaries:
+        - Focus: from dict partial sections keep defaults
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to from dict partial sections keep defaults
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     cfg = AnalyzeConfig.from_dict({"evidence": {"severity": "TRACE"}})
     assert cfg.evidence_severity == "TRACE"
     # Unspecified fields fall back to their schema defaults.
@@ -207,6 +351,24 @@ def test_from_dict_partial_sections_keep_defaults():
 
 
 def test_load_analyze_config_flattens_sections(tmp_path: Path):
+    """
+    [Unit] analyze config: verifies load analyze config flattens sections.
+
+    Scenario:
+        Given test inputs and fixtures for load analyze config flattens sections
+        When test_load_analyze_config_flattens_sections executes the target flow
+        Then the expected outcome for load analyze config flattens sections is confirmed.
+
+    Boundaries:
+        - Focus: load analyze config flattens sections
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to load analyze config flattens sections
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     path = tmp_path / "cfg.json"
     path.write_text(
         json.dumps(
@@ -225,6 +387,24 @@ def test_load_analyze_config_flattens_sections(tmp_path: Path):
 
 
 def test_save_analyze_config_nests_all_sections(tmp_path: Path):
+    """
+    [Unit] analyze config: verifies save analyze config nests all sections.
+
+    Scenario:
+        Given test inputs and fixtures for save analyze config nests all sections
+        When test_save_analyze_config_nests_all_sections executes the target flow
+        Then the expected outcome for save analyze config nests all sections is confirmed.
+
+    Boundaries:
+        - Focus: save analyze config nests all sections
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to save analyze config nests all sections
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     path = tmp_path / "cfg.json"
     save_analyze_config(
         {
@@ -253,6 +433,24 @@ def test_save_analyze_config_nests_all_sections(tmp_path: Path):
 
 
 def test_sections_round_trip_through_save_and_load(tmp_path: Path):
+    """
+    [Unit] analyze config: verifies sections round trip through save and load.
+
+    Scenario:
+        Given test inputs and fixtures for sections round trip through save and load
+        When test_sections_round_trip_through_save_and_load executes the target flow
+        Then the expected outcome for sections round trip through save and load is confirmed.
+
+    Boundaries:
+        - Focus: sections round trip through save and load
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to sections round trip through save and load
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     path = tmp_path / "cfg.json"
     opts = {
         "log_provider": "fluent",
@@ -324,6 +522,24 @@ def test_legacy_conflated_logging_section_is_migrated():
 
 
 def test_legacy_severity_clamps_non_stream_levels_to_info():
+    """
+    [Unit] analyze config: verifies legacy severity clamps non stream levels to info.
+
+    Scenario:
+        Given test inputs and fixtures for legacy severity clamps non stream levels to info
+        When test_legacy_severity_clamps_non_stream_levels_to_info executes the target flow
+        Then the expected outcome for legacy severity clamps non stream levels to info is confirmed.
+
+    Boundaries:
+        - Focus: legacy severity clamps non stream levels to info
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to legacy severity clamps non stream levels to info
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     cfg = AnalyzeConfig.from_dict({"logging": {"severity": "WARNING"}})
     assert cfg.log_severity == "WARNING"  # application channel keeps it verbatim
     assert cfg.evidence_severity == "INFO"  # WARNING is not a stream level → INFO
@@ -357,17 +573,71 @@ def test_new_sections_suppress_legacy_migration():
 
 
 def test_merge_empty_sources_yields_defaults():
+    """
+    [Unit] analyze config: verifies merge empty sources yields defaults.
+
+    Scenario:
+        Given test inputs and fixtures for merge empty sources yields defaults
+        When test_merge_empty_sources_yields_defaults executes the target flow
+        Then the expected outcome for merge empty sources yields defaults is confirmed.
+
+    Boundaries:
+        - Focus: merge empty sources yields defaults
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to merge empty sources yields defaults
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     cfg = AnalyzeConfig.merge({}, {})
     assert cfg == AnalyzeConfig()
 
 
 def test_merge_file_overrides_defaults():
+    """
+    [Unit] analyze config: verifies merge file overrides defaults.
+
+    Scenario:
+        Given test inputs and fixtures for merge file overrides defaults
+        When test_merge_file_overrides_defaults executes the target flow
+        Then the expected outcome for merge file overrides defaults is confirmed.
+
+    Boundaries:
+        - Focus: merge file overrides defaults
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to merge file overrides defaults
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     cfg = AnalyzeConfig.merge({"engine": "cdb"}, {})
     assert cfg.engine == "cdb"
     assert cfg.store == "filesystem"  # untouched default
 
 
 def test_merge_cli_overrides_file():
+    """
+    [Unit] analyze config: verifies merge cli overrides file.
+
+    Scenario:
+        Given test inputs and fixtures for merge cli overrides file
+        When test_merge_cli_overrides_file executes the target flow
+        Then the expected outcome for merge cli overrides file is confirmed.
+
+    Boundaries:
+        - Focus: merge cli overrides file
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to merge cli overrides file
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     file_config = _asset("test_config-01.json")  # engine=cdb, store=sqlite
     cfg = AnalyzeConfig.merge(file_config, {"engine": "windbg_js"})
     # CLI wins for engine …
@@ -380,6 +650,24 @@ def test_merge_cli_overrides_file():
 def test_merge_ignores_none_cli_values():
     # Values that were not explicitly set on the CLI (None) must not clobber
     # config.json - only real overrides count.
+    """
+    [Unit] analyze config: verifies merge ignores none cli values.
+
+    Scenario:
+        Given test inputs and fixtures for merge ignores none cli values
+        When test_merge_ignores_none_cli_values executes the target flow
+        Then the expected outcome for merge ignores none cli values is confirmed.
+
+    Boundaries:
+        - Focus: merge ignores none cli values
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to merge ignores none cli values
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by analyze config
+    """
     cfg = AnalyzeConfig.merge({"engine": "cdb"}, {"engine": None, "store": "sqlite"})
     assert cfg.engine == "cdb"
     assert cfg.store == "sqlite"

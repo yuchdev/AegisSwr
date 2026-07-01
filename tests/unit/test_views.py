@@ -131,6 +131,24 @@ def _process_text(view: WarRoomView) -> str:
 
 
 def test_spinner_char_cycles_through_all_frames():
+    """
+    [Unit] views: verifies spinner char cycles through all frames.
+
+    Scenario:
+        Given test inputs and fixtures for spinner char cycles through all frames
+        When test_spinner_char_cycles_through_all_frames executes the target flow
+        Then the expected outcome for spinner char cycles through all frames is confirmed.
+
+    Boundaries:
+        - Focus: spinner char cycles through all frames
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to spinner char cycles through all frames
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     from aegis_swr.views.rich_view import SPINNER_FRAMES
 
     seen = {_spinner_char(t / 10) for t in range(len(SPINNER_FRAMES))}
@@ -138,23 +156,95 @@ def test_spinner_char_cycles_through_all_frames():
 
 
 def test_fmt_elapsed_is_h_mm_ss():
+    """
+    [Unit] views: verifies fmt elapsed is h mm ss.
+
+    Scenario:
+        Given test inputs and fixtures for fmt elapsed is h mm ss
+        When test_fmt_elapsed_is_h_mm_ss executes the target flow
+        Then the expected outcome for fmt elapsed is h mm ss is confirmed.
+
+    Boundaries:
+        - Focus: fmt elapsed is h mm ss
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to fmt elapsed is h mm ss
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     assert _fmt_elapsed(0) == "0:00:00"
     assert _fmt_elapsed(102) == "0:01:42"
     assert _fmt_elapsed(3723) == "1:02:03"
 
 
 def test_fmt_stamp_is_mm_ss():
+    """
+    [Unit] views: verifies fmt stamp is mm ss.
+
+    Scenario:
+        Given test inputs and fixtures for fmt stamp is mm ss
+        When test_fmt_stamp_is_mm_ss executes the target flow
+        Then the expected outcome for fmt stamp is mm ss is confirmed.
+
+    Boundaries:
+        - Focus: fmt stamp is mm ss
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to fmt stamp is mm ss
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     assert _fmt_stamp(0) == "00:00"
     assert _fmt_stamp(108) == "01:48"
 
 
 def test_truncate_appends_ellipsis():
+    """
+    [Unit] views: verifies truncate appends ellipsis.
+
+    Scenario:
+        Given test inputs and fixtures for truncate appends ellipsis
+        When test_truncate_appends_ellipsis executes the target flow
+        Then the expected outcome for truncate appends ellipsis is confirmed.
+
+    Boundaries:
+        - Focus: truncate appends ellipsis
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to truncate appends ellipsis
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     assert _truncate("short", 20) == "short"
     assert _truncate("a very long finding line", 10) == "a very lo…"
     assert _truncate("x", 1) == ""
 
 
 def test_agent_state_defaults():
+    """
+    [Unit] views: verifies agent state defaults.
+
+    Scenario:
+        Given test inputs and fixtures for agent state defaults
+        When test_agent_state_defaults executes the target flow
+        Then the expected outcome for agent state defaults is confirmed.
+
+    Boundaries:
+        - Focus: agent state defaults
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to agent state defaults
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     state = AgentState()
     assert state.status == "STANDBY"
     assert state.confidence == 0.0
@@ -167,11 +257,47 @@ def test_agent_state_defaults():
 
 
 def test_make_view_wide_terminal_is_warroom():
+    """
+    [Unit] views: verifies make view wide terminal is warroom.
+
+    Scenario:
+        Given test inputs and fixtures for make view wide terminal is warroom
+        When test_make_view_wide_terminal_is_warroom executes the target flow
+        Then the expected outcome for make view wide terminal is warroom is confirmed.
+
+    Boundaries:
+        - Focus: make view wide terminal is warroom
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to make view wide terminal is warroom
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = make_view(_headless_console(width=120))
     assert isinstance(view, WarRoomView)
 
 
 def test_make_view_narrow_terminal_is_richview():
+    """
+    [Unit] views: verifies make view narrow terminal is richview.
+
+    Scenario:
+        Given test inputs and fixtures for make view narrow terminal is richview
+        When test_make_view_narrow_terminal_is_richview executes the target flow
+        Then the expected outcome for make view narrow terminal is richview is confirmed.
+
+    Boundaries:
+        - Focus: make view narrow terminal is richview
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to make view narrow terminal is richview
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = make_view(_headless_console(width=70))
     assert isinstance(view, RichView)
 
@@ -182,6 +308,24 @@ def test_make_view_narrow_terminal_is_richview():
 
 
 def test_started_resets_state_and_records_stage_marker():
+    """
+    [Unit] views: verifies started resets state and records stage marker.
+
+    Scenario:
+        Given test inputs and fixtures for started resets state and records stage marker
+        When test_started_resets_state_and_records_stage_marker executes the target flow
+        Then the expected outcome for started resets state and records stage marker is confirmed.
+
+    Boundaries:
+        - Focus: started resets state and records stage marker
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to started resets state and records stage marker
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -196,6 +340,24 @@ def test_started_resets_state_and_records_stage_marker():
 
 
 def test_evidence_extracted_populates_stream_and_wakes_first_agent():
+    """
+    [Unit] views: verifies evidence extracted populates stream and wakes first agent.
+
+    Scenario:
+        Given test inputs and fixtures for evidence extracted populates stream and wakes first agent
+        When test_evidence_extracted_populates_stream_and_wakes_first_agent executes the target flow
+        Then the expected outcome for evidence extracted populates stream and wakes first agent is confirmed.
+
+    Boundaries:
+        - Focus: evidence extracted populates stream and wakes first agent
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to evidence extracted populates stream and wakes first agent
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -214,6 +376,24 @@ def test_evidence_extracted_populates_stream_and_wakes_first_agent():
 
 
 def test_agent_spoke_marks_done_and_wakes_next():
+    """
+    [Unit] views: verifies agent spoke marks done and wakes next.
+
+    Scenario:
+        Given test inputs and fixtures for agent spoke marks done and wakes next
+        When test_agent_spoke_marks_done_and_wakes_next executes the target flow
+        Then the expected outcome for agent spoke marks done and wakes next is confirmed.
+
+    Boundaries:
+        - Focus: agent spoke marks done and wakes next
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to agent spoke marks done and wakes next
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -243,6 +423,24 @@ def test_agent_spoke_marks_done_and_wakes_next():
 
 
 def test_skeptic_is_last_and_wakes_no_one():
+    """
+    [Unit] views: verifies skeptic is last and wakes no one.
+
+    Scenario:
+        Given test inputs and fixtures for skeptic is last and wakes no one
+        When test_skeptic_is_last_and_wakes_no_one executes the target flow
+        Then the expected outcome for skeptic is last and wakes no one is confirmed.
+
+    Boundaries:
+        - Focus: skeptic is last and wakes no one
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to skeptic is last and wakes no one
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -257,6 +455,24 @@ def test_skeptic_is_last_and_wakes_no_one():
 
 
 def test_consensus_appends_row_and_resets_agents():
+    """
+    [Unit] views: verifies consensus appends row and resets agents.
+
+    Scenario:
+        Given test inputs and fixtures for consensus appends row and resets agents
+        When test_consensus_appends_row_and_resets_agents executes the target flow
+        Then the expected outcome for consensus appends row and resets agents is confirmed.
+
+    Boundaries:
+        - Focus: consensus appends row and resets agents
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to consensus appends row and resets agents
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -275,6 +491,24 @@ def test_consensus_appends_row_and_resets_agents():
 
 
 def test_full_two_round_run_resolves_convergence_markers():
+    """
+    [Unit] views: verifies full two round run resolves convergence markers.
+
+    Scenario:
+        Given test inputs and fixtures for full two round run resolves convergence markers
+        When test_full_two_round_run_resolves_convergence_markers executes the target flow
+        Then the expected outcome for full two round run resolves convergence markers is confirmed.
+
+    Boundaries:
+        - Focus: full two round run resolves convergence markers
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to full two round run resolves convergence markers
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -297,6 +531,24 @@ def test_full_two_round_run_resolves_convergence_markers():
 
 
 def test_hitl_finish_marks_no_convergence():
+    """
+    [Unit] views: verifies hitl finish marks no convergence.
+
+    Scenario:
+        Given test inputs and fixtures for hitl finish marks no convergence
+        When test_hitl_finish_marks_no_convergence executes the target flow
+        Then the expected outcome for hitl finish marks no convergence is confirmed.
+
+    Boundaries:
+        - Focus: hitl finish marks no convergence
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to hitl finish marks no convergence
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -313,6 +565,24 @@ def test_hitl_finish_marks_no_convergence():
 
 
 def test_evidence_stream_is_capped():
+    """
+    [Unit] views: verifies evidence stream is capped.
+
+    Scenario:
+        Given test inputs and fixtures for evidence stream is capped
+        When test_evidence_stream_is_capped executes the target flow
+        Then the expected outcome for evidence stream is capped is confirmed.
+
+    Boundaries:
+        - Focus: evidence stream is capped
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to evidence stream is capped
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -324,6 +594,24 @@ def test_evidence_stream_is_capped():
 
 
 def test_process_log_is_capped():
+    """
+    [Unit] views: verifies process log is capped.
+
+    Scenario:
+        Given test inputs and fixtures for process log is capped
+        When test_process_log_is_capped executes the target flow
+        Then the expected outcome for process log is capped is confirmed.
+
+    Boundaries:
+        - Focus: process log is capped
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to process log is capped
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -337,6 +625,24 @@ def test_process_log_is_capped():
 def test_capping_keeps_reveal_pointer_in_bounds():
     # Trimming the front of the buffer must not leave the reveal pointer past
     # the lines that remain.
+    """
+    [Unit] views: verifies capping keeps reveal pointer in bounds.
+
+    Scenario:
+        Given test inputs and fixtures for capping keeps reveal pointer in bounds
+        When test_capping_keeps_reveal_pointer_in_bounds executes the target flow
+        Then the expected outcome for capping keeps reveal pointer in bounds is confirmed.
+
+    Boundaries:
+        - Focus: capping keeps reveal pointer in bounds
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to capping keeps reveal pointer in bounds
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -355,6 +661,24 @@ def test_capping_keeps_reveal_pointer_in_bounds():
 
 def test_evidence_reveals_gradually_not_all_at_once():
     # A burst of lines must not all surface in a single frame - they stream in.
+    """
+    [Unit] views: verifies evidence reveals gradually not all at once.
+
+    Scenario:
+        Given test inputs and fixtures for evidence reveals gradually not all at once
+        When test_evidence_reveals_gradually_not_all_at_once executes the target flow
+        Then the expected outcome for evidence reveals gradually not all at once is confirmed.
+
+    Boundaries:
+        - Focus: evidence reveals gradually not all at once
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to evidence reveals gradually not all at once
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())
     log = view._evidence_log
@@ -370,6 +694,24 @@ def test_evidence_reveals_gradually_not_all_at_once():
 
 def test_evidence_reveal_catches_up_over_time():
     # Once enough time passes the whole buffer is surfaced.
+    """
+    [Unit] views: verifies evidence reveal catches up over time.
+
+    Scenario:
+        Given test inputs and fixtures for evidence reveal catches up over time
+        When test_evidence_reveal_catches_up_over_time executes the target flow
+        Then the expected outcome for evidence reveal catches up over time is confirmed.
+
+    Boundaries:
+        - Focus: evidence reveal catches up over time
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to evidence reveal catches up over time
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())
     log = view._evidence_log
@@ -385,6 +727,24 @@ def test_finish_reveals_both_buffers():
     # Freezing the Live block must flush every buffered line in both logs so
     # the final tails (including the completion marker) are visible even if
     # pacing was still behind.
+    """
+    [Unit] views: verifies finish reveals both buffers.
+
+    Scenario:
+        Given test inputs and fixtures for finish reveals both buffers
+        When test_finish_reveals_both_buffers executes the target flow
+        Then the expected outcome for finish reveals both buffers is confirmed.
+
+    Boundaries:
+        - Focus: finish reveals both buffers
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to finish reveals both buffers
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -405,6 +765,24 @@ def test_finish_reveals_both_buffers():
 
 
 def test_conversation_lives_in_process_not_evidence():
+    """
+    [Unit] views: verifies conversation lives in process not evidence.
+
+    Scenario:
+        Given test inputs and fixtures for conversation lives in process not evidence
+        When test_conversation_lives_in_process_not_evidence executes the target flow
+        Then the expected outcome for conversation lives in process not evidence is confirmed.
+
+    Boundaries:
+        - Focus: conversation lives in process not evidence
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to conversation lives in process not evidence
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -430,6 +808,24 @@ def test_conversation_lives_in_process_not_evidence():
 
 def test_process_conversation_reveals_gradually():
     # The conversation scrolls in like the evidence stream - not all at once.
+    """
+    [Unit] views: verifies process conversation reveals gradually.
+
+    Scenario:
+        Given test inputs and fixtures for process conversation reveals gradually
+        When test_process_conversation_reveals_gradually executes the target flow
+        Then the expected outcome for process conversation reveals gradually is confirmed.
+
+    Boundaries:
+        - Focus: process conversation reveals gradually
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to process conversation reveals gradually
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -463,6 +859,24 @@ def _publish_multiline_turn(view: WarRoomView, message: str):
 
 
 def test_process_trace_surfaces_full_agent_reasoning():
+    """
+    [Unit] views: verifies process trace surfaces full agent reasoning.
+
+    Scenario:
+        Given test inputs and fixtures for process trace surfaces full agent reasoning
+        When test_process_trace_surfaces_full_agent_reasoning executes the target flow
+        Then the expected outcome for process trace surfaces full agent reasoning is confirmed.
+
+    Boundaries:
+        - Focus: process trace surfaces full agent reasoning
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to process trace surfaces full agent reasoning
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     multiline = "headline finding\nsupporting detail one\nsupporting detail two"
 
     # INFO keeps only the headline …
@@ -524,6 +938,24 @@ def _write_pcap(path: Path) -> Path:
 
 
 def test_info_level_omits_trace_detail():
+    """
+    [Unit] views: verifies info level omits trace detail.
+
+    Scenario:
+        Given test inputs and fixtures for info level omits trace detail
+        When test_info_level_omits_trace_detail executes the target flow
+        Then the expected outcome for info level omits trace detail is confirmed.
+
+    Boundaries:
+        - Focus: info level omits trace detail
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to info level omits trace detail
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)  # default INFO
     _start(view, _crash_source())
     text = _evidence_text(view)
@@ -540,6 +972,24 @@ def test_info_level_omits_trace_detail():
 
 
 def test_trace_level_shows_core_dump_text_and_full_stack():
+    """
+    [Unit] views: verifies trace level shows core dump text and full stack.
+
+    Scenario:
+        Given test inputs and fixtures for trace level shows core dump text and full stack
+        When test_trace_level_shows_core_dump_text_and_full_stack executes the target flow
+        Then the expected outcome for trace level shows core dump text and full stack is confirmed.
+
+    Boundaries:
+        - Focus: trace level shows core dump text and full stack
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to trace level shows core dump text and full stack
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())
     text = _evidence_text(view)
@@ -571,6 +1021,24 @@ def _start_with(view: WarRoomView, brief: dict, source: IncidentSource):
 
 
 def test_trace_streams_full_core_dump_output():
+    """
+    [Unit] views: verifies trace streams full core dump output.
+
+    Scenario:
+        Given test inputs and fixtures for trace streams full core dump output
+        When test_trace_streams_full_core_dump_output executes the target flow
+        Then the expected outcome for trace streams full core dump output is confirmed.
+
+    Boundaries:
+        - Focus: trace streams full core dump output
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to trace streams full core dump output
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start_with(view, _long_excerpt_brief(50), _crash_source())
     text = _evidence_text(view)
@@ -589,6 +1057,24 @@ def test_trace_streams_full_core_dump_output():
 def test_evidence_trace_does_not_surface_agent_reasoning():
     # Evidence TRACE + process INFO: detailed evidence appears, but the agent's
     # extra reasoning lines stay hidden - the two channels are independent.
+    """
+    [Unit] views: verifies evidence trace does not surface agent reasoning.
+
+    Scenario:
+        Given test inputs and fixtures for evidence trace does not surface agent reasoning
+        When test_evidence_trace_does_not_surface_agent_reasoning executes the target flow
+        Then the expected outcome for evidence trace does not surface agent reasoning is confirmed.
+
+    Boundaries:
+        - Focus: evidence trace does not surface agent reasoning
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to evidence trace does not surface agent reasoning
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE", process_level="INFO")
     bus = EventBus()
     view.attach(bus)
@@ -613,6 +1099,24 @@ def test_evidence_trace_does_not_surface_agent_reasoning():
 
 
 def test_evidence_transcript_trace_contains_full_record():
+    """
+    [Unit] views: verifies evidence transcript trace contains full record.
+
+    Scenario:
+        Given test inputs and fixtures for evidence transcript trace contains full record
+        When test_evidence_transcript_trace_contains_full_record executes the target flow
+        Then the expected outcome for evidence transcript trace contains full record is confirmed.
+
+    Boundaries:
+        - Focus: evidence transcript trace contains full record
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to evidence transcript trace contains full record
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())
     transcript = view.evidence_transcript()
@@ -623,6 +1127,24 @@ def test_evidence_transcript_trace_contains_full_record():
 
 
 def test_evidence_transcript_info_is_summary_only():
+    """
+    [Unit] views: verifies evidence transcript info is summary only.
+
+    Scenario:
+        Given test inputs and fixtures for evidence transcript info is summary only
+        When test_evidence_transcript_info_is_summary_only executes the target flow
+        Then the expected outcome for evidence transcript info is summary only is confirmed.
+
+    Boundaries:
+        - Focus: evidence transcript info is summary only
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to evidence transcript info is summary only
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False)  # default INFO
     _start(view, _crash_source())
     transcript = view.evidence_transcript()
@@ -632,6 +1154,24 @@ def test_evidence_transcript_info_is_summary_only():
 
 
 def test_persist_evidence_writes_transcript_file(tmp_path: Path):
+    """
+    [Unit] views: verifies persist evidence writes transcript file.
+
+    Scenario:
+        Given test inputs and fixtures for persist evidence writes transcript file
+        When test_persist_evidence_writes_transcript_file executes the target flow
+        Then the expected outcome for persist evidence writes transcript file is confirmed.
+
+    Boundaries:
+        - Focus: persist evidence writes transcript file
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to persist evidence writes transcript file
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     from aegis_swr.cli._formatters import _persist_evidence
 
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
@@ -647,6 +1187,24 @@ def test_persist_evidence_writes_transcript_file(tmp_path: Path):
 
 
 def test_persist_evidence_is_noop_without_a_directory():
+    """
+    [Unit] views: verifies persist evidence is noop without a directory.
+
+    Scenario:
+        Given test inputs and fixtures for persist evidence is noop without a directory
+        When test_persist_evidence_is_noop_without_a_directory executes the target flow
+        Then the expected outcome for persist evidence is noop without a directory is confirmed.
+
+    Boundaries:
+        - Focus: persist evidence is noop without a directory
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to persist evidence is noop without a directory
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     from aegis_swr.cli._formatters import _persist_evidence
 
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
@@ -656,6 +1214,24 @@ def test_persist_evidence_is_noop_without_a_directory():
 
 
 def test_stream_log_visible_respects_level_rank():
+    """
+    [Unit] views: verifies stream log visible respects level rank.
+
+    Scenario:
+        Given test inputs and fixtures for stream log visible respects level rank
+        When test_stream_log_visible_respects_level_rank executes the target flow
+        Then the expected outcome for stream log visible respects level rank is confirmed.
+
+    Boundaries:
+        - Focus: stream log visible respects level rank
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to stream log visible respects level rank
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     from aegis_swr.views.rich_view import _StreamLog
 
     log = _StreamLog(max_lines=100, reveal_interval=0.0)
@@ -675,11 +1251,47 @@ def test_stream_log_visible_respects_level_rank():
 
 
 def test_make_view_accepts_trace_level():
+    """
+    [Unit] views: verifies make view accepts trace level.
+
+    Scenario:
+        Given test inputs and fixtures for make view accepts trace level
+        When test_make_view_accepts_trace_level executes the target flow
+        Then the expected outcome for make view accepts trace level is confirmed.
+
+    Boundaries:
+        - Focus: make view accepts trace level
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to make view accepts trace level
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = make_view(_headless_console(width=120), level="TRACE")
     assert view._evidence_level == "TRACE"
 
 
 def test_trace_level_shows_log_window(tmp_path: Path):
+    """
+    [Unit] views: verifies trace level shows log window.
+
+    Scenario:
+        Given test inputs and fixtures for trace level shows log window
+        When test_trace_level_shows_log_window executes the target flow
+        Then the expected outcome for trace level shows log window is confirmed.
+
+    Boundaries:
+        - Focus: trace level shows log window
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to trace level shows log window
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     log = tmp_path / "app.log"
     log.write_text("2026-06-04T14:02:11 ERROR boom\n")
     source = IncidentSource(
@@ -700,6 +1312,24 @@ def test_trace_level_shows_log_window(tmp_path: Path):
 
 
 def test_trace_level_shows_screenshot_properties(tmp_path: Path):
+    """
+    [Unit] views: verifies trace level shows screenshot properties.
+
+    Scenario:
+        Given test inputs and fixtures for trace level shows screenshot properties
+        When test_trace_level_shows_screenshot_properties executes the target flow
+        Then the expected outcome for trace level shows screenshot properties is confirmed.
+
+    Boundaries:
+        - Focus: trace level shows screenshot properties
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to trace level shows screenshot properties
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     shot = tmp_path / "error.png"
     shot.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 40)
     source = IncidentSource(
@@ -719,6 +1349,24 @@ def test_trace_level_shows_screenshot_properties(tmp_path: Path):
 
 
 def test_trace_level_shows_network_capture_metadata(tmp_path: Path):
+    """
+    [Unit] views: verifies trace level shows network capture metadata.
+
+    Scenario:
+        Given test inputs and fixtures for trace level shows network capture metadata
+        When test_trace_level_shows_network_capture_metadata executes the target flow
+        Then the expected outcome for trace level shows network capture metadata is confirmed.
+
+    Boundaries:
+        - Focus: trace level shows network capture metadata
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to trace level shows network capture metadata
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     cap = _write_pcap(tmp_path / "traffic.pcap")
     source = IncidentSource(
         mode=IncidentMode.CRASH_DUMP,
@@ -739,12 +1387,48 @@ def test_trace_level_shows_network_capture_metadata(tmp_path: Path):
 
 def test_make_view_debug_collapses_to_trace():
     # DEBUG is no longer a distinct level - it collapses into TRACE.
+    """
+    [Unit] views: verifies make view debug collapses to trace.
+
+    Scenario:
+        Given test inputs and fixtures for make view debug collapses to trace
+        When test_make_view_debug_collapses_to_trace executes the target flow
+        Then the expected outcome for make view debug collapses to trace is confirmed.
+
+    Boundaries:
+        - Focus: make view debug collapses to trace
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to make view debug collapses to trace
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = make_view(_headless_console(width=120), level="DEBUG")
     assert isinstance(view, WarRoomView)
     assert view._evidence_level == "TRACE"
 
 
 def test_make_view_default_level_is_info():
+    """
+    [Unit] views: verifies make view default level is info.
+
+    Scenario:
+        Given test inputs and fixtures for make view default level is info
+        When test_make_view_default_level_is_info executes the target flow
+        Then the expected outcome for make view default level is info is confirmed.
+
+    Boundaries:
+        - Focus: make view default level is info
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to make view default level is info
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = make_view(_headless_console(width=120))
     assert isinstance(view, WarRoomView)
     assert view._evidence_level == "INFO"
@@ -753,6 +1437,24 @@ def test_make_view_default_level_is_info():
 def test_process_level_defaults_to_evidence_level():
     # The investigation-process channel defaults to the evidence level when not
     # supplied (log-subsystem split, plan Part III - Phase A threading).
+    """
+    [Unit] views: verifies process level defaults to evidence level.
+
+    Scenario:
+        Given test inputs and fixtures for process level defaults to evidence level
+        When test_process_level_defaults_to_evidence_level executes the target flow
+        Then the expected outcome for process level defaults to evidence level is confirmed.
+
+    Boundaries:
+        - Focus: process level defaults to evidence level
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to process level defaults to evidence level
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     assert view._process_level == "TRACE"
 
@@ -760,6 +1462,24 @@ def test_process_level_defaults_to_evidence_level():
 def test_make_view_threads_independent_process_level():
     # make_view forwards an explicit process_level distinct from the evidence
     # level; both channels are carried end-to-end without affecting each other.
+    """
+    [Unit] views: verifies make view threads independent process level.
+
+    Scenario:
+        Given test inputs and fixtures for make view threads independent process level
+        When test_make_view_threads_independent_process_level executes the target flow
+        Then the expected outcome for make view threads independent process level is confirmed.
+
+    Boundaries:
+        - Focus: make view threads independent process level
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to make view threads independent process level
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = make_view(_headless_console(width=120), level="INFO", process_level="TRACE")
     assert isinstance(view, WarRoomView)
     assert view._evidence_level == "INFO"
@@ -767,6 +1487,24 @@ def test_make_view_threads_independent_process_level():
 
 
 def test_trace_evidence_render_does_not_raise(tmp_path: Path):
+    """
+    [Unit] views: verifies trace evidence render does not raise.
+
+    Scenario:
+        Given test inputs and fixtures for trace evidence render does not raise
+        When test_trace_evidence_render_does_not_raise executes the target flow
+        Then the expected outcome for trace evidence render does not raise is confirmed.
+
+    Boundaries:
+        - Focus: trace evidence render does not raise
+        - Fixtures/params: tmp_path
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to trace evidence render does not raise
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     cap = _write_pcap(tmp_path / "traffic.pcap")
     shot = tmp_path / "error.png"
     shot.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 40)
@@ -803,6 +1541,24 @@ def _populated_view(height: int = 40) -> WarRoomView:
 
 
 def test_render_helpers_do_not_raise():
+    """
+    [Unit] views: verifies render helpers do not raise.
+
+    Scenario:
+        Given test inputs and fixtures for render helpers do not raise
+        When test_render_helpers_do_not_raise executes the target flow
+        Then the expected outcome for render helpers do not raise is confirmed.
+
+    Boundaries:
+        - Focus: render helpers do not raise
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to render helpers do not raise
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = _populated_view()
     # Each pane renders to a real console without error.
     con = view._console
@@ -819,6 +1575,24 @@ def test_render_helpers_do_not_raise():
 
 def test_render_agents_compact_mode_short_terminal():
     # Short terminal drops the finding line but must still render.
+    """
+    [Unit] views: verifies render agents compact mode short terminal.
+
+    Scenario:
+        Given test inputs and fixtures for render agents compact mode short terminal
+        When test_render_agents_compact_mode_short_terminal executes the target flow
+        Then the expected outcome for render agents compact mode short terminal is confirmed.
+
+    Boundaries:
+        - Focus: render agents compact mode short terminal
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to render agents compact mode short terminal
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     view = _populated_view(height=20)
     view._console.print(view._render_agents())
     view._stop_live()
@@ -853,6 +1627,24 @@ def _full_report(*, with_fix: bool = True) -> RCAReport:
 
 
 def test_build_diagnosis_has_prototype_sections():
+    """
+    [Unit] views: verifies build diagnosis has prototype sections.
+
+    Scenario:
+        Given test inputs and fixtures for build diagnosis has prototype sections
+        When test_build_diagnosis_has_prototype_sections executes the target flow
+        Then the expected outcome for build diagnosis has prototype sections is confirmed.
+
+    Boundaries:
+        - Focus: build diagnosis has prototype sections
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to build diagnosis has prototype sections
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     text = _build_diagnosis(_full_report())
     assert "## Root Cause Analysis (RCA)" in text
     assert "## Faulting Module" in text
@@ -867,12 +1659,48 @@ def test_build_diagnosis_has_prototype_sections():
 
 
 def test_build_diagnosis_filters_internal_fix_marker():
+    """
+    [Unit] views: verifies build diagnosis filters internal fix marker.
+
+    Scenario:
+        Given test inputs and fixtures for build diagnosis filters internal fix marker
+        When test_build_diagnosis_filters_internal_fix_marker executes the target flow
+        Then the expected outcome for build diagnosis filters internal fix marker is confirmed.
+
+    Boundaries:
+        - Focus: build diagnosis filters internal fix marker
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to build diagnosis filters internal fix marker
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     md = _build_diagnosis(_full_report())
     assert "__fix__" not in md
     assert "Exception 0xC0000005 reading a freed heap block" in md
 
 
 def test_build_diagnosis_includes_fix_with_confidence():
+    """
+    [Unit] views: verifies build diagnosis includes fix with confidence.
+
+    Scenario:
+        Given test inputs and fixtures for build diagnosis includes fix with confidence
+        When test_build_diagnosis_includes_fix_with_confidence executes the target flow
+        Then the expected outcome for build diagnosis includes fix with confidence is confirmed.
+
+    Boundaries:
+        - Focus: build diagnosis includes fix with confidence
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to build diagnosis includes fix with confidence
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     text = _build_diagnosis(_full_report(with_fix=True))
     assert "Probabilistic Fix - confidence 81%" in text
     # Fix is rendered inside a diff code fence so it colours nicely.
@@ -881,6 +1709,24 @@ def test_build_diagnosis_includes_fix_with_confidence():
 
 
 def test_build_diagnosis_default_recommendation_when_none():
+    """
+    [Unit] views: verifies build diagnosis default recommendation when none.
+
+    Scenario:
+        Given test inputs and fixtures for build diagnosis default recommendation when none
+        When test_build_diagnosis_default_recommendation_when_none executes the target flow
+        Then the expected outcome for build diagnosis default recommendation when none is confirmed.
+
+    Boundaries:
+        - Focus: build diagnosis default recommendation when none
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to build diagnosis default recommendation when none
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     report = _full_report(with_fix=False)
     report.mitigation_instructions = []
     text = _build_diagnosis(report)
@@ -893,6 +1739,24 @@ def test_build_diagnosis_default_recommendation_when_none():
 def test_build_diagnosis_includes_agent_reasoning():
     # The detailed per-agent reasoning streams by transiently in the war room;
     # the report must reproduce it instead of distilling to a one-liner.
+    """
+    [Unit] views: verifies build diagnosis includes agent reasoning.
+
+    Scenario:
+        Given test inputs and fixtures for build diagnosis includes agent reasoning
+        When test_build_diagnosis_includes_agent_reasoning executes the target flow
+        Then the expected outcome for build diagnosis includes agent reasoning is confirmed.
+
+    Boundaries:
+        - Focus: build diagnosis includes agent reasoning
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to build diagnosis includes agent reasoning
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     report = _full_report(with_fix=False)
     report.agent_dialogue = [
         AgentTurn(
@@ -924,6 +1788,24 @@ def test_build_diagnosis_includes_agent_reasoning():
 
 
 def test_build_diagnosis_surfaces_alternatives_and_challenges():
+    """
+    [Unit] views: verifies build diagnosis surfaces alternatives and challenges.
+
+    Scenario:
+        Given test inputs and fixtures for build diagnosis surfaces alternatives and challenges
+        When test_build_diagnosis_surfaces_alternatives_and_challenges executes the target flow
+        Then the expected outcome for build diagnosis surfaces alternatives and challenges is confirmed.
+
+    Boundaries:
+        - Focus: build diagnosis surfaces alternatives and challenges
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to build diagnosis surfaces alternatives and challenges
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     report = _full_report(with_fix=False)
     report.alternative_hypotheses = [Hypothesis(root_cause="Heap corruption", confidence=0.2)]
     report.skeptic_challenges = ["No recurrence evidence in the available history."]
@@ -935,6 +1817,24 @@ def test_build_diagnosis_surfaces_alternatives_and_challenges():
 
 
 def test_render_verdict_emits_single_green_frame():
+    """
+    [Unit] views: verifies render verdict emits single green frame.
+
+    Scenario:
+        Given test inputs and fixtures for render verdict emits single green frame
+        When test_render_verdict_emits_single_green_frame executes the target flow
+        Then the expected outcome for render verdict emits single green frame is confirmed.
+
+    Boundaries:
+        - Focus: render verdict emits single green frame
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to render verdict emits single green frame
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     con = Console(force_terminal=True, width=100, file=io.StringIO())
     with con.capture() as cap:
         render_verdict(_full_report(), console=con, model="claude-opus-4-8")
@@ -949,6 +1849,24 @@ def test_render_verdict_emits_single_green_frame():
 
 
 def test_render_verdict_hitl_shows_red_frame():
+    """
+    [Unit] views: verifies render verdict hitl shows red frame.
+
+    Scenario:
+        Given test inputs and fixtures for render verdict hitl shows red frame
+        When test_render_verdict_hitl_shows_red_frame executes the target flow
+        Then the expected outcome for render verdict hitl shows red frame is confirmed.
+
+    Boundaries:
+        - Focus: render verdict hitl shows red frame
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to render verdict hitl shows red frame
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by views
+    """
     from aegis_swr.core.schemas import HITLRequest
 
     report = _full_report()
