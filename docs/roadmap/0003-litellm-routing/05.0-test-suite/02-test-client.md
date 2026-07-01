@@ -1,13 +1,13 @@
-# 02 — test_client.py
+# 02 - test_client.py
 
 **Parent task:** 05.0 Test Suite
 **State:** ⬜ Not started
 **Depends on:** 03.0 (LiteLLM client)
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
-Write `tests/router/test_client.py` — full coverage of `LiteLLMClient.complete()`
+Write `tests/router/test_client.py` - full coverage of `LiteLLMClient.complete()`
 plus the litellm isolation enforcement test. `litellm.acompletion` is always
 mocked; no network calls.
 
@@ -35,10 +35,10 @@ async def test_complete_populates_cost_usd_when_available(mock_litellm_success, 
     """cost_usd is populated from litellm.completion_cost() when it returns a value."""
 
 async def test_complete_sets_cost_usd_none_when_cost_unavailable(mock_litellm_success, mocker):
-    """cost_usd is None when litellm.completion_cost() raises — no exception propagated."""
+    """cost_usd is None when litellm.completion_cost() raises - no exception propagated."""
 
 async def test_complete_sets_cost_usd_none_when_cost_raises(mock_litellm_success, mocker):
-    """cost_usd is None when litellm.completion_cost() raises — no exception propagated."""
+    """cost_usd is None when litellm.completion_cost() raises - no exception propagated."""
 
 def test_litellm_is_only_imported_in_client():
     """

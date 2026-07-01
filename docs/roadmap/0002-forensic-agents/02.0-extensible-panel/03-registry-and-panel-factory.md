@@ -1,4 +1,4 @@
-# 03 — Agent registry & panel factory
+# 03 - Agent registry & panel factory
 
 **Parent task:** 02.0 Extensible Panel
 **State:** ⬜ Not started
@@ -76,7 +76,7 @@ class AgentPanelSettings(BaseSettings):
 ## Constraints
 
 - `create_agent_panel` never returns a synthesis agent.
-- It never raises on a bad config key — it warns and skips.
+- It never raises on a bad config key - it warns and skips.
 - No import cycle: `registry.py` imports the concrete agent classes; orchestrator
   imports `create_agent_panel` (not the classes directly, going forward).
 - `Optional[T]`, mypy strict, ruff clean.
@@ -84,13 +84,13 @@ class AgentPanelSettings(BaseSettings):
 ## Tests
 
 - Add `tests/unit/test_agent_registry.py`:
-  - `test_registry_has_base_agents` — the four base keys map to the right classes.
-  - `test_default_panel_is_legacy_chain` — `create_agent_panel(..., fault_class=None)`
+  - `test_registry_has_base_agents` - the four base keys map to the right classes.
+  - `test_default_panel_is_legacy_chain` - `create_agent_panel(..., fault_class=None)`
     with default settings returns the four base agents in legacy order.
-  - `test_skeptic_always_last` — a config that lists skeptic first still yields it last.
-  - `test_synthesis_excluded` — a synthesis key in a panel list is filtered out.
-  - `test_unknown_key_warns_and_skips` — a bogus key is dropped, no raise.
-  - `test_per_fault_override` — a per-fault panel override is honored for that class.
+  - `test_skeptic_always_last` - a config that lists skeptic first still yields it last.
+  - `test_synthesis_excluded` - a synthesis key in a panel list is filtered out.
+  - `test_unknown_key_warns_and_skips` - a bogus key is dropped, no raise.
+  - `test_per_fault_override` - a per-fault panel override is honored for that class.
 
 ## Success criteria
 

@@ -1719,7 +1719,7 @@ options exactly:
   "repo":          null,
   "output":        "rich",
 
-  // INGESTION — config for reading the investigated system's logs
+  // INGESTION - config for reading the investigated system's logs
   "ingest": {
     "log_source": {
       "provider": "file",     // → backends.log.provider
@@ -1727,7 +1727,7 @@ options exactly:
     }
   },
 
-  // APPLICATION logging — Aegis's own diagnostics
+  // APPLICATION logging - Aegis's own diagnostics
   "logging": {
     "severity": "INFO",       // TRACE | DEBUG | INFO | WARNING | ERROR
     "sink":     "file",       // file | elk | fluent  (elk/fluent = stubs)
@@ -1737,14 +1737,14 @@ options exactly:
     "fluent_port": null
   },
 
-  // EVIDENCE logging — war-room Evidence Stream (left pane)
+  // EVIDENCE logging - war-room Evidence Stream (left pane)
   "evidence": {
     "severity": "INFO",       // INFO | TRACE
     "persist":  false,        // write transcript to evidence.dir after the run
     "dir":      null          // defaults to <config-dir>/evidence when persist = true
   },
 
-  // INVESTIGATION-PROCESS logging — agent reasoning pane (right pane)
+  // INVESTIGATION-PROCESS logging - agent reasoning pane (right pane)
   "process": {
     "severity": "INFO"        // INFO (headlines) | TRACE (full agent reasoning)
   }
@@ -1877,8 +1877,8 @@ this section records the resolved design.
 Evidence and process are configured **independently**: enabling full agent reasoning
 (`process.severity = TRACE`) is orthogonal to the evidence verbosity, and vice versa.
 
-The log-ingestion backend (`backends.log`, §6.4) — which reads the *investigated
-system's* logs — is a fourth, separate concept. It is configured under
+The log-ingestion backend (`backends.log`, §6.4) - which reads the *investigated
+system's* logs - is a fourth, separate concept. It is configured under
 `ingest.log_source` and is not a logging output channel.
 
 ### 15.2 Configuration shape
@@ -1886,7 +1886,7 @@ system's* logs — is a fourth, separate concept. It is configured under
 ```jsonc
 // Stored in <config-dir>/config.json (analyze options)
 
-// INGESTION — reading the investigated system's logs (→ §6.4 LogBackend)
+// INGESTION - reading the investigated system's logs (→ §6.4 LogBackend)
 "ingest": {
   "log_source": {
     "provider": "file",     // file | fluent | elk   → backends.log.provider
@@ -1894,7 +1894,7 @@ system's* logs — is a fourth, separate concept. It is configured under
   }
 },
 
-// APPLICATION logging — Aegis's own diagnostics
+// APPLICATION logging - Aegis's own diagnostics
 "logging": {
   "severity": "INFO",       // TRACE | DEBUG | INFO | WARNING | ERROR
   "sink":     "file",       // file | elk | fluent  (elk/fluent = stubs)
@@ -1904,14 +1904,14 @@ system's* logs — is a fourth, separate concept. It is configured under
   "fluent_port": null
 },
 
-// EVIDENCE logging — war-room left pane
+// EVIDENCE logging - war-room left pane
 "evidence": {
   "severity": "INFO",       // INFO | TRACE
   "persist":  false,        // write evidence transcript after run (off by default)
   "dir":      null          // defaults to <config-dir>/evidence when persist = true
 },
 
-// INVESTIGATION-PROCESS logging — war-room right pane
+// INVESTIGATION-PROCESS logging - war-room right pane
 "process": {
   "severity": "INFO"        // INFO (headlines) | TRACE (full agent reasoning)
 }
@@ -1933,18 +1933,18 @@ translation at the file boundary:
 
 ### 15.3 Resolved decisions
 
-- **D1** — Ingestion `provider`/`service` live under `ingest.log_source`; `logging`
+- **D1** - Ingestion `provider`/`service` live under `ingest.log_source`; `logging`
   is application diagnostics only. Legacy configs that placed these under `logging`
   are auto-migrated on load (see §15.3, migration note).
-- **D2** — Evidence has exactly two levels; the former `DEBUG` evidence detail folds
+- **D2** - Evidence has exactly two levels; the former `DEBUG` evidence detail folds
   into `TRACE`. `_normalize_evidence_level` maps `DEBUG` → `TRACE` silently.
-- **D3** — `logging.sink = elk|fluent` is accepted by the schema and CLI but the
+- **D3** - `logging.sink = elk|fluent` is accepted by the schema and CLI but the
   emitters are **stubs** (warn + fall back to file/stderr). Real sinks are a future
   enhancement behind the `_register_<sink>_sink` extension seam.
-- **D4** — Evidence and investigation-process are **separate** channels; full agent
+- **D4** - Evidence and investigation-process are **separate** channels; full agent
   reasoning (`process.severity = TRACE`) can be enabled without enabling full evidence
   verbosity, and vice versa.
-- **D5** — Evidence persistence is **configurable and off by default**. Agent dialogue
+- **D5** - Evidence persistence is **configurable and off by default**. Agent dialogue
   is already persisted in the report files, so no separate process-pane sink is added.
 
 **Legacy migration.** `_migrate_legacy(data)` runs first in `_flatten_sections`. A

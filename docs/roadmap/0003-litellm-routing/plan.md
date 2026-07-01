@@ -1,4 +1,4 @@
-# Milestone 0003 — LiteLLM Model Router
+# Milestone 0003 - LiteLLM Model Router
 
 **Package:** `aegis-swr` | **Module root:** `aegis/router/`
 **Depends on:** Milestone 0002 (forensic agents; `aegis/core/agents/` in its final state)
@@ -6,7 +6,7 @@
 This milestone replaces ad-hoc per-agent provider SDK imports with a **single
 unified routing layer** backed by [LiteLLM](https://github.com/BerriAI/litellm).
 After this milestone, adding or swapping a model requires only an `agents.yaml`
-edit — **zero Python changes**.
+edit - **zero Python changes**.
 
 > **Prerequisite:** `aegis/core/` must contain zero direct provider imports
 > (`anthropic`, `openai`, `deepseek`) before this milestone begins.
@@ -16,7 +16,7 @@ edit — **zero Python changes**.
 ## Background
 
 Aegis SWR currently references models by name in `agents.yaml` but has no
-unified routing layer — each agent potentially uses a different SDK directly.
+unified routing layer - each agent potentially uses a different SDK directly.
 This milestone introduces an embedded LiteLLM router that provides:
 
 - A single async call interface across all providers (Anthropic, DeepSeek,
@@ -25,7 +25,7 @@ This milestone introduces an embedded LiteLLM router that provides:
 - Retry and timeout policy per agent role
 - Cost and latency telemetry emitted as `RouterEvent` events on the existing
   `EventBus`
-- Full provider isolation — only `aegis/router/client.py` knows LiteLLM exists
+- Full provider isolation - only `aegis/router/client.py` knows LiteLLM exists
 
 The self-hosted vLLM endpoint (OpenAI-compatible, at `${VLLM_BASE_URL}/v1`) is
 a first-class provider alongside cloud providers.
@@ -58,15 +58,15 @@ or any provider SDK. All model I/O is mediated through
 
 ## Tasks
 
-| Task  | Name                        | Category       | Output                                                                    |
-|-------|-----------------------------|----------------|---------------------------------------------------------------------------|
-| 01.0  | agents.yaml Schema          | configuration  | `providers` block + `fallback`/`timeout_s`/`retry` per-agent fields       |
-| 02.0  | Router Foundation Types     | infrastructure | `config.py`, `events.py`, `exceptions.py` — typed, no litellm dependency  |
-| 03.0  | LiteLLM Client              | infrastructure | `client.py` — the only file in the project that imports `litellm`         |
-| 04.0  | Model Router                | infrastructure | `router.py` — retry/fallback orchestration, EventBus emissions            |
-| 05.0  | Test Suite                  | testing        | Unit, mock-provider, and integration tests under `tests/router/`          |
-| 06.0  | Agent Wiring                | integration    | `BaseAgent` + all concrete agents use `ModelRouter`; `app.py` composition |
-| 07.0  | Documentation & CI          | documentation  | Config reference, architecture doc, CI pipeline additions                  |
+| Task | Name                    | Category       | Output                                                                    |
+|------|-------------------------|----------------|---------------------------------------------------------------------------|
+| 01.0 | agents.yaml Schema      | configuration  | `providers` block + `fallback`/`timeout_s`/`retry` per-agent fields       |
+| 02.0 | Router Foundation Types | infrastructure | `config.py`, `events.py`, `exceptions.py` - typed, no litellm dependency  |
+| 03.0 | LiteLLM Client          | infrastructure | `client.py` - the only file in the project that imports `litellm`         |
+| 04.0 | Model Router            | infrastructure | `router.py` - retry/fallback orchestration, EventBus emissions            |
+| 05.0 | Test Suite              | testing        | Unit, mock-provider, and integration tests under `tests/router/`          |
+| 06.0 | Agent Wiring            | integration    | `BaseAgent` + all concrete agents use `ModelRouter`; `app.py` composition |
+| 07.0 | Documentation & CI      | documentation  | Config reference, architecture doc, CI pipeline additions                 |
 
 Tasks 01.0 → 02.0 → 03.0 → 04.0 are sequential foundations. Task 05.0 (tests)
 is written **incrementally alongside** 02.0–04.0. Task 06.0 depends on 04.0.
@@ -78,7 +78,7 @@ Task 07.0 closes the milestone.
 
 These contracts are defined once here; the per-task READMEs reference them.
 
-### C1 — Provider strings
+### C1 - Provider strings
 
 | Provider key    | LiteLLM prefix     | Auth                                    |
 |-----------------|--------------------|-----------------------------------------|
@@ -90,19 +90,19 @@ The `self_hosted` provider uses LiteLLM's `openai/` prefix with a custom
 `base_url`. A YAML model string of `self_hosted/<name>` is resolved to
 `openai/<name>` by `LiteLLMClient._configure_providers()`.
 
-### C2 — Module isolation boundary
+### C2 - Module isolation boundary
 
 - `import litellm` appears in **exactly one file**: `aegis/router/client.py`.
 - `aegis/core/` contains **no** imports of `litellm`, `anthropic`, `openai`,
-  or `deepseek` — enforced by a `grep` check baked into the CI pipeline and
+  or `deepseek` - enforced by a `grep` check baked into the CI pipeline and
   replicated as a pytest test in `tests/router/test_client.py`.
 
-### C3 — RouterEvent taxonomy
+### C3 - RouterEvent taxonomy
 
 All four event types are `frozen=True` dataclasses with a `ClassVar[str]
 event_type` sentinel. They are emitted on the existing `EventBus` (same bus
 as `EvidenceLine`, `AgentUpdate`, etc.). Only `RouterCallCompleted` carries
-token counts and cost — never duplicated across events.
+token counts and cost - never duplicated across events.
 
 | Class                  | `event_type`                  | When emitted                        |
 |------------------------|-------------------------------|-------------------------------------|
@@ -111,17 +111,17 @@ token counts and cost — never duplicated across events.
 | `RouterCallFailed`     | `router.call.failed`          | On each individual attempt failure  |
 | `RouterFallbackUsed`   | `router.fallback.used`        | When moving to next model in chain  |
 
-### C4 — Retry / fallback semantics
+### C4 - Retry / fallback semantics
 
 1. Attempt primary model up to `retry.attempts` times with `asyncio.sleep`
    linear backoff (`backoff_s * attempt`). Never `time.sleep`.
 2. On exhaustion, iterate `AgentConfig.fallback` list in order (no per-fallback
-   retry — one attempt each).
+   retry - one attempt each).
 3. If all fail, raise `AllProvidersExhausted(role, tried, errors)`.
 4. Non-retriable errors (e.g. context-length-exceeded) skip remaining retries
    and go directly to fallback.
 
-### C5 — Cross-cutting conventions (inherited from 0001/0002)
+### C5 - Cross-cutting conventions (inherited from 0001/0002)
 
 - `Optional[T]` from `typing`, never `T | None` (including in subscripts).
 - `from __future__ import annotations` in every new file.
@@ -129,7 +129,7 @@ token counts and cost — never duplicated across events.
 - Every new public class/function has a docstring (RST style).
 - No direct provider SDKs in `aegis/core/` or `aegis/ui/`.
 - `--dry-run` injects a `NullClient` (content `"[dry-run]"`, zero tokens/cost,
-  0 ms latency) — useful for CI and UI testing without API keys.
+  0 ms latency) - useful for CI and UI testing without API keys.
 
 ---
 

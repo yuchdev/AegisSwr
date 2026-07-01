@@ -1,9 +1,9 @@
-# 03 — README.md update + CHANGELOG.md
+# 03 - README.md update + CHANGELOG.md
 
 **Parent task:** 07.0 Documentation & CI
 **State:** ⬜ Not started
 **Depends on:** 01, 02
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
@@ -45,8 +45,8 @@ Add under `[Unreleased]` (or create the section if absent):
   `RouterCallFailed`, `RouterFallbackUsed`) emitted on the existing EventBus
 - `NullClient` and `--dry-run` CLI flag for pipeline testing without API keys
 - Integration test suite (skipped unless API keys present in environment)
-- `docs/config-reference.md` — full `agents.yaml` reference
-- `docs/router-architecture.md` — router internals and boundary contract
+- `docs/config-reference.md` - full `agents.yaml` reference
+- `docs/router-architecture.md` - router internals and boundary contract
 ```
 
 ## Success criteria

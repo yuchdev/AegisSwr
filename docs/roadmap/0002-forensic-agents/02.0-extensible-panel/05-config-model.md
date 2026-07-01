@@ -1,4 +1,4 @@
-# 05 — Config model & examples
+# 05 - Config model & examples
 
 **Parent task:** 02.0 Extensible Panel
 **State:** ⬜ Not started
@@ -28,7 +28,7 @@ class AgentPanelSettings(BaseSettings):
     enabled_synthesis: list[str] = Field(default_factory=list)
 ```
 
-Wire as `Settings.agents_panel` (or under an existing `agents` grouping — match
+Wire as `Settings.agents_panel` (or under an existing `agents` grouping - match
 the placement of `AgentWeightsSettings`). Env overrides follow the `AEGIS__`
 prefix + `__` delimiter automatically.
 
@@ -67,11 +67,11 @@ specialist panel example.
 ## Tests
 
 - Extend `tests/unit/test_settings.py`:
-  - `test_agent_panel_defaults` — `default_panel` is the four base keys;
+  - `test_agent_panel_defaults` - `default_panel` is the four base keys;
     `per_fault_class` and `enabled_synthesis` empty.
-  - `test_agent_panel_env_override` — `AEGIS__agents__panel__default_panel`
+  - `test_agent_panel_env_override` - `AEGIS__agents__panel__default_panel`
     overrides the panel.
-  - `test_weights_loaded_from_yaml` — the ten fault-class weight maps load with the
+  - `test_weights_loaded_from_yaml` - the ten fault-class weight maps load with the
     expected base-key values.
 
 ## Success criteria

@@ -8,17 +8,17 @@ produces action items with owners.
 
 ## Naming convention
 
-`<YYYY-MM-DD>-<slug>.md` — e.g. `2025-09-12-consensus-deadlock.md`.
+`<YYYY-MM-DD>-<slug>.md` - e.g. `2025-09-12-consensus-deadlock.md`.
 
 ## Required sections
 
-1. **Summary** — one paragraph: what happened, impact, duration.
-2. **Timeline** — UTC-stamped sequence of events.
-3. **Root cause** — the five-whys analysis result.
-4. **Contributing factors** — systemic issues beyond the immediate cause.
-5. **Impact** — who was affected, for how long, severity.
-6. **Action items** — each with an owner, due date, and linked issue.
-7. **What went well** — practices that limited impact or accelerated recovery.
+1. **Summary** - one paragraph: what happened, impact, duration.
+2. **Timeline** - UTC-stamped sequence of events.
+3. **Root cause** - the five-whys analysis result.
+4. **Contributing factors** - systemic issues beyond the immediate cause.
+5. **Impact** - who was affected, for how long, severity.
+6. **Action items** - each with an owner, due date, and linked issue.
+7. **What went well** - practices that limited impact or accelerated recovery.
 
 ## Principles
 

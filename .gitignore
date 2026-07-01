@@ -219,4 +219,6 @@ __marimo__/
 
 # Aegis SWR Claude Code agentic fleet
 .claude/logs/*.log
-.claude/state/
+.claude/state/*.md
+.claude/state/*.json
+

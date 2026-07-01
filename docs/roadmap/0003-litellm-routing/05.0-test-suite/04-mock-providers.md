@@ -1,14 +1,14 @@
-# 04 — Mock providers + test_provider_scenarios.py
+# 04 - Mock providers + test_provider_scenarios.py
 
 **Parent task:** 05.0 Test Suite
 **State:** ⬜ Not started
 **Depends on:** 03 (test_router.py fixtures established)
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
-Implement `tests/router/mocks/providers.py` — reusable mock provider factories
-that simulate real-world provider failure modes — and
+Implement `tests/router/mocks/providers.py` - reusable mock provider factories
+that simulate real-world provider failure modes - and
 `tests/router/mocks/test_provider_scenarios.py` which exercises the router's
 response to each mode.
 
@@ -70,7 +70,7 @@ async def test_flaky_provider_succeeds_within_retries():
 
 ## Constraints
 
-- All providers mock `LiteLLMClient.complete`, not `litellm.acompletion` — the
+- All providers mock `LiteLLMClient.complete`, not `litellm.acompletion` - the
   router never calls litellm directly.
 - `asyncio.sleep` in `make_slow_provider` is real to test that the router
   awaits it correctly, but should be short (< 10 ms) to keep the test suite fast.

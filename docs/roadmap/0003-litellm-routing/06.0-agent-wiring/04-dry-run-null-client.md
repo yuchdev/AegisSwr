@@ -1,4 +1,4 @@
-# 04 — NullClient for `--dry-run`
+# 04 - NullClient for `--dry-run`
 
 **Parent task:** 06.0 Agent Wiring
 **State:** ⬜ Not started
@@ -7,7 +7,7 @@
 
 ## Objective
 
-Implement `NullClient` in `aegis/router/null_client.py` — a drop-in
+Implement `NullClient` in `aegis/router/null_client.py` - a drop-in
 replacement for `LiteLLMClient` that returns a fixed response without making
 any API calls. Used when `--dry-run` is passed on the CLI so the full pipeline
 can execute in CI without API keys.
@@ -51,7 +51,7 @@ class NullClient:
 ## CLI integration
 
 ```python
-# aegis/app.py — build_pipeline with --dry-run
+# aegis/app.py - build_pipeline with --dry-run
 
 def build_pipeline(
     config_dir: Path,
@@ -75,9 +75,9 @@ def build_pipeline(
 ## Constraints
 
 - `NullClient` must implement the same `complete()` interface as `LiteLLMClient`
-  (duck typing — no shared ABC required, but the signature must match).
+  (duck typing - no shared ABC required, but the signature must match).
 - No `import litellm` in `null_client.py`.
-- `--dry-run` must be checked **before** `RouterConfig.from_yaml()` — the
+- `--dry-run` must be checked **before** `RouterConfig.from_yaml()` - the
   config must still be valid even in dry-run mode (it validates the YAML
   schema, not the API keys).
 

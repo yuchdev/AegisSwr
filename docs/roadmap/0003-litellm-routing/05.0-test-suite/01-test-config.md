@@ -1,13 +1,13 @@
-# 01 — test_config.py
+# 01 - test_config.py
 
 **Parent task:** 05.0 Test Suite
 **State:** ⬜ Not started
 **Depends on:** 02.0/01 (config dataclasses)
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
-Write `tests/router/test_config.py` — full coverage of `RouterConfig.from_yaml()`
+Write `tests/router/test_config.py` - full coverage of `RouterConfig.from_yaml()`
 and its validation contract (rules R1–R4 from `01.0/03-config-validation.md`).
 All tests pass with no network access and no API keys set.
 
@@ -36,7 +36,7 @@ def test_optional_fields_have_correct_defaults(tmp_path, monkeypatch):
     """agents.yaml entries without fallback/timeout/retry use documented defaults."""
 
 def test_empty_api_key_env_var_is_valid(tmp_path, monkeypatch):
-    """VLLM_API_KEY='' (empty string) is valid — only unset vars raise R1."""
+    """VLLM_API_KEY='' (empty string) is valid - only unset vars raise R1."""
 ```
 
 ## Shared fixture pattern
@@ -69,7 +69,7 @@ def yaml_file(tmp_path):
 ## Constraints
 
 - Use `monkeypatch.setenv` / `monkeypatch.delenv` for environment manipulation.
-- `tmp_path` for all YAML files — never write to the real `aegis/config/`.
+- `tmp_path` for all YAML files - never write to the real `aegis/config/`.
 - No network calls; no litellm import in this file.
 
 ## Success criteria

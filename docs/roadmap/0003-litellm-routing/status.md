@@ -1,19 +1,19 @@
-# Milestone 0003 — LiteLLM Model Router — Status
+# Milestone 0003 - LiteLLM Model Router - Status
 
 Tracks progress against [plan.md](/docs/roadmap/0003-litellm-routing/plan.md).
 Updated as each task lands.
 
 ## Current status
 
-| Task  | Name                        | Status         | Tests |
-|-------|-----------------------------|----------------|-------|
-| 01.0  | agents.yaml Schema          | ⬜ Not started | —     |
-| 02.0  | Router Foundation Types     | ⬜ Not started | —     |
-| 03.0  | LiteLLM Client              | ⬜ Not started | —     |
-| 04.0  | Model Router                | ⬜ Not started | —     |
-| 05.0  | Test Suite                  | ⬜ Not started | —     |
-| 06.0  | Agent Wiring                | ⬜ Not started | —     |
-| 07.0  | Documentation & CI          | ⬜ Not started | —     |
+| Task | Name                    | Status        | Tests |
+|------|-------------------------|---------------|-------|
+| 01.0 | agents.yaml Schema      | ⬜ Not started | -     |
+| 02.0 | Router Foundation Types | ⬜ Not started | -     |
+| 03.0 | LiteLLM Client          | ⬜ Not started | -     |
+| 04.0 | Model Router            | ⬜ Not started | -     |
+| 05.0 | Test Suite              | ⬜ Not started | -     |
+| 06.0 | Agent Wiring            | ⬜ Not started | -     |
+| 07.0 | Documentation & CI      | ⬜ Not started | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -27,7 +27,7 @@ SDKs directly.
 - **LiteLLM chosen** as the routing abstraction because it provides a unified
   async interface across 100+ providers with a single pip install, supports
   fallback chains natively, and exposes `completion_cost()` for telemetry.
-- **Isolation is non-negotiable.** `litellm` in one file only — enforced by a
+- **Isolation is non-negotiable.** `litellm` in one file only - enforced by a
   `grep` test in CI. Any drift is a blocker.
 - **Self-hosted vLLM** is a first-class provider via LiteLLM's `openai/` prefix
   + custom `base_url`. No separate adapter needed.

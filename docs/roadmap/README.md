@@ -26,17 +26,17 @@ docs/roadmap/
       {NN}-{subtask-slug}.md             ← SUBTASK spec
 ```
 
-- `{NNNN}` — zero-padded milestone number (`0001`, `0002`, …).
-- `{TT.t}` — task number, carried from the milestone's `## Tasks` table (e.g. `03.2`, `06.1`, `08.0`).
-- `{NN}` — zero-padded subtask order (`01`, `02`, …).
+- `{NNNN}` - zero-padded milestone number (`0001`, `0002`, …).
+- `{TT.t}` - task number, carried from the milestone's `## Tasks` table (e.g. `03.2`, `06.1`, `08.0`).
+- `{NN}` - zero-padded subtask order (`01`, `02`, …).
 - Slugs are kebab-case.
 
 ### Heading vocabulary
 
 - A milestone's `plan.md` lists its tasks under a `## Tasks` heading (table column: `Task`).
 - A task's `README.md` lists its subtasks under a `## Subtasks` heading.
-- Avoid "Phase" for these tiers — it is reserved for the product-vision phases in
-  [docs/roadmap/roadmap.md](/docs/roadmap/roadmap.md) (measured in months) and would otherwise be ambiguous.
+- Avoid "Phase" for these tiers - it is reserved for the product-vision phases in
+  [docs/roadmap/roadmap.md](/docs/roadmap/roadmap.md) (usually require months) and would otherwise be ambiguous.
 
 ### Linking convention
 
@@ -55,12 +55,12 @@ absolute-from-repo-root Markdown link:
 
 ## Milestones
 
-| # | Milestone | Spec | Status |
-|---|-----------|------|--------|
-| 0001 | Generic implementation (backends, MAS, CLI, …) | [plan.md](/docs/roadmap/0001-generic-implementation/plan.md) | [status.md](/docs/roadmap/0001-generic-implementation/status.md) |
-| 0002 | Forensic agents (specialist panel + synthesis tier) | [plan.md](/docs/roadmap/0002-forensic-agents/plan.md) | [status.md](/docs/roadmap/0002-forensic-agents/status.md) |
-| 0003 | LiteLLM model-router integration | [plan.md](/docs/roadmap/0003-litellm-routing/plan.md) | — |
-| 0004 | Documentation | [status.md](/docs/roadmap/0004-documentation/status.md) | — |
+| #    | Milestone                                           | Spec                                                          | Status                                                           |
+|------|-----------------------------------------------------|---------------------------------------------------------------|------------------------------------------------------------------|
+| 0001 | Generic implementation (backends, MAS, CLI, …)      | [plan.md](/docs/roadmap/0001-generic-implementation/plan.md)  | [status.md](/docs/roadmap/0001-generic-implementation/status.md) |
+| 0002 | Forensic agents (specialist panel + synthesis tier) | [plan.md](/docs/roadmap/0002-forensic-agents/plan.md)         | [status.md](/docs/roadmap/0002-forensic-agents/status.md)        |
+| 0003 | LiteLLM model-router integration                    | [plan.md](/docs/roadmap/0003-litellm-routing/plan.md)         | -                                                                |
+| 0004 | Code Intelligence Layer                             | [plan.md](/docs/roadmap/0004-code-intelligence-layer/plan.md) | -                                                                |
 
-> Milestones 0001 and 0002 are decomposed into the full task → subtask tree;
-> 0003–0004 hold a single planning/status document each until they are decomposed.
+> Milestones 0001-0003 are decomposed into the full task → subtask tree;
+> 0004 hold a single planning/status document each until they are decomposed.

@@ -1,7 +1,7 @@
 # 06 – Fluent HTTP query client
 
 **Parent milestone:** 6.2 Log Backend – Fluentd Stack
-**State:** ⬜ Blocked — requires answers to [05-design-clarifications.md](05-design-clarifications.md) Q1, Q2, Q3, Q5
+**State:** ⬜ Blocked - requires answers to [05-design-clarifications.md](05-design-clarifications.md) Q1, Q2, Q3, Q5
 **Depends on:** 01, 03, 04, 05
 **Blocks:** 08
 
@@ -34,7 +34,7 @@ class FluentHttpClient:
     POST requests with a JSON body encoding the tag, time range, severity
     levels, and result cap.
 
-    All network I/O uses ``httpx.AsyncClient`` (or ``aiohttp`` — TBD per Q5).
+    All network I/O uses ``httpx.AsyncClient`` (or ``aiohttp`` - TBD per Q5).
     The client is a context manager; callers use ``async with FluentHttpClient(settings)``.
 
     :param settings: :class:`~aegis_swr.config.settings.LogBackendSettings`
@@ -88,7 +88,7 @@ class FluentHttpClient:
         """
 ```
 
-### Request/response contract (TBD — fill in after Q2/Q3 answers)
+### Request/response contract (TBD - fill in after Q2/Q3 answers)
 
 The exact JSON body shape depends on Q2 (sidecar vs Fluentd HTTP plugin). Placeholder:
 
@@ -120,7 +120,7 @@ The exact JSON body shape depends on Q2 (sidecar vs Fluentd HTTP plugin). Placeh
 | Network error | `FluentConnectionError` |
 | Read timeout | `FluentTimeoutError` |
 
-### TLS and auth injection (TBD — fill in after Q3 answers)
+### TLS and auth injection (TBD - fill in after Q3 answers)
 
 ```python
 # Bearer token (if fluent_auth_token set)
@@ -139,7 +139,7 @@ ssl_context.load_cert_chain(
 ## Constraints
 
 - All I/O is async; no blocking calls on the event loop.
-- The HTTP library (httpx or aiohttp — Q5 TBD) must be added to `pyproject.toml`.
+- The HTTP library (httpx or aiohttp - Q5 TBD) must be added to `pyproject.toml`.
 - Timeouts: connect = `settings.fluent_connect_timeout_seconds`,
   read = `settings.fluent_query_timeout_seconds`.
 - The client must close the underlying HTTP session in `__aexit__` (RAII).
@@ -147,20 +147,20 @@ ssl_context.load_cert_chain(
 
 ## Tests
 
-**Unit** (mock HTTP server via `pytest-httpx` or `aioresponses` — TBD per Q5):
+**Unit** (mock HTTP server via `pytest-httpx` or `aioresponses` - TBD per Q5):
 
-- `test_query_happy_path` — mock server returns 200 JSON batch; assert records returned.
+- `test_query_happy_path` - mock server returns 200 JSON batch; assert records returned.
 - `test_query_401_raises_fluent_auth_error`.
 - `test_query_500_raises_fluent_protocol_error`.
 - `test_query_timeout_raises_fluent_timeout_error`.
 - `test_query_connect_error_raises_fluent_connection_error`.
-- `test_bearer_token_in_header` — assert `Authorization` header set when token configured.
-- `test_tls_ca_cert_used` — assert custom CA bundle path passed to client (mock ssl).
+- `test_bearer_token_in_header` - assert `Authorization` header set when token configured.
+- `test_tls_ca_cert_used` - assert custom CA bundle path passed to client (mock ssl).
 - `test_context_manager_closes_session`.
 
-**Integration** (TBD — requires Q8 answer on Docker Compose availability):
+**Integration** (TBD - requires Q8 answer on Docker Compose availability):
 
-- `test_query_against_test_fluent_instance` — real network call against a
+- `test_query_against_test_fluent_instance` - real network call against a
   Docker Compose Fluentd/Fluent Bit if available.
 
 ## Success criteria

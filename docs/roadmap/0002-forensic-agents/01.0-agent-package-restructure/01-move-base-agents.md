@@ -1,4 +1,4 @@
-# 01 — Move base agents into `agents/base/`
+# 01 - Move base agents into `agents/base/`
 
 **Parent task:** 01.0 Agent Package Restructure
 **State:** ⬜ Not started
@@ -55,7 +55,7 @@ that break because of the move.
 
 - **No logic edits** to any moved module beyond what the move strictly requires
   (which is nothing, given the re-export design above).
-- Do not touch `core/orchestrator.py` or tests in this subtask — that is 01.0/02.
+- Do not touch `core/orchestrator.py` or tests in this subtask - that is 01.0/02.
 - Keep the existing `from __future__ import annotations` and `Optional[T]` style.
 
 ## Tests

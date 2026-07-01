@@ -1,13 +1,13 @@
-# Task 07.0 — Remediation Planner Agent
+# Task 07.0 - Remediation Planner Agent
 
-**Parent milestone:** [Milestone 0002 — Forensic Agents](/docs/roadmap/0002-forensic-agents/plan.md)
+**Parent milestone:** [Milestone 0002 - Forensic Agents](/docs/roadmap/0002-forensic-agents/plan.md)
 **Status:** ⬜ Not started
-**Depends on:** Task 02.0 (Extensible Panel — registry, `AgentPanelSettings`, dynamic orchestrator)
+**Depends on:** Task 02.0 (Extensible Panel - registry, `AgentPanelSettings`, dynamic orchestrator)
 **Blocks:** Task 08.0 (Panel Integration, Docs & Hardening)
 
 ## Scope
 
-Implement `RemediationPlannerAgent` — the sole **synthesis-tier** agent introduced
+Implement `RemediationPlannerAgent` - the sole **synthesis-tier** agent introduced
 by Milestone 0002. Its purpose is to turn a confirmed, converged `RCAReport` into
 an ordered, idempotent, rollback-covered remediation playbook compatible with the
 `/playbook-validate` skill.
@@ -36,7 +36,7 @@ Class: `RemediationPlannerAgent`
 | 02 | [Agent implementation](02-agent-implementation.md) | ⬜ Not started | 03 |
 | 03 | [Synthesis-tier wiring](03-synthesis-wiring.md) | ⬜ Not started | 05 |
 | 04 | [/playbook-validate alignment](04-playbook-validate-alignment.md) | ⬜ Not started | 05 |
-| 05 | [Tests](05-tests.md) | ⬜ Not started | — |
+| 05 | [Tests](05-tests.md) | ⬜ Not started | - |
 
 Subtasks 01 → 02 → 03 are strictly sequential. Subtask 04 may proceed in
 parallel with 03 once 01 is done. Subtask 05 depends on 01–04.

@@ -1,4 +1,4 @@
-# 01 — `providers` block in agents.yaml
+# 01 - `providers` block in agents.yaml
 
 **Parent task:** 01.0 agents.yaml Schema Extension
 **State:** ⬜ Not started
@@ -9,7 +9,7 @@
 
 Add a top-level `providers` block to `aegis/config/agents.yaml` that declares
 each model provider's credentials and base URL. All secret values must use
-`${ENV_VAR}` references — no hard-coded credentials.
+`${ENV_VAR}` references - no hard-coded credentials.
 
 ## Target schema
 
@@ -17,7 +17,7 @@ each model provider's credentials and base URL. All secret values must use
 providers:
   anthropic:
     api_key: ${ANTHROPIC_API_KEY}
-    # base_url omitted — LiteLLM uses Anthropic's hardcoded endpoint
+    # base_url omitted - LiteLLM uses Anthropic's hardcoded endpoint
 
   deepseek:
     api_key: ${DEEPSEEK_API_KEY}
@@ -33,7 +33,7 @@ providers:
 1. Add the `providers:` section above the existing `agents:` section in
    `aegis/config/agents.yaml`.
 2. Keep all existing fields in the `agents:` section unchanged (this subtask
-   adds no new agent fields — that is subtask 02).
+   adds no new agent fields - that is subtask 02).
 3. Update `.env.example` to document:
    - `ANTHROPIC_API_KEY`
    - `DEEPSEEK_API_KEY`

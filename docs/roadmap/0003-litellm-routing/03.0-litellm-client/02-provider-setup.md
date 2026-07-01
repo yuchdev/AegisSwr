@@ -1,4 +1,4 @@
-# 02 — `_configure_providers()` — provider auth setup
+# 02 - `_configure_providers()` - provider auth setup
 
 **Parent task:** 03.0 LiteLLM Client
 **State:** ⬜ Not started
@@ -38,7 +38,7 @@ class LiteLLMClient:
 
         LiteLLM uses module-level globals for provider credentials, so this
         method mutates litellm state. Subsequent calls with different providers
-        would overwrite previous state — the singleton pattern in app.py
+        would overwrite previous state - the singleton pattern in app.py
         (one ModelRouter, one LiteLLMClient) prevents conflicts.
 
         For self_hosted providers (OpenAI-compatible vLLM), the base_url
@@ -58,7 +58,7 @@ class LiteLLMClient:
 | `self_hosted` | Uses OpenAI-compatible endpoint; set `litellm.api_base` + key for the `openai/` prefix |
 
 > Verify exact LiteLLM API for per-provider base_url override at implementation
-> time — the module-level API may differ across LiteLLM versions. The pattern
+> time - the module-level API may differ across LiteLLM versions. The pattern
 > is to use `litellm.custom_provider_map` or pass `api_base` in the completion
 > call. Consult LiteLLM docs via context7.
 

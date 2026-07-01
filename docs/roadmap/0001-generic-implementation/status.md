@@ -20,6 +20,7 @@ Tracks progress against [plan.md](/docs/roadmap/0001-generic-implementation/plan
 | 8     | REST API Layer             | ⬜ Not started                                     | -                                                                                                                      |
 | 9     | Secure Code Sandbox        | ⬜ Not started                                     | -                                                                                                                      |
 | 10    | Testing & Hardening        | ⬜ Not started                                     | -                                                                                                                      |
+| 11    | Documentation              | 🔶 In progress                                    | See [11.0-documentation/README.md](11.0-documentation/README.md)                                                      |
 
 **Current gate status:** 478 tests passing, 3 skipped (unit and integration). Tasks 6.1 (git + filesystem adapters) and 6.2 (file and fluent adapters) are partially shipped; PDB adapter described in specs, not yet implemented. The **log-subsystem re-engineering** (Part III of the plan) is complete - see [below](#log-subsystem-re-engineering-).
 

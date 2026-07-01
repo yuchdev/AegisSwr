@@ -11,9 +11,9 @@ The maximum line length is *120 characters*.
 Explicit exceptions to the 120-character limit:
 
 - Long import statements.
-- URLs, pathnames, or long flags in comments.
+- URLs, pathnames, or long flags in comments of docstrings
 - Long string module-level constants do not contain whitespace that would be inconvenient to split across lines such as URLs or pathnames.
-  - Pylint disable comments. (e.g., `# pylint: disable=invalid-name`)
+- Pylint disables comments. (e.g., `# pylint: disable=invalid-name`)
 
 Do not use a backslash for [explicit line continuation](https://docs.python.org/3/reference/lexical_analysis.html#explicit-line-joining).
 
@@ -307,8 +307,10 @@ organized as a summary line (one physical line not exceeding 120
 characters) terminated by a period, question mark, or exclamation point.
 When writing more (encouraged), this must be followed by a blank line,
 followed by the rest of the docstring starting at the same cursor
-position as the first quote of the first line. There are more formatting
-guidelines for docstrings below.
+position as the first quote of the first line.
+
+**Note: Sphinx notation (`@param`, `@type`, `@returns`, `@raises`, `@ivar`, etc.) is required for documenting functions, classes, and methods instead of Google style (`Args:`, `Raises:`).**
+There are more formatting guidelines for docstrings below.
 
 #### 3.8.2 Modules
 
@@ -389,59 +391,26 @@ attribute or a [function argument](#doc-function-args)
 (`"""The Bigtable path."""`,
 rather than `"""Returns the Bigtable path."""`).
 
-Certain aspects of a function should be documented in special sections,
-listed below. Each section begins with a heading line, which ends with a
-colon. All sections other than the heading should maintain a hanging
-indent of two or four spaces (be consistent within a file). These
-sections can be omitted in cases where the function's name and signature
-are informative enough that it can be aptly described using a one-line
-docstring.
+Certain aspects of a function should be documented using Sphinx notation, using the tags `@param`, `@type`, `@returns`, `@yields`, and `@raises` (or alternatively `:param`, `:type`, `:returns`, `:yields`, `:raises`). The tags must be aligned with the text of the docstring.
 
-\
-[*Args:*](#doc-function-args)
-: List each parameter by name. A description should follow the name, and
-  be separated by a colon followed by either a space or newline. If the
-  description is too long to fit on a single 120-character line, use a
-  hanging indent of 2 or 4 spaces more than the parameter name (be
-  consistent with the rest of the docstrings in the file). The
-  description should include required type(s) if the code does not
-  contain a corresponding type annotation. If a function accepts
-  `*foo` (variable length
-  argument lists) and/or `**bar`
-  (arbitrary keyword arguments), they should be listed as
-  `*foo` and
-  `**bar`.
+##### 3.8.3.1 Param and Return Tags
 
-\
-[*Returns:* (or *Yields:* for generators)](#doc-function-returns)
-: Describe the semantics of the return value, including any type
-  information that the type annotation does not provide. If the function
-  only returns None, this section is not required. It may also be
-  omitted if the docstring starts with "Return", "Returns", "Yield", or
-  "Yields" (e.g.
-  `"""Returns row from Bigtable as a tuple of strings."""`) *and* the opening sentence is sufficient to
-  describe the return value. Do not imitate older 'NumPy style'
-  ([example](https://numpy.org/doc/1.24/reference/generated/numpy.linalg.qr.html)),
-  which frequently documented a tuple return value as if it were
-  multiple return values with individual names (never mentioning the
-  tuple). Instead, describe such a return value as: "Returns: A tuple
-  (mat_a, mat_b), where mat_a is ..., and ...". The auxiliary names in
-  the docstring need not necessarily correspond to any internal names
-  used in the function body (as those are not part of the API). If the
-  function uses `yield` (is a
-  generator), the `Yields:`
-  section should document the object returned by
-  `next()`, instead of the
-  generator object itself that the call evaluates to.
+[*@param* and *@type:*](#doc-function-args)
+: `@param name: description` lists a parameter by name and describes it.
+  `@type name: type` defines the type of the parameter, if not present in the type annotations.
+  If the description is too long to fit on a single 120-character line, use a hanging indent of 2 or 4 spaces (be consistent with the rest of the docstrings in the file).
+  If a function accepts `*foo` (variable length argument lists) and/or `**bar` (arbitrary keyword arguments), they should be listed as `@param *foo:` and `@param **bar:`.
 
-\
-[*Raises:*](#doc-function-raises)
-: List all exceptions that are relevant to the interface followed by a
-  description. Use a similar exception name + colon + space or newline
-  and hanging indent style as described in *Args:*. You should not
-  document exceptions that get raised if the API specified in the
-  docstring is violated (because this would paradoxically make behavior
-  under violation of the API part of the API).
+##### 3.8.3.2 Raises Tag
+
+[*@returns* (or *@yields* for generators):](#doc-function-returns)
+: `@returns: description` describes the semantics of the return value, including any type information that the type annotation does not provide. If the function only returns None, this tag is not required.
+  If the function uses `yield` (is a generator), the `@yields` tag should document the object returned by `next()`, instead of the generator object itself.
+
+##### 3.8.3.3 Raises Tag
+
+[*@raises:*](#doc-function-raises)
+: `@raises ExceptionType: description` lists exceptions that are relevant to the interface followed by a description.
 
 ``` highlight
 def fetch_smalltable_rows(
@@ -454,56 +423,10 @@ def fetch_smalltable_rows(
     Retrieves rows pertaining to the given keys from the Table instance
     represented by table_handle.  String keys will be UTF-8 encoded.
 
-    Args:
-        table_handle: An open smalltable.Table instance.
-        keys: A sequence of strings representing the key of each table
-          row to fetch.  String keys will be UTF-8 encoded.
-        require_all_keys: If True only rows with values set for all keys will be
-          returned.
-
-    Returns:
-        A dict mapping keys to the corresponding table row data
-        fetched. Each row is represented as a tuple of strings. For
-        example:
-
-        {b'Serak': ('Rigel VII', 'Preparer'),
-         b'Zim': ('Irk', 'Invader'),
-         b'Lrrr': ('Omicron Persei 8', 'Emperor')}
-
-        Returned keys are always bytes.  If a key from the keys argument is
-        missing from the dictionary, then that row was not found in the
-        table (and require_all_keys must have been False).
-
-    Raises:
-        IOError: An error occurred accessing the smalltable.
-    """
-```
-
-Similarly, this variation on `Args:` with a line break is also allowed:
-
-``` highlight
-def fetch_smalltable_rows(
-    table_handle: smalltable.Table,
-    keys: Sequence[bytes | str],
-    require_all_keys: bool = False,
-) -> Mapping[bytes, tuple[str, ...]]:
-    """Fetches rows from a Smalltable.
-
-    Retrieves rows pertaining to the given keys from the Table instance
-    represented by table_handle.  String keys will be UTF-8 encoded.
-
-    Args:
-      table_handle:
-        An open smalltable.Table instance.
-      keys:
-        A sequence of strings representing the key of each table row to
-        fetch.  String keys will be UTF-8 encoded.
-      require_all_keys:
-        If True only rows with values set for all keys will be returned.
-
-    Returns:
-      A dict mapping keys to the corresponding table row data
-      fetched. Each row is represented as a tuple of strings. For
+    @param table_handle: An open smalltable.Table instance.
+    @param keys: A sequence of strings representing the key of each table row to fetch.  String keys will be UTF-8 encoded.
+    @param require_all_keys: If True only rows with values set for all keys will be returned.
+    @returns: A dict mapping keys to the corresponding table row data fetched. Each row is represented as a tuple of strings. For
       example:
 
       {b'Serak': ('Rigel VII', 'Preparer'),
@@ -513,13 +436,43 @@ def fetch_smalltable_rows(
       Returned keys are always bytes.  If a key from the keys argument is
       missing from the dictionary, then that row was not found in the
       table (and require_all_keys must have been False).
-
-    Raises:
-      IOError: An error occurred accessing the smalltable.
+    @raises IOError: An error occurred accessing the smalltable.
     """
 ```
 
-##### 3.8.3.1 Overridden Methods
+##### 3.8.3.4 Colon-based Sphinx Notation
+
+Similarly, this variation using colon-based Sphinx notation is also allowed:
+
+``` highlight
+def fetch_smalltable_rows(
+    table_handle: smalltable.Table,
+    keys: Sequence[bytes | str],
+    require_all_keys: bool = False,
+) -> Mapping[bytes, tuple[str, ...]]:
+    """Fetches rows from a Smalltable.
+
+    Retrieves rows pertaining to the given keys from the Table instance
+    represented by table_handle.  String keys will be UTF-8 encoded.
+
+    :param table_handle: An open smalltable.Table instance.
+    :param keys: A sequence of strings representing the key of each table row to fetch.  String keys will be UTF-8 encoded.
+    :param require_all_keys: If True only rows with values set for all keys will be returned.
+    :returns: A dict mapping keys to the corresponding table row data fetched. Each row is represented as a tuple of strings. For
+      example:
+
+      {b'Serak': ('Rigel VII', 'Preparer'),
+       b'Zim': ('Irk', 'Invader'),
+       b'Lrrr': ('Omicron Persei 8', 'Emperor')}
+
+      Returned keys are always bytes.  If a key from the keys argument is
+      missing from the dictionary, then that row was not found in the
+      table (and require_all_keys must have been False).
+    :raises IOError: An error occurred accessing the smalltable.
+    """
+```
+
+##### 3.8.3.5 Overridden Methods
 
 A method that overrides a method from a base class does not need a
 docstring if it is explicitly decorated with
@@ -563,8 +516,8 @@ class Child(Parent):
 
 Classes should have a docstring below the class definition describing
 the class. Public attributes, excluding [properties](#properties),
-should be documented here in an `Attributes` section and follow the same formatting as a
-[function's `Args`](#doc-function-args) section.
+should be documented here using `@ivar` (instance variable) or `@type` tags and follow the same formatting as a
+[function's parameters](#doc-function-args).
 
 ``` highlight
 class SampleClass:
@@ -573,16 +526,14 @@ class SampleClass:
     Longer class information...
     Longer class information...
 
-    Attributes:
-        likes_spam: A boolean indicating if we like SPAM or not.
-        eggs: An integer count of the eggs we have laid.
+    @ivar likes_spam: A boolean indicating if we like SPAM or not.
+    @ivar eggs: An integer count of the eggs we have laid.
     """
 
     def __init__(self, likes_spam: bool = False):
         """Initializes the instance based on spam preference.
 
-        Args:
-          likes_spam: Defines if instance exhibits this preference.
+        @param likes_spam: Defines if instance exhibits this preference.
         """
         self.likes_spam = likes_spam
         self.eggs = 0

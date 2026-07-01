@@ -1,6 +1,6 @@
-# Task 07.0 — Documentation & CI
+# Task 07.0 - Documentation & CI
 
-**Parent milestone:** [Milestone 0003 — LiteLLM Model Router](/docs/roadmap/0003-litellm-routing/plan.md)
+**Parent milestone:** [Milestone 0003 - LiteLLM Model Router](/docs/roadmap/0003-litellm-routing/plan.md)
 **Status:** ⬜ Not started
 
 ## Scope
@@ -12,13 +12,13 @@ milestone (flip `status.md` to complete, verify the decomposition tree).
 
 ## Subtasks
 
-| # | Document | Status | Blocks |
-|---|----------|--------|--------|
-| 01 | [docs/config-reference.md](01-config-reference.md) | ⬜ Not started | — |
-| 02 | [docs/router-architecture.md](02-router-architecture.md) | ⬜ Not started | — |
-| 03 | [README.md update + CHANGELOG.md](03-readme-and-changelog.md) | ⬜ Not started | — |
-| 04 | [CI pipeline additions](04-ci-configuration.md) | ⬜ Not started | — |
-| 05 | [milestone closeout](05-milestone-closeout.md) | ⬜ Not started | — |
+| #  | Document                                                      | Status        | Blocks |
+|----|---------------------------------------------------------------|---------------|--------|
+| 01 | [docs/config-reference.md](01-config-reference.md)            | ⬜ Not started | -      |
+| 02 | [docs/router-architecture.md](02-router-architecture.md)      | ⬜ Not started | -      |
+| 03 | [README.md update + CHANGELOG.md](03-readme-and-changelog.md) | ⬜ Not started | -      |
+| 04 | [CI pipeline additions](04-ci-configuration.md)               | ⬜ Not started | -      |
+| 05 | [milestone closeout](05-milestone-closeout.md)                | ⬜ Not started | -      |
 
 ## Key constraints
 

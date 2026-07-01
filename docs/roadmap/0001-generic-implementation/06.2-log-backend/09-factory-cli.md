@@ -1,7 +1,7 @@
 # 09 – Factory update and CLI wiring
 
 **Parent milestone:** 6.2 Log Backend – Fluentd Stack
-**State:** ⬜ Blocked — depends on 08
+**State:** ⬜ Blocked - depends on 08
 **Depends on:** 01, 08
 **Blocks:** 10
 
@@ -14,12 +14,12 @@ The factory already returns `FluentAdapter` for `provider="fluent"`, but the stu
 currently immediately raises `NotImplementedError` when queried. After subtask 08,
 it works. This subtask covers the two remaining integration points:
 
-1. **Factory** — remove the `NotImplementedError` guard comment; confirm the
+1. **Factory** - remove the `NotImplementedError` guard comment; confirm the
    factory returns a ready-to-use `FluentAdapter`.
-2. **CLI flags** — expose the new Fluent-specific settings as CLI options so
+2. **CLI flags** - expose the new Fluent-specific settings as CLI options so
    operators can configure the Fluent backend from the command line without
    editing `config.json`.
-3. **`config.example.json`** — ensure the Fluent block is complete and correct.
+3. **`config.example.json`** - ensure the Fluent block is complete and correct.
 
 ## Files
 
@@ -31,7 +31,7 @@ it works. This subtask covers the two remaining integration points:
 
 ## Factory changes (`backends/log/__init__.py`)
 
-The factory body requires no logic change — it already routes `"fluent"` to
+The factory body requires no logic change - it already routes `"fluent"` to
 `FluentAdapter`. Remove the module docstring comment that says the adapter is a
 stub. Add `FluentHttpClient`, `FluentForwardClient`, and `FluentRecordParser` to
 `__all__` so they are accessible for testing.
@@ -137,18 +137,18 @@ Expand the `ingest.log_source` block:
 
 **Unit** (`tests/unit/test_cli.py`):
 
-- `test_log_fluent_protocol_flag_reaches_settings` — `--log-fluent-protocol
+- `test_log_fluent_protocol_flag_reaches_settings` - `--log-fluent-protocol
   forward` parsed and forwarded to `LogBackendSettings`.
-- `test_log_fluent_services_comma_list` — `--log-fluent-services a,b,c` → stored
+- `test_log_fluent_services_comma_list` - `--log-fluent-services a,b,c` → stored
   as `["a","b","c"]` in `AnalyzeConfig`.
-- `test_log_fluent_protocol_invalid_exits_2` — `--log-fluent-protocol banana`
+- `test_log_fluent_protocol_invalid_exits_2` - `--log-fluent-protocol banana`
   exits with code 2.
-- `test_log_fluent_services_stored_in_metadata` — when `fluent_services` is set,
+- `test_log_fluent_services_stored_in_metadata` - when `fluent_services` is set,
   `source.metadata["services"]` is populated.
 
 **Integration** (`tests/integration/test_e2e_cli.py`):
 
-- `test_analyze_with_fluent_provider_falls_back_gracefully` — `--log-provider
+- `test_analyze_with_fluent_provider_falls_back_gracefully` - `--log-provider
   fluent` with a non-existent host; assert the CLI completes (does not crash),
   logs a warning about the connection failure, and produces an output report
   using file-only logs.

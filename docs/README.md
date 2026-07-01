@@ -13,7 +13,7 @@ Mermaid diagrams live in `adr/assets/`.
 | Document | Status | Description |
 |---|---|---|
 | [0001-new-ui-rich-based-design.md](adr/0001-new-ui-rich-based-design.md) | Implemented | WarRoomView three-pane terminal UI: Evidence Stream (left), Forensic Agents (right-top), Investigation Process (right-bottom). Animation, event→widget mapping, post-conclusion transition, Rich API inventory. |
-| [template.md](adr/template.md) | — | Blank MADR template; use `/adr-write <title>` to scaffold a new record. |
+| [template.md](adr/template.md) | - | Blank MADR template; use `/adr-write <title>` to scaffold a new record. |
 
 ---
 
@@ -104,7 +104,7 @@ findings, and licence checks. See [reviews/README.md](reviews/README.md).
 
 Operational runbooks for on-call engineers. See [runbooks/README.md](runbooks/README.md).
 
-> No runbooks yet — use `/runbook-write <incident-type>` to create the first one.
+> No runbooks yet - use `/runbook-write <incident-type>` to create the first one.
 
 ---
 
@@ -113,7 +113,7 @@ Operational runbooks for on-call engineers. See [runbooks/README.md](runbooks/RE
 Threat models and security review outputs from `security-auditor`.
 See [security/README.md](security/README.md).
 
-> No threat models yet — populated when incident-ingestion and auth code is reviewed.
+> No threat models yet - populated when incident-ingestion and auth code is reviewed.
 
 ---
 
@@ -121,7 +121,7 @@ See [security/README.md](security/README.md).
 
 Blameless post-mortems for resolved incidents. See [post-mortems/README.md](post-mortems/README.md).
 
-> No post-mortems yet — filed after the first P0/P1 incident.
+> No post-mortems yet - filed after the first P0/P1 incident.
 
 ---
 

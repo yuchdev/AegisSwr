@@ -1,13 +1,13 @@
-# 02 — docs/router-architecture.md
+# 02 - docs/router-architecture.md
 
 **Parent task:** 07.0 Documentation & CI
 **State:** ⬜ Not started
 **Depends on:** 04.0 (router complete)
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
-Author `docs/router-architecture.md` — the architectural reference for the
+Author `docs/router-architecture.md` - the architectural reference for the
 `aegis/router/` module. Primary audience: developers adding agents, adding
 providers, or debugging routing failures.
 

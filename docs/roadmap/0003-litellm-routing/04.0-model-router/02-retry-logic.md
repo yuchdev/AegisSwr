@@ -1,4 +1,4 @@
-# 02 — Retry logic with async backoff
+# 02 - Retry logic with async backoff
 
 **Parent task:** 04.0 Model Router
 **State:** ⬜ Not started
@@ -78,7 +78,7 @@ def _is_non_retriable(exc: RouterException) -> bool:
 ## Constraints
 
 - `asyncio.sleep`, never `time.sleep` (never blocks the event loop).
-- Backoff formula: `backoff_s * (attempt + 1)` — linear, not exponential.
+- Backoff formula: `backoff_s * (attempt + 1)` - linear, not exponential.
   Attempt 0 = no sleep (first try); attempt 1 = 1× backoff; attempt 2 = 2× etc.
 - No sleep after the **last** attempt (the `attempt < max - 1` guard).
 - `RouterCallStarted` emitted **before** the call; `RouterCallCompleted` /

@@ -1,4 +1,4 @@
-# 03 — exceptions.py — exception hierarchy
+# 03 - exceptions.py - exception hierarchy
 
 **Parent task:** 02.0 Router Foundation Types
 **State:** ⬜ Not started
@@ -7,7 +7,7 @@
 
 ## Objective
 
-Implement `aegis/router/exceptions.py` — the three exception classes used
+Implement `aegis/router/exceptions.py` - the three exception classes used
 throughout the router module.
 
 ## File: `aegis/router/exceptions.py`

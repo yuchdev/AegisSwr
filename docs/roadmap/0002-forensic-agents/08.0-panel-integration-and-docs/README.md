@@ -1,6 +1,6 @@
-# Task 08.0 — Panel Integration, Docs & Hardening
+# Task 08.0 - Panel Integration, Docs & Hardening
 
-**Parent milestone:** [Milestone 0002 — Forensic Agents](/docs/roadmap/0002-forensic-agents/plan.md)
+**Parent milestone:** [Milestone 0002 - Forensic Agents](/docs/roadmap/0002-forensic-agents/plan.md)
 **Status:** ⬜ Not started
 
 ---
@@ -35,7 +35,7 @@ configuration file, a documentation update, or a test assertion.
 | 02 | [Config & examples](02-config-and-examples.md) | ⬜ Not started | 04 |
 | 03 | [Docs](03-docs.md) | ⬜ Not started | 05 |
 | 04 | [Hardening gates](04-hardening-gates.md) | ⬜ Not started | 05 |
-| 05 | [Milestone closeout](05-milestone-closeout.md) | ⬜ Not started | — |
+| 05 | [Milestone closeout](05-milestone-closeout.md) | ⬜ Not started | - |
 
 Subtasks 02 and 03 both depend on 01 and may proceed in parallel with each
 other once 01 is complete. Subtask 04 depends on 01, 02, 03, and all of Tasks

@@ -1,7 +1,7 @@
 # 10 – Unit, mock and integration tests
 
 **Parent milestone:** 6.2 Log Backend – Fluentd Stack
-**State:** ⬜ Blocked — depends on 08, 09
+**State:** ⬜ Blocked - depends on 08, 09
 **Depends on:** 02, 03, 04, 08, 09
 **Blocks:** nothing (terminal subtask)
 
@@ -19,7 +19,7 @@ Subtasks 01–09 each specify their own per-unit tests; this subtask covers:
    controlled in-process HTTP server (protocol contract verification, no real
    Fluentd required).
 3. **Docker Compose integration tests** against a real Fluent stack (conditional
-   on Q8 answer — skip if no test instance is available).
+   on Q8 answer - skip if no test instance is available).
 4. **Regression tests** that confirm `FileLogAdapter` is unaffected by the new
    multi-service changes.
 5. **Data Adapter Stage 4 tests** for the multi-service wiring.
@@ -27,12 +27,12 @@ Subtasks 01–09 each specify their own per-unit tests; this subtask covers:
 ## Files
 
 - **Modify** `tests/unit/test_log_backends.py` (extend with Fluent adapter tests)
-- **Create** `tests/unit/test_fluent_record.py` (record normalisation — see subtask 03)
+- **Create** `tests/unit/test_fluent_record.py` (record normalisation - see subtask 03)
 - **Create** `tests/unit/fixtures/fluent_http_batch.json` (mock HTTP response body)
 - **Create** `tests/unit/fixtures/fluent_msgpack_events.bin` (binary forward frames)
 - **Create** `tests/integration/test_fluent_backend.py`
 - **Modify** `tests/integration/test_data_adapter.py` (Stage 4 multi-service path)
-- **Modify** `docker-compose.test.yml` (optional — add Fluent Bit test service if Q8 = Docker)
+- **Modify** `docker-compose.test.yml` (optional - add Fluent Bit test service if Q8 = Docker)
 
 ## Test inventory
 
@@ -61,7 +61,7 @@ These tests expand the existing file and fluent stub tests.
 See [subtask 03](03-record-normalization.md#tests) for the full list (11 test cases).
 Ensure they are written in this dedicated module, not in `test_log_backends.py`.
 
-### Unit: `test_data_adapter.py` — Stage 4 multi-service
+### Unit: `test_data_adapter.py` - Stage 4 multi-service
 
 | Test name | What it verifies |
 |-----------|-----------------|

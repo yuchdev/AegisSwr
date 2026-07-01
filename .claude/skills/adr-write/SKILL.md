@@ -63,7 +63,7 @@ seeds it. Leave it `Proposed` for human/architect sign-off.
 ## Completion checklist
 
 - [ ] File created at `docs/adr/NNNN-<kebab-title>.md` with correct zero-padded sequence number
-- [ ] Status is `Proposed` — not Accepted (that requires human/architect sign-off)
+- [ ] Status is `Proposed` - not Accepted (that requires human/architect sign-off)
 - [ ] `docs/README.md` has a new index line for the ADR
 - [ ] `/link-check` passes on the new file
 - [ ] Consequences section lists follow-up tasks for `python-expert` and `testing-expert`

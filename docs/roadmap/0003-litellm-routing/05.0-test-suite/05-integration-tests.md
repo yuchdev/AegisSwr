@@ -1,13 +1,13 @@
-# 05 — Integration tests
+# 05 - Integration tests
 
 **Parent task:** 05.0 Test Suite
 **State:** ⬜ Not started
 **Depends on:** 04.0 (ModelRouter complete), 06.0/04 (NullClient available)
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
-Write `tests/integration/test_router_integration.py` — real provider calls
+Write `tests/integration/test_router_integration.py` - real provider calls
 that verify end-to-end flow from `ModelRouter.complete()` to a real model
 response. Tests are unconditionally **skipped** (not failed) when the
 corresponding API key is absent.

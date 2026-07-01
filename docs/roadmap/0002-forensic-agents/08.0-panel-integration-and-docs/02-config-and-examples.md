@@ -1,9 +1,9 @@
-# 02 — Config & Examples
+# 02 - Config & Examples
 
-**Parent task:** Task 08.0 — Panel Integration, Docs & Hardening
+**Parent task:** Task 08.0 - Panel Integration, Docs & Hardening
 **Status:** ⬜ Not started
-**Depends on:** 01-default-panels-and-weight-audit.md
-**Blocks:** 04-hardening-gates.md
+**Depends on:** [01-default-panels-and-weight-audit.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/01-default-panels-and-weight-audit.md)
+**Blocks:** [04-hardening-gates.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/04-hardening-gates.md)
 
 ---
 
@@ -27,7 +27,7 @@ The canonical example for `~/.aegis-swr/agents.json`. This file is read by
 `Settings`. It must express the full nine-voter weight map using the data-driven
 `weights` dict format from plan.md C3 (not the legacy four-field flat format).
 
-Structure (abbreviated — implement all ten fault classes from subtask 01):
+Structure (abbreviated - implement all ten fault classes from subtask 01):
 
 ```json
 {
@@ -130,7 +130,7 @@ The file location is `agents.example.json` at the repository root (alongside
 `.env.example`). The docs reference `~/.aegis-swr/agents.json` as the runtime
 location; the example ships as a copy-in template.
 
-### `config.yaml` — `agents` block
+### `config.yaml` - `agents` block
 
 The `config.yaml` YAML source (read by `AegisJsonSettingsSource`) gains two new
 top-level keys under an `agents:` section:

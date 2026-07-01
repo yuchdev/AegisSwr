@@ -1,4 +1,4 @@
-# Milestone 0002 — Forensic Agents
+# Milestone 0002 - Forensic Agents
 
 **Package:** `aegis-swr` | **Module root:** `src/aegis_swr/agents/`
 **Depends on:** Milestone 0001 (Multi-Agent System engine, schemas, consensus, orchestrator)
@@ -15,7 +15,7 @@ without refactoring first.
 > fixed tuple `("os_kernel", "code_analyst", "log_historian", "skeptic")`,
 > `AgentWeightEntry` has one `float` field per agent, and `core/orchestrator.py`
 > registers four fixed nodes in a linear chain. Adding agents is therefore not
-> "write one file" — the panel must first become *data-driven*.
+> "write one file" - the panel must first become *data-driven*.
 
 ## Table of contents
 
@@ -78,7 +78,7 @@ src/aegis_swr/agents/
 These contracts are defined once here and referenced by every subtask. Changing
 one means updating this section and the affected subtask specs.
 
-### C1 — Canonical agent keys
+### C1 - Canonical agent keys
 
 | `agent_key`           | Class                        | Category   | Tier   |
 |-----------------------|------------------------------|------------|--------|
@@ -92,7 +92,7 @@ one means updating this section and the affected subtask specs.
 | `resource_exhaustion` | `ResourceExhaustionAgent`    | forensic   | debate |
 | `remediation_planner` | `RemediationPlannerAgent`    | synthesis  | post-debate |
 
-### C2 — Generalized `BaseAgent`
+### C2 - Generalized `BaseAgent`
 
 `agents/base/base.py` keeps the existing constructor and `run`/`system_prompt`
 contract and adds three `ClassVar`s so the registry and consensus can address
@@ -108,7 +108,7 @@ class BaseAgent(ABC):
 `display_name` MUST equal the `AgentTurn.agent` string the agent already emits
 (e.g. `"OS Kernel Agent"`), so existing turn-matching logic keeps working.
 
-### C3 — Data-driven consensus weights
+### C3 - Data-driven consensus weights
 
 `AgentWeightEntry` stops being four fixed float fields and becomes a single
 normalized map keyed by `agent_key`:
@@ -121,12 +121,12 @@ class AgentWeightEntry(BaseSettings):
 
 `ConsensusEvaluator.calculate(agent_scores, fault_class)` iterates the union of
 keys present in the entry's `weights` (skipping `remediation_planner`, which is
-not a voter — see C5). The legacy four-field constructor signature
+not a voter - see C5). The legacy four-field constructor signature
 (`AgentWeightEntry(os_kernel=…, code_analyst=…, …)`) is preserved as a
 compatibility shim that folds kwargs into `weights`. **Default weights for the
 existing ten fault classes reproduce 0001's matrix exactly** (back-compat gate).
 
-### C4 — Agent registry & panel factory
+### C4 - Agent registry & panel factory
 
 `agents/registry.py`:
 
@@ -150,7 +150,7 @@ Synthesis-tier agents (`remediation_planner`) are **never** returned by
 `create_agent_panel`; they are instantiated separately by the orchestrator's
 output-synthesizer path.
 
-### C5 — Orchestrator integration
+### C5 - Orchestrator integration
 
 - The debate sub-graph is built **dynamically** from `create_agent_panel(...)`:
   one node per panel agent, chained in panel order, `skeptic_node` terminal with
@@ -162,7 +162,7 @@ output-synthesizer path.
   convergence/skeptic confirmation, consuming the confirmed `RCAReport`. It is
   skipped on the HITL (low-confidence) path.
 
-### C6 — Output schemas (`core/schemas.py`)
+### C6 - Output schemas (`core/schemas.py`)
 
 Each debate specialist mirrors the existing `OSKernelOutput` shape (a list of
 `Hypothesis` + a `confidence_score: float`) and adds domain-specific fields:
@@ -170,14 +170,14 @@ Each debate specialist mirrors the existing `OSKernelOutput` shape (a list of
 `ResourceExhaustionOutput`. The synthesis agent adds `RemediationStep` +
 `RemediationPlan`, and `RCAReport` gains an optional `remediation_plan` field.
 
-### C7 — Cross-cutting project invariants (inherited from 0001)
+### C7 - Cross-cutting project invariants (inherited from 0001)
 
 - `Optional[T]` from `typing`, never `T | None` (run `scripts/replace_optional.py --check`).
 - `mypy --strict` clean; `ruff` clean.
 - Mandatory `cache_control: {"type": "ephemeral"}` on every system prompt block
   (handled by `_BaseAIBackend`; agents pass the system prompt through).
 - **Untrusted payload text** (stack frames, log lines, register values) flows
-  into prompts only after the Data Adapter's PII scrub — agents never re-introduce
+  into prompts only after the Data Adapter's PII scrub - agents never re-introduce
   raw payload into a shell, SQL, or unsanitised sink.
 - Every new feature ships unit + mock tests; every integration ships an
   integration test with mocked externals. The Stop hook runs the unit suite.
@@ -186,7 +186,7 @@ Each debate specialist mirrors the existing `OSKernelOutput` shape (a list of
 
 ## Per-task specifications
 
-### Task 01.0 — Agent Package Restructure
+### Task 01.0 - Agent Package Restructure
 
 **Goal:** Reorganize `agents/` into category subpackages with **zero behavior
 change**. This is the enabling move the rest of the milestone builds on.
@@ -206,7 +206,7 @@ aegis_swr.agents.os_kernel import OSKernelAgent` still resolves (shim);
 
 ---
 
-### Task 02.0 — Extensible Panel (Registry / Consensus / Orchestration)
+### Task 02.0 - Extensible Panel (Registry / Consensus / Orchestration)
 
 **Goal:** Make the panel data-driven so agents can be added by configuration.
 
@@ -227,7 +227,7 @@ debate node and contributes a weighted vote.
 
 ---
 
-### Tasks 03.0–06.0 — Forensic specialists (shared shape)
+### Tasks 03.0–06.0 - Forensic specialists (shared shape)
 
 Each forensic-specialist task has the **same five subtasks**. The per-task README
 fills in the domain content (system prompt heuristics, output fields, authoritative
@@ -241,7 +241,7 @@ fault classes).
 | 04 | Registry & panel wiring (C4/C5) | Register in `AGENT_REGISTRY`; add to default panels for authoritative fault classes |
 | 05 | Tests | Unit (schema request, prompt content, deterministic pre-checks), mock pipeline, integration |
 
-#### Task 03.0 — Memory Forensics Agent
+#### Task 03.0 - Memory Forensics Agent
 `agents/forensic/memory_forensics.py` → `MemoryForensicsAgent` (`memory_forensics`).
 Specialism: heap corruption, use-after-free, double-free, buffer over/underflow,
 allocator/heap-metadata tells, guard-page hits, fill-pattern signatures
@@ -251,7 +251,7 @@ allocator/heap-metadata tells, guard-page hits, fill-pattern signatures
 `heap_state: Optional[str]`.
 See [`03.0-memory-forensics-agent/README.md`](/docs/roadmap/0002-forensic-agents/03.0-memory-forensics-agent/README.md).
 
-#### Task 04.0 — Concurrency Analyst Agent
+#### Task 04.0 - Concurrency Analyst Agent
 `agents/forensic/concurrency_analyst.py` → `ConcurrencyAnalystAgent`
 (`concurrency_analyst`). Specialism: deadlocks, lock-ordering inversions, race
 conditions, TOCTOU, thread wait-chains, starvation. Authoritative on `deadlock`,
@@ -260,21 +260,21 @@ conditions, TOCTOU, thread wait-chains, starvation. Authoritative on `deadlock`,
 `suspected_race: Optional[str]`.
 See [`04.0-concurrency-analyst-agent/README.md`](/docs/roadmap/0002-forensic-agents/04.0-concurrency-analyst-agent/README.md).
 
-#### Task 05.0 — Exploitability Analyst Agent
+#### Task 05.0 - Exploitability Analyst Agent
 `agents/forensic/exploitability_analyst.py` → `ExploitabilityAnalystAgent`
 (`exploitability`). Specialism: is the crash a security vulnerability? Whether
 attacker-controlled data reaches the fault, write-what-where primitives,
 control-flow hijack potential, mitigation state (ASLR/DEP/stack canary).
 Authoritative on `memory_access_violation`, `use_after_free`, `stack_overflow`.
 Output adds `exploitable: bool`, `severity: str`, `attacker_control: Optional[str]`,
-`mitigations_present: list[str]`. **Security-sensitive — Task 08 requires a
+`mitigations_present: list[str]`. **Security-sensitive - Task 08 requires a
 `security-auditor` pass** (this agent reasons over attacker-influenced payload).
 See [`05.0-exploitability-analyst-agent/README.md`](/docs/roadmap/0002-forensic-agents/05.0-exploitability-analyst-agent/README.md).
 
-#### Task 06.0 — Resource Exhaustion Agent
+#### Task 06.0 - Resource Exhaustion Agent
 `agents/forensic/resource_analyst.py` → `ResourceExhaustionAgent`
 (`resource_exhaustion`). Specialism: handle/fd/thread/memory leaks, OOM,
-connection-pool and GDI/kernel-object exhaustion, unbounded growth — the "silent
+connection-pool and GDI/kernel-object exhaustion, unbounded growth - the "silent
 logical lockup / resource leak" gap from the product roadmap §1.1. Authoritative
 on `resource_exhaustion`, `stack_overflow`, `deadlock` (thread starvation).
 Output adds `exhausted_resource: Optional[str]`, `leak_indicators: list[str]`,
@@ -283,7 +283,7 @@ See [`06.0-resource-exhaustion-agent/README.md`](/docs/roadmap/0002-forensic-age
 
 ---
 
-### Task 07.0 — Remediation Planner Agent (synthesis tier)
+### Task 07.0 - Remediation Planner Agent (synthesis tier)
 
 **Goal:** Turn the confirmed RCA into an ordered, **idempotent, rollback-covered**
 remediation playbook, compatible with the `/playbook-validate` skill.
@@ -304,7 +304,7 @@ remediation playbook, compatible with the `/playbook-validate` skill.
 
 ---
 
-### Task 08.0 — Panel Integration, Docs & Hardening
+### Task 08.0 - Panel Integration, Docs & Hardening
 
 **Goal:** Compose the full default panels, finalize config, document the roster,
 and run the milestone exit gates.
@@ -341,7 +341,7 @@ floats; the rule is *re-normalize so each fault class's debate weights sum to 1.
 | unhandled_exception        |                  |                     |                |                     |
 | unknown                    | (base panel only)|                     |                |                     |
 
-`remediation_planner` is **not** in this matrix — it is a post-debate synthesis
+`remediation_planner` is **not** in this matrix - it is a post-debate synthesis
 agent, not a weighted voter.
 
 ---

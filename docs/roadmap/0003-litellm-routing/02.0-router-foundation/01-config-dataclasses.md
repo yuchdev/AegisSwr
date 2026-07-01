@@ -1,4 +1,4 @@
-# 01 — config.py — RouterConfig dataclasses
+# 01 - config.py - RouterConfig dataclasses
 
 **Parent task:** 02.0 Router Foundation Types
 **State:** ⬜ Not started
@@ -7,7 +7,7 @@
 
 ## Objective
 
-Implement `aegis/router/config.py` — typed, frozen dataclasses that parse
+Implement `aegis/router/config.py` - typed, frozen dataclasses that parse
 `agents.yaml` into structured config objects. This file has **no** `litellm`
 dependency; it is pure Python + stdlib.
 

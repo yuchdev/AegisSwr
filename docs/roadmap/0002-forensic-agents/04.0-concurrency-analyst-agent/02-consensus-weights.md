@@ -1,4 +1,4 @@
-# 02 — Consensus weight integration
+# 02 - Consensus weight integration
 
 **Parent task:** 04.0 Concurrency Analyst Agent
 **State:** ⬜ Not started
@@ -18,7 +18,7 @@ floats after all four forensic specialists land.
 ## Files
 
 - **Modify** `agents.example.json`
-- **Modify** `config/config.yaml` (or `config/config.example.json` — whichever
+- **Modify** `config/config.yaml` (or `config/config.example.json` - whichever
   carries the canonical weights block; add `config/config.yaml` if absent)
 
 ## Proposed weight vectors
@@ -66,7 +66,7 @@ Sum: 1.00
 
 > Note: if `memory_forensics` is not enabled for a given panel, the
 > `ConsensusEvaluator` ignores the zero-scored missing key and re-normalizes
-> over present voters (contract C3 — missing keys contribute 0.0, total weight
+> over present voters (contract C3 - missing keys contribute 0.0, total weight
 > is the sum of present keys only).
 
 ### `assertion_failure` (concurrency_analyst is secondary)
@@ -105,7 +105,7 @@ vectors. Provide an inline comment noting these are provisional until Task 08.0.
   higher precision in the assertion gate).
 - Do not modify weights for fault classes not listed here (`memory_access_violation`,
   `null_pointer_dereference`, `stack_overflow`, `integer_divide_by_zero`,
-  `resource_exhaustion`, `unhandled_exception`, `unknown`) — those will be
+  `resource_exhaustion`, `unhandled_exception`, `unknown`) - those will be
   addressed by Task 08.0 or the specialist owning them.
 - `Optional[T]` convention does not apply to this subtask (config data, not Python);
   the constraint carries forward to any Python settings models touched here.

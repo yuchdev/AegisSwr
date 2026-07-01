@@ -1,4 +1,4 @@
-# 03 — Fallback chain iteration
+# 03 - Fallback chain iteration
 
 **Parent task:** 04.0 Model Router
 **State:** ⬜ Not started

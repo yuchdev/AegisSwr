@@ -24,7 +24,7 @@ from recent git log and open GitHub issues, then saves it here as the next
 
 ## Naming conventions
 
-- Filename: `000N-kebab-slug.md` — sequential, zero-padded to four digits.
+- Filename: `000N-kebab-slug.md` - sequential, zero-padded to four digits.
 - Status values: `Proposed` | `Accepted` | `Implemented` | `Superseded` | `Deprecated`.
 - Superseded ADRs keep their file; add a `Superseded by: [000N](...)` line to their header.
 

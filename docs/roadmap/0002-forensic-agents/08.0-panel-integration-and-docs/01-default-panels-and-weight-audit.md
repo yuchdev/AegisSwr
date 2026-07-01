@@ -1,9 +1,9 @@
-# 01 — Default Panels & Weight Audit
+# 01 - Default Panels & Weight Audit
 
-**Parent task:** Task 08.0 — Panel Integration, Docs & Hardening
+**Parent task:** Task 08.0 - Panel Integration, Docs & Hardening
 **Status:** ⬜ Not started
 **Depends on:** Tasks 03.0, 04.0, 05.0, 06.0, 07.0 (all forensic + synthesis agents delivered)
-**Blocks:** 02-config-and-examples.md, 04-hardening-gates.md
+**Blocks:** [02-config-and-examples.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/02-config-and-examples.md), [04-hardening-gates.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/04-hardening-gates.md)
 
 ---
 
@@ -133,7 +133,7 @@ the order invariant from plan.md C4).
 File: `tests/unit/test_weight_audit.py`
 
 The implementer (`python-expert`) writes this test file. No product code is
-changed — only the test is new.
+changed - only the test is new.
 
 ### Test: `test_all_fault_class_weights_sum_to_one`
 

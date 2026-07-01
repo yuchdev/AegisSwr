@@ -1,9 +1,9 @@
-# 04 — Isolation boundary enforcement
+# 04 - Isolation boundary enforcement
 
 **Parent task:** 03.0 LiteLLM Client
 **State:** ⬜ Not started
 **Depends on:** 01, 02, 03
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
@@ -52,13 +52,13 @@ Add to `.github/workflows/ci.yml` (or equivalent):
 
 The pytest test catches drift in development (Stop hook runs the unit suite).
 The CI lint step provides a named, visible job in the PR checks so reviewers
-see it as an explicit gate — making the architectural rule concrete.
+see it as an explicit gate - making the architectural rule concrete.
 
 ## Constraints
 
 - The check must scan `*.py` files under `aegis/` only (not `tests/`, which
   legitimately imports `litellm` in fixtures).
-- Comment references to `litellm` in docstrings are acceptable — the check
+- Comment references to `litellm` in docstrings are acceptable - the check
   looks for `import litellm` or `from litellm`, not bare mentions.
   Adjust the grep pattern accordingly.
 

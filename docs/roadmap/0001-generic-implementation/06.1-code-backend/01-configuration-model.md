@@ -9,7 +9,7 @@
 
 Extend `CodeBackendSettings` with the PDB-specific fields required by
 `PdbCodeAdapter` and update the `provider` validator to accept `"pdb"`.
-No implementation logic in this subtask — purely the settings model.
+No implementation logic in this subtask - purely the settings model.
 
 ## Files
 
@@ -22,7 +22,7 @@ No implementation logic in this subtask — purely the settings model.
 
 | Field | Type | Default | Notes |
 |-------|------|---------|-------|
-| `pdb_path` | `Optional[str]` | `None` | Explicit path to the `.pdb` file. When set, all path-resolution lookups are skipped. Treated as a user-supplied file path — checked for existence at use time, not at construction. |
+| `pdb_path` | `Optional[str]` | `None` | Explicit path to the `.pdb` file. When set, all path-resolution lookups are skipped. Treated as a user-supplied file path - checked for existence at use time, not at construction. |
 | `pdbstr_timeout_seconds` | `int` | `15` | Timeout passed to `subprocess.run` when calling `pdbstr.exe`. Same pattern as `git_timeout_seconds`. |
 | `pdb_search_dirs` | `list[str]` | `[]` | Additional directories to search for a `.pdb` file when neither `pdb_path` nor an adjacent dump-path PDB is found. Each entry is treated as an absolute directory path; searched in order, first match wins. |
 
@@ -74,7 +74,7 @@ pdb_search_dirs: list[str] = []        # NEW
 
 - All new optional fields use `Optional[T]`; `list[str]` fields use
   `Field(default_factory=list)`.
-- `pdb_path` is **not** a secret field (`_SECRET_KEYS` unchanged) — it is a
+- `pdb_path` is **not** a secret field (`_SECRET_KEYS` unchanged) - it is a
   file path, not a credential.
 - Env overrides: `AEGIS__backends__code__pdb_path`, etc., follow the existing
   `AEGIS__` prefix + `__` delimiter pattern automatically.
@@ -85,13 +85,13 @@ pdb_search_dirs: list[str] = []        # NEW
 
 **Unit** (`tests/unit/test_settings.py`):
 
-- `test_code_backend_pdb_provider_accepted` — `CodeBackendSettings(provider="pdb")`
+- `test_code_backend_pdb_provider_accepted` - `CodeBackendSettings(provider="pdb")`
   constructs without error.
-- `test_code_backend_pdb_defaults` — `pdb_path` is `None`, `pdbstr_timeout_seconds`
+- `test_code_backend_pdb_defaults` - `pdb_path` is `None`, `pdbstr_timeout_seconds`
   is `15`, `pdb_search_dirs` is `[]`.
-- `test_code_backend_provider_validator_still_rejects_unknown` — `provider="svn"`
+- `test_code_backend_provider_validator_still_rejects_unknown` - `provider="svn"`
   still raises `ValidationError`.
-- `test_code_backend_env_override_pdb_path` —
+- `test_code_backend_env_override_pdb_path` -
   `AEGIS__backends__code__pdb_path=C:\\x.pdb` overrides the default.
 
 ## Success criteria

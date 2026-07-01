@@ -1,4 +1,4 @@
-# 04 — Registry & panel wiring
+# 04 - Registry & panel wiring
 
 **Parent task:** 04.0 Concurrency Analyst Agent
 **State:** ⬜ Not started
@@ -92,14 +92,14 @@ from aegis_swr.agents.forensic import ConcurrencyAnalystAgent
 
 These tests belong to subtask 05. They are listed here for traceability:
 
-- `test_concurrency_analyst_in_registry` — `AGENT_REGISTRY["concurrency_analyst"]
+- `test_concurrency_analyst_in_registry` - `AGENT_REGISTRY["concurrency_analyst"]
   is ConcurrencyAnalystAgent`.
-- `test_deadlock_panel_includes_concurrency_analyst` — `create_agent_panel(...,
+- `test_deadlock_panel_includes_concurrency_analyst` - `create_agent_panel(...,
   fault_class=FaultClass.deadlock)` returns an agent with
   `agent_key == "concurrency_analyst"`.
-- `test_concurrency_analyst_before_skeptic` — in the `deadlock` panel, the
+- `test_concurrency_analyst_before_skeptic` - in the `deadlock` panel, the
   `ConcurrencyAnalystAgent` instance appears before the `SkepticAgent` instance.
-- `test_use_after_free_panel_degrades_without_memory_forensics` — if
+- `test_use_after_free_panel_degrades_without_memory_forensics` - if
   `memory_forensics` is absent from the registry, the UAF panel still returns
   `concurrency_analyst` (and does not raise).
 

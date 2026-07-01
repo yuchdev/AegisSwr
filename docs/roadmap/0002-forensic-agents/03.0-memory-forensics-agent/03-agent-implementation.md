@@ -1,4 +1,4 @@
-# 03 — Agent implementation (`MemoryForensicsAgent`)
+# 03 - Agent implementation (`MemoryForensicsAgent`)
 
 **Parent task:** 03.0 Memory Forensics Agent
 **State:** ⬜ Not started
@@ -16,7 +16,7 @@ fill-pattern pre-check that runs before and independent of the LLM call.
 ## Files
 
 - **Create** `src/aegis_swr/agents/forensic/memory_forensics.py`
-- **Modify** `src/aegis_swr/agents/forensic/__init__.py` — add
+- **Modify** `src/aegis_swr/agents/forensic/__init__.py` - add
   `MemoryForensicsAgent` to `__all__` and the module-level import.
 
 ## ClassVars (contract C2)
@@ -73,7 +73,7 @@ Follow the `os_kernel.py` pattern precisely:
    the LLM can reference them.
 5. Call `output = await self._ai.generate(self.system_prompt, messages, MemoryForensicsOutput)`.
 6. Merge: `final_signatures = list({*pre_detected_signatures, *output.corruption_signatures})`
-   — the LLM may surface additional signatures; the deterministic pre-check
+   - the LLM may surface additional signatures; the deterministic pre-check
    results are never discarded.
 7. Construct `AgentTurn`:
    - `agent = self.display_name` (i.e. `"Memory Forensics Agent"`).
@@ -87,7 +87,7 @@ Follow the `os_kernel.py` pattern precisely:
 
 ## Constraints
 
-- `Optional[T]` from `typing`; never `T | None` — enforced by
+- `Optional[T]` from `typing`; never `T | None` - enforced by
   `scripts/replace_optional.py --check`.
 - `mypy --strict` clean; `ruff` clean; line length 100.
 - The regex for fill-pattern detection must be compiled at module level (not

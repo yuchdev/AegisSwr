@@ -10,7 +10,7 @@
 Wrap the `pdbstr.exe` Windows tool in an async-safe, type-annotated Python class
 that reads the SrcSrv stream from a `.pdb` file and maps all failure modes to
 `CodeBackendError`. This is the I/O boundary between Python and the Windows
-Debugging Tools binary — every error path terminates here; nothing raw escapes.
+Debugging Tools binary - every error path terminates here; nothing raw escapes.
 
 `pdbstr.exe` is part of **Debugging Tools for Windows** (installed alongside
 `cdb.exe`). Its relevant invocation is:
@@ -74,7 +74,7 @@ class PdbstrWrapper:
 cmd = ["pdbstr.exe", "-r", f"-p:{pdb_path}", "-s:srcsrv"]
 ```
 
-**Empty-stream detection** — distinguish "no SrcSrv stream" from "real error":
+**Empty-stream detection** - distinguish "no SrcSrv stream" from "real error":
 
 ```python
 proc = subprocess.run(cmd, capture_output=True, text=True, timeout=self._timeout, check=False)
@@ -112,7 +112,7 @@ Defined at module level so it can be patched in tests without touching `sys`.
 
 ## Constraints
 
-- List-form argv — the `-p:{pdb_path}` argument is a **single string element**
+- List-form argv - the `-p:{pdb_path}` argument is a **single string element**
   in the list (that is how `pdbstr.exe` parses it; do not split on `:`).
 - `pdb_path` must be an absolute `Path` object passed in from subtask 04's
   resolver; this class does not do path resolution.
@@ -120,36 +120,36 @@ Defined at module level so it can be patched in tests without touching `sys`.
   Windows error messages (which can be lengthy) do not flood log output.
 - `pdbstr.exe` stdout may use `\r\n` line endings on Windows; `text=True`
   in `subprocess.run` normalises these to `\n` automatically.
-- No `asyncio.to_thread` wrapping here — the wrapper is synchronous. The
+- No `asyncio.to_thread` wrapping here - the wrapper is synchronous. The
   `PdbCodeAdapter` methods calling it are also synchronous (matching the
   `CodeBackend` ABC contract).
 
 ## Tests
 
-**Unit** (`tests/unit/test_pdbstr_wrapper.py` — new file, or extend `test_code_backends.py`):
+**Unit** (`tests/unit/test_pdbstr_wrapper.py` - new file, or extend `test_code_backends.py`):
 
 ```python
 _WRAPPER_RUN = "aegis_swr.backends.code.pdbstr_wrapper.subprocess.run"
 _WRAPPER_IS_WIN = "aegis_swr.backends.code.pdbstr_wrapper._is_windows"
 ```
 
-- `test_read_srcsrv_returns_stdout_on_success` — mock `subprocess.run` returning
+- `test_read_srcsrv_returns_stdout_on_success` - mock `subprocess.run` returning
   exit 0 with fixture SrcSrv text in stdout; assert the text is returned verbatim.
-- `test_read_srcsrv_returns_empty_when_no_stream_exit_zero` — mock exit 0 + empty
+- `test_read_srcsrv_returns_empty_when_no_stream_exit_zero` - mock exit 0 + empty
   stdout; assert `""` returned.
-- `test_read_srcsrv_returns_empty_when_nonzero_empty_stderr` — mock non-zero exit
+- `test_read_srcsrv_returns_empty_when_nonzero_empty_stderr` - mock non-zero exit
   + empty stdout + empty stderr; assert `""` returned (no stream, not an error).
-- `test_read_srcsrv_raises_on_nonzero_with_stderr` — mock non-zero exit + non-empty
+- `test_read_srcsrv_raises_on_nonzero_with_stderr` - mock non-zero exit + non-empty
   stderr; assert `CodeBackendError` raised.
-- `test_read_srcsrv_raises_on_file_not_found` — mock `subprocess.run` to raise
+- `test_read_srcsrv_raises_on_file_not_found` - mock `subprocess.run` to raise
   `FileNotFoundError`; assert `CodeBackendError` with "not found" in message.
-- `test_read_srcsrv_raises_on_timeout` — mock `subprocess.run` to raise
+- `test_read_srcsrv_raises_on_timeout` - mock `subprocess.run` to raise
   `subprocess.TimeoutExpired`; assert `CodeBackendError`.
-- `test_constructor_raises_on_non_windows` — mock `_is_windows` returning `False`;
+- `test_constructor_raises_on_non_windows` - mock `_is_windows` returning `False`;
   assert `CodeBackendError` raised in constructor.
-- `test_constructor_succeeds_on_windows` — mock `_is_windows` returning `True`;
+- `test_constructor_succeeds_on_windows` - mock `_is_windows` returning `True`;
   assert no exception.
-- `test_cmd_uses_list_form` — assert the `cmd` list passed to `subprocess.run`
+- `test_cmd_uses_list_form` - assert the `cmd` list passed to `subprocess.run`
   never contains a shell metacharacter (no `&`, `|`, `;`, `>`, etc.) and
   `shell=False`.
 

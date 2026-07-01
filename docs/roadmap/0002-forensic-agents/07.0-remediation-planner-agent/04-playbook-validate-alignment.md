@@ -1,4 +1,4 @@
-# 04 — /playbook-validate alignment
+# 04 - /playbook-validate alignment
 
 **Parent task:** 07.0 Remediation Planner Agent
 **State:** ⬜ Not started
@@ -82,7 +82,7 @@ documented inline in the synthesis wiring code via a comment:
 > any production-affecting step runs.
 
 This is an architectural invariant, not a runtime check. The orchestrator does
-not dispatch plan steps — it only attaches the `RemediationPlan` to the
+not dispatch plan steps - it only attaches the `RemediationPlan` to the
 `RCAReport`. Execution is the caller's responsibility.
 
 ## Idempotency and rollback coverage rules

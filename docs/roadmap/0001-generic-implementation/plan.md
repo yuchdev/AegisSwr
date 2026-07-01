@@ -5,8 +5,8 @@
 
 This document is the execution brief for the 16-week build plan (Part I) and records
 the completed three-channel logging redesign (Part III). The authoritative engineering
-specification — schemas, backend ABCs, MAS engine, storage topology, REST API, sandbox,
-CLI, and logging architecture — lives in
+specification - schemas, backend ABCs, MAS engine, storage topology, REST API, sandbox,
+CLI, and logging architecture - lives in
 [`/docs/specs/implementation_spec.md`](/docs/specs/implementation_spec.md).
 
 ## Table of Contents
@@ -37,6 +37,7 @@ CLI, and logging architecture — lives in
 | 8     | REST API Layer             | Week 12–13 | FastAPI app; SSE streaming; auth; rate limiting                  |
 | 9     | Secure Code Sandbox        | Week 14    | Docker/gVisor executor; compile + AST validation                 |
 | 10    | Testing & Hardening        | Week 15–16 | Ground truth suite; benchmark; security audit; CI gates          |
+| 11    | Documentation              | Week 17    | Establish 100% source of truth documentation                     |
 
 ---
 
@@ -475,6 +476,34 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
+## Task 11: Documentation
+
+**Goal:** Establish complete, accurate source-of-truth documentation across all `docs/` tracks so that the `docs-updater` agent can maintain it autonomously, new contributors can onboard without asking engineers, and the `.claude/` fleet operating manual stays in sync with the actual agents, skills, and loops in use.
+
+### Deliverables
+
+1. **`docs/dev/python_style_rules.md`** - Complete all remaining sections (currently ends at §3.8 Comments and Docstrings).
+2. **`docs/dev/python_language_rules.md`** - Full language-rules document covering typing, imports, error handling, async, and project-specific conventions.
+3. **`docs/dev/python_coding_standard.md`** - Concise contributor checklist synthesising style + language rules.
+4. **`docs/agent/agents.md`** - One entry per debate agent: purpose, input consumed, output schema, consensus role.
+5. **`docs/config/`** - Configuration reference for `config.yaml`, `AnalyzeConfig` fields, and the full CLI flag surface.
+6. **`docs/runbooks/`** - Runbook stubs fleshed out with enough content to guide on-call through each incident class.
+7. **`docs/security/`** - Threat model stubs for each integration surface not yet covered (only Bedrock exists today).
+8. **`docs/test/`** - Test-strategy document and per-module coverage targets.
+9. **`.claude/` fleet docs** - Loops, hooks, and any undocumented skills brought to the same standard as agents and skills.
+10. **`docs/reviews/`** - Index and review template so the `background-reviewer` agent knows where to write findings.
+11. **`docs/README.md`** - Index updated with every new and changed file from items 1–10.
+
+### Success Criteria
+
+- All rows in the [`11.0-documentation/README.md`](/docs/roadmap/0001-generic-implementation/11.0-documentation/README.md) tracking table are ✅ Complete.
+- `docs-updater` can process a code change and update the relevant doc without a human authoring the prose from scratch.
+- Every debate agent in `aegis_swr/agents/` has a corresponding entry in `docs/agent/agents.md`.
+- `docs/dev/` contains all three documents listed above, complete.
+- `docs/README.md` index links to every new file added by this task.
+
+---
+
 ## Dependency Graph (tasks with hard prerequisites)
 
 ```
@@ -497,6 +526,7 @@ Task 1 (Foundation)
   │       └──► Task 8 (API)           ← API wraps orchestrator
   └──► Task 9 (Sandbox)               ← Code Analyst calls sandbox
   Tasks 7, 8, 9 ──► Task 10 (Testing & Hardening)
+  Task 11 ──► can be performed in parallel
 ```
 
 **Minimum viable product** (end-to-end pipeline, no API): Tasks 1 → 4 → 2 → 3 → 5 → 6 → 7. Tasks 6.1 / 6.2 are optional enrichers.

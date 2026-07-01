@@ -10,9 +10,9 @@
 Wire `PdbCodeAdapter` into the existing factory and CLI surface so that
 `--code-provider pdb` works end-to-end. Three files need small, targeted changes:
 
-1. **Factory** (`backends/code/__init__.py`) — add `"pdb"` routing and export.
-2. **Config** (`cli/_config.py`) — add `pdb_path` flat field.
-3. **CLI** (`cli/commands.py`) — add `--pdb-path` option; update `--code-provider`
+1. **Factory** (`backends/code/__init__.py`) - add `"pdb"` routing and export.
+2. **Config** (`cli/_config.py`) - add `pdb_path` flat field.
+3. **CLI** (`cli/commands.py`) - add `--pdb-path` option; update `--code-provider`
    help text; wire `pdb_path` into `CodeBackendSettings`.
 
 No new settings keys are introduced in `config.json`; the PDB fields are CLI-only
@@ -64,7 +64,7 @@ def create_code_backend(settings: CodeBackendSettings) -> Optional[CodeBackend]:
     )
 ```
 
-**Platform behaviour** — `PdbCodeAdapter.__init__` raises `CodeBackendError` on
+**Platform behaviour** - `PdbCodeAdapter.__init__` raises `CodeBackendError` on
 non-Windows. The factory does not add a platform guard itself; the constructor is
 the authoritative check. This allows the factory to remain platform-agnostic.
 
@@ -86,7 +86,7 @@ If persistence is desired, add to `_FIELD_TO_PATH`:
 "pdb_path": "backends.code.pdb_path",
 ```
 
-> Decision: **do not persist by default** — the PDB path is typically an
+> Decision: **do not persist by default** - the PDB path is typically an
 > artifact-specific path that changes per analysis run. This matches the
 > behaviour of `--repo` (not persisted).
 
@@ -146,7 +146,7 @@ if config.pdb_path:
         settings.backends.code.enabled = True
 ```
 
-**`--pdb-path` implies `--code-provider pdb`** — providing a `--pdb-path`
+**`--pdb-path` implies `--code-provider pdb`** - providing a `--pdb-path`
 without `--code-provider pdb` is a common user mistake; implying the provider
 makes the CLI more ergonomic.
 
@@ -184,29 +184,29 @@ Extend the `backends.code` section with the new fields from subtask 01:
 
 ## Tests
 
-**Unit** (`tests/unit/test_code_backends.py` — extend existing):
+**Unit** (`tests/unit/test_code_backends.py` - extend existing):
 
-- `test_factory_pdb_routes_to_pdb_adapter` — mock `_is_windows` to return `True`;
+- `test_factory_pdb_routes_to_pdb_adapter` - mock `_is_windows` to return `True`;
   assert `create_code_backend(CodeBackendSettings(enabled=True, provider="pdb"))`
   returns a `PdbCodeAdapter` instance.
-- `test_factory_pdb_raises_on_non_windows` — mock `_is_windows` to return `False`;
+- `test_factory_pdb_raises_on_non_windows` - mock `_is_windows` to return `False`;
   assert `CodeBackendError` raised.
-- `test_factory_unknown_provider_message_includes_pdb` — `provider="svn"` raises
+- `test_factory_unknown_provider_message_includes_pdb` - `provider="svn"` raises
   `ValueError` whose message mentions `"pdb"` in the valid choices.
 
-**Unit** (`tests/unit/test_cli.py` — extend existing):
+**Unit** (`tests/unit/test_cli.py` - extend existing):
 
-- `test_pdb_path_flag_stored_in_config` — parse `--pdb-path /x/y.pdb`; assert
+- `test_pdb_path_flag_stored_in_config` - parse `--pdb-path /x/y.pdb`; assert
   `config.pdb_path == "/x/y.pdb"`.
-- `test_pdb_path_implies_pdb_provider` — `--pdb-path /x/y.pdb` without
+- `test_pdb_path_implies_pdb_provider` - `--pdb-path /x/y.pdb` without
   `--code-provider`; assert `settings.backends.code.provider == "pdb"` and
   `settings.backends.code.enabled == True` in the assembled settings.
-- `test_code_provider_help_mentions_pdb` — `aegis analyze --help` output contains
+- `test_code_provider_help_mentions_pdb` - `aegis analyze --help` output contains
   `"pdb"` in the `--code-provider` help text.
 
 **Integration** (`tests/integration/test_e2e_cli.py`):
 
-- `test_analyze_pdb_provider_fails_open_on_non_windows` — run the full CLI with
+- `test_analyze_pdb_provider_fails_open_on_non_windows` - run the full CLI with
   `--code-provider pdb` on the test host (which may not be Windows); assert the
   analysis completes (does not crash), the code history is empty, and a
   `WARNING` about `PdbCodeAdapter` being Windows-only is logged.

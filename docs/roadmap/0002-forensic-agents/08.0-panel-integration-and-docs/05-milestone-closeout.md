@@ -1,9 +1,9 @@
-# 05 — Milestone Closeout
+# 05 - Milestone Closeout
 
-**Parent task:** Task 08.0 — Panel Integration, Docs & Hardening
+**Parent task:** Task 08.0 - Panel Integration, Docs & Hardening
 **Status:** ⬜ Not started
-**Depends on:** 01-default-panels-and-weight-audit.md, 02-config-and-examples.md,
-               03-docs.md, 04-hardening-gates.md
+**Depends on:** [01-default-panels-and-weight-audit.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/01-default-panels-and-weight-audit.md), [02-config-and-examples.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/02-config-and-examples.md),
+               [03-docs.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/03-docs.md), [04-hardening-gates.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/04-hardening-gates.md)
 **Blocks:** nothing (milestone exit)
 
 ---
@@ -11,7 +11,7 @@
 ## Objective
 
 Record the as-built state of Milestone 0002 and close the milestone by editing
-the two tracker documents listed below. This subtask is **purely editorial** —
+the two tracker documents listed below. This subtask is **purely editorial** -
 no `src/` files are modified.
 
 The implementer (`docs-updater`) performs the edits described here once all
@@ -23,17 +23,17 @@ four preceding subtasks and all hardening gates are green.
 
 The full nine-agent roster delivered by this milestone:
 
-| `agent_key`           | Class                          | Category  | Tier         | Module path |
-|-----------------------|--------------------------------|-----------|--------------|-------------|
-| `os_kernel`           | `OSKernelAgent`                | base      | debate       | `agents/base/os_kernel.py` |
-| `code_analyst`        | `CodeAnalystAgent`             | base      | debate       | `agents/base/code_analyst.py` |
-| `log_historian`       | `LogHistorianAgent`            | base      | debate       | `agents/base/log_historian.py` |
-| `skeptic`             | `SkepticAgent`                 | base      | debate (last)| `agents/base/skeptic.py` |
-| `memory_forensics`    | `MemoryForensicsAgent`         | forensic  | debate       | `agents/forensic/memory_forensics.py` |
-| `concurrency_analyst` | `ConcurrencyAnalystAgent`      | forensic  | debate       | `agents/forensic/concurrency_analyst.py` |
-| `exploitability`      | `ExploitabilityAnalystAgent`   | forensic  | debate       | `agents/forensic/exploitability_analyst.py` |
-| `resource_exhaustion` | `ResourceExhaustionAgent`      | forensic  | debate       | `agents/forensic/resource_analyst.py` |
-| `remediation_planner` | `RemediationPlannerAgent`      | synthesis | post-debate  | `agents/synthesis/remediation_planner.py` |
+| `agent_key`           | Class                        | Category  | Tier          | Module path                                 |
+|-----------------------|------------------------------|-----------|---------------|---------------------------------------------|
+| `os_kernel`           | `OSKernelAgent`              | base      | debate        | `agents/base/os_kernel.py`                  |
+| `code_analyst`        | `CodeAnalystAgent`           | base      | debate        | `agents/base/code_analyst.py`               |
+| `log_historian`       | `LogHistorianAgent`          | base      | debate        | `agents/base/log_historian.py`              |
+| `skeptic`             | `SkepticAgent`               | base      | debate (last) | `agents/base/skeptic.py`                    |
+| `memory_forensics`    | `MemoryForensicsAgent`       | forensic  | debate        | `agents/forensic/memory_forensics.py`       |
+| `concurrency_analyst` | `ConcurrencyAnalystAgent`    | forensic  | debate        | `agents/forensic/concurrency_analyst.py`    |
+| `exploitability`      | `ExploitabilityAnalystAgent` | forensic  | debate        | `agents/forensic/exploitability_analyst.py` |
+| `resource_exhaustion` | `ResourceExhaustionAgent`    | forensic  | debate        | `agents/forensic/resource_analyst.py`       |
+| `remediation_planner` | `RemediationPlannerAgent`    | synthesis | post-debate   | `agents/synthesis/remediation_planner.py`   |
 
 ---
 
@@ -77,7 +77,7 @@ ratification."
 
 ## Edits to perform
 
-### Edit 1 — `docs/roadmap/0002-forensic-agents/status.md`
+### Edit 1 - `docs/roadmap/0002-forensic-agents/status.md`
 
 The implementer must:
 
@@ -91,7 +91,7 @@ The implementer must:
    PASS_WITH_FOLLOWUP). Incident-analyst lifecycle gate: PASS."
 4. Populate the `## Per-task detail` section with one block per task following
    the 0001 `status.md` format: a "Delivered:" bullet list and a test coverage
-   line. Source the content from each task's README.md and subtask files.
+   line. Source the content from each task's [README.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/README.md) and subtask files.
 
 The completed `## Current status` table should read:
 
@@ -106,12 +106,12 @@ The completed `## Current status` table should read:
 | 07.0  | Remediation Planner Agent             | ✅ Complete  | `test_remediation_planner.py`, `integration/test_synthesis_pipeline.py` |
 | 08.0  | Panel Integration, Docs & Hardening   | ✅ Complete  | `test_weight_audit.py`, `test_agents_config_roundtrip.py` |
 
-### Edit 2 — `docs/roadmap/README.md`
+### Edit 2 - `docs/roadmap/README.md`
 
 The implementer must update the Milestones table row for 0002 from:
 
 ```
-| 0002 | Forensic agents (agentic execution brief) | plan.md | — |
+| 0002 | Forensic agents (agentic execution brief) | plan.md | - |
 ```
 
 to:
@@ -123,16 +123,7 @@ to:
 where `plan.md` links to `/docs/roadmap/0002-forensic-agents/plan.md` and
 `status.md` links to `/docs/roadmap/0002-forensic-agents/status.md`.
 
-Also update the note at the bottom of the Milestones section from:
-
-> Only milestone 0001 is currently decomposed into the full task → subtask tree;
-> 0002–0004 hold a single planning/status document each until they are decomposed.
-
-to:
-
-> Milestones 0001 and 0002 are fully decomposed and complete. Milestones
-> 0003–0004 hold a single planning/status document each until they are
-> decomposed.
+Also update the note at the bottom of the Milestones section as we progress through milestones.
 
 ---
 

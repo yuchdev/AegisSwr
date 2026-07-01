@@ -1,4 +1,4 @@
-# 03 — RouterConfig validation contract
+# 03 - RouterConfig validation contract
 
 **Parent task:** 01.0 agents.yaml Schema Extension
 **State:** ⬜ Not started
@@ -14,7 +14,7 @@ tests have an agreed spec to target.
 
 ## Validation rules
 
-### R1 — Missing environment variables
+### R1 - Missing environment variables
 
 When `${ENV_VAR}` is referenced in `api_key` or `base_url` but the variable is
 not set in the environment:
@@ -25,7 +25,7 @@ not set in the environment:
 - **Rationale:** fail-all-at-once avoids the "fix one, discover another" loop
   at startup.
 
-### R2 — Undefined provider reference
+### R2 - Undefined provider reference
 
 When an agent's `model` string references a provider prefix (e.g.
 `anthropic/...`) but no matching key exists in `providers:`:
@@ -34,13 +34,13 @@ When an agent's `model` string references a provider prefix (e.g.
   missing provider key and the agent that references it.
 - **Message format:** `"Agent 'hypothesis' references unknown provider 'anthropic'. Defined providers: deepseek, self_hosted"`
 
-### R3 — Idempotency
+### R3 - Idempotency
 
 `RouterConfig.from_yaml(path)` called twice on the same file with the same
 environment returns two objects that compare equal (`==`). This is the frozen
 dataclass contract.
 
-### R4 — Unknown role lookup
+### R4 - Unknown role lookup
 
 `RouterConfig.agent_for_role(role)` raises `KeyError` with a message that
 names both the requested role and the available roles:
@@ -53,7 +53,7 @@ KeyError: "Unknown role 'fast_triage'. Available roles: primary_reasoning, contr
 
 - Validation runs eagerly at `from_yaml()` time, not lazily on first use.
 - An empty `VLLM_API_KEY` (`api_key: ${VLLM_API_KEY}` where the var is set to
-  `""`) is **valid** — empty string is a legitimate unauthenticated credential.
+  `""`) is **valid** - empty string is a legitimate unauthenticated credential.
   Only *missing* (unset) vars raise R1.
 
 ## Success criteria

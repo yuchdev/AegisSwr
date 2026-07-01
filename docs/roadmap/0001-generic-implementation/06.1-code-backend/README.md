@@ -1,11 +1,11 @@
 # 6.1 Code Backend – PDB Adapter (Windows Source Server)
 
 **Parent task:** Task 6.1 – Code Backend ([plan.md](/docs/roadmap/0001-generic-implementation/plan.md#task-61-code-backend))
-**Status:** 🔶 Partial — `GitCodeAdapter` and `FilesystemCodeAdapter` done; `PdbCodeAdapter` not started
+**Status:** 🔶 Partial - `GitCodeAdapter` and `FilesystemCodeAdapter` done; `PdbCodeAdapter` not started
 
 ## Scope
 
-This sub-plan delivers `PdbCodeAdapter` — the third and highest-fidelity
+This sub-plan delivers `PdbCodeAdapter` - the third and highest-fidelity
 `CodeBackend`. Where the Git and filesystem adapters guess which commits
 are relevant using a time-window heuristic, the PDB adapter reads the
 **SrcSrv (Source Server) stream** embedded in the Windows Program Database
@@ -26,7 +26,7 @@ pipeline (`pdbstr.exe` ships with Debugging Tools for Windows alongside
 | 04 | [PDB path resolution](04-pdb-path-resolution.md) | ⬜ Not started | 05 |
 | 05 | [`PdbCodeAdapter` full implementation](05-pdb-adapter-impl.md) | ⬜ Not started | 06, 07 |
 | 06 | [Factory routing and CLI wiring](06-factory-cli.md) | ⬜ Not started | 07 |
-| 07 | [Test suite](07-tests.md) | ⬜ Not started | — |
+| 07 | [Test suite](07-tests.md) | ⬜ Not started | - |
 
 All subtasks are implementable in order with no design ambiguities.
 Subtasks 02–04 are independent of each other and may proceed in parallel.
@@ -41,7 +41,7 @@ Subtasks 02–04 are independent of each other and may proceed in parallel.
   the same subprocess pattern as `GitCodeAdapter`.
 - `mypy --strict` must pass; `Optional[T]` not `T | None`.
 - Data Adapter Stage 8 wraps `CodeBackend` calls in `try/except CodeBackendError`
-  and fails open to empty `code_history` — the adapter must never swallow errors
+  and fails open to empty `code_history` - the adapter must never swallow errors
   silently; it must raise them so Stage 8 can degrade gracefully.
 
 ## Architecture note: PDB dual-use

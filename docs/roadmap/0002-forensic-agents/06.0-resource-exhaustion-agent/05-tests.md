@@ -1,9 +1,9 @@
-# 05 — Tests
+# 05 - Tests
 
 **Parent task:** 06.0 Resource Exhaustion Agent
 **State:** ⬜ Not started
 **Depends on:** 01, 02, 03, 04
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
@@ -14,14 +14,14 @@ wiring (subtask 04), and a mock-pipeline integration smoke test.
 
 ## Files
 
-- **Modify** `tests/unit/test_schemas.py` — schema tests (specified in subtask 01).
+- **Modify** `tests/unit/test_schemas.py` - schema tests (specified in subtask 01).
 - **Create** `tests/unit/test_resource_exhaustion_agent.py`
-- **Modify** `tests/unit/test_consensus_weights.py` — weight normalization tests
+- **Modify** `tests/unit/test_consensus_weights.py` - weight normalization tests
   (one new parametrize case per affected fault class).
-- **Modify** `tests/unit/test_agent_registry.py` — registry presence test.
+- **Modify** `tests/unit/test_agent_registry.py` - registry presence test.
 - **Create** `tests/integration/test_resource_exhaustion_pipeline.py`
 
-## Unit tests — `test_resource_exhaustion_agent.py`
+## Unit tests - `test_resource_exhaustion_agent.py`
 
 ### Pre-check tests
 
@@ -101,7 +101,7 @@ wiring (subtask 04), and a mock-pipeline integration smoke test.
   `"handle"`, `"file descriptor"` or `"fd"`, `"thread"`, `"memory"`,
   `"ResourceExhaustionOutput"` or `"resource_exhaustion"`, `"log_summary"`.
 
-## Unit tests — consensus weight normalization
+## Unit tests - consensus weight normalization
 
 In `tests/unit/test_consensus_weights.py`, add a parametrized case for each
 affected fault class using the data-driven `AgentWeightEntry.weights` map:
@@ -116,7 +116,7 @@ affected fault class using the data-driven `AgentWeightEntry.weights` map:
 `test_deadlock_weights_sum_to_one_after_resource_exhaustion`
 : Load the weight entry for `deadlock`; assert the sum invariant.
 
-## Unit tests — registry
+## Unit tests - registry
 
 In `tests/unit/test_agent_registry.py`, add:
 
@@ -135,7 +135,7 @@ In `tests/unit/test_agent_registry.py`, add:
 `test_panel_deadlock_includes_resource_exhaustion`
 : Same pattern for `FaultClass.DEADLOCK`.
 
-## Integration test — `test_resource_exhaustion_pipeline.py`
+## Integration test - `test_resource_exhaustion_pipeline.py`
 
 `test_resource_exhaustion_incident_includes_debate_turn`
 : Build a minimal `InvestigationState` with `fault_class = "resource_exhaustion"`

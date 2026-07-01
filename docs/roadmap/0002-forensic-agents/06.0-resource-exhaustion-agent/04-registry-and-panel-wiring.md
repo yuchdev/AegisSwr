@@ -1,4 +1,4 @@
-# 04 — Registry & panel wiring
+# 04 - Registry & panel wiring
 
 **Parent task:** 06.0 Resource Exhaustion Agent
 **State:** ⬜ Not started
@@ -17,9 +17,9 @@ contracts C4 and C5 from `plan.md`.
 
 - **Modify** `src/aegis_swr/agents/registry.py`
 - **Modify** `src/aegis_swr/agents/forensic/__init__.py`
-- **Modify** `config/config.yaml` — add `resource_exhaustion` to the
+- **Modify** `config/config.yaml` - add `resource_exhaustion` to the
   `per_fault_class` panel lists for the three fault classes.
-- **Modify** `config/agents.example.json` — same three panel list entries.
+- **Modify** `config/agents.example.json` - same three panel list entries.
 
 ## Registry change
 

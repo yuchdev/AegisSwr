@@ -1,4 +1,4 @@
-# 02 — Per-agent `fallback`, `timeout_s`, `retry` fields
+# 02 - Per-agent `fallback`, `timeout_s`, `retry` fields
 
 **Parent task:** 01.0 agents.yaml Schema Extension
 **State:** ⬜ Not started
@@ -68,7 +68,7 @@ agents:
 ## Changes
 
 Update the `agents:` entries in `aegis/config/agents.yaml` to include the new
-fields. All existing entries without the new fields remain valid — `RouterConfig`
+fields. All existing entries without the new fields remain valid - `RouterConfig`
 applies defaults (see subtask 03 / Task 02.0).
 
 ## Constraints

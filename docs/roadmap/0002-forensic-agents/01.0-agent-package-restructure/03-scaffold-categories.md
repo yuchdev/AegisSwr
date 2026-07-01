@@ -1,4 +1,4 @@
-# 03 — Scaffold `forensic/` & `synthesis/` packages
+# 03 - Scaffold `forensic/` & `synthesis/` packages
 
 **Parent task:** 01.0 Agent Package Restructure
 **State:** ⬜ Not started
@@ -17,7 +17,7 @@ record the category convention so future agents land in the right place.
 
 ## Changes
 
-1. `agents/forensic/__init__.py` — empty package marker with an `__all__ = []`
+1. `agents/forensic/__init__.py` - empty package marker with an `__all__ = []`
    and a one-line module docstring:
 
    ```python
@@ -26,7 +26,7 @@ record the category convention so future agents land in the right place.
    __all__: list[str] = []
    ```
 
-2. `agents/synthesis/__init__.py` — same shape:
+2. `agents/synthesis/__init__.py` - same shape:
 
    ```python
    """Synthesis-tier agents that run once after the debate converges."""
@@ -55,8 +55,8 @@ This matches the `category` `ClassVar` introduced on `BaseAgent` in Task 02.0.
 ## Tests
 
 - Extend `tests/unit/test_agents_package.py`:
-  - `test_forensic_package_importable` — `import aegis_swr.agents.forensic`.
-  - `test_synthesis_package_importable` — `import aegis_swr.agents.synthesis`.
+  - `test_forensic_package_importable` - `import aegis_swr.agents.forensic`.
+  - `test_synthesis_package_importable` - `import aegis_swr.agents.synthesis`.
 
 ## Success criteria
 

@@ -121,7 +121,7 @@ def _is_skippable(target: str) -> bool:
     if "*" in target or "?" in target:  # glob pattern, e.g. /docs/adr/*.md
         return True
     if target.startswith("#"):
-        return False  # in-page anchor — handled by the caller
+        return False  # in-page anchor - handled by the caller
     return bool(_SCHEME_RE.match(target))  # http:, https:, mailto:, ...
 
 

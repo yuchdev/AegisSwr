@@ -1,4 +1,4 @@
-# 04 — EventBus emissions
+# 04 - EventBus emissions
 
 **Parent task:** 04.0 Model Router
 **State:** ⬜ Not started
@@ -49,7 +49,7 @@ RouterCallFailed(role, model=primary, attempt=0, ...)
 RouterFallbackUsed(role, from_model=primary, to_model=fallback1, ...)
 RouterCallStarted(role, model=fallback1, attempt=0)
 RouterCallFailed(role, model=fallback1, attempt=0, ...)
-[AllProvidersExhausted raised — no final event]
+[AllProvidersExhausted raised - no final event]
 ```
 
 ### Scenario E: Non-retriable error (context length exceeded)
@@ -66,7 +66,7 @@ RouterCallCompleted(...)  [or RouterCallFailed if fallback also fails]
 
 - Every `RouterEvent` carries the same `run_id` that was passed to `complete()`.
 - `RouterCallCompleted` is emitted **only** on success (not on the failed path).
-- There is no "AllProvidersExhausted" event — the exception is the signal.
+- There is no "AllProvidersExhausted" event - the exception is the signal.
   Callers that want to observe exhaustion subscribe to `RouterCallFailed`
   patterns or catch the exception and emit their own event.
 

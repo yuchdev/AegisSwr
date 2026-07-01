@@ -17,7 +17,7 @@ its own component; this document:
 4. Adds factory-level routing and CLI integration tests.
 5. Specifies the coverage target and how to measure it.
 
-No new product code is written here — only tests.
+No new product code is written here - only tests.
 
 ## Files
 
@@ -27,12 +27,12 @@ No new product code is written here — only tests.
 | `tests/unit/test_srcsrv_parser.py` | `SrcSrvParser` + dataclasses (subtask 03) |
 | `tests/unit/test_pdb_path_resolution.py` | `resolve_pdb_path` (subtask 04) |
 | `tests/unit/test_pdb_adapter.py` | `PdbCodeAdapter` + helpers (subtask 05) |
-| `tests/unit/test_code_backends.py` | Factory routing — extend existing file |
-| `tests/unit/test_cli.py` | CLI flags — extend existing file |
+| `tests/unit/test_code_backends.py` | Factory routing - extend existing file |
+| `tests/unit/test_cli.py` | CLI flags - extend existing file |
 | `tests/unit/fixtures/sample_srcsrv_git.txt` | Fixture (subtask 03) |
 | `tests/unit/fixtures/sample_srcsrv_tfvc.txt` | Fixture (subtask 03) |
 | `tests/unit/fixtures/sample_srcsrv_empty.txt` | Fixture (subtask 03) |
-| `tests/integration/test_e2e_cli.py` | End-to-end CLI — extend existing file |
+| `tests/integration/test_e2e_cli.py` | End-to-end CLI - extend existing file |
 
 ---
 
@@ -115,35 +115,35 @@ def _load(name: str) -> str:
 
 ### Git fixture tests
 
-- `test_parse_git_verctrl` — `stream.verctrl == "git"`.
-- `test_parse_git_repo_url` — `stream.repo_url == "https://github.com/acme/svc"`.
-- `test_parse_git_entry_count` — `len(stream.entries) == 3`.
-- `test_parse_git_unique_revisions_count` — `len(stream.unique_revisions()) == 2`.
-- `test_parse_git_files_for_first_revision` — `stream.files_for_revision("abc123def456789012345678901234567890ab")` == two paths.
-- `test_parse_git_files_for_second_revision` — `stream.files_for_revision("def789abc012345678901234567890abcdef12")` == one path.
-- `test_parse_git_is_not_empty` — `stream.is_empty == False`.
+- `test_parse_git_verctrl` - `stream.verctrl == "git"`.
+- `test_parse_git_repo_url` - `stream.repo_url == "https://github.com/acme/svc"`.
+- `test_parse_git_entry_count` - `len(stream.entries) == 3`.
+- `test_parse_git_unique_revisions_count` - `len(stream.unique_revisions()) == 2`.
+- `test_parse_git_files_for_first_revision` - `stream.files_for_revision("abc123def456789012345678901234567890ab")` == two paths.
+- `test_parse_git_files_for_second_revision` - `stream.files_for_revision("def789abc012345678901234567890abcdef12")` == one path.
+- `test_parse_git_is_not_empty` - `stream.is_empty == False`.
 
 ### TFVC fixture tests
 
-- `test_parse_tfvc_verctrl_preserved_case` — `stream.verctrl == "TFVC"` (case preserved from `VERCTRL=TFVC`).
-- `test_parse_tfvc_repo_url` — `stream.repo_url == "https://dev.azure.com/acme/svc"`.
-- `test_parse_tfvc_revision_is_changeset` — `stream.entries[0].revision == "42"`.
-- `test_parse_tfvc_entry_count` — `len(stream.entries) == 2`.
+- `test_parse_tfvc_verctrl_preserved_case` - `stream.verctrl == "TFVC"` (case preserved from `VERCTRL=TFVC`).
+- `test_parse_tfvc_repo_url` - `stream.repo_url == "https://dev.azure.com/acme/svc"`.
+- `test_parse_tfvc_revision_is_changeset` - `stream.entries[0].revision == "42"`.
+- `test_parse_tfvc_entry_count` - `len(stream.entries) == 2`.
 
 ### Empty fixture tests
 
-- `test_parse_empty_is_empty` — `stream.is_empty == True`.
-- `test_parse_empty_unique_revisions` — `stream.unique_revisions() == []`.
-- `test_parse_empty_files_for_any_revision` — `stream.files_for_revision("any") == []`.
+- `test_parse_empty_is_empty` - `stream.is_empty == True`.
+- `test_parse_empty_unique_revisions` - `stream.unique_revisions() == []`.
+- `test_parse_empty_files_for_any_revision` - `stream.files_for_revision("any") == []`.
 
 ### Edge-case tests
 
-- `test_parse_blank_text` — `SrcSrvParser.parse("")` returns stream with `verctrl=""`, `repo_url=None`, `entries=[]`.
-- `test_parse_missing_ini_section_no_raise` — stream without `SRCSRV: ini` parses without raising; `verctrl == ""`.
-- `test_parse_malformed_source_line_skipped` — insert a line without `*` in `source files`; surrounding valid lines are parsed; no exception raised.
-- `test_split_sections_keys` — `SrcSrvParser._split_sections(git_text)` returns a dict with keys `"ini"`, `"variables"`, `"source files"`, `"end"`.
-- `test_extract_repo_url_unknown_verctrl` — `_extract_repo_url("svn", {})` returns `None` (missing variable).
-- `test_extract_repo_url_perforce` — `_extract_repo_url("perforce", {"P4PORT": "perforce:1666"})` returns `"perforce:1666"`.
+- `test_parse_blank_text` - `SrcSrvParser.parse("")` returns stream with `verctrl=""`, `repo_url=None`, `entries=[]`.
+- `test_parse_missing_ini_section_no_raise` - stream without `SRCSRV: ini` parses without raising; `verctrl == ""`.
+- `test_parse_malformed_source_line_skipped` - insert a line without `*` in `source files`; surrounding valid lines are parsed; no exception raised.
+- `test_split_sections_keys` - `SrcSrvParser._split_sections(git_text)` returns a dict with keys `"ini"`, `"variables"`, `"source files"`, `"end"`.
+- `test_extract_repo_url_unknown_verctrl` - `_extract_repo_url("svn", {})` returns `None` (missing variable).
+- `test_extract_repo_url_perforce` - `_extract_repo_url("perforce", {"P4PORT": "perforce:1666"})` returns `"perforce:1666"`.
 
 ---
 
@@ -151,7 +151,7 @@ def _load(name: str) -> str:
 
 All tests use `tmp_path` (pytest fixture) for filesystem isolation.
 
-### Step 1 — explicit `pdb_path`
+### Step 1 - explicit `pdb_path`
 
 - `test_explicit_pdb_path_returned_when_exists`
   Create `tmp_path / "my.pdb"`. Set `settings.pdb_path = str(tmp_path / "my.pdb")`.
@@ -166,7 +166,7 @@ All tests use `tmp_path` (pytest fixture) for filesystem isolation.
   Set `settings.pdb_path = str(other_dir / "explicit.pdb")`.
   Assert: `explicit.pdb` returned (not `repo.pdb`).
 
-### Step 2 — repo_path glob
+### Step 2 - repo_path glob
 
 - `test_repo_path_glob_finds_single_pdb`
   Create `tmp_path / "foo.pdb"`. Leave `settings.pdb_path = None`.
@@ -185,7 +185,7 @@ All tests use `tmp_path` (pytest fixture) for filesystem isolation.
   Set `settings.pdb_search_dirs = [str(tmp_path)]`; place `bar.pdb` in `tmp_path`.
   Assert: `bar.pdb` returned from step 3 (not a crash on step 2).
 
-### Step 3 — `pdb_search_dirs`
+### Step 3 - `pdb_search_dirs`
 
 - `test_pdb_search_dirs_fallback`
   `repo_path` has no `.pdb`. `pdb_search_dirs = [str(search_dir)]` where `search_dir / "bar.pdb"` exists.
@@ -315,7 +315,7 @@ All tests patch `_is_windows` → `True` unless testing the platform guard.
 
 ---
 
-## 5. Factory routing tests (`tests/unit/test_code_backends.py` — extend existing)
+## 5. Factory routing tests (`tests/unit/test_code_backends.py` - extend existing)
 
 - `test_factory_pdb_routes_to_pdb_adapter`
   Patch `aegis_swr.backends.code.pdbstr_wrapper._is_windows` → `True`.
@@ -334,7 +334,7 @@ All tests patch `_is_windows` → `True` unless testing the platform guard.
 
 ---
 
-## 6. CLI tests (`tests/unit/test_cli.py` — extend existing)
+## 6. CLI tests (`tests/unit/test_cli.py` - extend existing)
 
 - `test_pdb_path_option_accepted`
   Use Typer test runner. Pass `--pdb-path /x/y.pdb`. Assert no error.
@@ -357,7 +357,7 @@ All tests patch `_is_windows` → `True` unless testing the platform guard.
 
 ---
 
-## 7. Cross-cutting integration test (`tests/integration/test_e2e_cli.py` — extend existing)
+## 7. Cross-cutting integration test (`tests/integration/test_e2e_cli.py` - extend existing)
 
 - `test_analyze_pdb_provider_non_windows_fails_open`
   Run the full CLI entry point with `--code-provider pdb --dump <test.dmp>` on
@@ -398,7 +398,7 @@ poetry run pytest tests/unit/ tests/integration/ \
 | `cli/commands.py` (new option) | ≥ 80% |
 
 The lower target for `pdb_adapter.py` reflects the `VERCTRL=git` subprocess paths
-that require a real git binary — these are covered by the integration test, not
+that require a real git binary - these are covered by the integration test, not
 the unit tests.
 
 ---

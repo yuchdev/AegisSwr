@@ -14,7 +14,13 @@ instead of leaving stale pointers.
 
 ## Steps
 
-1. Enumerate inbound references across both trees:
+1. **Prerequisite — linkify bare mentions** so prose references become
+   discoverable links before the inbound search runs:
+   ```bash
+   python scripts/linkify_doc_mentions.py
+   ```
+
+2. Enumerate inbound references across both trees:
    - **Docs**: links `](<path-or-anchor>)`, bare path mentions, and prose mentions
      of the heading/title in `docs/**`, repo-root `*.md`, and `.claude/**`.
    - **Code**: docstring / comment pointers in `src/**` and `tests/**` (e.g.
@@ -35,12 +41,12 @@ instead of leaving stale pointers.
 List each reference updated (`file:line`, old → new) and confirm `/link-check`
 passes. Flag any reference you could not safely auto-update for human review.
 
-Complement: `/link-check` validates *outbound* links from any file you edited —
+Complement: `/link-check` validates *outbound* links from any file you edited -
 doc-xref covers inbound, link-check covers outbound. Run both after a rename.
 
 ## Completion checklist
 
-- [ ] Every hit from `git grep` is updated — file:line list provided in output
+- [ ] Every hit from `git grep` is updated - file:line list provided in output
 - [ ] Any reference not safely auto-updated is explicitly flagged for human review
-- [ ] `docs/README.md` registry line updated if file was renamed or moved
+- [ ] `docs/README.md` registry line updated if the file was renamed or moved
 - [ ] `/link-check` exits 0 after all edits

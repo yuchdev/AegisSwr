@@ -32,10 +32,11 @@ The last section should explain how the loop relates to skills.
 
 ## Available loops
 
-| File                     | Purpose                                                                                                                                     | Terminates when                                                              |
-|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
-| `implement-subtasks.md`  | Drives one task to completion (resolved from a milestone's `plan.md`, gated on `status.md`), implementing one subtask per iteration         | The target task's row in the milestone `status.md` shows ✅ Complete          |
-| `update-docs.md`         | After editing a doc file, finds and fixes every stale reference to its renamed/removed sections - across docs/ AND src/ docstrings/comments | `python scripts/check_doc_links.py` exits 0 and no stale heading refs remain |
+| File                     | Mode | Purpose                                                                                                                                                                                      | Terminates when                                                                                        |
+|--------------------------|------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| `implement-subtasks.md`  | —    | Drives one task to completion (resolved from a milestone's `plan.md`, gated on `status.md`), implementing one subtask per iteration                                                          | The target task's row in the milestone `status.md` shows ✅ Complete                                   |
+| `update-docs.md`         | scan | No-arg full-corpus audit: builds a `.md` file registry, finds broken cross-references, auto-fixes high-confidence link targets via `docs-updater`, writes a review report for the rest      | `scripts/doc_registry.py` exits 0 (no missing .md refs) and no high-confidence pending items remain   |
+| `update-docs.md`         | path | After editing a specific doc, finds and fixes every stale reference to its renamed/removed headings across `docs/` AND `src/` docstrings/comments                                           | `python scripts/check_doc_links.py` exits 0 and no stale heading refs remain                          |
 
 ## Token economy (loop-authoring conventions)
 

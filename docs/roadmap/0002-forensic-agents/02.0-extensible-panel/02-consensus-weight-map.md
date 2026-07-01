@@ -1,4 +1,4 @@
-# 02 — Data-driven consensus weights
+# 02 - Data-driven consensus weights
 
 **Parent task:** 02.0 Extensible Panel
 **State:** ⬜ Not started
@@ -47,7 +47,7 @@ four-key tuple. Implements contract **C3**. Default weights must reproduce the
 
 2. `AgentWeightsSettings` keeps its ten per-fault-class fields, but each
    `default_factory` now passes the same legacy kwargs (which the shim folds into
-   `weights`) — **no numeric change** to any default. `for_fault_class` is
+   `weights`) - **no numeric change** to any default. `for_fault_class` is
    unchanged.
 
 ## Changes to `ConsensusEvaluator`
@@ -84,16 +84,16 @@ four-key tuple. Implements contract **C3**. Default weights must reproduce the
 ## Tests
 
 - Extend `tests/unit/test_consensus.py`:
-  - `test_legacy_weights_unchanged` — for each of the ten fault classes, the
+  - `test_legacy_weights_unchanged` - for each of the ten fault classes, the
     default entry's `weights` equals the 0001 four-key values.
-  - `test_calculate_matches_0001_for_base_panel` — a fixed `agent_scores` over the
+  - `test_calculate_matches_0001_for_base_panel` - a fixed `agent_scores` over the
     four base keys yields the same number as the pre-task implementation
     (hard-code the expected floats).
-  - `test_calculate_includes_new_agent_key` — an entry with an extra key (e.g.
+  - `test_calculate_includes_new_agent_key` - an entry with an extra key (e.g.
     `memory_forensics=0.3`) folds it into the weighted sum and re-normalizes.
-  - `test_remediation_planner_weight_ignored` — a `remediation_planner` weight in
+  - `test_remediation_planner_weight_ignored` - a `remediation_planner` weight in
     the map does not affect `calculate`.
-  - `test_legacy_kwargs_shim` — `AgentWeightEntry(os_kernel=0.5, code_analyst=0.5)`
+  - `test_legacy_kwargs_shim` - `AgentWeightEntry(os_kernel=0.5, code_analyst=0.5)`
     produces `weights == {"os_kernel": 0.5, "code_analyst": 0.5}`.
 
 ## Success criteria

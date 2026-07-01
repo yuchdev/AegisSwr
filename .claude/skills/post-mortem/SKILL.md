@@ -50,5 +50,5 @@ open the action-item issues via the `github` MCP.
 - [ ] Timeline covers detection through resolution with UTC timestamps
 - [ ] Every action item has an owner (person or agent) and a tracking issue link
 - [ ] Code fixes routed to `python-expert`; tests to `testing-expert`; docs to `docs-updater`
-- [ ] Tone is blameless — no individual faults named, only system factors
+- [ ] Tone is blameless - no individual faults named, only system factors
 - [ ] `docs/post-mortems/` index updated; `/link-check` passes

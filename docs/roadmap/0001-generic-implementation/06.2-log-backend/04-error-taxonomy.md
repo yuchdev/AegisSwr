@@ -9,7 +9,7 @@
 
 Define the exception hierarchy that `FluentAdapter` and its sub-components raise,
 and document the exact fail-open contract at each layer. The existing Data Adapter
-Stage 4 already wraps the `LogBackend` call with a broad `except` — this subtask
+Stage 4 already wraps the `LogBackend` call with a broad `except` - this subtask
 makes the failure taxonomy explicit so:
 
 1. Distinct error categories can be tested and observed in logs.
@@ -105,19 +105,19 @@ error detail is truncated to 200 characters before being included in the
   consistency with the existing hierarchy takes precedence.
 - Use `Optional[T]` throughout; no `T | None`.
 - `FluentRecordParseError.raw` stores the raw value for debugging but must not
-  be logged at WARNING or above — it may contain PII from the log record.
+  be logged at WARNING or above - it may contain PII from the log record.
 
 ## Tests
 
 **Unit** (`tests/unit/test_exceptions.py` or extend existing):
 
-- `test_fluent_connection_error_is_log_backend_error` — `isinstance(FluentConnectionError("x"), LogBackendError)` is `True`.
-- `test_fluent_auth_error_message_does_not_embed_token` — construct
+- `test_fluent_connection_error_is_log_backend_error` - `isinstance(FluentConnectionError("x"), LogBackendError)` is `True`.
+- `test_fluent_auth_error_message_does_not_embed_token` - construct
   `FluentAuthError("rejected", cause=Exception("token=abc"))` and assert
   `str(error)` does not contain `"abc"`.
-- `test_fluent_record_parse_error_carries_raw` — construct with `raw={"time": "bad"}`;
+- `test_fluent_record_parse_error_carries_raw` - construct with `raw={"time": "bad"}`;
   assert `error.raw == {"time": "bad"}`.
-- `test_full_hierarchy` — all five sub-classes are subclasses of both
+- `test_full_hierarchy` - all five sub-classes are subclasses of both
   `LogBackendError` and `AegisSWRError`.
 
 ## Success criteria

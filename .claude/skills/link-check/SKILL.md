@@ -14,16 +14,24 @@ heading. Backed by `scripts/check_doc_links.py` (the same checker the
 
 ## Steps
 
-1. Run the checker over `$ARGUMENTS` (or the whole doc set when no path is given):
+1. **Prerequisite — linkify bare mentions** (whole corpus or scoped to `$ARGUMENTS`):
+   ```bash
+   python scripts/linkify_doc_mentions.py $ARGUMENTS
+   ```
+   This converts prose mentions of `*.md` filenames into Markdown links before
+   the link checker runs.  Any unresolvable mention is written to
+   `.claude/state/linkify-report.md` for human review.
+
+2. Run the checker over `$ARGUMENTS` (or the whole doc set when no path is given):
    ```bash
    python scripts/check_doc_links.py $ARGUMENTS
    ```
-2. For each `missing file` / `missing anchor` finding, open the offending file at
+3. For each `missing file` / `missing anchor` finding, open the offending file at
    the reported line and fix it: correct the path, update the anchor to the
    current GitHub-style heading slug, or repoint to the moved target.
-3. If a heading was renamed/moved, also run `/doc-xref` to fix *inbound* links from
+4. If a heading was renamed/moved, also run `/doc-xref` to fix *inbound* links from
    other docs and from code docstrings - not just this file's outbound links.
-4. Re-run step 1 until it exits `0`.
+5. Re-run step 2 until it exits `0`.
 
 ## Output
 
@@ -32,4 +40,4 @@ intentionally dangling (e.g. a planned-but-unwritten doc) so reviewers know it i
 deliberate.
 
 Complement: `/doc-xref <target>` patches *inbound* references from other docs and
-code docstrings — link-check covers outbound, doc-xref covers inbound. Run both after a rename.
+code docstrings - link-check covers outbound, doc-xref covers inbound. Run both after a rename.

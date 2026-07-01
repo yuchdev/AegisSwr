@@ -1,4 +1,4 @@
-# 02 — Agent implementation
+# 02 - Agent implementation
 
 **Parent task:** 07.0 Remediation Planner Agent
 **State:** ⬜ Not started
@@ -68,14 +68,14 @@ set as a property).
 
 1. Build a context dict from the confirmed `RCAReport` containing only the
    fields needed for planning. Do NOT include `raw_text_excerpt`, full
-   `agent_dialogue`, or any stack frame text — those are untrusted payload.
+   `agent_dialogue`, or any stack frame text - those are untrusted payload.
    Safe fields to include: `root_cause`, `faulting_module`, `faulting_function`,
    `confidence_score`, `confidence_level`, `primary_hypothesis.root_cause`,
    `primary_hypothesis.evidence`, and `mitigation_instructions`.
 2. Serialize the context dict to JSON and place it in a single `user` message.
 3. Call `await self._ai.generate(self.system_prompt, messages, RemediationPlan)`.
 4. Assert the result is `RemediationPlan`. If `generate` raises, propagate the
-   exception — the synthesizer node handles degraded-mode logic.
+   exception - the synthesizer node handles degraded-mode logic.
 5. Construct and return an `AgentTurn` with:
    - `agent = self.display_name`
    - `turn_number = 0` (synthesis runs outside the debate round counter)

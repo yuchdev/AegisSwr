@@ -1,4 +1,4 @@
-# Aegis SWR — Architecture Overview
+# Aegis SWR - Architecture Overview
 
 This document describes the high-level design: why the system is structured as it is,
 how the major components fit together, and what constraints shaped each decision.
@@ -15,7 +15,7 @@ to handle the security and operational constraints of incident forensics in real
 | Deployment Vector | How It Works | Why It Is Necessary |
 |---|---|---|
 | **Core Engine via Secure API** | A centralized or VPC-hosted backend that handles MAS orchestration and LLM context management. | Incident logs and dumps contain PII, credentials, and proprietary logic. A secure API allows deployment inside the client's isolated cloud (AWS VPC / Azure Private Link). |
-| **SIEM / Observability Plugins** | Integrations with Datadog, Splunk, or New Relic. | Puts Aegis SWR where incidents happen — engineers click *"Analyze with Aegis"* directly from a Datadog alert without switching tools. |
+| **SIEM / Observability Plugins** | Integrations with Datadog, Splunk, or New Relic. | Puts Aegis SWR where incidents happen - engineers click *"Analyze with Aegis"* directly from a Datadog alert without switching tools. |
 | **ChatOps Skills (Slack / Teams)** | A bot interface that surfaces the Synthetic War Room into engineering triage channels. | The team sees the agents debating in real-time inside their existing Slack war room, not in a separate dashboard. |
 
 ---
@@ -44,7 +44,7 @@ layer that maximizes information density before any agent sees the data.
 
 Raw `.dmp` / `.core` files are passed through `cdb`, `gdb`, or `lldb`. Only the
 faulting thread stack trace, register states, and loaded module versions are extracted
-as a clean Markdown summary — the bulk binary data is discarded.
+as a clean Markdown summary - the bulk binary data is discarded.
 
 ### Screenshot processing (vision-to-text)
 
@@ -65,8 +65,8 @@ and run a controlled debate.
 |---|---|
 | **OS Kernel Specialist** | Environmental limits, I/O bottlenecks, driver conflicts, memory pressure (ETW/WCT data). |
 | **Code Analyst** | Software architecture bugs, uninitialized pointers, race conditions, logic errors in the codebase. |
-| **Log Historian** | Cross-incident trend analysis — compares the current failure pattern against historical baselines. |
-| **Skeptic (moderator)** | Challenges consensus — if Code Analyst blames a code bug, Skeptic asks *"Why did this only manifest during peak network traffic?"* |
+| **Log Historian** | Cross-incident trend analysis - compares the current failure pattern against historical baselines. |
+| **Skeptic (moderator)** | Challenges consensus - if Code Analyst blames a code bug, Skeptic asks *"Why did this only manifest during peak network traffic?"* |
 
 ### Investigator's Rationale
 
@@ -151,5 +151,5 @@ The human response is re-ingested through the Data Adapter and debate resumes.
 | Document | What it covers |
 |---|---|
 | [docs/specs/implementation_spec.md](docs/specs/implementation_spec.md) | Full implementation spec: module layout, Pydantic schemas, Data Adapter pipeline (9 stages), backend ABCs, LangGraph state machine, REST/SSE API, sandbox, config. |
-| [docs/adr/](docs/adr/) | Architecture Decision Records — point-in-time decisions with rationale. |
+| [docs/adr/](docs/adr/) | Architecture Decision Records - point-in-time decisions with rationale. |
 | [docs/roadmap/roadmap.md](docs/roadmap/roadmap.md) | 5-phase development roadmap. |

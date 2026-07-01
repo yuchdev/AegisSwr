@@ -1,4 +1,4 @@
-# 01 — ModelRouter public interface
+# 01 - ModelRouter public interface
 
 **Parent task:** 04.0 Model Router
 **State:** ⬜ Not started
@@ -101,7 +101,7 @@ class ModelRouter:
 - `ModelRouter` has no knowledge of LiteLLM internals; it only calls
   `LiteLLMClient.complete()`.
 - `run_id` is a keyword-only argument (enforced by the `*` separator).
-- No fallback or retry logic in this subtask — only the class skeleton.
+- No fallback or retry logic in this subtask - only the class skeleton.
 
 ## Success criteria
 

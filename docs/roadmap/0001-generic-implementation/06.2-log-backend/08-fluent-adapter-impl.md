@@ -1,7 +1,7 @@
 # 08 – `FluentAdapter` full implementation
 
 **Parent milestone:** 6.2 Log Backend – Fluentd Stack
-**State:** ⬜ Blocked — requires answers to [05-design-clarifications.md](05-design-clarifications.md) and completion of 06 and/or 07
+**State:** ⬜ Blocked - requires answers to [05-design-clarifications.md](05-design-clarifications.md) and completion of 06 and/or 07
 **Depends on:** 01, 02, 03, 04, 06 (HTTP path) or 07 (forward path)
 **Blocks:** 09, 10
 
@@ -155,27 +155,27 @@ def _validate_fluent_settings(settings: LogBackendSettings):
 
 ## Tests
 
-**Unit** (`tests/unit/test_log_backends.py` — extend existing test module):
+**Unit** (`tests/unit/test_log_backends.py` - extend existing test module):
 
-- `test_fluent_adapter_query_window_happy_path` — patch `FluentHttpClient` to
+- `test_fluent_adapter_query_window_happy_path` - patch `FluentHttpClient` to
   return a list of raw record dicts; assert returned log lines contain expected
   text.
-- `test_fluent_adapter_selects_http_client` — `fluent_protocol="http"` → creates
+- `test_fluent_adapter_selects_http_client` - `fluent_protocol="http"` → creates
   `FluentHttpClient` (verify via mock).
-- `test_fluent_adapter_selects_forward_client` — `fluent_protocol="forward"` →
+- `test_fluent_adapter_selects_forward_client` - `fluent_protocol="forward"` →
   creates `FluentForwardClient`.
-- `test_fluent_adapter_fail_open_on_connection_error` — patch client to raise
+- `test_fluent_adapter_fail_open_on_connection_error` - patch client to raise
   `FluentConnectionError`; assert `query_window` returns `[]`.
-- `test_fluent_adapter_fail_open_on_timeout` — same for `FluentTimeoutError`.
-- `test_fluent_adapter_tag_constructed_correctly` — `fluent_tag_prefix="aegis"`,
+- `test_fluent_adapter_fail_open_on_timeout` - same for `FluentTimeoutError`.
+- `test_fluent_adapter_tag_constructed_correctly` - `fluent_tag_prefix="aegis"`,
   service `"auth-api"` → tag `"aegis.auth-api"`.
-- `test_fluent_adapter_tag_prefix_none` — `fluent_tag_prefix=None`, service
+- `test_fluent_adapter_tag_prefix_none` - `fluent_tag_prefix=None`, service
   `"auth-api"` → tag `"auth-api"`.
-- `test_fluent_adapter_missing_host_raises_value_error` — constructor raises
+- `test_fluent_adapter_missing_host_raises_value_error` - constructor raises
   `ValueError` when `fluent_host` is not set.
-- `test_fluent_adapter_service_name_sanitised` — service with `/` in name is
+- `test_fluent_adapter_service_name_sanitised` - service with `/` in name is
   sanitised before tag construction.
-- `test_fluent_adapter_multi_batch_override` — if server returns batch result,
+- `test_fluent_adapter_multi_batch_override` - if server returns batch result,
   `query_window_multi` calls `query_batch` not N × `query`.
 
 ## Success criteria

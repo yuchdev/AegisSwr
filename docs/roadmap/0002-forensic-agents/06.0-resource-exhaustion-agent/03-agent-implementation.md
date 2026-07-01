@@ -1,4 +1,4 @@
-# 03 — Agent implementation (`ResourceExhaustionAgent`)
+# 03 - Agent implementation (`ResourceExhaustionAgent`)
 
 **Parent task:** 06.0 Resource Exhaustion Agent
 **State:** ⬜ Not started
@@ -40,7 +40,7 @@ equal the `AgentTurn.agent` string the agent emits.
 ## System prompt (specification)
 
 The system prompt must convey the following persona and instructions to the LLM.
-It is not a Python string literal here — the implementer writes the exact text.
+It is not a Python string literal here - the implementer writes the exact text.
 
 Key elements the prompt must include:
 
@@ -50,7 +50,7 @@ Key elements the prompt must include:
    GDI/kernel object counts.
 
 2. **Scope of analysis**: the prompt explicitly names the resource types the
-   agent investigates — Win32 handles, POSIX file descriptors, thread-pool
+   agent investigates - Win32 handles, POSIX file descriptors, thread-pool
    workers, heap/virtual memory pages, connection-pool slots, GDI objects, kernel
    semaphore/mutex/event object counts.
 
@@ -76,11 +76,11 @@ the project-wide `_BaseAIBackend` convention (C7).
    `state` following the `OSKernelAgent.run()` pattern exactly.
 2. Incorporate Skeptic corrections from the previous round using the same
    reversed-history scan pattern as `OSKernelAgent`.
-3. Call `_extract_leak_indicators(brief)` — the deterministic pre-check — and
+3. Call `_extract_leak_indicators(brief)` - the deterministic pre-check - and
    store the result in a local variable before constructing the LLM context.
 4. Build the user-message context dict. Include:
    - `"incident_brief"`: the full brief dict.
-   - `"log_summary"`: `brief.get("log_summary")` — may be `None`; include the
+   - `"log_summary"`: `brief.get("log_summary")` - may be `None`; include the
      key regardless so the LLM can see its absence explicitly.
    - `"precheck_leak_indicators"`: the list returned by step 3.
    - `"round"`: the round number.
@@ -123,7 +123,7 @@ A `@staticmethod` that accepts `brief: dict[str, object]` and returns
     `"full"` / `"timeout"`.
   - `"GDI object"` counts or `"USER object"` counts mentioned with values.
 - For each match, append a short normalized indicator string (not the raw
-  matched line in full — trim to a maximum of 200 characters to avoid
+  matched line in full - trim to a maximum of 200 characters to avoid
   persisting large payload fragments).
 - Return the deduplicated list; preserve first-occurrence order.
 - Never raise; on any internal error return an empty list and emit a

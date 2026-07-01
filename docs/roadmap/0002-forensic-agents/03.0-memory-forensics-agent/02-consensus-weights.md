@@ -1,4 +1,4 @@
-# 02 — Consensus weight integration
+# 02 - Consensus weight integration
 
 **Parent task:** 03.0 Memory Forensics Agent
 **State:** ⬜ Not started
@@ -19,13 +19,13 @@ already sum to 1.0 at the end of this subtask.
 
 ## Files
 
-- **Modify** `src/aegis_swr/config/settings.py` — update the three `AgentWeightEntry`
+- **Modify** `src/aegis_swr/config/settings.py` - update the three `AgentWeightEntry`
   defaults for the affected fault classes to include `"memory_forensics"` in the
   `weights` map (C3 format).
-- **Modify** `config/agents.example.json` — add `"memory_forensics"` key to the
+- **Modify** `config/agents.example.json` - add `"memory_forensics"` key to the
   `memory_access_violation`, `null_pointer_dereference`, and `use_after_free` blocks.
 - **Modify** `config/config.yaml` (if present as the canonical weight source after
-  Task 02.0) — same additions.
+  Task 02.0) - same additions.
 
 ## Weight vectors
 
@@ -92,14 +92,14 @@ Sum: 1.00.
 
 In `tests/unit/test_consensus_weights.py` (create if absent):
 
-- `test_memory_access_violation_weights_sum_to_one` — assert sum of
+- `test_memory_access_violation_weights_sum_to_one` - assert sum of
   `memory_access_violation` weights == 1.0 within float tolerance (`math.isclose`).
-- `test_null_pointer_dereference_weights_sum_to_one` — same for
+- `test_null_pointer_dereference_weights_sum_to_one` - same for
   `null_pointer_dereference`.
-- `test_use_after_free_weights_sum_to_one` — same for `use_after_free`.
-- `test_memory_forensics_key_present_in_authoritative_classes` — assert
+- `test_use_after_free_weights_sum_to_one` - same for `use_after_free`.
+- `test_memory_forensics_key_present_in_authoritative_classes` - assert
   `"memory_forensics"` appears in the `weights` map of all three fault classes.
-- `test_unaffected_fault_classes_unchanged` — load `AgentWeightsSettings` with
+- `test_unaffected_fault_classes_unchanged` - load `AgentWeightsSettings` with
   defaults and assert `"memory_forensics"` is absent from
   `integer_divide_by_zero`, `deadlock`, `unhandled_exception`.
 

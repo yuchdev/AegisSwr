@@ -1,4 +1,4 @@
-# 01 — Generalize `BaseAgent`
+# 01 - Generalize `BaseAgent`
 
 **Parent task:** 02.0 Extensible Panel
 **State:** ⬜ Not started
@@ -48,7 +48,7 @@ Implements contract **C2**.
    `AgentTurn(agent=...)`** in each agent's `run()` (e.g. `"OS Kernel Agent"`).
    This keeps the orchestrator's turn-matching (`turn.agent == "Skeptic Agent"`)
    working. Where practical, replace the literal in `run()` with
-   `self.display_name` to remove the duplication — but the *value* must not change.
+   `self.display_name` to remove the duplication - but the *value* must not change.
 
 ## Constraints
 
@@ -59,9 +59,9 @@ Implements contract **C2**.
 ## Tests
 
 - Extend `tests/unit/test_agents.py`:
-  - `test_agent_identity_classvars` — each base agent exposes the expected
+  - `test_agent_identity_classvars` - each base agent exposes the expected
     `agent_key` / `category` / `display_name`.
-  - `test_display_name_matches_turn_agent` — after `run()` (with `MockAIBackend`),
+  - `test_display_name_matches_turn_agent` - after `run()` (with `MockAIBackend`),
     the produced `AgentTurn.agent` equals the class `display_name`.
 
 ## Success criteria

@@ -1,4 +1,4 @@
-# 03 — `async complete()` — call, latency, cost
+# 03 - `async complete()` - call, latency, cost
 
 **Parent task:** 03.0 LiteLLM Client
 **State:** ⬜ Not started
@@ -7,7 +7,7 @@
 
 ## Objective
 
-Implement `LiteLLMClient.complete()` — the single async method that calls
+Implement `LiteLLMClient.complete()` - the single async method that calls
 `litellm.acompletion`, measures wall-clock latency, extracts token counts
 and cost, and normalizes all errors to `RouterException`.
 
@@ -74,7 +74,7 @@ async def complete(self, request: CompletionRequest) -> CompletionResponse:
 - **All exceptions** from `litellm.acompletion` are caught and re-raised
   as `RouterException` with `__cause__` set. This includes network errors,
   auth failures, rate limits, and context-length errors.
-- `cost_usd` is `None` on any failure of `litellm.completion_cost()` — never
+- `cost_usd` is `None` on any failure of `litellm.completion_cost()` - never
   propagated as an error.
 - No retry/fallback logic here.
 

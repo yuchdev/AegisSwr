@@ -88,7 +88,7 @@ class FluentRecordParser:
         1. ``record.fields["message"]`` (most Fluentd configs)
         2. ``record.fields["msg"]`` (Zap, logrus)
         3. ``record.fields["log"]`` (Docker/container runtimes)
-        4. ``json.dumps(record.fields)`` (fallback — whole payload as JSON)
+        4. ``json.dumps(record.fields)`` (fallback - whole payload as JSON)
 
         Severity token extraction (placed before the message body):
         1. ``record.fields.get("level")`` or ``record.fields.get("severity")``
@@ -145,7 +145,7 @@ skipping the unparseable record.
 
 - `FluentRecord` uses `from __future__ import annotations` and `Optional[T]`
   only (not `T | None`).
-- `FluentRecordParser` is pure Python with no I/O — fully unit-testable without
+- `FluentRecordParser` is pure Python with no I/O - fully unit-testable without
   any network or Fluent stack.
 - The module **must not** import from `core/data_adapter.py` to avoid a circular
   dependency (`data_adapter` imports from `backends/`). Severity and timestamp
@@ -157,22 +157,22 @@ skipping the unparseable record.
 
 **Unit** (`tests/unit/test_fluent_record.py`):
 
-- `test_from_http_batch_standard_envelope` — parse a list of
+- `test_from_http_batch_standard_envelope` - parse a list of
   `{"tag":"aegis.auth","time":1748606401,"record":{"message":"ok","level":"INFO"}}`
   dicts; assert tag, timestamp (UTC), severity, and message are extracted.
-- `test_from_http_batch_fluent_bit_flat` — parse `[{"date":1748606401.5,"msg":"ping","level":"DEBUG"}]`
+- `test_from_http_batch_fluent_bit_flat` - parse `[{"date":1748606401.5,"msg":"ping","level":"DEBUG"}]`
   (no `tag`/`time` envelope); assert timestamp is correct.
-- `test_from_msgpack_event_int_time` — v1 Unix int timestamp → correct UTC datetime.
-- `test_from_msgpack_event_eventtime` — v2 `{"type":"EventTime","second":…,"nanosecond":…}` → correct datetime.
-- `test_to_log_line_message_field_precedence` — record with `message`, `msg`,
+- `test_from_msgpack_event_int_time` - v1 Unix int timestamp → correct UTC datetime.
+- `test_from_msgpack_event_eventtime` - v2 `{"type":"EventTime","second":…,"nanosecond":…}` → correct datetime.
+- `test_to_log_line_message_field_precedence` - record with `message`, `msg`,
   `log` all set; assert `message` wins.
-- `test_to_log_line_fallback_json_dump` — record with no message/msg/log;
+- `test_to_log_line_fallback_json_dump` - record with no message/msg/log;
   assert output is JSON.
-- `test_to_log_line_docker_stream_mapping` — `stream=stdout` → `INFO`; `stream=stderr` → `ERROR`.
-- `test_filter_by_window` — 3 records; 2 inside window, 1 outside; assert 2 returned.
-- `test_filter_by_severity_case_insensitive` — filter `["error"]`; assert `level=ERROR` line kept, `level=INFO` dropped.
-- `test_filter_by_severity_no_level_kept` — record with no level field is *kept*.
-- `test_parse_error_on_bad_timestamp` — passing a record with `time="not-a-date"`
+- `test_to_log_line_docker_stream_mapping` - `stream=stdout` → `INFO`; `stream=stderr` → `ERROR`.
+- `test_filter_by_window` - 3 records; 2 inside window, 1 outside; assert 2 returned.
+- `test_filter_by_severity_case_insensitive` - filter `["error"]`; assert `level=ERROR` line kept, `level=INFO` dropped.
+- `test_filter_by_severity_no_level_kept` - record with no level field is *kept*.
+- `test_parse_error_on_bad_timestamp` - passing a record with `time="not-a-date"`
   to `from_http_batch` raises `FluentRecordParseError`.
 
 ## Success criteria

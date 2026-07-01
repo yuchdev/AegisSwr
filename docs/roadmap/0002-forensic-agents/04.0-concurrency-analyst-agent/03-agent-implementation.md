@@ -1,4 +1,4 @@
-# 03 — Agent implementation (`ConcurrencyAnalystAgent`)
+# 03 - Agent implementation (`ConcurrencyAnalystAgent`)
 
 **Parent task:** 04.0 Concurrency Analyst Agent
 **State:** ⬜ Not started
@@ -37,7 +37,7 @@ existing turn-matching logic in consensus and the orchestrator is undisturbed.
 The module-level `_SYSTEM_PROMPT` constant must:
 
 1. Declare the agent's forensic persona: an expert in concurrent programming
-   hazards — deadlocks, lock-ordering inversions, race conditions, TOCTOU
+   hazards - deadlocks, lock-ordering inversions, race conditions, TOCTOU
    vulnerabilities, thread wait-chains, and priority starvation.
 2. Instruct the LLM to reason about lock acquisition order, thread state
    (blocked/runnable/waiting), mutex ownership, and synchronization primitive
@@ -143,7 +143,7 @@ an empty list when no candidates are found. Must be independently unit-testable.
   booleans via loguru with `SensitiveFilter` in place.
 - No bare `except:`; catch specific exceptions from the AI backend and let them
   propagate so the orchestrator's retry/failure path handles them.
-- Do not hard-code thread IDs or module names — the regex must be generic.
+- Do not hard-code thread IDs or module names - the regex must be generic.
 
 ## Success criteria
 

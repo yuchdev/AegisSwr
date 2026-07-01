@@ -1,6 +1,6 @@
 ---
 name: docs-writer
-description: Use this agent to author net-new documentation for features, subsystems, or APIs that have no existing coverage. Use when a feature ships with no docs yet — not for updating existing docs (that is docs-updater). Produces READMEs, API specs, architecture guides, and runbook stubs; delegates to docs-updater for keeping existing references in sync.
+description: Use this agent to author net-new documentation for features, subsystems, or APIs that have no existing coverage. Use when a feature ships with no docs yet - not for updating existing docs (that is docs-updater). Produces READMEs, API specs, architecture guides, and runbook stubs; delegates to docs-updater for keeping existing references in sync.
 model: claude-sonnet-4-6
 tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch

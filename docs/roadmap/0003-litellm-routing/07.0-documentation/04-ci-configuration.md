@@ -1,4 +1,4 @@
-# 04 — CI pipeline additions
+# 04 - CI pipeline additions
 
 **Parent task:** 07.0 Documentation & CI
 **State:** ⬜ Not started
@@ -10,9 +10,9 @@
 Add router-specific CI jobs to the project's CI pipeline
 (`.github/workflows/ci.yml` or equivalent). Three new jobs:
 
-1. **Unit + mock tests** — no API keys, always runs.
-2. **LiteLLM isolation lint** — named standalone job so drift is visible.
-3. **Integration tests** — skipped (not failed) when keys are absent.
+1. **Unit + mock tests** - no API keys, always runs.
+2. **LiteLLM isolation lint** - named standalone job so drift is visible.
+3. **Integration tests** - skipped (not failed) when keys are absent.
 
 ## CI additions
 
@@ -32,7 +32,7 @@ jobs:
       - run: pip install poetry && poetry install
       - run: poetry run pytest tests/router/ -v --tb=short
         env:
-          ANTHROPIC_API_KEY: ""    # explicitly empty — unit tests must pass without keys
+          ANTHROPIC_API_KEY: ""    # explicitly empty - unit tests must pass without keys
 
   router-litellm-isolation:
     name: "Lint: litellm must only appear in router/client.py"
@@ -81,7 +81,7 @@ markers = [
 - `router-unit-tests` runs with `ANTHROPIC_API_KEY: ""` to prove the unit
   suite does not depend on keys.
 - `router-integration-tests` must be **skipped** (exit 0) when secrets are
-  empty — this is handled by `pytest.mark.skipif` in the tests themselves.
+  empty - this is handled by `pytest.mark.skipif` in the tests themselves.
 
 ## Success criteria
 

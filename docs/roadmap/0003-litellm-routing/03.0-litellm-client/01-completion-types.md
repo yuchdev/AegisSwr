@@ -1,4 +1,4 @@
-# 01 — CompletionRequest / CompletionResponse types
+# 01 - CompletionRequest / CompletionResponse types
 
 **Parent task:** 03.0 LiteLLM Client
 **State:** ⬜ Not started
@@ -15,7 +15,7 @@ router never sees LiteLLM types directly.
 ## Types
 
 ```python
-# aegis/router/client.py (excerpt — types section)
+# aegis/router/client.py (excerpt - types section)
 
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -62,7 +62,7 @@ class CompletionResponse:
   `model` field when iterating the fallback chain (creating a new request
   is cleaner; but mutable avoids unnecessary allocation).
 - `CompletionResponse.model_used` may differ from `request.model` in future
-  if LiteLLM selects a sub-model — keeping it explicit avoids silent drift.
+  if LiteLLM selects a sub-model - keeping it explicit avoids silent drift.
 - `messages: list[dict]` uses the OpenAI format because LiteLLM normalizes
   all providers to this format internally.
 

@@ -1,4 +1,4 @@
-# 03 — Synthesis-tier wiring
+# 03 - Synthesis-tier wiring
 
 **Parent task:** 07.0 Remediation Planner Agent
 **State:** ⬜ Not started
@@ -53,7 +53,7 @@ The synthesizer node must be extended as follows, in order:
 2. Check whether synthesis is enabled:
    `"remediation_planner" in self._settings.agents.enabled_synthesis`.
 3. If enabled, instantiate `RemediationPlannerAgent(ai_backend=self._ai)` (or
-   hold a pre-constructed instance on `self` — implementation choice; document
+   hold a pre-constructed instance on `self` - implementation choice; document
    in `status.md`).
 4. Call `turn, plan = await planner.run_synthesis(report)`.
 5. If `plan.requires_human_approval` is `True`, emit a `loguru` warning at

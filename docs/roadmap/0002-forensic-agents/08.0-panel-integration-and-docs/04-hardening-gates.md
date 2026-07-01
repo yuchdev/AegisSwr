@@ -1,10 +1,10 @@
-# 04 — Hardening Gates
+# 04 - Hardening Gates
 
-**Parent task:** Task 08.0 — Panel Integration, Docs & Hardening
+**Parent task:** Task 08.0 - Panel Integration, Docs & Hardening
 **Status:** ⬜ Not started
-**Depends on:** 01-default-panels-and-weight-audit.md, 02-config-and-examples.md,
-               03-docs.md, Tasks 03.0–07.0 (all agents delivered)
-**Blocks:** 05-milestone-closeout.md
+**Depends on:** [01-default-panels-and-weight-audit.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/01-default-panels-and-weight-audit.md), [02-config-and-examples.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/02-config-and-examples.md),
+               [03-docs.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/03-docs.md), Tasks 03.0–07.0 (all agents delivered)
+**Blocks:** [05-milestone-closeout.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/05-milestone-closeout.md)
 
 ---
 
@@ -16,7 +16,7 @@ milestone exit if they produce a CRITICAL or blocking finding.
 
 ---
 
-## Gate 1 — Full regression suite
+## Gate 1 - Full regression suite
 
 **Who runs it:** `testing-expert` / `python-expert` (automated)
 
@@ -31,7 +31,7 @@ poetry run pytest tests/unit/ tests/integration/ \
 
 **Pass criteria:**
 - Zero failures, zero errors.
-- All tests that existed before Milestone 0002 still pass (back-compat gate —
+- All tests that existed before Milestone 0002 still pass (back-compat gate -
   any regression here is a blocker regardless of source).
 - New tests from subtasks 01 (`test_weight_audit.py`) and 02
   (`test_agents_config_roundtrip.py`) are included and pass.
@@ -44,7 +44,7 @@ deleted to achieve green.
 
 ---
 
-## Gate 2 — Static analysis
+## Gate 2 - Static analysis
 
 **Who runs it:** `python-expert` / CI
 
@@ -68,12 +68,12 @@ ruff format --check src/aegis_swr/ tests/
 
 ---
 
-## Gate 3 — Ground-truth validation (if applicable)
+## Gate 3 - Ground-truth validation (if applicable)
 
 **Who runs it:** `python-expert` (manually, on a dev machine with a live AI key)
 
 **What it is:** A live end-to-end run of the pipeline against a real crash dump
-or log corpus using a specialist panel. This gate is "if applicable" — it is
+or log corpus using a specialist panel. This gate is "if applicable" - it is
 required when a real dump is available in the CI/dev environment; it is
 informational (not blocking) when no dump is available.
 
@@ -91,7 +91,7 @@ as-built notes.
 
 ---
 
-## Gate 4 — Security-auditor pass (REQUIRED — CRITICAL blocks)
+## Gate 4 - Security-auditor pass (REQUIRED - CRITICAL blocks)
 
 **Who runs it:** `security-auditor` agent
 
@@ -102,7 +102,7 @@ potential. The agent's `system_prompt` and `run()` method must be reviewed for:
 
 - **Injection:** Does untrusted payload text flow into a shell, SQL string,
   `eval`, or unsanitised AI prompt? The Data Adapter's PII scrub must be the
-  only payload transformation — the Exploitability agent must not re-introduce
+  only payload transformation - the Exploitability agent must not re-introduce
   raw payload into any other sink.
 - **Disclosure:** Does `ExploitabilityOutput` (specifically `attacker_control`,
   `severity`, and the raw evidence fields) risk leaking sensitive payload into
@@ -110,7 +110,7 @@ potential. The agent's `system_prompt` and `run()` method must be reviewed for:
 - **Elevation:** The agent's `exploitable: bool` and `severity: str` fields
   must not be used to trigger automated remediation. `RemediationPlannerAgent`
   consumes only the confirmed `RCAReport`, never raw `ExploitabilityOutput`
-  directly — verify this boundary is intact.
+  directly - verify this boundary is intact.
 - **DoS:** Token-budget exhaustion from a pathologically large crash dump. The
   Data Adapter truncation must fire before the Exploitability agent prompt is
   assembled.
@@ -132,7 +132,7 @@ issues with P1 or P2 priority before the milestone is declared complete.
 
 ---
 
-## Gate 5 — Incident-analyst pass (REQUIRED — blocks merge)
+## Gate 5 - Incident-analyst pass (REQUIRED - blocks merge)
 
 **Who runs it:** `incident-analyst` agent
 
@@ -148,7 +148,7 @@ issues with P1 or P2 priority before the milestone is declared complete.
    - `is_deadlocked()` still fires correctly when the variable panel cannot
      converge within `core.max_debate_rounds`.
    - `ConfidenceLevel.LOW` + rejected `SkepticVerdict` still always produces a
-     `HITLRequest`, never a weak RCA — with a larger panel this path must not
+     `HITLRequest`, never a weak RCA - with a larger panel this path must not
      be accidentally bypassed.
 
 2. **Remediation planner synthesis path (Task 07.0).** `RemediationPlannerAgent`
@@ -156,7 +156,7 @@ issues with P1 or P2 priority before the milestone is declared complete.
    - The planner is always skipped when the investigation reaches the HITL path
      (low confidence or Skeptic rejection beyond `max_debate_rounds`).
    - The planner's output (`RemediationPlan`) is not attached to a `HITLRequest`
-     — an escalated incident carries no auto-remediation plan.
+     - an escalated incident carries no auto-remediation plan.
    - The planner does not itself trigger HITL: if the planner fails or produces
      low-confidence output, it should fail open (omit `remediation_plan` from
      the `RCAReport`) rather than escalating the already-converged investigation.
@@ -177,11 +177,11 @@ exit until resolved.
 
 | Gate | Automated? | Mandatory? | Blocking condition |
 |------|-----------|------------|-------------------|
-| 1 — Full regression | Yes (CI) | Yes | Any failure |
-| 2 — Static analysis | Yes (CI) | Yes | Any mypy/ruff/optional error |
-| 3 — Ground-truth | Manual | If dump available | Informational only |
-| 4 — Security-auditor | Agent | Yes (CRITICAL blocks) | CRITICAL finding or BLOCK verdict |
-| 5 — Incident-analyst | Agent | Yes | HITL path not always reachable; planner runs on HITL |
+| 1 - Full regression | Yes (CI) | Yes | Any failure |
+| 2 - Static analysis | Yes (CI) | Yes | Any mypy/ruff/optional error |
+| 3 - Ground-truth | Manual | If dump available | Informational only |
+| 4 - Security-auditor | Agent | Yes (CRITICAL blocks) | CRITICAL finding or BLOCK verdict |
+| 5 - Incident-analyst | Agent | Yes | HITL path not always reachable; planner runs on HITL |
 
 All five gates must be green (or informational for Gate 3) before subtask 05
 may proceed.

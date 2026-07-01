@@ -1,4 +1,4 @@
-# Milestone 0002 — Forensic Agents — Status
+# Milestone 0002 - Forensic Agents - Status
 
 Tracks progress against [plan.md](/docs/roadmap/0002-forensic-agents/plan.md).
 Updated as each task lands.
@@ -7,14 +7,14 @@ Updated as each task lands.
 
 | Task  | Name                                  | Status         | Tests |
 |-------|---------------------------------------|----------------|-------|
-| 01.0  | Agent Package Restructure             | ⬜ Not started | —     |
-| 02.0  | Extensible Panel (Registry/Consensus) | ⬜ Not started | —     |
-| 03.0  | Memory Forensics Agent                | ⬜ Not started | —     |
-| 04.0  | Concurrency Analyst Agent             | ⬜ Not started | —     |
-| 05.0  | Exploitability Analyst Agent          | ⬜ Not started | —     |
-| 06.0  | Resource Exhaustion Agent             | ⬜ Not started | —     |
-| 07.0  | Remediation Planner Agent             | ⬜ Not started | —     |
-| 08.0  | Panel Integration, Docs & Hardening   | ⬜ Not started | —     |
+| 01.0  | Agent Package Restructure             | ⬜ Not started | -     |
+| 02.0  | Extensible Panel (Registry/Consensus) | ⬜ Not started | -     |
+| 03.0  | Memory Forensics Agent                | ⬜ Not started | -     |
+| 04.0  | Concurrency Analyst Agent             | ⬜ Not started | -     |
+| 05.0  | Exploitability Analyst Agent          | ⬜ Not started | -     |
+| 06.0  | Resource Exhaustion Agent             | ⬜ Not started | -     |
+| 07.0  | Remediation Planner Agent             | ⬜ Not started | -     |
+| 08.0  | Panel Integration, Docs & Hardening   | ⬜ Not started | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -29,7 +29,7 @@ four-agent panel and consensus matrix from Milestone 0001 remain in force.
   (`memory_forensics`, `concurrency_analyst`, `exploitability`,
   `resource_exhaustion`) + one `synthesis/` agent (`remediation_planner`).
 - **Back-compat is a hard gate.** Tasks 01.0 and 02.0 must leave the default
-  (no-specialist) panel byte-identical to 0001 — `create_agent_panel` with the
+  (no-specialist) panel byte-identical to 0001 - `create_agent_panel` with the
   default config reproduces `os_kernel → code_analyst → log_historian → skeptic`,
   and the default consensus weights reproduce the 0001 matrix exactly.
 - **Security/lifecycle gates (Task 08.0):** the Exploitability agent reasons over

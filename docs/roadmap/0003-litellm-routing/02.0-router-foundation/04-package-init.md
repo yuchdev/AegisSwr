@@ -1,9 +1,9 @@
-# 04 — Package `__init__.py`
+# 04 - Package `__init__.py`
 
 **Parent task:** 02.0 Router Foundation Types
 **State:** ⬜ Not started
 **Depends on:** 01, 02, 03
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
@@ -17,7 +17,7 @@ event classes, and the three exception classes. This lets callers write
 ```python
 from __future__ import annotations
 
-# Public API — import order follows dependency order
+# Public API - import order follows dependency order
 from aegis.router.exceptions import (
     AllProvidersExhausted,
     ConfigValidationError,
@@ -57,7 +57,7 @@ __all__ = [
 
 ## Constraints
 
-- `LiteLLMClient` is **not** re-exported here — it is an internal
+- `LiteLLMClient` is **not** re-exported here - it is an internal
   implementation detail of `aegis/router/client.py`.
 - No `import litellm` in this file.
 - The import of `ModelRouter` must come **last** to avoid circular imports

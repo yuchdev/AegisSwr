@@ -28,11 +28,11 @@ def resolve_pdb_path(
 
     Resolution order (first match wins):
 
-    1. ``settings.pdb_path`` — explicit path; checked for existence.
-    2. ``{repo_path}/*.pdb`` — non-recursive glob in the directory passed as
+    1. ``settings.pdb_path`` - explicit path; checked for existence.
+    2. ``{repo_path}/*.pdb`` - non-recursive glob in the directory passed as
        *repo_path*; first match alphabetically wins.  Logs a ``WARNING`` when
        more than one ``.pdb`` is found (ambiguous; first is used).
-    3. Each directory in ``settings.pdb_search_dirs`` — non-recursive glob;
+    3. Each directory in ``settings.pdb_search_dirs`` - non-recursive glob;
        first match alphabetically across all dirs wins.
 
     :param settings: :class:`~aegis_swr.config.settings.CodeBackendSettings`
@@ -48,7 +48,7 @@ def resolve_pdb_path(
 
 ### Resolution step detail
 
-**Step 1 — explicit `pdb_path`:**
+**Step 1 - explicit `pdb_path`:**
 
 ```python
 if settings.pdb_path:
@@ -60,7 +60,7 @@ if settings.pdb_path:
     return p
 ```
 
-**Step 2 — `repo_path` directory glob:**
+**Step 2 - `repo_path` directory glob:**
 
 ```python
 base = Path(repo_path).expanduser().resolve()
@@ -75,7 +75,7 @@ if base.is_dir():
         return matches[0]
 ```
 
-**Step 3 — `pdb_search_dirs`:**
+**Step 3 - `pdb_search_dirs`:**
 
 ```python
 for dir_str in settings.pdb_search_dirs:
@@ -88,7 +88,7 @@ for dir_str in settings.pdb_search_dirs:
         return matches[0]
 ```
 
-**Fallthrough — nothing found:**
+**Fallthrough - nothing found:**
 
 ```python
 raise CodeBackendError(
@@ -101,42 +101,42 @@ raise CodeBackendError(
 ## Constraints
 
 - The function is synchronous and performs filesystem operations with plain
-  `pathlib` — no asyncio, no subprocess.
+  `pathlib` - no asyncio, no subprocess.
 - Only the **immediate** directory is searched (non-recursive `glob("*.pdb")`),
   not a deep tree walk. Recursive search would be too slow and might surface
   stale symbol caches.
 - `pdb_search_dirs` entries that do not exist as directories are skipped with a
-  `DEBUG` log — not an error.
+  `DEBUG` log - not an error.
 - The returned `Path` is always absolute (`.resolve()` applied).
 - Imports must not create circular dependencies: `_paths.py` only imports from
   `pathlib`, `loguru`, and `aegis_swr.core.exceptions`.
 
 ## Tests
 
-**Unit** (`tests/unit/test_pdb_path_resolution.py` — new file, or extend
+**Unit** (`tests/unit/test_pdb_path_resolution.py` - new file, or extend
 `test_code_backends.py`):
 
-- `test_explicit_pdb_path_used_when_set` — create a `.pdb` file in `tmp_path`;
+- `test_explicit_pdb_path_used_when_set` - create a `.pdb` file in `tmp_path`;
   set `settings.pdb_path` to its path; assert `resolve_pdb_path` returns it.
-- `test_explicit_pdb_path_raises_when_missing` — set `settings.pdb_path` to a
+- `test_explicit_pdb_path_raises_when_missing` - set `settings.pdb_path` to a
   non-existent path; assert `CodeBackendError` raised.
-- `test_repo_path_glob_finds_pdb` — write a `foo.pdb` in `tmp_path`; leave
+- `test_repo_path_glob_finds_pdb` - write a `foo.pdb` in `tmp_path`; leave
   `settings.pdb_path = None`; pass `repo_path=str(tmp_path)`;
   assert the result equals `tmp_path / "foo.pdb"`.
-- `test_repo_path_glob_multiple_pdb_uses_first_alphabetical` — write `b.pdb` and
+- `test_repo_path_glob_multiple_pdb_uses_first_alphabetical` - write `b.pdb` and
   `a.pdb`; assert `a.pdb` is returned (sorted first).
-- `test_repo_path_glob_multiple_logs_warning` — same setup; assert a warning is
+- `test_repo_path_glob_multiple_logs_warning` - same setup; assert a warning is
   logged (capture with `caplog` or mock `logger`).
-- `test_repo_path_not_a_directory_falls_through_to_search_dirs` — `repo_path`
+- `test_repo_path_not_a_directory_falls_through_to_search_dirs` - `repo_path`
   points at a file (not dir); assert the function proceeds to step 3.
-- `test_pdb_search_dirs_used_as_fallback` — `repo_path` has no `.pdb`;
+- `test_pdb_search_dirs_used_as_fallback` - `repo_path` has no `.pdb`;
   `pdb_search_dirs=[str(second_dir)]` where `second_dir` has `bar.pdb`; assert
   `bar.pdb` returned.
-- `test_pdb_search_dirs_skips_missing_dir` — `pdb_search_dirs=["nonexistent"]`;
+- `test_pdb_search_dirs_skips_missing_dir` - `pdb_search_dirs=["nonexistent"]`;
   assert no exception raised (step 3 skips it), falls through to `CodeBackendError`.
-- `test_raises_when_nothing_found` — no `.pdb` anywhere; assert `CodeBackendError`
+- `test_raises_when_nothing_found` - no `.pdb` anywhere; assert `CodeBackendError`
   with informative message.
-- `test_explicit_pdb_path_takes_precedence_over_repo_glob` — both `pdb_path` and
+- `test_explicit_pdb_path_takes_precedence_over_repo_glob` - both `pdb_path` and
   a `repo_path` glob match exist; assert `pdb_path` result returned.
 
 ## Success criteria

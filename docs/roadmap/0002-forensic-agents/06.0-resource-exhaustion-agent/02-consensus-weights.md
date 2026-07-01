@@ -1,4 +1,4 @@
-# 02 — Consensus weight integration
+# 02 - Consensus weight integration
 
 **Parent task:** 06.0 Resource Exhaustion Agent
 **State:** ⬜ Not started
@@ -19,9 +19,9 @@ The numbers below are the design-intent starting point.
 
 ## Files
 
-- **Modify** `config/config.yaml` — update the weight maps for
+- **Modify** `config/config.yaml` - update the weight maps for
   `resource_exhaustion`, `stack_overflow`, and `deadlock` fault classes.
-- **Modify** `config/agents.example.json` — same three fault-class entries.
+- **Modify** `config/agents.example.json` - same three fault-class entries.
 
 ## Weight vectors
 

@@ -1,13 +1,13 @@
-# 03 — test_router.py
+# 03 - test_router.py
 
 **Parent task:** 05.0 Test Suite
 **State:** ⬜ Not started
 **Depends on:** 04.0 (ModelRouter complete)
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
-Write `tests/router/test_router.py` — full coverage of `ModelRouter.complete()`
+Write `tests/router/test_router.py` - full coverage of `ModelRouter.complete()`
 retry, fallback, event emission, and error behavior. `LiteLLMClient` is always
 mocked; events are captured via a real `EventBus` with a list-collecting
 subscriber.

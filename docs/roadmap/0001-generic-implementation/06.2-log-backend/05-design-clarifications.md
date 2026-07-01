@@ -19,7 +19,7 @@ Fluentd and Fluent Bit are **push pipelines**: services ship logs _into_ the
 collector; the collector forwards them onward. They are not designed as
 queryable log stores. Making `FluentAdapter.query_window(service, t_start, t_end)`
 work therefore requires one of several deployment-side decisions that Aegis
-cannot make alone — the answers depend on how the target environment is built
+cannot make alone - the answers depend on how the target environment is built
 and operated.
 
 The architecture of subtasks 06–10 (HTTP client vs msgpack forward client,
@@ -30,7 +30,7 @@ determined by the answers below.
 
 ## Questions
 
-### Q1 — Fluent stack variant and version
+### Q1 - Fluent stack variant and version
 
 | Field | Answer |
 |-------|--------|
@@ -47,7 +47,7 @@ or 07 depends entirely on this answer.
 
 ---
 
-### Q2 — Pull query mechanism
+### Q2 - Pull query mechanism
 
 Aegis needs to *pull* a time-range window of logs; Fluentd/Fluent Bit normally
 *push* logs onward. Which of the following deployment patterns is in place (or
@@ -58,8 +58,8 @@ will be built)?
 | **A** | Fluent stack writes JSON to a local directory; Aegis reads those files | Only `FileLogAdapter` (already done) |
 | **B** | A thin HTTP sidecar (Python or otherwise) sits between the Fluent output and Aegis, buffers records, and serves time-range queries | Custom HTTP server + `httpx` client (subtask 06) |
 | **C** | Fluentd is configured with `in_http` + a custom Ruby filter that serves a `/query` endpoint | `httpx` client to Fluentd HTTP port (subtask 06) |
-| **D** | Fluent Bit is configured with its **HTTP output plugin** and Aegis receives the pushed batches (inversion of control) | Aegis acts as the receiver, not the querier — different design |
-| **E** | Direct Fluentd **forward protocol** — Aegis connects to port 24224 and uses msgpack to subscribe to a tag | `msgpack` + forward protocol client (subtask 07) |
+| **D** | Fluent Bit is configured with its **HTTP output plugin** and Aegis receives the pushed batches (inversion of control) | Aegis acts as the receiver, not the querier - different design |
+| **E** | Direct Fluentd **forward protocol** - Aegis connects to port 24224 and uses msgpack to subscribe to a tag | `msgpack` + forward protocol client (subtask 07) |
 | **F** | Something else (describe) | _TBD_ |
 
 | Field | Answer |
@@ -76,7 +76,7 @@ needs subtask 07; option D inverts the architecture entirely.
 
 ---
 
-### Q3 — Authentication and transport security
+### Q3 - Authentication and transport security
 
 | Question | Answer |
 |----------|--------|
@@ -92,7 +92,7 @@ mTLS needs a different `httpx.AsyncClient` construction than a bearer token.
 
 ---
 
-### Q4 — Multi-service query semantics
+### Q4 - Multi-service query semantics
 
 | Question | Answer |
 |----------|--------|
@@ -109,7 +109,7 @@ is significantly more efficient for large service counts.
 
 ---
 
-### Q5 — Python library selection
+### Q5 - Python library selection
 
 The `fluent-logger-python` package (`fluent.sender`) is the canonical Python
 client for the Fluentd forward protocol, but it is a **write-only** client
@@ -136,7 +136,7 @@ imports and class structure in subtask 06/07.
 
 ---
 
-### Q6 — Fluent tag schema and service name mapping
+### Q6 - Fluent tag schema and service name mapping
 
 | Question | Answer |
 |----------|--------|
@@ -150,11 +150,11 @@ tag construction logic in subtask 08 depends on this answer.
 
 ---
 
-### Q7 — Time window and result size expectations
+### Q7 - Time window and result size expectations
 
 | Question | Answer |
 |----------|--------|
-| Default incident window: `incident_time ± N minutes` — what is the expected N? | _TBD_ (subtask 01 defaults to 10 min) |
+| Default incident window: `incident_time ± N minutes` - what is the expected N? | _TBD_ (subtask 01 defaults to 10 min) |
 | Expected peak log volume per service per 10-minute window? (lines/records) | _TBD_ |
 | Is the `fluent_max_lines_per_service` cap (5000, subtask 01) acceptable, or does it need adjustment? | _TBD_ |
 | Should truncation at the cap be logged as a warning? | _TBD_ (assumed: yes) |
@@ -166,7 +166,7 @@ adapter needs a paginated query loop; if it is too high, it wastes memory.
 
 ---
 
-### Q8 — Deployment topology
+### Q8 - Deployment topology
 
 | Question | Answer |
 |----------|--------|
@@ -186,10 +186,10 @@ Docker Compose approach needs a Fluentd/Fluent Bit image added to
 ## What can proceed right now (before answers)
 
 Subtasks 01–04 are fully implementable without these answers:
-- **01** — Configuration model (field table is stable regardless of protocol).
-- **02** — `query_window_multi` default fan-out implementation (works for any adapter).
-- **03** — `FluentRecordParser` (record normalisation is protocol-agnostic).
-- **04** — Exception hierarchy (fail-open contract is fixed).
+- **01** - Configuration model (field table is stable regardless of protocol).
+- **02** - `query_window_multi` default fan-out implementation (works for any adapter).
+- **03** - `FluentRecordParser` (record normalisation is protocol-agnostic).
+- **04** - Exception hierarchy (fail-open contract is fixed).
 
 ---
 

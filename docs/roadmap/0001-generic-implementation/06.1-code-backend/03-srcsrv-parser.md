@@ -12,7 +12,7 @@ that `pdbstr.exe` extracts from a `.pdb` file. The parser converts the raw
 text into typed Python dataclasses, exposing the VCS type, repository URL,
 and the mapping from source file paths to VCS revision identifiers.
 
-This is entirely pure Python with no I/O — fully testable on any platform
+This is entirely pure Python with no I/O - fully testable on any platform
 without a real PDB or `pdbstr.exe`.
 
 ## SrcSrv stream format
@@ -43,14 +43,14 @@ SRCSRV: end ------------------------------------------------
 
 | Section | Key fields used |
 |---------|----------------|
-| `ini` | `VERCTRL` — VCS type: `git`, `tfvc`, `svn`, `perforce` |
+| `ini` | `VERCTRL` - VCS type: `git`, `tfvc`, `svn`, `perforce` |
 | `variables` | VCS-specific: `GITREPO` (git remote URL), `VSTFSSERVER` (TFVC), etc. |
 | `source files` | One line per file: `{windows_path}*{revision}*[{extra}*]` |
 
 The `source files` section uses `*` as field delimiter. Field positions:
-- `[0]` — Windows source file path (may contain spaces)
-- `[1]` — VCS revision identifier (git SHA-1, TFVC changeset number, etc.)
-- `[2+]` — extra fields depending on VCS/build tool (ignored by Aegis)
+- `[0]` - Windows source file path (may contain spaces)
+- `[1]` - VCS revision identifier (git SHA-1, TFVC changeset number, etc.)
+- `[2+]` - extra fields depending on VCS/build tool (ignored by Aegis)
 
 ## Files
 
@@ -235,7 +235,7 @@ Empty `source files` section (no entries).
 
 ## Constraints
 
-- Parser must not raise on malformed lines — skip with `logger.debug`.
+- Parser must not raise on malformed lines - skip with `logger.debug`.
 - Section header matching is case-insensitive (`SRCSRV: ini` = `srcsrv: INI`).
 - Windows paths in `source files` are preserved as-is (not normalised to POSIX
   here; the adapter normalises when constructing git commands in subtask 05).
@@ -246,33 +246,33 @@ Empty `source files` section (no entries).
 
 ## Tests
 
-**Unit** (`tests/unit/test_srcsrv_parser.py` — new file):
+**Unit** (`tests/unit/test_srcsrv_parser.py` - new file):
 
-- `test_parse_git_stream_verctrl` — parse `sample_srcsrv_git.txt`; assert
+- `test_parse_git_stream_verctrl` - parse `sample_srcsrv_git.txt`; assert
   `stream.verctrl == "git"`.
-- `test_parse_git_stream_repo_url` — assert
+- `test_parse_git_stream_repo_url` - assert
   `stream.repo_url == "https://github.com/acme/svc"`.
-- `test_parse_git_stream_entry_count` — assert `len(stream.entries) == 3`.
-- `test_parse_git_stream_unique_revisions` — assert
+- `test_parse_git_stream_entry_count` - assert `len(stream.entries) == 3`.
+- `test_parse_git_stream_unique_revisions` - assert
   `len(stream.unique_revisions()) == 2`.
-- `test_parse_git_stream_files_for_revision` — `files_for_revision("abc123...")` ==
+- `test_parse_git_stream_files_for_revision` - `files_for_revision("abc123...")` ==
   `["C:\\src\\svc\\db_writer.cpp", "C:\\src\\svc\\main.cpp"]`.
-- `test_parse_tfvc_verctrl_uppercase` — parse `sample_srcsrv_tfvc.txt`; `verctrl`
-  is preserved as `"TFVC"` (not lowercased — the caller normalises).
-- `test_parse_tfvc_repo_url` — assert `repo_url == "https://dev.azure.com/acme/svc"`.
-- `test_parse_tfvc_three_field_entries` — `entries[0].revision == "42"` (TFVC
+- `test_parse_tfvc_verctrl_uppercase` - parse `sample_srcsrv_tfvc.txt`; `verctrl`
+  is preserved as `"TFVC"` (not lowercased - the caller normalises).
+- `test_parse_tfvc_repo_url` - assert `repo_url == "https://dev.azure.com/acme/svc"`.
+- `test_parse_tfvc_three_field_entries` - `entries[0].revision == "42"` (TFVC
   changeset number extracted from field index 1).
-- `test_parse_empty_source_files` — parse `sample_srcsrv_empty.txt`; `is_empty
+- `test_parse_empty_source_files` - parse `sample_srcsrv_empty.txt`; `is_empty
   == True`, `unique_revisions() == []`.
-- `test_parse_blank_text_returns_empty_stream` — `parse("")` returns a stream
+- `test_parse_blank_text_returns_empty_stream` - `parse("")` returns a stream
   with `verctrl == ""`, `repo_url == None`, `entries == []`.
-- `test_parse_missing_ini_section_no_raise` — stream with no `ini` section
+- `test_parse_missing_ini_section_no_raise` - stream with no `ini` section
   parses without raising; `verctrl == ""`.
-- `test_parse_malformed_line_skipped` — a line with no `*` in the `source files`
+- `test_parse_malformed_line_skipped` - a line with no `*` in the `source files`
   section is skipped; well-formed entries around it are still parsed.
-- `test_split_sections_returns_correct_keys` — `_split_sections` on the git
+- `test_split_sections_returns_correct_keys` - `_split_sections` on the git
   fixture returns keys `{"ini", "variables", "source files", "end"}`.
-- `test_extract_repo_url_unknown_verctrl_returns_none` — `_extract_repo_url`
+- `test_extract_repo_url_unknown_verctrl_returns_none` - `_extract_repo_url`
   with `verctrl="perforce"` and no `P4PORT` variable returns `None`.
 
 ## Success criteria

@@ -1,9 +1,9 @@
-# 05 — Tests
+# 05 - Tests
 
 **Parent task:** 07.0 Remediation Planner Agent
 **State:** ⬜ Not started
 **Depends on:** 01 (schema), 02 (agent), 03 (wiring), 04 (alignment)
-**Blocks:** —
+**Blocks:** -
 
 ## Objective
 
@@ -25,64 +25,64 @@ Summarized for completeness:
 - `test_remediation_plan_requires_human_approval_on_low_confidence`
 - `test_rca_report_remediation_plan_optional`
 - `test_rca_report_with_remediation_plan_roundtrips`
-- `test_remediation_step_rejects_readonly_rollback_when_not_idempotent` — a
+- `test_remediation_step_rejects_readonly_rollback_when_not_idempotent` - a
   `RemediationStep` with `idempotent=False` and
   `rollback="read-only: no state change"` raises `ValidationError`.
 
 ### Agent unit tests (`tests/unit/test_remediation_planner.py`)
 
-- `test_run_raises_not_implemented` — calling `agent.run(state)` on a
+- `test_run_raises_not_implemented` - calling `agent.run(state)` on a
   `RemediationPlannerAgent` raises `NotImplementedError`.
-- `test_run_synthesis_returns_plan_with_all_steps_idempotent` — with a mocked
+- `test_run_synthesis_returns_plan_with_all_steps_idempotent` - with a mocked
   `AIAPIBackend.generate` returning a `RemediationPlan` where every step has
   `idempotent=True` and a non-empty `rollback`, the method returns
   `(AgentTurn, RemediationPlan)` with no validation errors.
-- `test_run_synthesis_plan_has_rollback_on_every_step` — assert that in the
+- `test_run_synthesis_plan_has_rollback_on_every_step` - assert that in the
   returned plan, `all(step.rollback for step in plan.steps)` is `True`.
-- `test_run_synthesis_turn_has_synthesis_agent_label` — the returned `AgentTurn`
+- `test_run_synthesis_turn_has_synthesis_agent_label` - the returned `AgentTurn`
   has `agent == "Remediation Planner Agent"` and `turn_number == 0`.
-- `test_run_synthesis_does_not_include_raw_payload` — mock the `generate` call
+- `test_run_synthesis_does_not_include_raw_payload` - mock the `generate` call
   to capture the `messages` argument; assert that none of the message content
   strings contain the sentinel raw payload text (`"raw_text_excerpt"` key or
   its value). Use a `RCAReport` fixture where `raw_text_excerpt` is a distinct
   string.
-- `test_class_vars` — `RemediationPlannerAgent.agent_key == "remediation_planner"`,
+- `test_class_vars` - `RemediationPlannerAgent.agent_key == "remediation_planner"`,
   `category == "synthesis"`, `display_name == "Remediation Planner Agent"`.
 
 ### Playbook adapter unit tests (`tests/unit/test_remediation_planner.py`)
 
-- `test_playbook_adapter_contains_required_fields` — call
+- `test_playbook_adapter_contains_required_fields` - call
   `remediation_plan_to_playbook_dict(plan, report)` with a minimal valid plan
   and report; assert all of `id`, `name`, `trigger`, `steps`, `owner`,
   `severity` are present in the result dict.
-- `test_playbook_adapter_step_fields` — each step dict in the output contains
+- `test_playbook_adapter_step_fields` - each step dict in the output contains
   `id`, `description`, `action`, `idempotent`, `rollback`,
   `requires_authorisation`, `timeout`.
-- `test_playbook_adapter_requires_authorisation_maps_correctly` — a
+- `test_playbook_adapter_requires_authorisation_maps_correctly` - a
   `RemediationStep` with `requires_human_approval=True` produces a step dict
   where `requires_authorisation=True`.
-- `test_playbook_adapter_step_id_format` — step with `order=3` produces
+- `test_playbook_adapter_step_id_format` - step with `order=3` produces
   `step["id"] == "step-03"`.
 
 ## Mock pipeline tests (`tests/unit/test_orchestrator.py`)
 
-- `test_output_synthesizer_attaches_remediation_plan` — with a converged
+- `test_output_synthesizer_attaches_remediation_plan` - with a converged
   `InvestigationState`, a mocked `RemediationPlannerAgent.run_synthesis`
   returning a valid `(AgentTurn, RemediationPlan)`, and
   `enabled_synthesis=["remediation_planner"]` in settings, assert that
   `state["result"]["remediation_plan"]` is not `None` after
   `_output_synthesizer_node` runs.
-- `test_output_synthesizer_synthesis_disabled_leaves_plan_none` — with
+- `test_output_synthesizer_synthesis_disabled_leaves_plan_none` - with
   `enabled_synthesis=[]`, the synthesizer node completes without calling
   `run_synthesis`, and `state["result"]["remediation_plan"]` is `None`.
-- `test_output_synthesizer_synthesis_exception_is_soft_failure` — when
+- `test_output_synthesizer_synthesis_exception_is_soft_failure` - when
   `run_synthesis` raises an exception, the node does not propagate it;
   `state["result"]["remediation_plan"]` is `None` and the RCA report is
   still returned.
-- `test_hitl_node_never_calls_synthesis` — run `_hitl_node` with a deadlocked
+- `test_hitl_node_never_calls_synthesis` - run `_hitl_node` with a deadlocked
   state; assert `RemediationPlannerAgent.run_synthesis` is never called (use
   `unittest.mock.patch` to intercept).
-- `test_agent_spoke_emitted_after_synthesis` — after a successful synthesis
+- `test_agent_spoke_emitted_after_synthesis` - after a successful synthesis
   call, the `EventBus` receives an `AgentSpoke` event whose `agent` field is
   `"Remediation Planner Agent"`.
 
@@ -90,15 +90,15 @@ Summarized for completeness:
 
 All integration tests use mocked AI and storage backends (no live LLM or DB).
 
-- `test_converged_investigation_yields_remediation_plan` — run a full
+- `test_converged_investigation_yields_remediation_plan` - run a full
   orchestrator pipeline with mocked agents that converge in round 1; assert
   the returned `RCAReport.remediation_plan` is not `None`, has at least one
   step, and all steps have non-empty `rollback`.
-- `test_hitl_investigation_yields_no_remediation_plan` — configure the
+- `test_hitl_investigation_yields_no_remediation_plan` - configure the
   orchestrator to exhaust `max_debate_rounds=1` without convergence; assert
   the returned `RCAReport.remediation_plan is None` and
   `RCAReport.hitl_request is not None`.
-- `test_playbook_validate_compatible_output` — on a converged investigation,
+- `test_playbook_validate_compatible_output` - on a converged investigation,
   call `remediation_plan_to_playbook_dict(report.remediation_plan, report)` and
   assert every `/playbook-validate` required field is present at both playbook
   and step levels. This is a structural compatibility test, not a live skill

@@ -33,7 +33,7 @@ This subtask:
 
 ### `MultiServiceLogResult`
 
-A lightweight dataclass (not Pydantic — no serialisation needed) that holds the
+A lightweight dataclass (not Pydantic - no serialisation needed) that holds the
 combined result of a multi-service query.
 
 ```python
@@ -149,7 +149,7 @@ The multi-service service list is resolved as:
 - The default `query_window_multi` must not introduce `asyncio` import at module
   level if it is not already present; use `import asyncio` inside the method or
   at module top.
-- `_sort_log_lines` reuses `_parse_timestamp` from `core/data_adapter.py` — do
+- `_sort_log_lines` reuses `_parse_timestamp` from `core/data_adapter.py` - do
   not duplicate the regex. The simplest approach is to import the function
   directly; it is already module-level.
 - `FileLogAdapter` does not need to override `query_window_multi`; the default
@@ -161,18 +161,18 @@ The multi-service service list is resolved as:
 
 **Unit** (`tests/unit/test_log_backends.py`):
 
-- `test_query_window_multi_merges_lines` — create a `FileLogAdapter` with two
+- `test_query_window_multi_merges_lines` - create a `FileLogAdapter` with two
   service log files; call `query_window_multi(["svc-a", "svc-b"], ...)` and
   assert `result.lines` contains lines from both, `result.per_service` has
   both keys.
-- `test_query_window_multi_fail_open` — patch `query_window` on one service to
+- `test_query_window_multi_fail_open` - patch `query_window` on one service to
   raise `IOError`; assert that the other service's lines still appear in
   `result.lines`, and the failed service appears in `result.errors`.
-- `test_query_window_multi_sort_order` — two services each returning one line
+- `test_query_window_multi_sort_order` - two services each returning one line
   with distinct timestamps; assert `result.lines` is sorted ascending.
-- `test_query_window_multi_no_timestamp_lines_appended_last` — a line without a
+- `test_query_window_multi_no_timestamp_lines_appended_last` - a line without a
   timestamp should appear after all timestamped lines.
-- `test_data_adapter_uses_multi_when_services_list_provided` — patch
+- `test_data_adapter_uses_multi_when_services_list_provided` - patch
   `log_backend.query_window_multi` on a mock adapter; confirm Stage 4 calls
   `query_window_multi` (not `query_window`) when `source.metadata["services"]`
   is set.

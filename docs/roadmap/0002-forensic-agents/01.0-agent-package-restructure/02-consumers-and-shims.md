@@ -1,4 +1,4 @@
-# 02 — Update consumers & back-compat shims
+# 02 - Update consumers & back-compat shims
 
 **Parent task:** 01.0 Agent Package Restructure
 **State:** ⬜ Not started
@@ -24,7 +24,7 @@ Choose **one** of the two equivalent approaches and apply it uniformly; the
 re-export package `__init__` (Approach A) is preferred because it needs no
 deletable stub files.
 
-**Approach A — top-level re-export (preferred).** `agents/__init__.py`:
+**Approach A - top-level re-export (preferred).** `agents/__init__.py`:
 
 ```python
 from aegis_swr.agents.base import (
@@ -49,7 +49,7 @@ restore `from aegis_swr.agents.os_kernel import OSKernelAgent` (a submodule
 path). If any code or test uses the submodule path, repoint it to
 `aegis_swr.agents.base` (preferred), or add thin shim modules per Approach B.
 
-**Approach B — submodule shims (only if a submodule path must survive).** Create
+**Approach B - submodule shims (only if a submodule path must survive).** Create
 `agents/os_kernel.py` etc. each containing:
 
 ```python
@@ -75,9 +75,9 @@ from aegis_swr.agents.base.os_kernel import OSKernelAgent  # noqa: F401  (back-c
 ## Tests
 
 - Add `tests/unit/test_agents_package.py` (or extend an existing agents test):
-  - `test_base_import_path` — `from aegis_swr.agents.base import OSKernelAgent` etc.
-  - `test_top_level_reexport` — `from aegis_swr.agents import SkepticAgent`.
-  - (If Approach B is used) `test_legacy_submodule_shim` —
+  - `test_base_import_path` - `from aegis_swr.agents.base import OSKernelAgent` etc.
+  - `test_top_level_reexport` - `from aegis_swr.agents import SkepticAgent`.
+  - (If Approach B is used) `test_legacy_submodule_shim` -
     `from aegis_swr.agents.os_kernel import OSKernelAgent` still resolves.
 - Existing `test_agents.py` / `test_orchestrator.py` must pass unchanged (or with
   only import-line edits).

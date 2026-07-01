@@ -20,7 +20,7 @@ See **[docs/README.md](docs/README.md)** for the full index of architecture, roa
 ## Architecture
 
 Aegis SWR is built around a **Data Adapter → Multi-Agent Debate → Consensus** pipeline.
-See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full design rationale — deployment strategy,
+See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full design rationale - deployment strategy,
 Data Adapter preprocessing, agent personas, HITL escalation, and key constraints.
 See **[docs/specs/implementation_spec.md](docs/specs/implementation_spec.md)** for the
 authoritative implementation specification (schemas, pipelines, API contract).

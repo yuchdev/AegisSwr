@@ -58,7 +58,7 @@ emit APPROVE from an incomplete run.
 ## Completion checklist
 
 - [ ] Both `feature-reviewer` and `security-auditor` returned a verdict (not null / timed out)
-- [ ] If diff touches lifecycle files — `incident-analyst` result is present and accounted for
+- [ ] If diff touches lifecycle files - `incident-analyst` result is present and accounted for
 - [ ] Any CRITICAL security finding → overall verdict is BLOCK, not REQUEST_CHANGES
 - [ ] Combined blocking items de-duplicated across all agent reviews
 - [ ] If `--comment` and PR number known → synthesis posted as PR comment via `github` MCP

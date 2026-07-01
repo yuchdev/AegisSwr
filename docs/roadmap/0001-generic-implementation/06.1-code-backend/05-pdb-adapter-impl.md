@@ -27,13 +27,13 @@ class PdbCodeAdapter(CodeBackend):
 
     Reads build provenance from the SrcSrv stream embedded in a ``.pdb``
     (Program Database) file.  This yields the **exact** VCS revision compiled
-    into the crashing binary — no time-window guessing.
+    into the crashing binary - no time-window guessing.
 
     Supported VCS types (via ``VERCTRL`` in the SrcSrv stream):
 
-    - ``git`` — full diff and blame via ``git show`` / ``git blame``
-    - ``tfvc`` — ``get_commits_before`` only; diff and blame return empty
-    - unknown — ``get_commits_before`` only; diff and blame return empty
+    - ``git`` - full diff and blame via ``git show`` / ``git blame``
+    - ``tfvc`` - ``get_commits_before`` only; diff and blame return empty
+    - unknown - ``get_commits_before`` only; diff and blame return empty
 
     **Windows-only.** Constructor raises
     :class:`~aegis_swr.core.exceptions.CodeBackendError` on non-Windows.
@@ -65,7 +65,7 @@ def get_commits_before(
 ) -> list[CommitRecord]:
     """Return one CommitRecord per unique VCS revision in the SrcSrv stream.
 
-    *before* and *window_hours* are **ignored** — the SrcSrv stream records
+    *before* and *window_hours* are **ignored** - the SrcSrv stream records
     the exact revision built into the binary, making time-window heuristics
     unnecessary.  *limit* is also ignored (the number of unique revisions in
     a PDB is typically 1–3).
@@ -161,7 +161,7 @@ def blame(
 
 ### Private helpers
 
-#### `_dispatch_diff` — VERCTRL routing for diffs
+#### `_dispatch_diff` - VERCTRL routing for diffs
 
 ```python
 def _dispatch_diff(
@@ -180,7 +180,7 @@ def _dispatch_diff(
     return ""
 ```
 
-#### `_dispatch_blame` — VERCTRL routing for blame
+#### `_dispatch_blame` - VERCTRL routing for blame
 
 ```python
 def _dispatch_blame(
@@ -199,7 +199,7 @@ def _dispatch_blame(
     return []
 ```
 
-#### `_git_show` — `git show {sha}:{file_path}`
+#### `_git_show` - `git show {sha}:{file_path}`
 
 ```python
 def _git_show(self, repo_path: str, file_path: str, sha: str) -> str:
@@ -221,7 +221,7 @@ def _git_show(self, repo_path: str, file_path: str, sha: str) -> str:
     return proc.stdout if proc.returncode == 0 else ""
 ```
 
-#### `_git_blame` — `git blame -L ... {sha} -- {file_path}`
+#### `_git_blame` - `git blame -L ... {sha} -- {file_path}`
 
 ```python
 def _git_blame(
@@ -277,7 +277,7 @@ def _find_revision_for_file(
     return revisions[0] if revisions else None
 ```
 
-#### `_pdb_mtime` — PDB file modification time
+#### `_pdb_mtime` - PDB file modification time
 
 ```python
 def _pdb_mtime(pdb_path: Path) -> datetime:
@@ -303,7 +303,7 @@ from aegis_swr.backends.code.pdbstr_wrapper import _is_windows
 
 - `_git_show` and `_git_blame` use list-form argv (no `shell=True`).
 - Both fail open (`return ""` / `return []`) on `FileNotFoundError` and
-  `TimeoutExpired` — these are not `CodeBackendError` because git availability
+  `TimeoutExpired` - these are not `CodeBackendError` because git availability
   is not guaranteed in a symbols-only environment.
 - `_parse_blame_porcelain` is imported from `git_adapter` to avoid duplication
   (it is a module-level function, already unit-tested).

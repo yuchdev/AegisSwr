@@ -1,32 +1,191 @@
 ---
 name: update-docs
-description: >-
-  After a documentation file is edited, finds every stale inbound reference
-  to its renamed/removed/moved sections - across docs/ AND src/ docstrings
-  and comments - delegates fixes to the docs and coder agents, and loops
-  until /link-check exits 0. Invoke as: /loop update-docs <doc-path>
-invoke: /loop update-docs <doc-path>
-terminates-when: >-
-  python scripts/check_doc_links.py exits 0 AND no stale heading references
-  remain from the detected renames/deletions in the target file.
+description: >
+  Two modes: (A) no-arg scan — full-corpus registry audit that finds broken
+  .md cross-references, auto-fixes high-confidence link targets, and writes a
+  review report for everything else; (B) <path> — after editing a specific doc,
+  propagates heading renames/deletions across docs/ AND src/ docstrings and
+  comments until check_doc_links.py exits 0.
+invoke: /loop update-docs [<doc-path>]
+terminates-when: >
+  Scan mode: doc_registry.py exits 0 (no missing .md references remain) AND
+  no high-confidence renames are pending.
+  Path mode: check_doc_links.py exits 0 AND no stale heading refs remain.
 ---
 
-# update-docs - propagate doc-section changes across docs and code
+# update-docs
 
-A documentation file was edited: headings renamed, sections moved, content
-restructured. Every other file that referenced those headings - as Markdown
-links, prose mentions, `See §X.Y` notes in docstrings, `# docs/…` comments -
-is now stale. This loop finds and fixes all of them, iterating until clean.
+Two modes sharing one file. Dispatch on `$ARGUMENTS`:
+
+- **No argument** → [Scan mode](#scan-mode) — full-corpus audit.
+- **`<path>` argument** → [Path mode](#path-mode) — single-file propagation.
+
+---
+
+## Scan mode
+
+Runs when `$ARGUMENTS` is empty or equals `--scan`. Audits every `*.md` file
+under `docs/` and `.claude/`, builds a registry of existing files, finds
+cross-references that point at missing files, auto-fixes those it can, and
+produces a review report for the rest.
+
+**Supplements, does not replace** `/link-check` and `/doc-xref`. Those check
+outbound anchors and inbound prose references respectively. Scan mode checks
+whether referenced *files* exist at all.
+
+### A0 — Linkify bare mentions first
+
+Before scanning for missing files, convert all bare `*.md` prose mentions to
+links so they are visible to the registry scanner:
+
+```bash
+python scripts/linkify_doc_mentions.py
+```
+
+Unresolvable mentions (ambiguous basenames, paths not yet created) are written
+to `.claude/state/linkify-report.md` — surface this file to the user at the
+end of the scan if it is non-empty.
+
+### A1 — Run the registry scanner
+
+```bash
+python scripts/doc_registry.py --json --cursor .claude/state/update-docs-scan.json
+```
+
+Read `.claude/state/update-docs-scan.json`. The schema is:
+
+```json
+{
+  "registry": ["docs/README.md", ...],
+  "missing": [
+    {
+      "source": "docs/foo.md",
+      "line": 42,
+      "target": "relative/path/in/link.md",
+      "resolved": "docs/resolved/path.md",
+      "candidates": [
+        {"path": "docs/actual/path.md", "confidence": "high|medium", "reason": "..."}
+      ]
+    }
+  ],
+  "summary": {
+    "registry_size": N,
+    "total_md_links": N,
+    "missing_count": N,
+    "high_confidence": N,
+    "needs_review": N
+  }
+}
+```
+
+### A2 — Check for convergence
+
+If `summary.missing_count == 0`: print
+`"update-docs scan: clean — all .md references resolve."` and **stop**.
+
+If the cursor `missing` list is identical to the list seen on the **previous
+iteration** (same `source::resolved` pairs, no change): write the review
+report (Step A5) and **stop** — no further automatic progress is possible.
+
+### A3 — Classify the missing references
+
+Split `missing` into two buckets:
+
+| Bucket | Criterion | Action |
+|--------|-----------|--------|
+| `auto_fix` | `candidates[0].confidence == "high"` | delegate to `docs-updater` |
+| `review` | no candidates, or top candidate is `"medium"` | write report, user decides |
+
+### A4 — Auto-fix high-confidence targets
+
+For each item in `auto_fix`, delegate to the **`docs-updater` agent** in a
+single call (batch all items together), passing:
+
+- The list of `(source_file, line, old_target, new_target)` corrections.
+  - `old_target` = the raw link target as written in the source file (the
+    `"target"` field from the cursor — NOT the resolved path).
+  - `new_target` = the correct repo-root-relative path from
+    `candidates[0].path`, rewritten as the shortest correct relative path
+    from the source file's directory. Use Python's `os.path.relpath()` logic
+    (or an absolute `/`-prefixed path when a relative rewrite would be
+    confusing).
+- Instruction: **"Update only the link target. Do not change link text,
+  surrounding prose, or any other part of the file."**
+
+Do NOT rename files with `git mv`. The registry already has the correct file
+at `candidates[0].path`; the link in the source was simply pointing at the
+wrong path. Updating the link is sufficient.
+
+After `docs-updater` returns, record the files it touched.
+
+### A5 — Write review report
+
+Write `.claude/state/update-docs-report.md` for all items in `review`:
+
+```markdown
+# Documentation Link Review — <ISO date>
+
+Generated by `/loop update-docs --scan`. The following broken .md references
+could not be auto-fixed. For each entry: decide whether to (a) update the link
+to point at an existing file, (b) create the missing file, or (c) remove the
+link.
+
+## Items requiring human decision
+
+| # | Source | Line | Missing target | Top candidate | Candidate confidence |
+|---|--------|------|----------------|---------------|----------------------|
+...rows from review bucket...
+
+## How to resolve
+
+- To update a link: edit the source file and run `/link-check <source>`.
+- To create a missing file: create it, then run `/loop update-docs` again
+  to verify the reference resolves.
+- To remove a link: delete it and run `/link-check <source>`.
+
+After all items are resolved, re-run `/loop update-docs` to confirm clean.
+```
+
+Print the full contents of the report to the conversation so the user sees it
+immediately without reading the file.
+
+### A6 — Re-verify
+
+If Step A4 made any changes, re-run the scanner to confirm fixes landed:
+
+```bash
+python scripts/doc_registry.py
+```
+
+If `missing_count == 0`: print a one-line summary (N references fixed, files
+touched) and **stop**.
+
+If remaining `missing` items are all in `review` (no new `high_confidence`
+items emerged): print the summary + note that the review report is at
+`.claude/state/update-docs-report.md`, and **stop**.
+
+### A7 — Reschedule
+
+Only reschedule if Step A6 reveals *new* `high_confidence` items that were not
+in the original cursor (which would be unusual — it means a fix introduced a
+new broken link). In that case call `ScheduleWakeup` with:
+
+- `prompt`: `/loop update-docs`
+- `delaySeconds`: `270`
+- `reason`: `"update-docs scan: N new high-confidence renames appeared after fixes"`
+
+---
+
+## Path mode
+
+Runs when `$ARGUMENTS` is a file path. Propagates heading renames and
+deletions from a single edited file across the whole repo.
 
 **Supplements, does not replace** `/doc-xref` and `/link-check`. Those skills
-are atomic discovery/validation steps. This loop calls them at the right
+are atomic discovery/validation steps. This mode calls them at the right
 checkpoints and routes their findings to the right agent.
 
----
-
-## Iteration algorithm
-
-### Step 1 - resolve the target file
+### Step 1 — Resolve the target file
 
 Read the argument supplied to the loop invocation (`$ARGUMENTS`).
 
@@ -34,30 +193,30 @@ Read the argument supplied to the loop invocation (`$ARGUMENTS`).
   file exists. Record it as `TARGET`.
 - If no path was provided: run `git diff --name-only HEAD` and filter to
   `*.md` files. If exactly one changed file: use it. If multiple: print the
-  list and ask the user which one to process, then stop the loop - it cannot
+  list and ask the user which one to process, then **stop** — it cannot
   proceed without a single unambiguous target.
 
-### Step 2 - detect what changed in TARGET
+### Step 2 — Detect what changed in TARGET
 
 Run `git diff HEAD -- <TARGET>` to obtain the unified diff.
 
 From the diff, extract two lists:
 
-**Removed headings** - lines starting with `-#` (any level). For each:
+**Removed headings** — lines starting with `-#` (any level). For each:
 - Record the raw heading text (e.g. `Data Adapter Layer`).
 - Compute the old GitHub-style anchor: lowercase, spaces→`-`, strip
   punctuation except `-`. Example: `Data Adapter Layer` → `#data-adapter-layer`.
 
-**Added headings** - lines starting with `+#`. If a removed heading has a
+**Added headings** — lines starting with `+#`. If a removed heading has a
 corresponding added heading that is clearly a rename (same level, similar
 words, adjacent in diff), record the pair as `old_anchor → new_anchor`.
 Otherwise treat the removal as a deletion with no replacement.
 
 If the diff shows no heading changes (only content edits within existing
-sections), skip to Step 3b - there are no anchor renames to propagate, but
+sections), skip to Step 3b — there are no anchor renames to propagate, but
 outbound links from TARGET may still be broken.
 
-### Step 3a - find stale inbound references to changed headings
+### Step 3a — Find stale inbound references to changed headings
 
 For each old anchor or heading text identified in Step 2, search across the
 full repo:
@@ -73,12 +232,13 @@ git grep -rin "<old heading text>" -- "docs/" "*.md" ".claude/"
 git grep -rn "<old-anchor>\|<old heading text>" -- "src/" "tests/"
 ```
 
-Collect results as a list of `(file, line_number, match_text, ref_type)` tuples
-where `ref_type` is one of: `md-link`, `prose`, `code-docstring`, `code-comment`.
+Collect results as a list of `(file, line_number, match_text, ref_type)`
+tuples where `ref_type` is one of: `md-link`, `prose`, `code-docstring`,
+`code-comment`.
 
-Discard matches in the TARGET file itself (its own edits are already applied).
+Discard matches in TARGET itself (its own edits are already applied).
 
-### Step 3b - find broken outbound links in TARGET
+### Step 3b — Find broken outbound links in TARGET
 
 Run the link checker on the target file:
 
@@ -86,27 +246,27 @@ Run the link checker on the target file:
 python scripts/check_doc_links.py <TARGET>
 ```
 
-Collect each `missing anchor` or `missing file` finding as a separate fix item.
-These are broken links inside TARGET, not broken links pointing at TARGET -
-they arise when TARGET references another doc that was simultaneously changed.
+Collect each `missing anchor` or `missing file` finding as a separate fix
+item. These are broken links inside TARGET — they arise when TARGET references
+another doc that was simultaneously changed.
 
-### Step 4 - check for convergence
+### Step 4 — Check for convergence
 
 If Step 3a produced zero stale references AND Step 3b produced zero broken
-links: print "update-docs: clean - no stale references remain." and **stop**
+links: print `"update-docs: clean — no stale references remain."` and **stop**
 (do NOT call ScheduleWakeup).
 
-If the same stale references appeared in the previous iteration unchanged
-(no progress): stop and surface each remaining reference to the user as
-"Needs human review - could not auto-resolve."
+If the same stale references appeared in the previous iteration unchanged (no
+progress): stop and surface each remaining reference to the user as
+`"Needs human review — could not auto-resolve."`.
 
 Otherwise continue to Step 5.
 
-### Step 5 - delegate fixes to the right agent
+### Step 5 — Delegate fixes to the right agent
 
-Split the findings from Step 3a and 3b into two buckets:
+Split the findings from Steps 3a and 3b into two buckets:
 
-#### Bucket A - documentation files (.md)
+#### Bucket A — documentation files (.md)
 
 Files under `docs/`, repo-root `*.md`, `.claude/**/*.md`.
 
@@ -121,9 +281,7 @@ Delegate to the **`docs-updater` agent** in a single call, passing:
 - For Step 3b findings (outbound broken links from TARGET itself): also pass
   those to the `docs-updater` agent to fix in place.
 
-#### Bucket B - code files (src/, tests/)
-
-Files under `src/` and `tests/`, any extension.
+#### Bucket B — code files (src/, tests/)
 
 Classify each hit:
 - **Docstring reference** (`"""…See docs/…"""`, `:seealso:`, `References:` block):
@@ -139,7 +297,7 @@ Brief the `python-expert` agent with:
 
 Both buckets may be delegated **in parallel** when the file sets do not overlap.
 
-### Step 6 - verify
+### Step 6 — Verify
 
 Run the full link checker over the whole doc set (not just TARGET):
 
@@ -147,14 +305,14 @@ Run the full link checker over the whole doc set (not just TARGET):
 python scripts/check_doc_links.py
 ```
 
-If it exits 0: the iteration is clean. Proceed to Step 7 (reschedule check).
+If it exits 0: the iteration is clean. Proceed to Step 7.
 
 If it exits non-zero: the checker found new or remaining broken links. Treat
-its output as the input to the next iteration - go back to Step 3b and Step 5
+its output as the input to the next iteration — go back to Step 3b and Step 5
 for those specific files. Do NOT re-diff TARGET (Step 2 is skipped on
 subsequent passes; the heading-rename map is computed once and reused).
 
-### Step 7 - reschedule or terminate
+### Step 7 — Reschedule or terminate
 
 If Step 6 was clean AND Step 3a found no stale refs this pass:
 - Print a summary: number of references fixed, files touched, agents called.
@@ -163,7 +321,7 @@ If Step 6 was clean AND Step 3a found no stale refs this pass:
 Otherwise call ScheduleWakeup with:
 - `prompt`: the literal text `/loop update-docs <TARGET>` (preserve the path)
 - `delaySeconds`: `270`  ← keeps the cache window warm (< 300 s TTL)
-- `reason`: "continuing update-docs pass for <TARGET> - N stale refs remain"
+- `reason`: `"continuing update-docs pass for <TARGET> — N stale refs remain"`
 
 ---
 
@@ -171,6 +329,7 @@ Otherwise call ScheduleWakeup with:
 
 | Finding type | File location | Agent |
 |--------------|---------------|-------|
+| Broken .md link target (high-confidence rename) | `docs/`, `.claude/` | `docs-updater` |
 | Broken anchor in a Markdown link | `docs/`, repo `*.md`, `.claude/` | `docs-updater` |
 | Stale prose mention of old heading text | `docs/`, repo `*.md` | `docs-updater` |
 | `docs/README.md` registry line (file renamed/moved) | `docs/README.md` | `docs-updater` |
@@ -178,7 +337,7 @@ Otherwise call ScheduleWakeup with:
 | Inline comment pointing to old anchor | `src/`, `tests/` | `python-expert` |
 | Broken outbound link inside TARGET itself | TARGET | `docs-updater` |
 
-Never delegate `.claude/CLAUDE.md` edits to an agent - surface those to the
+Never delegate `.claude/CLAUDE.md` edits to an agent — surface those to the
 user; they require deliberate human review.
 
 ---
@@ -187,22 +346,35 @@ user; they require deliberate human review.
 
 | Point in loop | Skill / command | Purpose |
 |---------------|-----------------|---------|
-| Step 3a | `git grep` (direct) | Fast, exact inbound-ref discovery |
-| Step 3b | `/link-check <TARGET>` | Validates TARGET's outbound links |
-| Step 6 | `/link-check` (whole repo) | Final gate; loop continues until exit 0 |
-| Optional, before loop | `/doc-xref <TARGET>` | Broader reference audit including prose mentions and registry entries; useful for large structural changes before Step 3a |
+| Scan A1 | `scripts/doc_registry.py` | Build file registry + detect missing-file refs |
+| Path 3b | `/link-check <TARGET>` | Validates TARGET's outbound links |
+| Path 6 | `/link-check` (whole repo) | Final gate; loop continues until exit 0 |
+| Optional, before path loop | `/doc-xref <TARGET>` | Broader reference audit including prose mentions |
+| One-shot registry audit | `/doc-registry` | Non-looping version of scan mode |
 
-> `/link-check` catches broken *outbound* links from a file. `/doc-xref`
-> finds *inbound* references from elsewhere. This loop uses both, directed at
-> different things and at different iteration stages.
+> `/link-check` catches broken *outbound* links from a file.
+> `/doc-xref` finds *inbound* references from elsewhere.
+> `/doc-registry` (or scan mode) finds *missing-file* references corpus-wide.
+> This loop uses all three, directed at different things and at different stages.
 
 ---
 
 ## Termination conditions
 
+### Scan mode
+
+| Condition | Action |
+|-----------|--------|
+| `doc_registry.py` exits 0 | Print "clean", stop |
+| All remaining items are in `review` bucket | Write report, stop |
+| Same `missing` list two iterations in a row | Write report, stop |
+| New `high_confidence` items after A4 fixes | Reschedule at 270 s |
+
+### Path mode
+
 | Condition | Action |
 |-----------|--------|
 | Step 6 exits 0 AND Step 3a found 0 stale refs | Print summary, stop |
 | Identical stale refs after two consecutive passes | Surface to user, stop |
-| No heading changes detected AND Step 3b finds 0 broken links | Print "Nothing to update", stop immediately |
-| `docs-updater` or `python-expert` agent returns an edit conflict or ambiguity | Surface the specific file:line to user, continue with the rest |
+| No heading changes AND Step 3b finds 0 broken links | Print "Nothing to update", stop immediately |
+| `docs-updater` or `python-expert` returns edit conflict | Surface file:line to user, continue with rest |

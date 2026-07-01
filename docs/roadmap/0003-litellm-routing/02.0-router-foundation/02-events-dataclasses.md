@@ -1,4 +1,4 @@
-# 02 — events.py — RouterEvent dataclasses
+# 02 - events.py - RouterEvent dataclasses
 
 **Parent task:** 02.0 Router Foundation Types
 **State:** ⬜ Not started
@@ -7,7 +7,7 @@
 
 ## Objective
 
-Implement `aegis/router/events.py` — the four `RouterEvent` frozen dataclasses
+Implement `aegis/router/events.py` - the four `RouterEvent` frozen dataclasses
 that `ModelRouter` emits on the `EventBus`. These extend the existing event
 taxonomy in `aegis/events.py` without importing from it (they are a separate
 concern; the bus is untyped enough to accept any dataclass).
@@ -69,7 +69,7 @@ class RouterFallbackUsed:
 
 - `ClassVar[str] event_type` allows `EventBus` subscribers to filter by type
   using `event.event_type == "router.call.completed"` without `isinstance`
-  checks — consistent with the existing event pattern.
+  checks - consistent with the existing event pattern.
 - `RouterCallCompleted` is the **only** event that carries token counts and
   cost. Duplicating these across events would complicate telemetry aggregation.
 - `cost_usd: Optional[float]` (not `float`) because LiteLLM cannot determine

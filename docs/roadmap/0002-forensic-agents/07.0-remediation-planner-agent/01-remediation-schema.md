@@ -1,8 +1,8 @@
-# 01 — RemediationPlan / RemediationStep schema
+# 01 - RemediationPlan / RemediationStep schema
 
 **Parent task:** 07.0 Remediation Planner Agent
 **State:** ⬜ Not started
-**Depends on:** Task 02.0 (C6 — shared-contracts schema extension pattern)
+**Depends on:** Task 02.0 (C6 - shared-contracts schema extension pattern)
 **Blocks:** 02, 03
 
 ## Objective
@@ -67,7 +67,7 @@ This field is `None` on HITL outcomes (never populated by `_hitl_node`) and
   field has a default; here `steps` is required (no default).
 - `mypy --strict` must pass; the validator method is annotated
   `-> RemediationPlan` and uses `@model_validator(mode="after")`.
-- The `rollback` field is a plain `str` (not `Optional[str]`) — every step must
+- The `rollback` field is a plain `str` (not `Optional[str]`) - every step must
   supply one. This is a deliberate design choice that prevents silent omissions.
 - RST-style docstrings (`:ivar:`, `:type:`) on both new models and on the
   updated `RCAReport.remediation_plan` field, consistent with the surrounding
@@ -75,22 +75,22 @@ This field is `None` on HITL outcomes (never populated by `_hitl_node`) and
 
 ## Tests (`tests/unit/test_schemas.py`)
 
-- `test_remediation_step_requires_rollback` — constructing `RemediationStep`
+- `test_remediation_step_requires_rollback` - constructing `RemediationStep`
   with an empty `rollback` string raises `ValidationError`.
-- `test_remediation_step_defaults` — `verification`, `risk` default to `None`;
+- `test_remediation_step_defaults` - `verification`, `risk` default to `None`;
   `requires_human_approval` defaults to `False`.
-- `test_remediation_plan_rejects_empty_steps` — `RemediationPlan(steps=[],
+- `test_remediation_plan_rejects_empty_steps` - `RemediationPlan(steps=[],
   summary="x", confidence=0.9, requires_human_approval=False)` raises
   `ValidationError`.
-- `test_remediation_plan_rejects_non_contiguous_order` — steps with `order`
+- `test_remediation_plan_rejects_non_contiguous_order` - steps with `order`
   values `[1, 3]` raise `ValidationError`; values `[1, 2, 3]` pass.
-- `test_remediation_plan_requires_human_approval_on_low_confidence` — a plan
+- `test_remediation_plan_requires_human_approval_on_low_confidence` - a plan
   with `confidence=0.60` and no step-level approval flags still reports
   `requires_human_approval=True` after the model validator runs.
-- `test_rca_report_remediation_plan_optional` — an `RCAReport` constructed
+- `test_rca_report_remediation_plan_optional` - an `RCAReport` constructed
   without `remediation_plan` serializes without error and
   `report.remediation_plan is None`.
-- `test_rca_report_with_remediation_plan_roundtrips` — a full `RCAReport` with
+- `test_rca_report_with_remediation_plan_roundtrips` - a full `RCAReport` with
   a valid `RemediationPlan` survives `model_dump_json()` → `model_validate_json()`
   round-trip with identity on all `RemediationStep` fields.
 

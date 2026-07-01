@@ -1,6 +1,6 @@
-# Task 02.0 — Extensible Panel (Registry / Consensus / Orchestration)
+# Task 02.0 - Extensible Panel (Registry / Consensus / Orchestration)
 
-**Parent milestone:** [Milestone 0002 — Forensic Agents](/docs/roadmap/0002-forensic-agents/plan.md)
+**Parent milestone:** [Milestone 0002 - Forensic Agents](/docs/roadmap/0002-forensic-agents/plan.md)
 **Status:** ⬜ Not started
 
 ## Scope
@@ -17,7 +17,7 @@ change in lock-step:
    by a new `create_agent_panel()` factory, instead of wiring four fixed nodes.
 
 The non-negotiable property of this task: **with no specialists enabled, behavior
-is byte-identical to Milestone 0001** — same node chain, same consensus numbers.
+is byte-identical to Milestone 0001** - same node chain, same consensus numbers.
 
 See the authoritative contracts C2–C5 in the
 [milestone plan](/docs/roadmap/0002-forensic-agents/plan.md#shared-contracts-authoritative).
@@ -31,7 +31,7 @@ See the authoritative contracts C2–C5 in the
 | 03 | [Agent registry & panel factory](03-registry-and-panel-factory.md) | ⬜ Not started | 04 |
 | 04 | [Dynamic orchestrator panel](04-orchestrator-dynamic-panel.md) | ⬜ Not started | 06 |
 | 05 | [Config model & examples](05-config-model.md) | ⬜ Not started | 06 |
-| 06 | [Tests](06-tests.md) | ⬜ Not started | — |
+| 06 | [Tests](06-tests.md) | ⬜ Not started | - |
 
 Subtasks 01, 02, 03 are largely independent and may proceed in parallel; 04
 depends on all three; 05 can land alongside 03; 06 gates the task.

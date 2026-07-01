@@ -1,6 +1,6 @@
-# Task 01.0 — agents.yaml Schema Extension
+# Task 01.0 - agents.yaml Schema Extension
 
-**Parent milestone:** [Milestone 0003 — LiteLLM Model Router](/docs/roadmap/0003-litellm-routing/plan.md)
+**Parent milestone:** [Milestone 0003 - LiteLLM Model Router](/docs/roadmap/0003-litellm-routing/plan.md)
 **Status:** ⬜ Not started
 
 ## Scope
@@ -25,11 +25,11 @@ the `RouterConfig` loader (which lives in Task 02.0 but validates this schema).
 ## Key constraints
 
 - All existing fields (`model`, `role`) remain valid without the new optional
-  fields — no breaking change to `agents.yaml` consumers.
+  fields - no breaking change to `agents.yaml` consumers.
 - `${ENV_VAR}` references in `api_key` and `base_url` are resolved at load
   time; missing vars surface as a **single** `ConfigValidationError` that lists
   all missing names at once, not one at a time.
 - A reference to an undefined `providers` key in an agent entry raises
   `ConfigValidationError` with a clear message.
-- No credentials hard-coded in YAML — all secrets come from environment
+- No credentials hard-coded in YAML - all secrets come from environment
   variables per `.claude/CLAUDE.md` §3.

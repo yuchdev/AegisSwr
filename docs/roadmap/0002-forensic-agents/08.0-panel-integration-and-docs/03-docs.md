@@ -1,9 +1,9 @@
-# 03 — Docs
+# 03 - Docs
 
-**Parent task:** Task 08.0 — Panel Integration, Docs & Hardening
+**Parent task:** Task 08.0 - Panel Integration, Docs & Hardening
 **Status:** ⬜ Not started
-**Depends on:** 01-default-panels-and-weight-audit.md
-**Blocks:** 05-milestone-closeout.md
+**Depends on:** [01-default-panels-and-weight-audit.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/01-default-panels-and-weight-audit.md)
+**Blocks:** [05-milestone-closeout.md](/docs/roadmap/0002-forensic-agents/08.0-panel-integration-and-docs/05-milestone-closeout.md)
 
 ---
 
@@ -22,7 +22,7 @@ agents: `os_kernel`, `code_analyst`, `log_historian`, `skeptic`. Expand this
 notice to list the full roster with one-line roles.
 
 **Exact location in file:** The paragraph beginning "The product contains its
-own analytical agents inside `src/aegis_swr/agents/`" — replace the inline
+own analytical agents inside `src/aegis_swr/agents/`" - replace the inline
 parenthetical that lists four agents with the expanded table below. Do not alter
 the dev-fleet content that follows.
 
@@ -69,7 +69,7 @@ configuration.
 
 ---
 
-## 3. `docs/specs/agentic_fleet_design.md` — §1 Domain glossary
+## 3. `docs/specs/agentic_fleet_design.md` - §1 Domain glossary
 
 **What to change:** The glossary entry for "Consensus" currently reads:
 
@@ -103,10 +103,10 @@ No other §1 content changes. Do not alter §2 onwards.
 currently reads:
 
 ```
-| 0002 | Forensic agents (agentic execution brief) | plan.md | — |
+| 0002 | Forensic agents (agentic execution brief) | plan.md | - |
 ```
 
-The `—` in the Status column should be replaced with a link to `status.md` once
+The `-` in the Status column should be replaced with a link to `status.md` once
 Task 08.0 subtask 05 flips all rows to complete. However, this subtask (03) only
 updates the description to reflect the decomposed state. Change the row to:
 
@@ -134,7 +134,7 @@ modes to watch for:
 - The new heading "Panel configuration" in `docs/config/agents.md` must be
   spelled exactly as any inbound link expects.
 - The `plan.md` links in this task's own subtask files use absolute paths
-  (`/docs/roadmap/0002-forensic-agents/plan.md`) — verify they resolve.
+  (`/docs/roadmap/0002-forensic-agents/plan.md`) - verify they resolve.
 - The `agent_key` anchor links in the new agents table must not conflict with
   existing heading IDs in `docs/agent/agents.md`.
 
@@ -152,4 +152,4 @@ modes to watch for:
       description.
 - [ ] `python scripts/check_doc_links.py docs/` exits 0 with no broken links.
 - [ ] No prose in the dev-fleet agent descriptions (`.claude/agents/`) is
-      modified — those describe dev-time assistants, not the product roster.
+      modified - those describe dev-time assistants, not the product roster.

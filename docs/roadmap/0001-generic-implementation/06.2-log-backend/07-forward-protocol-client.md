@@ -1,7 +1,7 @@
 # 07 – Fluent msgpack forward protocol client
 
 **Parent milestone:** 6.2 Log Backend – Fluentd Stack
-**State:** ⬜ Blocked — requires answers to [05-design-clarifications.md](05-design-clarifications.md) Q1, Q2, Q5
+**State:** ⬜ Blocked - requires answers to [05-design-clarifications.md](05-design-clarifications.md) Q1, Q2, Q5
 **Depends on:** 01, 03, 04, 05
 **Blocks:** 08
 
@@ -89,7 +89,7 @@ class FluentForwardClient:
         """
 ```
 
-### Subscription request frame (TBD — fill in after Q2 answers)
+### Subscription request frame (TBD - fill in after Q2 answers)
 
 The exact wire format for requesting a time-range slice is not standardised;
 this will be defined once the target Fluentd plugin or proxy is confirmed. 
@@ -120,7 +120,7 @@ def _decode_frame(raw: bytes, tag: str) -> list[tuple[datetime, dict[str, Any]]]
     """
 ```
 
-### TLS support (TBD — fill in after Q3 answers)
+### TLS support (TBD - fill in after Q3 answers)
 
 If `settings.fluent_tls_enabled` is True, wrap the `asyncio.StreamReader/Writer`
 in an `ssl.SSLContext` created from `fluent_tls_ca_cert` and optionally
@@ -142,9 +142,9 @@ in an `ssl.SSLContext` created from `fluent_tls_ca_cert` and optionally
 
 **Unit** (mock TCP server via `asyncio.start_server` in a fixture or `asynctest`):
 
-- `test_forward_message_frame_decoded` — send a `Message`-type msgpack frame;
+- `test_forward_message_frame_decoded` - send a `Message`-type msgpack frame;
   assert one `(datetime, dict)` pair returned.
-- `test_forward_batch_frame_decoded` — send a `Forward`-type frame with 3 entries;
+- `test_forward_batch_frame_decoded` - send a `Forward`-type frame with 3 entries;
   assert 3 pairs returned.
 - `test_eventtime_ext_decoded_to_utc_datetime`.
 - `test_connect_error_raises_fluent_connection_error`.
@@ -152,9 +152,9 @@ in an `ssl.SSLContext` created from `fluent_tls_ca_cert` and optionally
 - `test_max_events_cap_stops_reading`.
 - `test_context_manager_closes_writer`.
 
-**Integration** (TBD — see Q8):
+**Integration** (TBD - see Q8):
 
-- `test_query_against_test_fluentd_forward_port` — real TCP connection to a
+- `test_query_against_test_fluentd_forward_port` - real TCP connection to a
   Docker Compose Fluentd if available.
 
 ## Success criteria

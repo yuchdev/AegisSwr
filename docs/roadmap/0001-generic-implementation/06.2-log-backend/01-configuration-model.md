@@ -9,7 +9,7 @@
 
 Extend `LogBackendSettings` (currently a minimal stub) with the full set of
 Fluent-specific connection, query, and multi-service fields needed to make the
-adapter production-configurable. No implementation code yet — only the settings
+adapter production-configurable. No implementation code yet - only the settings
 model and its validator coverage.
 
 The existing fields (`fluent_host`, `fluent_port`, `fluent_tag_prefix`) are
@@ -23,7 +23,7 @@ and tightens the validator.
 
 ## Classes / symbols
 
-### `LogBackendSettings(BaseSettings)` — full field table
+### `LogBackendSettings(BaseSettings)` - full field table
 
 All new fields in **bold**; existing fields carried over unchanged.
 
@@ -38,7 +38,7 @@ All new fields in **bold**; existing fields carried over unchanged.
 | `fluent_tag_prefix` | `Optional[str]` | `None` | Tag prefix; `{prefix}.{service}` forms the full tag. |
 | **`fluent_protocol`** | `str` | `"http"` | `http \| forward`. Chooses the query client. Validated. |
 | **`fluent_query_path`** | `str` | `"/api/logs/query"` | HTTP path for log queries (only relevant when `fluent_protocol="http"`). |
-| **`fluent_auth_token`** | `Optional[str]` | `None` | Bearer token for HTTP endpoints. Treated as a secret — `SensitiveFilter` must cover this field name. |
+| **`fluent_auth_token`** | `Optional[str]` | `None` | Bearer token for HTTP endpoints. Treated as a secret - `SensitiveFilter` must cover this field name. |
 | **`fluent_tls_enabled`** | `bool` | `False` | Enable TLS for HTTP or forward protocol. |
 | **`fluent_tls_ca_cert`** | `Optional[str]` | `None` | Path to CA bundle (PEM) for TLS verification. |
 | **`fluent_tls_client_cert`** | `Optional[str]` | `None` | Path to client cert (PEM) for mutual TLS. |
@@ -111,17 +111,17 @@ _SECRET_KEYS = {
 
 **Unit** (`tests/unit/test_settings.py`):
 
-- `test_fluent_protocol_validator_accepts_http_forward` — `"http"` and
+- `test_fluent_protocol_validator_accepts_http_forward` - `"http"` and
   `"forward"` construct without error; an unknown value raises
   `ValidationError`.
-- `test_fluent_defaults` — all new fields equal the documented defaults when
+- `test_fluent_defaults` - all new fields equal the documented defaults when
   no kwargs are supplied.
-- `test_fluent_services_empty_by_default` — `fluent_services == []`.
-- `test_fluent_env_override` — `AEGIS__backends__log__fluent_host` overrides
+- `test_fluent_services_empty_by_default` - `fluent_services == []`.
+- `test_fluent_env_override` - `AEGIS__backends__log__fluent_host` overrides
   the default.
-- `test_redacted_dump_hides_auth_token` — `Settings().redacted_dump()` returns
+- `test_redacted_dump_hides_auth_token` - `Settings().redacted_dump()` returns
   `"***"` for `fluent_auth_token` when it is set to a non-None value.
-- `test_redacted_dump_hides_tls_client_key` — same as above for
+- `test_redacted_dump_hides_tls_client_key` - same as above for
   `fluent_tls_client_key`.
 
 No mock or integration tests required (pure model).
