@@ -10,11 +10,13 @@ The set of directories to lint is built by :func:`covered_dirs`, which both this
 suite and the reference suite share, so the two linters always scan exactly the
 same files and therefore report exactly the same violations.
 """
+
 from __future__ import annotations
 
 import ast
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Tuple, Union
+from typing import Union
 
 import pytest
 
@@ -51,7 +53,7 @@ _DEFAULT_EXCLUDED_DIR_NAMES = frozenset(
         ".pytest_cache",
         ".mypy_cache",
         ".hypothesis",
-        "htmlcov",
+        ".htmlcov",
         "cover",
         ".idea",
         ".vscode",
@@ -67,7 +69,7 @@ def _resolve(entry: Union[str, Path]) -> Path:
     return path if path.is_absolute() else PROJECT_ROOT / path
 
 
-def _expand(entry: Union[str, Path], recursive: bool) -> List[Path]:
+def _expand(entry: Union[str, Path], recursive: bool) -> list[Path]:
     """Return the directory for *entry*, plus its subdirectories when *recursive*."""
     root = _resolve(entry)
     if not root.is_dir():
@@ -82,11 +84,11 @@ def _expand(entry: Union[str, Path], recursive: bool) -> List[Path]:
 
 
 def covered_dirs(
-    included: List[Union[str, Path]],
-    excluded: List[Union[str, Path]],
+    included: list[Union[str, Path]],
+    excluded: list[Union[str, Path]],
     include_recursive: bool = True,
     exclude_recursive: bool = True,
-) -> List[str]:
+) -> list[str]:
     """Build the directory list to lint: included directories minus excluded ones.
 
     Every directory in *included* is collected first (recursively when
@@ -116,8 +118,7 @@ def covered_dirs(
     result = [
         directory
         for directory in selected
-        if directory not in removed
-        and not (_DEFAULT_EXCLUDED_DIR_NAMES & set(directory.parts))
+        if directory not in removed and not (_DEFAULT_EXCLUDED_DIR_NAMES & set(directory.parts))
     ]
     return sorted(str(directory) for directory in result)
 
@@ -129,7 +130,7 @@ def _iter_python_files() -> Iterable[Path]:
             yield path
 
 
-def _run_plugin(path: Path) -> List[Tuple[int, int, str]]:
+def _run_plugin(path: Path) -> list[tuple[int, int, str]]:
     """Run the Flake8 plugin over *path* and return ``(line, col, message)`` tuples."""
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(path))
@@ -159,7 +160,7 @@ def test_project_custom_flake8_rules_pass():
         - Whether the diagnostics match tests/lint/test_linting.py (they must)
         - The flake8_project_rules.rules module for the rule implementation.
     """
-    diagnostics: List[str] = []
+    diagnostics: list[str] = []
 
     for path in _iter_python_files():
         for lineno, col, message in _run_plugin(path):

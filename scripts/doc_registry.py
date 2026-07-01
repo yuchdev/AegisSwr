@@ -35,7 +35,7 @@ EXCLUDED_DIRS = {
     ".venv",
     "venv",
     "node_modules",
-    "htmlcov",
+    ".htmlcov",
     "__pycache__",
     ".idea",
     ".pytest_cache",

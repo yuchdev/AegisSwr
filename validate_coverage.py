@@ -28,7 +28,7 @@ def check_main_project() -> tuple[bool, list[str]]:
         issues.append("❌ Main project: fail_under = 85 not configured in pyproject.toml")
     if "--cov-fail-under=85" not in content:
         issues.append("❌ Main project: --cov-fail-under=85 not in pytest addopts")
-    if "source = [\"src/aegis_swr\"]" not in content:
+    if 'source = ["src/aegis_swr"]' not in content:
         issues.append("❌ Main project: coverage source not set to src/aegis_swr")
 
     # Check .coveragerc
@@ -70,7 +70,7 @@ def check_prototype() -> tuple[bool, list[str]]:
         issues.append("❌ Prototype: fail_under = 85 not configured in pyproject.toml")
     if "--cov-fail-under=85" not in content:
         issues.append("❌ Prototype: --cov-fail-under=85 not in pytest addopts")
-    if "source = [\"wincrash_analyzer\"]" not in content:
+    if 'source = ["wincrash_analyzer"]' not in content:
         issues.append("❌ Prototype: coverage source not set to wincrash_analyzer")
 
     # Check .coveragerc
@@ -142,7 +142,7 @@ def main() -> int:
         print("  2. Run tests with coverage:")
         print("     - Main: pytest")
         print("     - Prototype: cd prototype && pytest")
-        print("  3. View coverage reports in htmlcov/index.html")
+        print("  3. View coverage reports in .htmlcov/index.html")
         print()
         return 0
     else:
@@ -153,4 +153,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: coverage-report-main
-          path: htmlcov/
+          path: .htmlcov/
           retention-days: 30
 
   test-prototype:
@@ -88,7 +88,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: coverage-report-prototype
-          path: prototype/htmlcov/
+          path: prototype/.htmlcov/
           retention-days: 30
 
   coverage-summary:

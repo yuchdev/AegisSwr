@@ -39,7 +39,7 @@ EXCLUDED_DIRS = {
     ".venv",
     "venv",
     "node_modules",
-    "htmlcov",
+    ".htmlcov",
     "__pycache__",
     ".idea",
     ".pytest_cache",
@@ -167,9 +167,7 @@ def check_file(path: Path) -> list[str]:
                 # In-page anchor: must exist in this same file.
                 anchors = anchor_cache.setdefault(path, heading_anchors(path))
                 if anchor and anchor not in anchors:
-                    problems.append(
-                        f"{path}:{lineno}: missing anchor '#{anchor}' in this file"
-                    )
+                    problems.append(f"{path}:{lineno}: missing anchor '#{anchor}' in this file")
                 continue
 
             resolved = _resolve(file_part, path)
@@ -182,9 +180,7 @@ def check_file(path: Path) -> list[str]:
             if anchor and resolved.is_file() and resolved.suffix == ".md":
                 anchors = anchor_cache.setdefault(resolved, heading_anchors(resolved))
                 if anchor not in anchors:
-                    problems.append(
-                        f"{path}:{lineno}: missing anchor '#{anchor}' in {file_part}"
-                    )
+                    problems.append(f"{path}:{lineno}: missing anchor '#{anchor}' in {file_part}")
     return problems
 
 

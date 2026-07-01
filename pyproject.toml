@@ -98,7 +98,7 @@ skip_covered = false
 fail_under = 85
 
 [tool.coverage.html]
-directory = "htmlcov"
+directory = ".htmlcov"
 
 [tool.mypy]
 python_version = "3.12"
