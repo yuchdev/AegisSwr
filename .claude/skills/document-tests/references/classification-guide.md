@@ -50,6 +50,10 @@ Title line must match:
 `^\[(Unit|Mock|Integration|E2E)\] <name>: verifies <one sentence>.$`
 followed by **Scenario**, **Boundaries**, and **On-failure-first-check** stanzas.
 
+A full worked specimen — one correctly-documented test per class, each also
+exhibiting the body signal the codemod keys on — is in
+[../example/test-docstring-example.py](../example/test-docstring-example.py).
+
 ### Good
 
 ```python
