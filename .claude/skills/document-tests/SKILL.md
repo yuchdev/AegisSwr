@@ -10,6 +10,12 @@ invocation: /document-tests [path]
 Document every `test_*` function under `$ARGUMENTS` (default `tests/`) with a
 standardized classification + Scenario/Boundaries/On-failure docstring.
 
+**When resolving `Ambiguous classification` items** (step 2 below), use
+[references/classification-guide.md](references/classification-guide.md) — it
+gives the semantic Unit/Mock/Integration/E2E definitions the script cannot infer,
+the resolution rules of thumb, and the exact docstring format (with a good/bad
+example) the codemod emits.
+
 ## Steps
 
 1. **Preview**: `python scripts/document_tests.py $ARGUMENTS --check`

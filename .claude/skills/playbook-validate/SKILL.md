@@ -11,6 +11,17 @@ Validate the playbook file at the path the user supplied (`$ARGUMENTS`). A
 playbook drives automated or semi-automated remediation during an incident, so
 a malformed one is a safety hazard.
 
+## Resources
+
+- **[references/playbook-schema.md](references/playbook-schema.md)** — the full
+  field vocabulary, the blocking-error vs warning rules, and the ordering
+  heuristic. The `Checks` below are the summary; this is the authority.
+- **[examples/valid-playbook.yaml](examples/valid-playbook.yaml)** — a playbook
+  that passes every rule (expect **VALID**).
+- **[examples/invalid-playbook.annotated.yaml](examples/invalid-playbook.annotated.yaml)**
+  — parses as YAML but breaks four rules, each tagged inline (expect **INVALID**).
+  Use these two as the reference shape when judging an unfamiliar file.
+
 ## Checks
 
 1. **Required fields** - each playbook has: `id`, `name`, `trigger`
@@ -50,3 +61,13 @@ a malformed one is a safety hazard.
 ```
 Default to INVALID if any required field is missing or any state-changing step
 lacks a rollback.
+
+## Completion checklist
+
+- [ ] Every playbook-level required field checked: `id`, `name`, `trigger`, `steps`, `owner`, `severity`
+- [ ] Every step checked for all 7 required fields (`id`, `description`, `action`, `idempotent`, `rollback`, `requires_authorisation`, `timeout`)
+- [ ] Step ordering validated against `detect/confirm → contain → remediate → verify` - no remediation before the trigger is confirmed
+- [ ] No state-changing step (`idempotent: false` or `requires_authorisation: true`) uses the `read-only: no state change` rollback sentinel
+- [ ] Every step has a bounded `timeout`
+- [ ] Weight files (`agents.example.json`-style): each fault class sums to `1.0 ± 0.01` and no single agent weight exceeds the ceiling
+- [ ] Verdict defaults to INVALID on any missing required field or missing rollback; warnings listed separately and do not block

@@ -64,6 +64,9 @@ report cross-references that point at files that do not exist. Backed by
 
 ## Output
 
+See [examples/sample-report.md](examples/sample-report.md) for an annotated
+report and how to act on each `[HIGH]`/`[MEDIUM]`/`[REVIEW]` tier.
+
 A human-readable report with three sections:
 
 - **Missing .md References**: each broken link with confidence tag, source

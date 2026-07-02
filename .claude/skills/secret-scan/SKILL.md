@@ -34,6 +34,11 @@ blocks, Postgres URLs with embedded passwords, and generic `password=`/`token=`
 assignments. Obvious placeholders (`example`, `${VAR}`, `your-…`, `changeme`)
 are ignored to limit false positives.
 
+The full pattern table, the complete placeholder allowlist, per-type remediation,
+and the skipped-suffix list are in
+**[references/pattern-catalog.md](references/pattern-catalog.md)** — kept in sync
+with `.claude/hooks/secret_scan.py`.
+
 ## Output
 
 ```
@@ -45,3 +50,12 @@ On any finding: instruct the user to remove the secret, rotate it if it ever
 reached a remote, and replace it with an env var / `${VAR}` reference (see
 `.mcp.json`) or a secrets manager. Recommend `git filter-repo`/history rewrite
 if it was already committed.
+
+## Completion checklist
+
+- [ ] Targets resolved from `$ARGUMENTS`, or changed+untracked files when empty
+- [ ] Shared scanner (`.claude/hooks/secret_scan.py`) run - not an ad-hoc regex
+- [ ] Each finding reported as `file:line: <type>: <short excerpt>` - full secret value never printed
+- [ ] Placeholder/allowlisted lines correctly treated as clean (see [references/pattern-catalog.md](references/pattern-catalog.md))
+- [ ] For real hits: remove + rotate + replace with `${VAR}`/secrets-manager advised; history rewrite recommended if already committed
+- [ ] Result line emitted: `CLEAN` or `N FINDING(S)`

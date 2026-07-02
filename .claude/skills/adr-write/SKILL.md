@@ -17,42 +17,22 @@ Scaffold a new ADR for the decision titled `$ARGUMENTS`.
 2. Seed **Context** from the repo: run `git log --oneline -10` and, if `gh` is
    authenticated, `gh issue list --state open --limit 10`. Summarise what is
    prompting this decision.
-3. Write the file using the MADR template below. Status starts as `Proposed`.
-   Use today's date from session context.
+3. **Read the canonical template `docs/adr/template.md` and copy its structure
+   verbatim** — do not invent your own headings. Fill `NNNN`, the title, today's
+   date (from session context), and the seeded Context. Leave **Status:
+   Proposed**. See the section spec in [references/template-guide.md](references/template-guide.md)
+   for what each section must contain and how the seeded git/issue context maps
+   onto it, and [docs/adr/0001-new-ui-rich-based-design.md](../../../docs/adr/0001-new-ui-rich-based-design.md)
+   as a filled exemplar.
 4. Add an index line to `docs/README.md`.
 
-## MADR template
+## Template
 
-```markdown
-# NNNN. <Title>
-
-- Status: Proposed
-- Date: <YYYY-MM-DD>
-- Deciders: <names>
-
-## Context and Problem Statement
-<what forces this decision; seeded from git log / issues>
-
-## Decision Drivers
-- <driver>
-
-## Considered Options
-1. <option A>
-2. <option B>
-
-## Decision Outcome
-Chosen option: "<option>", because <justification>.
-
-### Consequences
-- Good: <…>
-- Bad / risk: <…>
-- Follow-up (coder/qa/docs): <…>
-
-## Pros and Cons of the Options
-### <option A>
-- Good: …
-- Bad: …
-```
+The single source of truth is **[`docs/adr/template.md`](../../../docs/adr/template.md)**
+(read it at generation time — do not paste a copy here that can drift). It uses
+the sections: `Context`, `Decision`, `Alternatives Considered` (a table),
+`Consequences` (Positive / Negative), `Validation / Rollout`, and `Links`.
+`references/template-guide.md` explains each and where the seeded context lands.
 
 ## Output
 
@@ -63,7 +43,9 @@ seeds it. Leave it `Proposed` for human/architect sign-off.
 ## Completion checklist
 
 - [ ] File created at `docs/adr/NNNN-<kebab-title>.md` with correct zero-padded sequence number
+- [ ] Structure matches `docs/adr/template.md` exactly (Context, Decision, Alternatives Considered table, Consequences Positive/Negative, Validation / Rollout, Links) - no ad-hoc headings
 - [ ] Status is `Proposed` - not Accepted (that requires human/architect sign-off)
+- [ ] `Alternatives Considered` table has at least the chosen option + one rejected alternative with a stated reason
+- [ ] `Links` section points at the driving roadmap task / issue used to seed Context
 - [ ] `docs/README.md` has a new index line for the ADR
 - [ ] `/link-check` passes on the new file
-- [ ] Consequences section lists follow-up tasks for `python-expert` and `testing-expert`

@@ -16,7 +16,11 @@ factors, never on individual faults.
 1. **Reconstruct the timeline.**
    - From git: `git log --since=<window> --pretty=format:'%h %ad %s' --date=short` for changes around the incident.
    - From incident data: query stored `RCAReport`s from the filesystem store (JSON files under the configured store path) or the SQLite DB via Bash for the incident id - detection time, consensus outcome, `SkepticVerdict`, `ConfidenceLevel`, any `HITLRequest`.
-2. **Five why's** - drill from symptom to root cause; record each "why" and its evidence.
+2. **Five why's** - drill from symptom to root cause; record each "why" and its
+   evidence. Follow [references/five-whys-guide.md](references/five-whys-guide.md)
+   for the blameless reframing table and how to know when you've reached a
+   *systemic* cause. [examples/example-post-mortem.md](examples/example-post-mortem.md)
+   is a fully-worked post-mortem showing the whole template filled.
 3. **Contributing factors** - what made detection/diagnosis/remediation slower (gaps in runbooks, missing tests, alert fatigue, etc.).
 4. **Action items** - concrete, each with an owner and a tracking issue; route code fixes to `python-expert`, tests to `testing-expert`, doc/runbook updates to `docs-updater`, design changes to `app-architect`.
 

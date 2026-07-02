@@ -16,7 +16,9 @@ whole package if empty).
    `poetry run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-missing`
    (scope with `--cov=aegis_swr.<subpkg>` when a path is given).
 2. Spawn the **`testing-expert`** agent with the coverage output and the target path. Ask it
-   to map uncovered lines to behaviours and **risk-rank** them:
+   to map uncovered lines to behaviours and **risk-rank** them using the full
+   [references/risk-ranking-rubric.md](references/risk-ranking-rubric.md)
+   (blast-radius criteria + Aegis module examples per tier):
    - **P0**: consensus/skeptic logic, payload/dump/log parsing, escalation &
      HITL paths, security-relevant branches.
    - **P1**: backend strategies, orchestrator transitions, schema validation.
@@ -33,3 +35,12 @@ whole package if empty).
 ### P2 - nice to have
 ```
 Offer to have `testing-expert` write the P0 tests next.
+
+## Completion checklist
+
+- [ ] Coverage established with `--cov-report=term-missing` (scoped to the target when given)
+- [ ] Every uncovered branch mapped to a *behaviour*, not just a line number
+- [ ] Findings tiered P0/P1/P2 by blast radius per [references/risk-ranking-rubric.md](references/risk-ranking-rubric.md) - not by coverage-% delta
+- [ ] Consensus/escalation/payload-parsing/security gaps ranked P0
+- [ ] Each P0 has a concrete suggested test (input → expected outcome)
+- [ ] Prioritised list returned; offer made to have `testing-expert` write the P0 tests

@@ -12,6 +12,9 @@ text/anchor, or a public symbol). Complements `/link-check`, which validates a
 file's *outbound* links; this finds *inbound* references so a change propagates
 instead of leaving stale pointers.
 
+[examples/rename-propagation.md](examples/rename-propagation.md) is a full worked
+sweep (rename a spec + a heading, update every inbound hit across docs and code).
+
 ## Steps
 
 1. **Prerequisite — linkify bare mentions** so prose references become

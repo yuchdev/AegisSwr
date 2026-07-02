@@ -28,7 +28,9 @@ heading. Backed by `scripts/check_doc_links.py` (the same checker the
    ```
 3. For each `missing file` / `missing anchor` finding, open the offending file at
    the reported line and fix it: correct the path, update the anchor to the
-   current GitHub-style heading slug, or repoint to the moved target.
+   current GitHub-style heading slug (the exact slug algorithm, with worked
+   examples, is in [references/anchor-slug-rules.md](references/anchor-slug-rules.md)
+   — mind the double-hyphen case), or repoint to the moved target.
 4. If a heading was renamed/moved, also run `/doc-xref` to fix *inbound* links from
    other docs and from code docstrings - not just this file's outbound links.
 5. Re-run step 2 until it exits `0`.

@@ -12,10 +12,15 @@ violation`, `deadlock`, `resource-exhaustion`, `log-forensics-anomaly`).
 
 ## Steps
 
-1. Cross-reference the fault class against `agents.example.json`, `core/
-   fault_codes.py`, and `IncidentMode` so the runbook matches real product
-   classifications.
+1. Cross-reference the fault class against the
+   **[references/fault-class-catalog.md](references/fault-class-catalog.md)**
+   (which distils `agents.example.json`, `core/fault_codes.py`, and `IncidentMode`)
+   so the runbook matches real product classifications, dominant consensus agents,
+   and native fault codes.
 2. Write `docs/runbooks/<incident-type>.md` using the template below.
+   [examples/access-violation.md](examples/access-violation.md) is a fully-filled
+   runbook showing the template populated with real Aegis fields - use it as the
+   shape to imitate.
 3. Add an index line to `docs/README.md` and `docs/runbooks/` index if present.
 
 ## Aegis runbook template
