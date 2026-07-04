@@ -1,0 +1,34 @@
+# An INVALID playbook. It is valid YAML (so it parses), but it breaks four
+# /playbook-validate rules on purpose. Each violation is tagged  # !! <rule>.
+# Run: /playbook-validate .claude/skills/playbook-validate/examples/invalid-playbook.annotated.yaml
+# Expect: INVALID, with the four errors below reported.
+id: pb-deadlock-broken
+name: Broken deadlock remediation
+trigger: crash_dump/deadlock
+owner: aegis_swr:remediation_planner
+# !! ERROR 1 (missing required field): `severity` is absent — playbook-level
+#    required fields are id, name, trigger, steps, owner, severity.
+
+steps:
+  # !! ERROR 2 (ordering violation): the FIRST step remediates production before
+  #    any detect/confirm step has run. Canonical order is
+  #    detect/confirm -> contain -> remediate -> verify.
+  - id: step-01
+    description: Restart the database primary to clear the deadlock
+    action: aegis db restart --role primary
+    idempotent: false
+    # !! ERROR 3 (rollback gap): this step is state-changing (idempotent:false,
+    #    requires_authorisation:true) yet claims the read-only sentinel. A step
+    #    that changes state cannot be read-only.
+    rollback: "read-only: no state change"
+    requires_authorisation: true
+    timeout: 300s
+
+  - id: step-02
+    description: Confirm the deadlock signature after the fact
+    action: aegis report show --incident ${INCIDENT_ID}
+    idempotent: true
+    rollback: "read-only: no state change"
+    requires_authorisation: false
+    # !! ERROR 4 (unbounded step): `timeout` is missing — every step must declare
+    #    a bounded timeout.

@@ -1,0 +1,45 @@
+# A VALID Aegis remediation playbook — exercises every /playbook-validate rule
+# and passes. Run: /playbook-validate .claude/skills/playbook-validate/examples/valid-playbook.yaml
+# Expect: VALID.
+id: pb-memory-access-violation-0001
+name: Remediation for recurring access violation in render worker
+trigger: crash_dump/memory_access_violation      # <IncidentMode>/<FaultClass>
+owner: aegis_swr:remediation_planner
+severity: P1                                      # ConfidenceLevel HIGH -> P1
+
+steps:
+  # 1. detect/confirm — read-only, no auth, read-only rollback sentinel is correct here
+  - id: step-01
+    description: Confirm the access-violation signature matches the triggering RCAReport
+    action: aegis report show --incident ${INCIDENT_ID} --field fault_class,faulting_module
+    idempotent: true
+    rollback: "read-only: no state change"
+    requires_authorisation: false
+    timeout: 60s
+
+  # 2. contain — reversible, changes state, so it carries a real rollback + auth
+  - id: step-02
+    description: Drain traffic from the affected render worker to stop new crashes
+    action: aegis fleet drain --node ${NODE_ID}
+    idempotent: true
+    rollback: aegis fleet undrain --node ${NODE_ID}
+    requires_authorisation: true
+    timeout: 300s
+
+  # 3. remediate — the production-changing fix; state-changing => real rollback, auth required
+  - id: step-03
+    description: Roll the render worker back to the last known-good build
+    action: aegis deploy rollback --service render-worker --to ${LAST_GOOD_BUILD}
+    idempotent: false
+    rollback: aegis deploy rollback --service render-worker --to ${CURRENT_BUILD}
+    requires_authorisation: true
+    timeout: 600s
+
+  # 4. verify — read-only confirmation the incident is resolved
+  - id: step-04
+    description: Confirm no new access-violation crashes for 10 minutes post-rollback
+    action: aegis report watch --fault memory_access_violation --window 10m
+    idempotent: true
+    rollback: "read-only: no state change"
+    requires_authorisation: false
+    timeout: 660s
