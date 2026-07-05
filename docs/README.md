@@ -33,15 +33,15 @@ architecture overview see **[ARCHITECTURE.md](../ARCHITECTURE.md)** (repo root).
 
 Development timeline, per-phase task briefs, and live progress tracking.
 
-| Document | Description |
-|---|---|
-| [roadmap/README.md](/docs/roadmap/README.md) | Roadmap index and conventions: the Milestone → Task → Subtask hierarchy, folder/file naming, the absolute-link rule, and the milestone list. Start here. |
-| [roadmap.md](/docs/roadmap/roadmap.md) | Full 5-phase development roadmap: Phase 1 Prototype Deconstruction → Phase 2 Data Adapter → Phase 3 Multi-Agent System → Phase 4 Output Synthesis → Phase 5 Hardening. Covers consensus threshold logic and token budget guardrails. |
-| [0001-generic-implementation/status.md](/docs/roadmap/0001-generic-implementation/status.md) | Live tracker: which tasks are complete, current lint/type/test gate status, delivered artifacts. |
-| [0001-generic-implementation/plan.md](/docs/roadmap/0001-generic-implementation/plan.md) | 10-task implementation plan with per-task deliverables and a dependency graph; inlines the Data Adapter and Backend specifications. |
-| [0002-forensic-agents/plan.md](/docs/roadmap/0002-forensic-agents/plan.md) | Agentic execution brief per task: agent matrix, verbatim per-agent instructions, inputs, verification gates. |
-| [0003-litellm-routing/plan.md](/docs/roadmap/0003-litellm-routing/plan.md) | LiteLLM routing task brief. |
-| [0005-openclaude/plan.md](/docs/roadmap/0005-openclaude/plan.md) | OpenClaude integration: the central Code Intelligence mechanism (supersedes the bespoke Milestone 0004 design). |
+| Document                                                                                     | Description                                                                                                                                                                                                                          |
+|----------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [roadmap/README.md](/docs/roadmap/README.md)                                                 | Roadmap index and conventions: the Milestone → Task → Subtask hierarchy, folder/file naming, the absolute-link rule, and the milestone list. Start here.                                                                             |
+| [roadmap.md](/docs/roadmap/roadmap.md)                                                       | Full 5-phase development roadmap: Phase 1 Prototype Deconstruction → Phase 2 Data Adapter → Phase 3 Multi-Agent System → Phase 4 Output Synthesis → Phase 5 Hardening. Covers consensus threshold logic and token budget guardrails. |
+| [0001-generic-implementation/status.md](/docs/roadmap/0001-generic-implementation/status.md) | Live tracker: which tasks are complete, current lint/type/test gate status, delivered artifacts.                                                                                                                                     |
+| [0001-generic-implementation/plan.md](/docs/roadmap/0001-generic-implementation/plan.md)     | 10-task implementation plan with per-task deliverables and a dependency graph; inlines the Data Adapter and Backend specifications.                                                                                                  |
+| [0002-forensic-agents/plan.md](/docs/roadmap/0002-forensic-agents/plan.md)                   | Agentic execution brief per task: agent matrix, verbatim per-agent instructions, inputs, verification gates.                                                                                                                         |
+| [0003-litellm-routing/plan.md](/docs/roadmap/0003-litellm-routing/plan.md)                   | LiteLLM routing task brief.                                                                                                                                                                                                          |
+| [0004-code-intelligence/plan.md](/docs/roadmap/0004-code-intelligence/plan.md)               | OpenClaude integration: the central Code Intelligence mechanism (supersedes the bespoke Milestone 0004 design).                                                                                                                      |
 
 ---
 
@@ -49,12 +49,12 @@ Development timeline, per-phase task briefs, and live progress tracking.
 
 Operational references for the Claude Code dev agent fleet.
 
-| Document | Description |
-|---|---|
-| [tutorial.md](agent/tutorial.md) | Practical onboarding: scenarios for every common task, common mistakes, quick-reference card. Aimed at developers new to Claude Code. |
-| [agents.md](agent/agents.md) | Reference for all dev agents (`app-architect`, `background-reviewer`, `docs-updater`, `docs-writer`, `feature-reviewer`, `incident-analyst`, `python-expert`, `security-auditor`, `testing-expert`): model, tools, responsibilities, when to use. |
-| [skills.md](agent/skills.md) | Reference for all slash-command skills (`/adr-write`, `/pr-review`, `/test-gap`, `/runbook-write`, `/post-mortem`, `/dep-audit`, `/secret-scan`, `/playbook-validate`, `/link-check`, `/doc-xref`, `incident-triage`): invocation, step-by-step behaviour, when to use. |
-| [hooks.md](agent/hooks.md) | Reference for all automatic hooks (`guard_bash`, `secret_scan`, `post_edit_format`, `dep_audit`, `doc_link_check`, `github_audit`, `session_start`, `run_tests`): what each blocks/logs, override env vars, audit log locations. |
+| Document                         | Description                                                                                                                                                                                                                                                             |
+|----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [tutorial.md](agent/tutorial.md) | Practical onboarding: scenarios for every common task, common mistakes, quick-reference card. Aimed at developers new to Claude Code.                                                                                                                                   |
+| [agents.md](agent/agents.md)     | Reference for all dev agents (`app-architect`, `background-reviewer`, `docs-updater`, `docs-writer`, `feature-reviewer`, `incident-analyst`, `python-expert`, `security-auditor`, `testing-expert`): model, tools, responsibilities, when to use.                       |
+| [skills.md](agent/skills.md)     | Reference for all slash-command skills (`/adr-write`, `/pr-review`, `/test-gap`, `/runbook-write`, `/post-mortem`, `/dep-audit`, `/secret-scan`, `/playbook-validate`, `/link-check`, `/doc-xref`, `incident-triage`): invocation, step-by-step behaviour, when to use. |
+| [hooks.md](agent/hooks.md)       | Reference for all automatic hooks (`guard_bash`, `secret_scan`, `post_edit_format`, `dep_audit`, `doc_link_check`, `github_audit`, `session_start`, `run_tests`): what each blocks/logs, override env vars, audit log locations.                                        |
 
 ---
 

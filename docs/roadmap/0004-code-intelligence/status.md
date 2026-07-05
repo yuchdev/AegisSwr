@@ -1,6 +1,6 @@
 # Milestone 0005 — OpenClaude Integration — Status
 
-Tracks progress against [plan.md](/docs/roadmap/0005-openclaude/plan.md).
+Tracks progress against [plan.md](/docs/roadmap/0004-code-intelligence/plan.md).
 Updated as each task lands.
 
 ## Current status
@@ -39,7 +39,7 @@ written. No `aegis/openclaude/` or `aegis/code_intel/` module exists yet;
   point, and boundary-level `CallBudget` accounting) folded into task 06.0. The
   trade-off is accepted knowingly: token accounting degrades to a boundary
   estimate and correlation becomes model-driven rather than deterministic (see
-  plan.md Background and [topology-notes.md](/docs/roadmap/0005-openclaude/topology-notes.md)).
+  plan.md Background and [topology-notes.md](/docs/roadmap/0004-code-intelligence/topology-notes.md)).
 - **OpenClaude chosen** over stock Claude Code MCP because it supports
   user-supplied backends (any OpenAI-compatible endpoint, including the
   project's own vLLM instance on Vast.ai) via environment variables, and
@@ -85,7 +85,7 @@ on-disk state; subtask names are tracked in each `README.md`'s `## Subtasks`
 table (and mirrored in Per-task detail below) as forward-looking names only.
 
 ```
-docs/roadmap/0005-openclaude/
+docs/roadmap/0004-code-intelligence/
 ├── plan.md                                       ← milestone spec (tasks, contracts C1–C9)
 ├── status.md                                     ← this tracker
 ├── topology-notes.md                             ← integration-topology analysis

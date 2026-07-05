@@ -60,8 +60,8 @@ absolute-from-repo-root Markdown link:
 | 0001 | Generic implementation (backends, MAS, CLI, …)      | [plan.md](/docs/roadmap/0001-generic-implementation/plan.md)  | [status.md](/docs/roadmap/0001-generic-implementation/status.md) |
 | 0002 | Forensic agents (specialist panel + synthesis tier) | [plan.md](/docs/roadmap/0002-forensic-agents/plan.md)         | [status.md](/docs/roadmap/0002-forensic-agents/status.md)        |
 | 0003 | LiteLLM model-router integration                    | [plan.md](/docs/roadmap/0003-litellm-routing/plan.md)         | -                                                                |
-| 0004 | Code Intelligence Layer                             | [plan.md](/docs/roadmap/0004-code-intelligence-layer/plan.md) | ⛔ Superseded by [0005](/docs/roadmap/0005-openclaude/plan.md)   |
-| 0005 | OpenClaude integration (Code Intelligence)          | [plan.md](/docs/roadmap/0005-openclaude/plan.md)              | [status.md](/docs/roadmap/0005-openclaude/status.md)             |
+| 0004 | Code Intelligence Layer                             | [plan.md](/docs/roadmap/0004-code-intelligence-layer/plan.md) | ⛔ Superseded by [0005](/docs/roadmap/0004-code-intelligence/plan.md)   |
+| 0005 | OpenClaude integration (Code Intelligence)          | [plan.md](/docs/roadmap/0004-code-intelligence/plan.md)              | [status.md](/docs/roadmap/0004-code-intelligence/status.md)             |
 
 > Milestones 0001-0003 are decomposed into the full task → subtask tree; 0005
 > is decomposed to the task level (each task has a `README.md`; numbered subtask

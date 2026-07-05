@@ -1,6 +1,6 @@
 # Task 03.0 — Process Lifecycle Manager
 
-**Parent milestone:** [Milestone 0005 — OpenClaude Integration](/docs/roadmap/0005-openclaude/plan.md)
+**Parent milestone:** [Milestone 0005 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
 **Status:** ⬜ Not started
 
 ## Scope
