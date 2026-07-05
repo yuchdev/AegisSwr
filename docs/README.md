@@ -41,6 +41,7 @@ Development timeline, per-phase task briefs, and live progress tracking.
 | [0001-generic-implementation/plan.md](/docs/roadmap/0001-generic-implementation/plan.md) | 10-task implementation plan with per-task deliverables and a dependency graph; inlines the Data Adapter and Backend specifications. |
 | [0002-forensic-agents/plan.md](/docs/roadmap/0002-forensic-agents/plan.md) | Agentic execution brief per task: agent matrix, verbatim per-agent instructions, inputs, verification gates. |
 | [0003-litellm-routing/plan.md](/docs/roadmap/0003-litellm-routing/plan.md) | LiteLLM routing task brief. |
+| [0005-openclaude/plan.md](/docs/roadmap/0005-openclaude/plan.md) | OpenClaude integration: the central Code Intelligence mechanism (supersedes the bespoke Milestone 0004 design). |
 
 ---
 

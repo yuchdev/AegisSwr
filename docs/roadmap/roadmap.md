@@ -1,4 +1,4 @@
-## 📋 Roadmap Phase 1: Prototype Deconstruction & Foundation (Month 1)
+## 📋 Roadmap Phase 1: Prototype Deconstruction & Foundation
 
 Before writing new code, we must extract the domain heuristics locked inside your working Windows prototype and lay down a scalable, system-agnostic foundation.
 
@@ -16,7 +16,7 @@ Before writing new code, we must extract the domain heuristics locked inside you
 
 ---
 
-## ⚙️ Phase 2: The Data Adapter Layer (Months 2–3)
+## ⚙️ Phase 2: The Data Adapter Layer
 
 This phase turns huge amounts of raw data into high-density inputs, saving your token budget and ensuring the Multi-Agent System isn't overwhelmed by noise.
 
@@ -45,7 +45,7 @@ This phase turns huge amounts of raw data into high-density inputs, saving your 
 
 ---
 
-## 🧠 Phase 3: The Multi-Agent System (MAS) Engine (Months 4–5)
+## 🧠 Phase 3: The Multi-Agent System (MAS) Engine
 
 This phase implements the "Synthetic War Room," moving away from single-prompt answers to an interactive, specialized debugging panel.
 
@@ -63,7 +63,7 @@ This phase implements the "Synthetic War Room," moving away from single-prompt a
 
 ---
 
-## 📥 Phase 4: Output Synthesis & Product Form Factors (Months 6–7)
+## 📥 Phase 4: Output Synthesis & Product Form Factors
 
 Turning the raw agent debate transcript into digestible, actionable value for developers and leadership.
 
@@ -74,8 +74,6 @@ Turning the raw agent debate transcript into digestible, actionable value for de
 2. **The Investigator's Rationale:** A collated, readable timeline of the agent debate ("Consensus vs. Dissent").
 3. **Remediation Instructions:** Step-by-step documentation on how to deploy an immediate hotfix or mitigation.
 4. **Probabilistic Code Fix:** A code diff (`.patch` format) generated with a specific probability of resolving the issue.
-
-
 
 ### 4.2 Human-in-the-Loop (HITL) Triggers
 
@@ -92,7 +90,7 @@ Turning the raw agent debate transcript into digestible, actionable value for de
 
 ---
 
-## 🛡️ Phase 5: Production Hardening, Testing, & Optimization (Month 8+)
+## 🛡️ Phase 5: Production Hardening, Testing, & Optimization
 
 ### 5.1 The "Ground Truth" Evaluation Suite
 
