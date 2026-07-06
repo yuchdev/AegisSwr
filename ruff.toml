@@ -4,7 +4,18 @@ target-version = "py312"
 exclude = ["samples"]
 
 [lint]
-select = ["E", "F", "I", "B", "UP", "SIM", "C4"]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "SIM102",
+    "SIM108",
+    "C4",
+    "UP017",
+    "UP037",
+
+]
 
 # Disable the pyupgrade rules that rewrite it to the `X | None` shorthand:
 #   UP007 - Union[...] -> X | Y; Optional[X] -> X | None

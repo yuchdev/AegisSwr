@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Optional
 
 from aegis_swr.agents.code_analyst import CodeAnalystAgent
 from aegis_swr.agents.log_historian import LogHistorianAgent
 from aegis_swr.agents.os_kernel import OSKernelAgent
 from aegis_swr.agents.skeptic import SkepticAgent
+from aegis_swr.backends.base import VectorStore
 from aegis_swr.config.settings import Settings
+from aegis_swr.core.exceptions import VectorStoreError
 from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.schemas import (
     AgentTurn,
@@ -25,6 +27,40 @@ from aegis_swr.core.schemas import (
     SkepticVerdict,
 )
 from tests.unit.fixtures.mock_ai_backend import MockAIBackend
+
+
+class RecordingVectorStore(VectorStore):
+    """Minimal vector store stub that records search calls."""
+
+    def __init__(
+        self,
+        responses: Optional[list[RCAReport]] = None,
+        error: Optional[Exception] = None,
+    ):
+        self._responses = list(responses or [])
+        self._error = error
+        self.calls: list[dict[str, object]] = []
+
+    async def upsert_incident(self, report: RCAReport) -> None:
+        self.calls.append({"operation": "upsert", "report": report})
+
+    async def search_similar(
+        self,
+        fault_class: FaultClass,
+        faulting_module: Optional[str],
+        top_k: int = 5,
+    ) -> list[RCAReport]:
+        self.calls.append(
+            {
+                "operation": "search",
+                "fault_class": fault_class,
+                "faulting_module": faulting_module,
+                "top_k": top_k,
+            }
+        )
+        if self._error is not None:
+            raise self._error
+        return list(self._responses)
 
 
 def _base_state(**extra: Any) -> InvestigationState:
@@ -212,6 +248,43 @@ async def test_os_kernel_injects_skeptic_corrections_on_round_2(settings: Settin
     assert "Re-examine frame 3" in sent
 
 
+async def test_os_kernel_ignores_non_matching_history_on_round_2(settings: Settings):
+    """
+    [Unit] agents: verifies os kernel ignores non matching history on round 2.
+
+    Scenario:
+        Given test inputs and fixtures for os kernel ignores non matching history on round 2
+        When test_os_kernel_ignores_non_matching_history_on_round_2 executes the target flow
+        Then the expected outcome for os kernel ignores non matching history on round 2 is confirmed.
+
+    Boundaries:
+        - Focus: os kernel ignores non matching history on round 2
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to os kernel ignores non matching history on round 2
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
+    ai = MockAIBackend(responses=[_os_kernel_response()])
+    agent = OSKernelAgent(ai, settings)
+    unrelated_turn = AgentTurn(
+        agent="Code Analyst Agent",
+        turn_number=1,
+        message="Not a skeptic turn",
+        confidence_score=0.55,
+    )
+    await agent.run(
+        _base_state(
+            round_number=2,
+            discussion_history=[unrelated_turn.model_dump(mode="json")],
+        )
+    )
+    sent = json.loads(ai.calls[0]["messages"][0]["content"])
+    assert "skeptic_corrections_from_previous_round" not in sent
+
+
 # ---------------------------------------------------------------------------
 # Code Analyst Agent
 # ---------------------------------------------------------------------------
@@ -275,6 +348,75 @@ async def test_code_analyst_includes_user_assumption(settings: Settings):
     await agent.run(state)
     sent = ai.calls[0]["messages"][0]["content"]
     assert "DB pool was reduced yesterday" in sent
+
+
+async def test_code_analyst_uses_latest_kernel_turn_and_encodes_fix(settings: Settings):
+    """
+    [Unit] agents: verifies code analyst uses latest kernel turn and encodes fix.
+
+    Scenario:
+        Given test inputs and fixtures for code analyst uses latest kernel turn and encodes fix
+        When test_code_analyst_uses_latest_kernel_turn_and_encodes_fix executes the target flow
+        Then the expected outcome for code analyst uses latest kernel turn and encodes fix is confirmed.
+
+    Boundaries:
+        - Focus: code analyst uses latest kernel turn and encodes fix
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to code analyst uses latest kernel turn and encodes fix
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
+    ai = MockAIBackend(
+        responses=[
+            CodeAnalystOutput(
+                rca=RCAHypothesis(
+                    root_cause="Race condition exposes UAF in serialize()",
+                    faulting_module="db_writer",
+                    faulting_function="db_writer::serialize",
+                    evidence=["frame 0 is serialize", "frame 1 is flush"],
+                    confidence=0.91,
+                    code_location="db_writer.cpp:142",
+                ),
+                alternative_hypotheses=[
+                    Hypothesis(root_cause="Allocator poisoning", confidence=0.25)
+                ],
+                confidence_score=0.91,
+                probabilistic_fix="@@ -1 +1 @@\n-old\n+new",
+                fix_language="python",
+            )
+        ]
+    )
+    agent = CodeAnalystAgent(ai, settings)
+    latest_turn = AgentTurn(
+        agent="OS Kernel Agent",
+        turn_number=2,
+        message="Current kernel interpretation",
+        hypotheses=[Hypothesis(root_cause="Current UAF", confidence=0.82)],
+        confidence_score=0.82,
+    )
+    stale_turn = AgentTurn(
+        agent="OS Kernel Agent",
+        turn_number=1,
+        message="Stale kernel interpretation",
+        hypotheses=[Hypothesis(root_cause="Old UAF", confidence=0.55)],
+        confidence_score=0.55,
+    )
+    turn = await agent.run(
+        _base_state(
+            round_number=2,
+            discussion_history=[
+                latest_turn.model_dump(mode="json"),
+                stale_turn.model_dump(mode="json"),
+            ],
+        )
+    )
+    sent = json.loads(ai.calls[0]["messages"][0]["content"])
+    assert sent["os_kernel_analysis"]["message"] == "Current kernel interpretation"
+    assert turn.hypotheses[0].evidence[-1] == "__fix__:python:@@ -1 +1 @@\n-old\n+new"
+    assert len(turn.hypotheses) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -405,6 +547,124 @@ async def test_log_historian_reports_first_observation_without_matches(settings:
     assert analysis["history_size"] == 1
     assert analysis["is_recurrence"] is False
     assert analysis["matched_incidents"] == []
+
+
+async def test_log_historian_uses_latest_code_turn_and_vector_results(settings: Settings):
+    """
+    [Unit] agents: verifies log historian uses latest code turn and vector results.
+
+    Scenario:
+        Given test inputs and fixtures for log historian uses latest code turn and vector results
+        When test_log_historian_uses_latest_code_turn_and_vector_results executes the target flow
+        Then the expected outcome for log historian uses latest code turn and vector results is confirmed.
+
+    Boundaries:
+        - Focus: log historian uses latest code turn and vector results
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to log historian uses latest code turn and vector results
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
+    ai = MockAIBackend(responses=[_log_historian_response()])
+    agent = LogHistorianAgent(ai, settings)
+    vector_store = RecordingVectorStore(responses=[_prior_report()])
+    latest_turn = AgentTurn(
+        agent="Code Analyst Agent",
+        turn_number=2,
+        message="Current code analysis",
+        hypotheses=[Hypothesis(root_cause="Current UAF", confidence=0.88)],
+        confidence_score=0.88,
+    )
+    stale_turn = AgentTurn(
+        agent="Code Analyst Agent",
+        turn_number=1,
+        message="Stale code analysis",
+        hypotheses=[Hypothesis(root_cause="Old UAF", confidence=0.52)],
+        confidence_score=0.52,
+    )
+
+    await agent.run(
+        _base_state(
+            round_number=2,
+            discussion_history=[
+                latest_turn.model_dump(mode="json"),
+                stale_turn.model_dump(mode="json"),
+            ],
+        ),
+        vector_store=vector_store,
+        history=[_prior_report()],
+    )
+
+    sent = json.loads(ai.calls[0]["messages"][0]["content"])
+    assert sent["code_analyst_analysis"]["message"] == "Current code analysis"
+    assert sent["recurrence_analysis"]["history_size"] == 2
+    assert vector_store.calls[0] == {
+        "operation": "search",
+        "fault_class": FaultClass.MEMORY_ACCESS_VIOLATION,
+        "faulting_module": "db_writer",
+        "top_k": 5,
+    }
+
+
+async def test_log_historian_vector_candidates_normalize_unknown_faults(settings: Settings):
+    """
+    [Unit] agents: verifies log historian vector candidates normalize unknown faults.
+
+    Scenario:
+        Given test inputs and fixtures for log historian vector candidates normalize unknown faults
+        When test_log_historian_vector_candidates_normalize_unknown_faults executes the target flow
+        Then the expected outcome for log historian vector candidates normalize unknown faults is confirmed.
+
+    Boundaries:
+        - Focus: log historian vector candidates normalize unknown faults
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to log historian vector candidates normalize unknown faults
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
+    vector_store = RecordingVectorStore(responses=[])
+    result = await LogHistorianAgent._vector_candidates(
+        {"fault_class": "not-a-real-fault", "faulting_module": ""},
+        vector_store,
+    )
+    assert result == []
+    assert vector_store.calls[0] == {
+        "operation": "search",
+        "fault_class": FaultClass.UNKNOWN,
+        "faulting_module": None,
+        "top_k": 5,
+    }
+
+
+async def test_log_historian_vector_candidates_swallow_store_errors(settings: Settings):
+    """
+    [Unit] agents: verifies log historian vector candidates swallow store errors.
+
+    Scenario:
+        Given test inputs and fixtures for log historian vector candidates swallow store errors
+        When test_log_historian_vector_candidates_swallow_store_errors executes the target flow
+        Then the expected outcome for log historian vector candidates swallow store errors is confirmed.
+
+    Boundaries:
+        - Focus: log historian vector candidates swallow store errors
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to log historian vector candidates swallow store errors
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by agents
+    """
+    vector_store = RecordingVectorStore(error=VectorStoreError("vector search failed"))
+    result = await LogHistorianAgent._vector_candidates(_base_state()["incident_brief"], vector_store)
+    assert result == []
+    assert vector_store.calls[0]["operation"] == "search"
 
 
 # ---------------------------------------------------------------------------

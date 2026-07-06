@@ -29,7 +29,7 @@ example) the codemod emits.
      `Ambiguous` item by reading the test body, and leaves every `Skipped`
      (custom docstring) item untouched unless the user asked to standardize
      that specific file.
-3. **Verify no regressions**: `poetry run pytest $ARGUMENTS --collect-only -q`
+3. **Verify no regressions**: `uv run pytest $ARGUMENTS --collect-only -q`
    - a broken insertion shows up as a collection error, not a passing/failing
      test, so this check is cheap and catches it immediately.
 4. Report the summary the agent (or the direct script run) produced.

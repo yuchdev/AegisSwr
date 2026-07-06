@@ -140,7 +140,7 @@ class EventBus:
             try:
                 self._subscribers[event_type].remove(callback)
             except (KeyError, ValueError):
-                pass
+                logger.warning("Failed to unsubscribe from {}: not subscribed", event_type)
 
         return _unsubscribe
 
@@ -153,5 +153,5 @@ class EventBus:
             for callback in list(self._subscribers.get(event_type, [])):
                 try:
                     callback(event)
-                except Exception as exc:  # noqa: BLE001, X002 - one bad subscriber must not block delivery to the rest
-                    logger.warning(f"Event subscriber {callback!r} failed on " f"{type(event).__name__}: {exc}")
+                except Exception:
+                    logger.exception("Subscriber {} raised for {}", callback, event_type)

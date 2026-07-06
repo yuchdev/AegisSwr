@@ -210,7 +210,7 @@ is roughly that of one review.
 
 ### What happens
 
-1. Runs `poetry run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-
+1. Runs `uv run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-
    missing` (scoped to the target path if given).
 2. Spawns the `testing-expert` agent with the coverage output. The agent maps uncovered
    lines to behaviours and **risk-ranks** them:
@@ -319,14 +319,14 @@ Even a near-miss is worth a brief post-mortem to capture the learning.
 
 **Invocation:** `/dep-audit`
 **Also triggered automatically** by `dep_audit.py` hook when `pyproject.toml`,
-`poetry.lock`, or `requirements*.txt` changes (advisory-only automatic pass;
+`uv.lock`, or `requirements*.txt` changes (advisory-only automatic pass;
 the full skill is the authoritative version).
 
 ### What happens
 
-1. **CVE scan** - `poetry run pip-audit --progress-spinner off`; lists package,
+1. **CVE scan** - `uv run pip-audit --progress-spinner off`; lists package,
    version, CVE/GHSA id, severity, and fixed version.
-2. **Outdated pins** - `poetry show --outdated`; flags majors behind with
+2. **Outdated pins** - `uv tree --outdated`; flags majors behind with
    security relevance.
 3. **Licence audit** - enumerates direct dependencies, identifies each licence,
    flags GPL/AGPL or unknown-licence packages.

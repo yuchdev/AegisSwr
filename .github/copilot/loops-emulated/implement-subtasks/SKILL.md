@@ -93,8 +93,8 @@ Use `ask_user` for genuine design forks. Continue for routine work.
 ### Step 5 — Verification gate
 
 ```bash
-poetry run pytest <subtask-test-files> -q
-poetry run mypy src/aegis_swr/<subtask-module>/ --strict
+uv run pytest <subtask-test-files> -q
+uv run mypy src/aegis_swr/<subtask-module>/ --strict
 python scripts/replace_optional.py --check
 ```
 
@@ -123,7 +123,7 @@ Also run scoped quality gates:
 
 **If task complete**: run full suite once:
 ```bash
-poetry run pytest tests/unit/ -q --cov=aegis_swr
+uv run pytest tests/unit/ -q --cov=aegis_swr
 ```
 Then run `/pr-review` (must reach LGTM). Update `status.md` task row to `✅ Complete`.
 Run `/link-check docs/roadmap/`. Delete the cursor. **Stop — task is done.**

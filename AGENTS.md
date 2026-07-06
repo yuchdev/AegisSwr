@@ -23,7 +23,7 @@ and confidential.
 
 ## 2. Coding conventions agents must honour
 
-- **Language/stack**: Python 3.12, Poetry, FastAPI, Typer, Pydantic v2,
+- **Language/stack**: Python 3.12, uv, FastAPI, Typer, Pydantic v2,
   LangGraph, SQLAlchemy/asyncpg (Postgres), SQLite, Qdrant, boto3/S3,
   anthropic + openai SDKs, loguru.
 - **Typing**: full annotations; **mypy `strict` must pass**. Always
@@ -59,7 +59,7 @@ and confidential.
 - **Every feature ships with unit tests**; **every external integration ships
   with an integration test** (mocked externals).
 - Tests live in `tests/unit/` (CI-gated) and `tests/integration/`. Run:
-  `poetry run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-missing`.
+  `uv run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-missing`.
 - The **Stop hook runs the unit suite**; a red suite blocks ending the session.
 - Never weaken/`xfail`/delete a test to go green - fix the cause.
 

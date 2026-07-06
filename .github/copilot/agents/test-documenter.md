@@ -38,7 +38,7 @@ E2E outranks Integration outranks Mock outranks Unit when signals conflict.
 1. **Resolve `Ambiguous classification` items** the script reports. Read the actual test body and decide by what it exercises at its outermost boundary.
 2. **Leave `Skipped (custom docstring present)` items alone by default.**
 3. **Never touch test logic.** If a test's name is misleading, report that as a finding for `python-expert`/`testing-expert`.
-4. **Verify after every apply**: `poetry run pytest <path> --collect-only -q` to catch any insertion that broke parsing.
+4. **Verify after every apply**: `uv run pytest <path> --collect-only -q` to catch any insertion that broke parsing.
 
 ## Rules
 

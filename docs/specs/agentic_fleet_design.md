@@ -11,7 +11,7 @@ The design is grounded in the real repository, not a generic template:
 
 | Signal                  | Finding                                                                                                                   |
 |-------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| Language                | **Python 3.12**, managed by **Poetry** (`pyproject.toml`)                                                                 |
+| Language                | **Python 3.12**, managed by **uv** (`pyproject.toml`)                                                                 |
 | Frameworks              | FastAPI, Typer (CLI `aegis`), Pydantic v2, **LangGraph**                                                                  |
 | Data layer              | SQLAlchemy + asyncpg (**Postgres**), **SQLite**, **Qdrant**, S3 (boto3)                                                   |
 | LLM SDKs                | `anthropic`, `openai`                                                                                                     |
@@ -113,7 +113,7 @@ code 2 blocks the tool call.
 | `PostToolUse / Write or Edit or MultiEdit` | `post_edit_format.py` | `ruff format` + `ruff check --fix` on `.py`; logs path to `edits.log`.                                                                                  |
 | `PostToolUse / Write or Edit or MultiEdit` | `dep_audit.py`        | On manifest change, advisory `pip-audit` → `dep-audit.log`.                                                                                             |
 | `PostToolUse / mcp__github__.*`            | `github_audit.py`     | Logs every GitHub MCP call (timestamp + safe arg summary) → `github-actions.log`.                                                                       |
-| `Stop`                                     | `run_tests.py`        | Runs `poetry run pytest tests/unit/ -q`; **exit 2** on failure (respects `stop_hook_active`; skip with `AEGIS_SKIP_TESTS=1`).                           |
+| `Stop`                                     | `run_tests.py`        | Runs `uv run pytest tests/unit/ -q`; **exit 2** on failure (respects `stop_hook_active`; skip with `AEGIS_SKIP_TESTS=1`).                           |
 
 All seven hooks were smoke-tested: destructive/prod commands block, secrets
 block, clean writes pass, session context renders, GitHub calls and edits log.

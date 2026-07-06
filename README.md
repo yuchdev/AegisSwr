@@ -42,12 +42,12 @@ git clone https://github.com/your-organization/AegisSwr.git
 cd AegisSwr
 ```
 
-2. Install dependencies using Poetry:
+2. Install dependencies using uv:
 ```bash
-poetry install
+uv sync
 ```
 
-3. Check if openclaude is installed by Poetry hook; otherwise, install it manually:
+3. Check if openclaude is installed by the uv hook; otherwise, install it manually:
 ```bash
 openclaude --version || npm install -g @gitlawb/openclaude@latest
 ```
@@ -95,7 +95,7 @@ resolved settings with secrets redacted.
 
 5. Launch the core orchestration server:
 ```bash
-poetry run python -m aegis.core.server
+uv run python -m aegis.core.server
 ```
 
 ## 💻 Examples
@@ -140,7 +140,7 @@ $env:AEGIS_SYMBOL_CACHE = ''
 ### Triggering an Investigation (CLI Example)
 
 ```bash
-poetry run aegis analyze \
+uv run aegis analyze \
   --logs ./production_fail.log \
   --crashdump ./core.20260529.dmp \
   --screenshot ./error_ui.png

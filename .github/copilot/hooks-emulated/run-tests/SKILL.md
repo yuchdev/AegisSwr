@@ -27,9 +27,9 @@ Gate the end of a work session on a green unit test suite.
 
 2. **Run the unit suite** (fast, no external services):
    ```bash
-   poetry run pytest tests/unit/ -q --override-ini=addopts= -p no:cov
+   uv run pytest tests/unit/ -q --override-ini=addopts= -p no:cov
    ```
-   Fallback if Poetry is unavailable:
+   Fallback if uv is unavailable:
    ```bash
    pytest tests/unit/ -q --override-ini=addopts= -p no:cov
    ```

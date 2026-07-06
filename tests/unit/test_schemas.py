@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from uuid import UUID
 
 import pytest
@@ -75,7 +75,7 @@ def test_incident_source_with_all_fields():
     """
     src = IncidentSource(
         mode=IncidentMode.LOG_FORENSICS,
-        incident_timestamp=datetime(2026, 5, 30, 14, 2, 11, tzinfo=timezone.utc),
+        incident_timestamp=datetime(2026, 5, 30, 14, 2, 11, tzinfo=UTC),
         log_paths=["/var/log/app.log"],
         user_assumption="DB pool was reduced.",
         metadata={"env": "production"},

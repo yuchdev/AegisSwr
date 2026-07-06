@@ -1,7 +1,7 @@
 """Unit tests for the log backends - no network, no Fluent service required"""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import pytest
@@ -9,8 +9,8 @@ import pytest
 from aegis_swr.backends.log import FileLogAdapter, FluentAdapter, create_log_backend
 from aegis_swr.config.settings import LogBackendSettings
 
-_START = datetime(2026, 5, 30, 13, 59, 30, tzinfo=timezone.utc)
-_END = datetime(2026, 5, 30, 14, 0, 30, tzinfo=timezone.utc)
+_START = datetime(2026, 5, 30, 13, 59, 30, tzinfo=UTC)
+_END = datetime(2026, 5, 30, 14, 0, 30, tzinfo=UTC)
 
 
 def _write_log(root: Path, name: str, *lines: str):

@@ -224,7 +224,7 @@ do not spawn an agent that can only find nothing.** Each gate is module-scoped, 
 
 - **Task not yet complete** → go to Step 8 (reschedule for the next subtask).
 - **Task complete** → this is the **one** place the whole suite runs: execute
-  `poetry run pytest tests/unit/ -q --cov=aegis_swr` once (summary line only), then run
+  `uv run pytest tests/unit/ -q --cov=aegis_swr` once (summary line only), then run
   `/pr-review` (must reach LGTM or have REQUEST_CHANGES resolved). Then update
   `{milestone_path}/status.md` `## Current status` with a **targeted row edit**:
   - Set the task row's Status cell to `✅ Complete` (note any deferred subtasks inline,

@@ -58,11 +58,11 @@ the outer boundary being exercised is what a future reader cares about most.
    report that as a finding for `python-expert`/`testing-expert` - do not
    silently "fix" it by writing a docstring that describes different behavior
    than the code.
-4. **Verify after every apply**: `poetry run pytest <path> --collect-only -q`
+4. **Verify after every apply**: `uv run pytest <path> --collect-only -q`
    to catch any insertion that broke parsing (should never happen if the
    script's line-based edits are correct, but this is the cheap, fast check
    that catches it if it does). For a small/targeted scope, also run the real
-   tests (`poetry run pytest <path> -q`) to confirm the docstring insertion
+   tests (`uv run pytest <path> -q`) to confirm the docstring insertion
    didn't shift behavior (it never should - docstrings are not executed - but
    this is the honest way to say "verified" rather than "should be fine").
 

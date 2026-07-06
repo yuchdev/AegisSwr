@@ -140,7 +140,7 @@ always correct; the before-state was not ruff-canonical.
 
 **Formatting is advisory-non-blocking:** if `ruff` is not on `PATH`, the hook
 logs a note and exits 0 rather than blocking. Install it with the project dev
-group: `poetry install --with dev`.
+group: `uv sync`.
 
 ---
 
@@ -149,7 +149,7 @@ group: `poetry install --with dev`.
 **Hook event:** `PostToolUse` on `Write`, `Edit`, `MultiEdit`
 **Log:** `.claude/logs/dep-audit.log`
 
-Activates only when the edited file is `pyproject.toml`, `poetry.lock`,
+Activates only when the edited file is `pyproject.toml`, `uv.lock`,
 `requirements.txt`, or `requirements-dev.txt`. Runs `pip-audit
 --progress-spinner off` as a best-effort advisory scan and records the result.
 
@@ -231,7 +231,7 @@ not authenticated)". Authenticate with `gh auth login` to get the P0/P1 feed.
 **Hook event:** `Stop`
 **Log:** `.claude/logs/tests.log`
 
-Runs `poetry run pytest tests/unit/ -q` when Claude tries to end the session.
+Runs `uv run pytest tests/unit/ -q` when Claude tries to end the session.
 If the suite fails, **exit 2** prevents the session from closing and Claude is
 told to fix the regression.
 
@@ -299,7 +299,7 @@ reduce prompt friction and protect sensitive files:
 
 **Pre-allowed (no prompt):**
 ```
-poetry run pytest, poetry run ruff, poetry run mypy
+uv run pytest, uv run ruff, uv run mypy
 ruff, pytest
 git status, diff, log, add, commit
 gh pr, gh issue

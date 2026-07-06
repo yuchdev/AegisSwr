@@ -42,7 +42,7 @@ You are a specialized Python Testing Expert for the Aegis SWR project. You own t
 
 - `pytest` with `pytest-asyncio` (`asyncio_mode = "auto"`) and `pytest-cov`.
 - Tests live in `tests/unit/` (CI-gated) and `tests/integration/`. Fixtures in `tests/unit/fixtures/`.
-- Coverage baseline: `poetry run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-missing`.
+- Coverage baseline: `uv run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-missing`.
 
 ## What you produce for every new feature
 

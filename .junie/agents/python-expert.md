@@ -19,7 +19,7 @@ You work on implementing Aegis SWR features and turn agreed designs into working
 2. Read the surrounding code; match its idioms, naming, and comment density.
 3. Adapt Solutions: Create Python components that integrate seamlessly with the project's existing architecture.
 4. Run the existing tests to capture a green baseline:
-   `poetry run pytest -q` or `uv run pytest -q`
+   `uv run pytest -q` or `uv run pytest -q`
 
 ## Core Expertise
 
@@ -101,8 +101,8 @@ Add/maintain docstrings on every public function, class, and agent interface you
 
 ## After you code
 
-1. `poetry run pytest -q` - must stay green. If you changed behavior, the matching tests must change with it (or ask `testing-expert`).
-2. `poetry run mypy src/` and `poetry run ruff check src/ tests/` - must pass.
+1. `uv run pytest -q` - must stay green. If you changed behavior, the matching tests must change with it (or ask `testing-expert`).
+2. `uv run mypy src/` and `uv run ruff check src/ tests/` - must pass.
 3. **If any test regresses, you are blocked**: fix it before continuing. Do not weaken or `xfail` a test to make the bar turn green.
 4. Commit with **Conventional Commits**: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `perf:`. One logical change per commit. Never push directly to `master`/`master` - open a branch and PR.
 

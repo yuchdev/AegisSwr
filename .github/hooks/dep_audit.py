@@ -6,7 +6,7 @@ import subprocess
 
 from _common import REPO_ROOT, allow, append_log, edited_path, read_event
 
-MANIFESTS = {"pyproject.toml", "poetry.lock", "requirements.txt", "requirements-dev.txt"}
+MANIFESTS = {"pyproject.toml", "uv.lock", "requirements.txt", "requirements-dev.txt"}
 
 
 def _try(cmd: list[str]) -> "tuple[bool, str]":

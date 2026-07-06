@@ -29,7 +29,7 @@ the resolution rules of thumb, and the exact docstring format.
      `Ambiguous` item by reading the test body, and leaves every `Skipped`
      (custom docstring) item untouched unless the user asked to standardize
      that specific file.
-3. **Verify no regressions**: `poetry run pytest $ARGUMENTS --collect-only -q`
+3. **Verify no regressions**: `uv run pytest $ARGUMENTS --collect-only -q`
 4. Report the summary the agent (or the direct script run) produced.
 
 ## Output

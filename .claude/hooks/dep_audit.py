@@ -1,28 +1,27 @@
 #!/usr/bin/env python3
 """PostToolUse / Write|Edit on dependency manifests - dependency audit trigger.
 
-When pyproject.toml / poetry.lock / requirements*.txt is edited, this hook runs
+When pyproject.toml / uv.lock / requirements*.txt is edited, this hook runs
 a best-effort vulnerability + licence audit and records the result to
 .claude/logs/dep-audit.log. It is advisory (never blocks): the authoritative,
 deeper audit is the /dep-audit skill which delegates to the background-reviewer.
 
-Audit chain (first available wins): ``pip-audit`` -> ``poetry`` show. Absence of
+Audit chain (first available wins): ``pip-audit`` -> ``uv`` tree. Absence of
 tooling is logged, not fatal.
 """
+
 from __future__ import annotations
 
 import subprocess
 
 from _common import REPO_ROOT, allow, append_log, edited_path, read_event
 
-MANIFESTS = {"pyproject.toml", "poetry.lock", "requirements.txt", "requirements-dev.txt"}
+MANIFESTS = {"pyproject.toml", "uv.lock", "requirements.txt", "requirements-dev.txt"}
 
 
-def _try(cmd: list[str]) -> "tuple[bool, str]":
+def _try(cmd: list[str]) -> tuple[bool, str]:
     try:
-        proc = subprocess.run(
-            cmd, cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=180, check=False
-        )
+        proc = subprocess.run(cmd, cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=180, check=False)
         return proc.returncode == 0, (proc.stdout + proc.stderr).strip()
     except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
         return False, str(exc)

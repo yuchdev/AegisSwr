@@ -23,9 +23,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install poetry
-      - run: poetry install --with dev
-      - run: poetry run mypy src/
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - run: uv run mypy src/
 
   unit-test:
     runs-on: ubuntu-latest
@@ -34,6 +34,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install poetry
-      - run: poetry install --with dev
-      - run: poetry run pytest tests/unit/ -v --cov=aegis_swr --cov-report=term-missing
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - run: uv run pytest tests/unit/ -v --cov=aegis_swr --cov-report=term-missing

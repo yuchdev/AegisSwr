@@ -14,7 +14,7 @@ whole package if empty).
 ## Steps
 
 1. Establish current coverage:
-   `poetry run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-missing`
+   `uv run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-missing`
    (scope with `--cov=aegis_swr.<subpkg>` when a path is given).
 2. Spawn the **`testing-expert`** agent with the coverage output and the target path. Ask it
    to map uncovered lines to behaviours and **risk-rank** them using the full

@@ -2,7 +2,7 @@
 name: dep-audit
 description: >-
   Dependency audit for Aegis SWR. Invoke on changes to pyproject.toml /
-  poetry.lock / requirements*.txt, or on a weekly cadence, or manually as
+  uv.lock / requirements*.txt, or on a weekly cadence, or manually as
   /dep-audit. Runs a CVE scan and a licence-compatibility check and delegates
   the deep write-up to the background-reviewer agent.
 allowed-tools: Read, Grep, Glob, Bash, Agent
@@ -18,10 +18,10 @@ when a manifest changes; this skill is the authoritative deep version.)
 ## Steps
 
 1. **Vulnerabilities**:
-   - `poetry run pip-audit --progress-spinner off` (or `pip-audit` directly).
+   - `uv run pip-audit --progress-spinner off` (or `pip-audit` directly).
    - For each finding, note package, installed version, CVE/GHSA id, fixed
      version, and severity.
-2. **Outdated pins**: `poetry show --outdated` - flag majors behind that carry
+2. **Outdated pins**: `uv tree --outdated` - flag majors behind that carry
    security relevance.
 3. **Licences**: enumerate direct deps from `pyproject.toml`; identify each
    licence (use `pip-licenses` if available, else WebSearch). Flag GPL/AGPL or

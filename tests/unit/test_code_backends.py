@@ -1,8 +1,9 @@
 """Unit tests for the code backends - no network, no system git required"""
+
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest import mock
 
@@ -136,9 +137,7 @@ def git_adapter() -> GitCodeAdapter:
     return GitCodeAdapter(CodeBackendSettings(enabled=True, provider="git"))
 
 
-def test_git_get_commits_before_parses_records(
-    git_adapter: GitCodeAdapter, git_repo: Path
-):
+def test_git_get_commits_before_parses_records(git_adapter: GitCodeAdapter, git_repo: Path):
     """
     [Mock] code backends: verifies git get commits before parses records.
 
@@ -157,7 +156,7 @@ def test_git_get_commits_before_parses_records(
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by code backends
     """
-    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
+    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=UTC)
     with mock.patch(_GIT_CMD, return_value=_completed(_git_log_fixture())):
         commits = git_adapter.get_commits_before(str(git_repo), before, limit=5)
     assert [c.sha for c in commits] == ["abc123", "def456"]
@@ -206,7 +205,7 @@ def test_git_missing_repo_raises(git_adapter: GitCodeAdapter, tmp_path: Path):
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by code backends
     """
-    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
+    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=UTC)
     with pytest.raises(CodeBackendError, match="Not a git repository"):
         git_adapter.get_commits_before(str(tmp_path), before)
 
@@ -230,7 +229,7 @@ def test_git_missing_binary_raises(git_adapter: GitCodeAdapter, git_repo: Path):
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by code backends
     """
-    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
+    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=UTC)
     with (
         mock.patch(_GIT_CMD, side_effect=FileNotFoundError("git")),
         pytest.raises(CodeBackendError, match="git binary not found"),
@@ -257,7 +256,7 @@ def test_git_nonzero_exit_raises(git_adapter: GitCodeAdapter, git_repo: Path):
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by code backends
     """
-    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
+    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=UTC)
     with (
         mock.patch(_GIT_CMD, return_value=_completed(returncode=128, stderr="fatal: bad")),
         pytest.raises(CodeBackendError, match="failed"),
@@ -323,7 +322,7 @@ def test_fs_commits_within_window(fs_adapter: FilesystemCodeAdapter, tmp_path: P
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by code backends
     """
-    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
+    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=UTC)
     # In-window (1h before), out-of-window (5h before).
     _touch(tmp_path / "recent.py", before - timedelta(hours=1))
     _touch(tmp_path / "old.py", before - timedelta(hours=5))
@@ -358,16 +357,14 @@ def test_fs_commits_respects_limit(fs_adapter: FilesystemCodeAdapter, tmp_path: 
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by code backends
     """
-    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=timezone.utc)
+    before = datetime(2026, 5, 30, 14, 0, 0, tzinfo=UTC)
     for i in range(5):
         _touch(tmp_path / f"f{i}.py", before - timedelta(minutes=10 * (i + 1)))
     commits = fs_adapter.get_commits_before(str(tmp_path), before, window_hours=2, limit=3)
     assert len(commits) == 3
 
 
-def test_fs_file_diff_returns_contents(
-    fs_adapter: FilesystemCodeAdapter, tmp_path: Path
-):
+def test_fs_file_diff_returns_contents(fs_adapter: FilesystemCodeAdapter, tmp_path: Path):
     """
     [Unit] code backends: verifies fs file diff returns contents.
 
@@ -392,9 +389,7 @@ def test_fs_file_diff_returns_contents(
     assert "line1" in diff
 
 
-def test_fs_file_diff_missing_returns_empty(
-    fs_adapter: FilesystemCodeAdapter, tmp_path: Path
-):
+def test_fs_file_diff_missing_returns_empty(fs_adapter: FilesystemCodeAdapter, tmp_path: Path):
     """
     [Unit] code backends: verifies fs file diff missing returns empty.
 
@@ -534,9 +529,7 @@ def test_factory_filesystem():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by code backends
     """
-    backend = create_code_backend(
-        CodeBackendSettings(enabled=True, provider="filesystem")
-    )
+    backend = create_code_backend(CodeBackendSettings(enabled=True, provider="filesystem"))
     assert isinstance(backend, FilesystemCodeAdapter)
 
 

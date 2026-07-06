@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Status:** Approved for Implementation  
-**Package:** `aegis-swr` (PyPI/Poetry name); Python module root: `aegis_swr`  
+**Package:** `aegis-swr` (PyPI/uv project name); Python module root: `aegis_swr`  
 **Source root:** `src/aegis_swr/`
 
 > **Related documents:** For the 16-week execution phasing and per-agent task matrix see
@@ -103,7 +103,7 @@ src/aegis_swr/
 
 **Project configuration** (repository root):
 ```
-pyproject.toml        # Poetry project: name="aegis-swr", packages=[{include="aegis_swr",from="src"}]
+pyproject.toml        # uv project: name="aegis-swr", packages=["src/aegis_swr"]
 config.yaml           # Default runtime configuration
 .env.example          # Required environment variable template
 tests/
@@ -117,52 +117,60 @@ tests/
 ## 3. Package Configuration (`pyproject.toml`)
 
 ```toml
-[tool.poetry]
+[project]
 name = "aegis-swr"
 version = "1.0.0"
 description = "Production forensics platform: multi-agent crash and incident analysis"
-authors = ["Yurii Cherkasov <yurii.cherkasov@gloriumtech.com>"]
-packages = [{ include = "aegis_swr", from = "src" }]
+authors = [{ name = "Yurii Cherkasov", email = "yurii.cherkasov@gloriumtech.com" }]
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "fastapi>=0.115,<0.116",
+    "uvicorn[standard]>=0.32,<0.33",
+    "typer[all]>=0.13,<0.14",
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.5,<3",
+    "langgraph>=0.2,<0.3",
+    "anthropic>=0.40,<0.41",
+    "openai>=1.55,<2",
+    "sqlalchemy[asyncio]>=2.0,<3",
+    "asyncpg>=0.30,<0.31",
+    "boto3>=1.35,<2",
+    "qdrant-client>=1.12,<2",
+    "loguru>=0.7,<0.8",
+    "drain3>=0.9,<0.10",
+    "httpx>=0.27,<0.28",
+    "pyyaml>=6.0,<7",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-fastapi = "^0.115"
-uvicorn = { version = "^0.32", extras = ["standard"] }
-typer = { version = "^0.13", extras = ["all"] }
-pydantic = "^2.9"
-pydantic-settings = "^2.5"
-langgraph = "^0.2"
-anthropic = "^0.40"
-openai = "^1.55"
-sqlalchemy = { version = "^2.0", extras = ["asyncio"] }
-asyncpg = "^0.30"
-boto3 = "^1.35"
-qdrant-client = "^1.12"
-loguru = "^0.7"
-drain3 = "^0.9"
-pytesseract = { version = "^0.3", optional = true }
-easyocr = { version = "^1.7", optional = true }
-spacy = { version = "^3.8", optional = true }
-presidio-analyzer = { version = "^2.2", optional = true }
-presidio-anonymizer = { version = "^2.2", optional = true }
-httpx = "^0.27"
-pyyaml = "^6.0"
+[project.optional-dependencies]
+ocr = ["pytesseract>=0.3,<0.4", "easyocr>=1.7,<2"]
+pii = ["spacy>=3.8,<4", "presidio-analyzer>=2.2,<3", "presidio-anonymizer>=2.2,<3"]
+all = [
+    "pytesseract>=0.3,<0.4",
+    "easyocr>=1.7,<2",
+    "spacy>=3.8,<4",
+    "presidio-analyzer>=2.2,<3",
+    "presidio-anonymizer>=2.2,<3",
+]
 
-[tool.poetry.extras]
-ocr = ["pytesseract", "easyocr"]
-pii = ["spacy", "presidio-analyzer", "presidio-anonymizer"]
-all = ["pytesseract", "easyocr", "spacy", "presidio-analyzer", "presidio-anonymizer"]
-
-[tool.poetry.scripts]
+[project.scripts]
 aegis = "aegis_swr.cli.commands:app"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3"
-pytest-asyncio = "^0.24"
-pytest-cov = "^6.0"
-httpx = "^0.27"
-ruff = "^0.8"
-mypy = "^1.13"
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9",
+    "pytest-asyncio>=0.24,<0.25",
+    "pytest-cov>=6.0,<7",
+    "ruff>=0.8,<0.9",
+    "mypy>=1.13,<2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aegis_swr"]
 ```
 
 ---

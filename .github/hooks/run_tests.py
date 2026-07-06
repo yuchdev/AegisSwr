@@ -21,13 +21,11 @@ def main() -> None:
     # coverage flags; -p no:cov disables pytest-cov even if installed.
     # This keeps the gate fast and dependency-free.
     base_args = ["tests/unit/", "-q", "--override-ini=addopts=", "-p", "no:cov"]
-    cmd = ["poetry", "run", "pytest", *base_args]
+    cmd = ["uv", "run", "pytest", *base_args]
     try:
-        proc = subprocess.run(
-            cmd, cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=900, check=False
-        )
+        proc = subprocess.run(cmd, cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=900, check=False)
     except FileNotFoundError:
-        # Poetry not on PATH - fall back to bare pytest, else skip rather than wedge.
+        # uv not on PATH - fall back to bare pytest, else skip rather than wedge.
         try:
             proc = subprocess.run(
                 ["pytest", *base_args],
