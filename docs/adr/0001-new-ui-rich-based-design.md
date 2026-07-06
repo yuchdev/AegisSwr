@@ -4,13 +4,6 @@
 **Scope:** `src/aegis_swr/views/rich_view.py` - adds `WarRoomView` alongside `RichView` (kept as a narrow-terminal fallback); `make_view` picks between them.  
 **Rich version required:** 15.x (already a dependency; uses `rich.layout.Layout`)
 
-> **Note on the verdict (§5).** The shipped verdict diverges from the original
-> proposal below: instead of the multi-panel table-and-evidence layout, the
-> final report is rendered as a single prototype-style green frame
-> (`render_verdict` → `_build_diagnosis`), subtitled with the AI model name.
-> §4–§5 and §8 have been updated to match the implementation; the multi-panel
-> sketch is retained for historical context where noted.
-
 ---
 
 ## 1. Screen Layout
@@ -291,11 +284,6 @@ text composed by `_build_diagnosis(report)` and whose subtitle names the model:
 **HITL (deadlock):** `render_verdict` prints a red `Human Input Required` panel
 carrying the question, context summary, and requested-data bullets, and the
 green diagnosis frame is **not** rendered.
-
-> *Historical:* the original proposal rendered a multi-frame verdict (separate
-> root-cause panel, per-agent approval table, key-evidence panel, and a footer
-> line). That was superseded by the single prototype-style frame above to keep
-> the CLI verdict consistent with the legacy prototype output.
 
 ---
 

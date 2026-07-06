@@ -1,10 +1,10 @@
-# Token Efficiency Audit: WinCrashAnalyzer Prototype vs. Aegis SWR Targets
+# Token Efficiency Audit
 
 ---
 
 ## Audit Matrix
 
-| Parameter                          | Current Prototype Behavior                                                                                                      | Source                                            | Estimated Token Impact                                                                                                       | Aegis SWR Target                                                                                                                               |
+| Parameter                          | Current Behavior                                                                                                      | Source                                            | Estimated Token Impact                                                                                                       | Aegis SWR Target                                                                                                                               |
 |------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Log processing**                 | Last 100 lines read unconditionally; no timestamp filtering despite receiving crash_timestamp                                   | `data_sources.py:94–99`                           | High waste: 100 lines × ~15 tokens ≈ 1,500 tokens of potentially unrelated log noise                                         | `Log Historian Agent` applies temporal window (±30 s around crash timestamp); deduplicates repeating heartbeat lines                           |
 | **Dump ingestion**                 | Entire CDB `!analyze -v` output piped through subprocess; head+tail truncation applied only in OpenAI backend, not Gemini       | `cdb.py:69–74`, `openai.py:109–125`               | Very high: raw `!analyze -v` output is 200–800 lines; fallback char limit 10,000 chars ≈ 2,500 tokens of DLL lists and noise | `Data Adapter` pre-extracts structured fields (exception code, module, stack frames) before AI call; structured schema instead of raw text     |
@@ -42,8 +42,6 @@
 
 ### Rule 1: Extract-then-Send (not Send-then-Truncate)
 
-The prototype truncates raw text after the AI call buffer fills. The Data Adapter must extract structured fields **before** any AI call. Only extracted fields and a compact, pre-filtered text block travel to the AI.
-
 **Structured fields to extract in Data Adapter:**
 ```
 exception_code:        str   (from regex, validated against FaultClass enum)
@@ -72,7 +70,7 @@ Apply in order before any text leaves Data Adapter:
 1. Strip `DBGHELP: .* file not found` lines
 2. Replace `0xCCCCCCCC` (and `0xDDDDDDDD`, `0xFEEEFEEE`, `0xABABABAB`, `0xBAADF00D`) with `<fill>`
 3. Drop DLL load list (all lines between `\*\*\* WARNING:` and `EXCEPTION_ANALYSIS:`)
-4. Apply head+tail truncation at 8,000 chars (4,000/4,000 split - tighter than prototype's 10k/5k/5k)
+4. Apply head+tail truncation at 8,000 chars
 
 ### Rule 4: Prompt Caching for System Instructions
 
@@ -94,7 +92,3 @@ Otherwise, omit history block entirely (saves ~300 tokens per non-recurring cras
 Request AI output as JSON with a defined schema (`RCAReport`) rather than a free-form Markdown string. Eliminates reparsing overhead and reduces output token count by removing Markdown decorators (`##`, `**`, `---`) which add ~5–10% token overhead to typical RCA responses.
 
 ---
-
-## Summary
-
-The prototype's primary token inefficiency is **passing raw debugger output to the AI without pre-extraction of structured fields**. The DLL load list and DBGHELP noise alone can contribute 1,000–4,000 wasted tokens per request - more than the actual signal content in many short stack traces. The Aegis SWR Data Adapter layer eliminates this by acting as a structured extraction pipeline, ensuring that only high-information-density, pre-validated fields reach the inference layer.

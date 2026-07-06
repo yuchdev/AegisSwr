@@ -274,8 +274,7 @@ need mypy/ruff passes.
 
 ### Task 10 - Testing & Hardening
 
-`GroundTruthEngineer` needs real fixture dumps from `prototype/tests/`; instruct
-`python-expert` to **not** invoke real AI backends - expected outputs are pre-computed
+Instruct `python-expert` to **not** invoke real AI backends - expected outputs are pre-computed
 ground truth, not live inference. The `shell=True` audit is a code-review task: delegate to
 `feature-reviewer`, which greps `backends/` and `sandbox/` for `shell=True` and reports any
 hit as blocking. After docs updates, run `/link-check docs/`.

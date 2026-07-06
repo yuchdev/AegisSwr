@@ -229,7 +229,7 @@ streaming work the same way they do for the direct providers in 3.1.
    - `SUPPORTED_FORMATS = [DumpFormat.WINDOWS_MINIDUMP]`
    - `SUPPORTED_PLATFORMS = ["Windows"]`
    - Builds command: `["cdb.exe", "-z", str(dump_path), "-y", symbol_path_str, "-c", ".reload /f /i; !analyze -v; q"]`
-   - Parses output via regex (ported from prototype's `cdb.py`): extracts `exception_code_raw`, `exception_address`, `faulting_module`, `faulting_function`, stack frames.
+   - Parses output via regex: extracts `exception_code_raw`, `exception_address`, `faulting_module`, `faulting_function`, stack frames.
    - Maps NTSTATUS codes to `FaultClass` using `fault_codes.py` mapping table.
    - Computes `symbol_resolution_score` by counting frames with non-None `function`.
    - Applies noise filter to `raw_text_excerpt`.

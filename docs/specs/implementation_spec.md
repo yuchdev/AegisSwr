@@ -621,7 +621,7 @@ Authoritative behaviors of the implemented debug backends:
 
 4. **Fault mapping.** CDB maps the fault-code NTSTATUS hex via `map_windows_ntstatus`; GDB maps the `signal SIG*` name via a local name→number table + `map_linux_signal`; LLDB maps the `stop reason = EXC_*` name via a local name→code table + `map_macos_exception`. Unmapped indicators yield `FaultClass.UNKNOWN`.
 
-   **CDB fault-code extraction (multi-key).** `!analyze -v` reports the fault code under different keys depending on the crash. `_extract_exception_code()` tries, in order: `EXCEPTION_CODE: (NTSTATUS|HRESULT) 0x…`, `ERROR_CODE: (NTSTATUS|HRESULT) 0x…`, `EXCEPTION_CODE_STR:  c0000005`, and `ExceptionCode: c0000005`, normalising to lowercase `0x…`. This was a defect ported from the prototype, which matched only `EXCEPTION_CODE:` and silently yielded `0x0 → FaultClass.UNKNOWN` for real `NULL_POINTER_WRITE` dumps (which report `ERROR_CODE` / `EXCEPTION_CODE_STR` instead). Surfaced during a real-dump reproduction run where the OS Kernel agent noted the brief listed `exception_code_raw` as `0x0` while the excerpt clearly showed `0xc0000005`.
+   **CDB fault-code extraction (multi-key).** `!analyze -v` reports the fault code under different keys depending on the crash. `_extract_exception_code()` tries, in order: `EXCEPTION_CODE: (NTSTATUS|HRESULT) 0x…`, `ERROR_CODE: (NTSTATUS|HRESULT) 0x…`, `EXCEPTION_CODE_STR:  c0000005`, and `ExceptionCode: c0000005`, normalising to lowercase `0x…`.
 
 5. **Parsers are module-level functions** (`parse_cdb_frames`, `parse_gdb_frames`, `parse_lldb_frames`) so they are unit-testable in isolation. Each produces `StackFrame`s; `symbol_resolution_score = (frames with a resolved function) / (total frames)`. `apply_noise_filter` (imported from `core/data_adapter`) is applied to `raw_text_excerpt`.
 
@@ -629,7 +629,7 @@ Authoritative behaviors of the implemented debug backends:
 
 #### 6.2.2 WinDbg JavaScript Backend (`backends/debug/windbg_js_worker.py`)
 
-The WinDbg JS backend restores the `JSProviderBackend` from the prototype with significant production hardening. It is the **preferred Windows debug engine** when the WinDbg JavaScript provider (`JsProvider.dll`) is present; `CdbBackend` remains the fallback.
+The WinDbg JS implements the `JSProviderBackend` with production hardening. It is the **preferred Windows debug engine** when the WinDbg JavaScript provider (`JsProvider.dll`) is present; `CdbBackend` remains the fallback.
 
 ##### Motivation
 
@@ -691,7 +691,7 @@ class _CallbackBridge:
         # Raises DebugExtractionError on queue.Empty
 ```
 
-The handler factory closes over the instance queue to avoid the prototype's bug of a module-level class-attribute `data_queue` shared across concurrent extractions:
+The handler factory closes over the instance queue:
 
 ```python
 def _make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]:
@@ -705,7 +705,7 @@ def _make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]:
 
 ##### Production JS Diagnostic Script (`backends/debug/assets/windbg_diagnostic.js`)
 
-The script is shipped as a versioned file (not a Python string) and read at runtime. It fixes and extends the prototype template:
+The script is shipped as a versioned file (not a Python string) and read at runtime:
 
 ```javascript
 "use strict";
@@ -846,19 +846,6 @@ src/aegis_swr/backends/debug/
 └── assets/
     └── windbg_diagnostic.js      # Versioned JS diagnostic script
 ```
-
-##### Prototype Defects Fixed
-
-| Prototype issue | Production fix |
-|---|---|
-| Module-level `JSCallbackHandler.data_queue` shared across concurrent extractions | Instance-level `_CallbackBridge._queue` via `_make_handler(queue)` closure |
-| Fixed port-fallback chain (9999/9998/9997) - collides in CI | `port=0` - OS assigns an unused ephemeral port |
-| JS template embedded as a Python string - not versionable or editable | Shipped as `backends/debug/assets/windbg_diagnostic.js` |
-| No `ExceptionAddress` in DDM query | `exc.Address` added to script output; maps to `exception_address` |
-| All threads returned at full depth | Faulting thread: `maxFaultingFrames`; other threads: `maxOtherFrames` (default 3) |
-| Symbol path not passed to the JS engine | CDB `-y` symbol chain includes the resolved `symbol_path_string` |
-| Raw dict return type - not a typed `DebugExtractionResult` | Full parse into `DebugExtractionResult`; no callers need to handle a dict |
-| `JsProvider.dll` check by string matching in stdout | Explicit check; raises `DebugExtractionError` with actionable message |
 
 ### 6.3 StorageBackend (four concrete backends)
 
@@ -1327,7 +1314,7 @@ All sync I/O (filesystem, SQLite) is wrapped in `asyncio.to_thread` so the inter
 
 ### 8.1 Filesystem Store (`filesystem_store.py`)
 
-Implements both `RelationalStore` and `ObjectStore`. Evolved from the prototype's `FilesystemBackend`.
+Implements both `RelationalStore` and `ObjectStore`.
 
 **Report storage** (`reports_dir/`, default `<config-dir>/reports`):
 - One file per report: `{reports_dir}/{incident_id}.json`
@@ -1346,7 +1333,7 @@ Implements both `RelationalStore` and `ObjectStore`. Evolved from the prototype'
 
 ### 8.2 SQLite Store (`sqlite_store.py`)
 
-Implements `RelationalStore` only. Evolved from the prototype's `SQLiteBackend`.
+Implements `RelationalStore` only.
 
 **Schema:**
 ```sql
@@ -1634,7 +1621,7 @@ OPENAI_API_KEY=sk-...
 
 ## 12. CLI Interface (`cli/commands.py`)
 
-Built with **Typer**. Inherits the prototype's `--config` / `--save-config` pattern: every analyze option can be supplied as a CLI flag **or** persisted in a JSON config file that mirrors the flag names.
+Built with **Typer**.
 
 ### 12.1 Subcommand Overview
 
@@ -1686,13 +1673,11 @@ aegis analyze \
 - `--evidence-severity TRACE` reveals full per-artifact detail in the Evidence Stream (left war-room pane): textual dump analysis, ±30 s log windows, screenshot properties, network-capture metadata. See `docs/adr/0001-new-ui-rich-based-design.md` §2.2.1.
 - `--process-severity TRACE` shows the full agent reasoning transcript in the Investigation Process pane (right pane); independent of evidence verbosity.
 - `--log-provider` / `--log-service` configure log *ingestion* (reading the investigated system's logs via `LogBackend`), not Aegis diagnostics.
-
-Prototype options carried forward:
 - `--engine` (maps to `DebugSettings.engine`)
 - `--ai` (maps to `AISettings.provider`)
 - `--store` / `--store-config` (maps to `StorageSettings.provider` / path)
 - `--prompt` / `--prompt-file` (maps to `IncidentSource.user_assumption`; `--prompt-file` reads the prompt from a markdown/text file and wins over `--prompt`; when neither is given an artifact-aware default prompt is synthesised. Legacy `--assume` / `assume` key is migrated to `--prompt` / `prompt`.)
-- `--log-severity` (application log verbosity; replaces prototype `--report-severity`)
+- `--log-severity` (application log verbosity)
 - `--config` / `--save-config` (JSON file round-trip)
 
 New options (§6.4 / §6.5 / §15):
@@ -1811,9 +1796,9 @@ src/aegis_swr/cli/
 
 The `Data Adapter` runs Presidio Analyzer before any text is passed to an external LLM. All scrubbing happens locally. The substitution map (`REDACTED_EMAIL_1 → user@example.com`) is stored in the `incidents` table `source_metadata` JSONB column under the key `pii_substitution_map`, encrypted at the column level. It is never sent outside the platform.
 
-### 13.2 Secret Redaction (inherited from prototype)
+### 13.2 Secret Redaction
 
-`SensitiveFilter` from the prototype is ported and attached to the `loguru` logger sink. It redacts `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and any string matching `sk-ant-*` or `sk-*` patterns from log output.
+`SensitiveFilter` attached to the `loguru` logger sink. It redacts `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and any string matching `sk-ant-*` or `sk-*` patterns from log output.
 
 ### 13.3 Sandbox Isolation
 
@@ -1863,7 +1848,7 @@ tests/ground_truth/
 
 ### 14.4 Token Budget Benchmarks
 
-After each significant change to the Data Adapter, run `tests/benchmarks/token_budget.py` against 5 canonical dump+log pairs. Assert that the average per-request token count is below the configured `TOKEN_BUDGET_TARGET` (default: 12,000 input tokens), ensuring that the Data Adapter is providing at least a 30% reduction vs. the prototype baseline.
+After each significant change to the Data Adapter, run `tests/benchmarks/token_budget.py` against 5 canonical dump+log pairs. Assert that the average per-request token count is below the configured `TOKEN_BUDGET_TARGET` (default: 12,000 input tokens).
 
 ---
 

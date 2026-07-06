@@ -164,8 +164,7 @@ in the file (see §11, secrets management).
 
 Beyond hooks, `settings.json` pre-allows safe, high-frequency commands (pytest,
 ruff, mypy, common git/gh read+commit verbs) to reduce prompt friction, and
-**denies reads** of `.env*`, `*.dmp` dumps, and the prototype DB - incident
-payloads and secrets stay out of context by default.
+**denies reads** of `.env*` and `*.dmp` dumps
 
 ---
 

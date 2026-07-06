@@ -7,11 +7,6 @@
 
 Deliver `ResourceExhaustionAgent` - the handle/fd/thread/memory-leak and OOM
 specialist in the forensic agent panel. The agent addresses the product-roadmap
-§1.1 gap: "silent logical lockups, resource leaks" that the Windows prototype
-misses because they leave no explicit crash exception code. These incidents
-manifest as progressive degradation - handle counts climbing, thread pools
-exhausted, connection pools drained - rather than a hard fault, and require
-temporal/log evidence to diagnose.
 
 The agent joins the debate for three fault classes:
 

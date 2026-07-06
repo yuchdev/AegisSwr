@@ -12,7 +12,7 @@ audits, secret scans, performance-regression findings, and licence checks.
 
 | Document | Description |
 |---|---|
-| [token-waste-report.md](token-waste-report.md) | Token efficiency audit: per-category waste estimates for the WinCrashAnalyzer prototype vs. Aegis SWR targets, and 6 Data Adapter guidelines. |
+| [token-waste-report.md](token-waste-report.md) | Token efficiency audit: per-category waste estimates. |
 
 ## What a review report must contain
 

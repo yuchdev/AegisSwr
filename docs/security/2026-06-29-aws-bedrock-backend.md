@@ -6,7 +6,6 @@ Scope reviewed:
 - `src/aegis_swr/config/settings.py` (`BedrockSettings`, `_SECRET_KEYS`, `redacted_dump`/`_redact_secrets`)
 - `src/aegis_swr/backends/ai/__init__.py` (factory)
 - `config.example.json` (bedrock config block)
-- `prototype/bedrock-api.py` (PoC, reference only)
 - Cross-cutting: `src/aegis_swr/cli/aegis_logging.py` (`_sensitive_filter`, `NOISY_LIBRARY_LOGGERS`), `src/aegis_swr/core/exceptions.py`, `src/aegis_swr/backends/ai/_base.py`
 
 ## Assets & trust boundaries
@@ -63,7 +62,6 @@ The boundary that matters most: the bearer token and the raw payload both transi
 - **Error mapping does not leak request data**: `ClientError` is mapped using only `Error.Code` (`:255-259`, `:278-282`); `BotoCoreError`/stream-interrupt use only `type(exc).__name__` (`:260-265`, `:283-288`, `:296-301`). Raw botocore exceptions (which can echo request bodies/headers) are chained via `from exc` but never stringified into the `AIBackendError` message, which `exceptions.py:11-15` documents as sanitised-only. No raw payload or credential reaches the caller/API error body.
 - **Injection**: untrusted payload reaches only the AI prompt (expected). It never touches a shell, SQL string, `eval`, or a path; the request is a plain dict passed to boto3 (`:253`, `:276`). No injection sink.
 - **Untrusted endpoint**: `AWS_BEDROCK_URL` / `AWS_ENDPOINT_NAME_BEDROCK` are **not** referenced in product code (grep-confirmed); the endpoint is derived from `region` by boto3. No SSRF / endpoint-redirection surface today. (Note for future: if a custom `endpoint_url` is ever wired in, it must be validated/allow-listed - an attacker-controlled endpoint would receive both the payload and the bearer token.)
-- **PoC hygiene (`prototype/bedrock-api.py`)**: the PoC has insecure patterns that must **not** migrate into product code - `logging.basicConfig(level=DEBUG)` (`:52-56`), logging the request URL in the auth hook (`:228-232`), `logger.info("...loaded (length=%d)", len(token))` (`:194`), dumping the full request payload (`:333`) and the full error response (`:405`) and raw response (`:521`). The product provider correctly does none of these. Keep it that way.
 
 ## Verdict: PASS_WITH_FOLLOWUP
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Test coverage has been configured to enforce **85% minimum coverage** across both the main project and the prototype. This ensures code quality and helps identify untested code paths.
+Test coverage has been configured to enforce **85% minimum coverage**. This ensures code quality and helps identify untested code paths.
 
 ## Project Setup
 
@@ -19,26 +19,11 @@ pytest
 pytest --cov=src/aegis_swr --cov-fail-under=85
 ```
 
-### Prototype (`/prototype`)
-
-**Configuration file**: `pyproject.toml` (primary) and `.coveragerc` (backup)
-
-**Coverage scope**: `wincrash_analyzer/`
-
-**Run tests with coverage**:
-```powershell
-cd prototype
-pytest
-# or explicitly request coverage
-pytest --cov=wincrash_analyzer --cov-fail-under=85
-```
-
 ## Configuration Details
 
 ### Included in Coverage
 
 - **Main**: All code in `src/aegis_swr/`
-- **Prototype**: All code in `wincrash_analyzer/`
 - Branch coverage is **enabled** (`branch = true`) for more thorough analysis
 - Parallel testing support enabled for faster CI/CD
 
@@ -64,7 +49,6 @@ All test runs with coverage generate:
 
 1. **HTML Report** (interactive)
    - Main: `htmlcov/index.html`
-   - Prototype: `prototype/htmlcov/index.html`
    - View in browser for detailed per-file coverage visualization
 
 2. **Terminal Report** (quick summary)
@@ -82,12 +66,6 @@ All test runs with coverage generate:
 **Main project**:
 ```powershell
 pytest --cov=src/aegis_swr --cov-report=html --cov-report=term-missing
-```
-
-**Prototype**:
-```powershell
-cd prototype
-pytest --cov=wincrash_analyzer --cov-report=html --cov-report=term-missing
 ```
 
 ### Check Coverage Without Failing on Threshold
@@ -192,5 +170,5 @@ To change coverage requirements:
 
 - [Coverage.py Docs](https://coverage.readthedocs.io/)
 - [Pytest-cov Plugin](https://pytest-cov.readthedocs.io/)
-- Project-specific docs: See `docs/` and `prototype/docs/`
+- Project-specific docs: See `docs/`
 

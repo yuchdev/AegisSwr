@@ -309,7 +309,6 @@ gh pr, gh issue
 ```
 .env, .env.*           ← secrets
 **/*.dmp               ← crash dump payloads
-prototype/*.db         ← incident database
 ```
 
 These denials protect against an agent accidentally pulling raw incident data

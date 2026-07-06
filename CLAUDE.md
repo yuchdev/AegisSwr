@@ -8,36 +8,9 @@ All design, planning, and analysis documents are indexed in **[docs/README.md](d
 
 ## Project Overview
 
-**Aegis SWR** (Synthetic War Room) is a cross-platform (in future) crash dump forensics platform. 
-
-The prototype (`/prototype`) automates extraction of crash data from `.dmp` files and uses LLMs to generate Root Cause Analysis (RCA) reports. It supports both a CLI and a PySide6 GUI.
+**Aegis SWR** (Synthetic War Room) is a cross-platform production incident forensics platform. 
 
 **System requirements** (for current Windows-only version): Windows 10/11 x64 *(, Python 3.12+, Debugging Tools for Windows (`cdb.exe` in PATH).
-
-## Commands
-
-All commands run from the `prototype/` directory.
-
-```powershell
-# Install dependencies
-pip install -r requirements.txt
-
-# Run tests
-pytest tests/
-
-# Run a single test file
-pytest tests/test_orchestrator.py
-
-# Run CLI analysis
-python -m wincrash_analyzer.cli analyze --dump <path.dmp> --sym <symbols_dir> --engine cdb --ai gemini
-
-# Launch GUI
-python -m wincrash_analyzer.gui.app
-```
-
-**Environment variables** needed for AI backends:
-- `GEMINI_API_KEY`
-- `OPENAI_API_KEY`
 
 ## Architecture
 

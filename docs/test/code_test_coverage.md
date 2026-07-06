@@ -19,20 +19,6 @@ pytest
 # Open: htmlcov/index.html
 ```
 
-#### Prototype
-
-```powershell
-# Install dependencies (one-time)
-cd prototype
-pip install -r requirements.txt
-
-# Run tests (coverage check included by default)
-pytest
-
-# View detailed coverage report
-# Open: htmlcov/index.html
-```
-
 ### What This Means
 
 - ✅ All test runs automatically measure and report code coverage
@@ -68,9 +54,7 @@ pytest
 
 ### Configuration
 
-Coverage settings are in:
-- **Main**: `pyproject.toml` and `.coveragerc`
-- **Prototype**: `pyproject.toml` and `.coveragerc`
+Coverage settings are in `pyproject.toml` and `.coveragerc`
 
 Full documentation: [docs/test/coverage.md](coverage.md)
 
@@ -87,8 +71,6 @@ Full documentation: [docs/test/coverage.md](coverage.md)
 - [ ] Installed latest dependencies
   ```powershell
   pip install -e .[dev]           # Main project
-  # OR
-  pip install -r requirements.txt  # Prototype
   ```
 
 - [ ] Ran tests locally with coverage
@@ -278,18 +260,14 @@ pytest
 ### "Some files show 0% coverage"
 
 1. Verify source path in `pyproject.toml`:
-   - Main: `src/aegis_swr`
-   - Prototype: `wincrash_analyzer`
+-`src/aegis_swr`
+-`src/flake8_project_rules`
 
-2. Ensure test file imports the module:
-   ```python
-   from wincrash_analyzer import module
-   ```
+2. Ensure test file imports the `aegis_swr` module.
 
 3. Run from correct directory:
    ```powershell
-   cd prototype; pytest  # For prototype
-   pytest                # For main project
+   uv run pytest -q
    ```
 
 ### "HTML report not generated"

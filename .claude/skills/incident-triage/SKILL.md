@@ -24,9 +24,7 @@ is the checklist; that file is the authority.
 ## 1. State-machine completeness
 
 - The live graph is `data_adapter → os_kernel → code_analyst → log_historian →
-  skeptic → {output_synthesizer | hitl | loop to os_kernel}` (see the reference —
-  **not** the old prototype `INITIALIZING → … → STORING` states, which the running
-  orchestrator no longer uses).
+  skeptic → {output_synthesizer | hitl | loop to os_kernel}`.
 - Every state has a defined transition out (success **and** failure). No state
   can be entered without a way to leave it; the only cycle is skeptic → os_kernel.
 - The `EventBus` emits a `DomainEvent` for each transition so views stay in sync
@@ -58,7 +56,7 @@ hand off to the `incident-analyst` agent for a full lifecycle assessment.
 
 ## Completion checklist
 
-- [ ] Change verified against [references/lifecycle-invariants.md](references/lifecycle-invariants.md), not from memory of the old prototype states
+- [ ] Change verified against [references/lifecycle-invariants.md](references/lifecycle-invariants.md)
 - [ ] Every graph state still has both a success and a failure exit; the only cycle remains skeptic → os_kernel
 - [ ] Convergence still requires all three conditions (skeptic ≥ 0.65, consensus ≥ threshold, stable hypothesis); the max-rounds → HITL fallback is intact
 - [ ] Low-confidence / rejecting-skeptic path still yields a `HITLRequest`, never a silent weak `RCAReport`

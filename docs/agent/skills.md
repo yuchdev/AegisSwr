@@ -68,7 +68,6 @@ automatic trigger ensures the check happens before code leaves the session.
 
 **Example:**
 ```
-/playbook-validate prototype/crash_analyzer_config.json
 /playbook-validate docs/runbooks/memory-access-violation.md
 ```
 

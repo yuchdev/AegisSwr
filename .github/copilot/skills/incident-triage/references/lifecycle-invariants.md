@@ -5,12 +5,10 @@ Ground truth for the `incident-triage` checks. Sourced from
 `core/schemas.py`, and `config/settings.py`. When the code and this file
 disagree, the code wins — update this file (that drift is itself a finding).
 
-## The real state machine (LangGraph, not the old prototype states)
+## The state machine
 
-The product CLAUDE.md still mentions a prototype pipeline
-`INITIALIZING → EXTRACTING → PARSING → ANALYZING → STORING`. The **live**
-orchestrator does not use those; it runs a LangGraph `StateGraph`
-(`Orchestrator._build_graph`). Verify against the nodes and edges below.
+The live orchestrator runs a LangGraph `StateGraph`(`Orchestrator._build_graph`). 
+Verify against the nodes and edges below.
 
 ```
 START

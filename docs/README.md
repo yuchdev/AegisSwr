@@ -86,7 +86,7 @@ User-facing reference for every CLI option and configuration field, derived from
 | Document | Description |
 |---|---|
 | [code_test_coverage.md](test/code_test_coverage.md) | Coverage requirements checklist, PR checklist, and runnable commands to validate coverage (85% threshold). |
-| [coverage.md](test/coverage.md) | Coverage configuration for both the main project and prototype; commands, CI integration, and troubleshooting. |
+| [coverage.md](test/coverage.md) | Coverage configuration; commands, CI integration, and troubleshooting. |
 
 ---
 
@@ -97,7 +97,7 @@ findings, and licence checks. See [reviews/README.md](reviews/README.md).
 
 | Document | Description |
 |---|---|
-| [token-waste-report.md](reviews/token-waste-report.md) | Token efficiency audit: per-category waste estimates (~17 440 tokens/request worst-case), prototype vs. target comparison, and 6 Data Adapter guidelines. |
+| [token-waste-report.md](reviews/token-waste-report.md) | Token efficiency audit: per-category waste estimates (~17 440 tokens/request worst-case). |
 
 ---
 
