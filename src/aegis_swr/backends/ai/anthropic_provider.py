@@ -12,7 +12,7 @@ from typing import Any, Optional
 import anthropic
 from pydantic import BaseModel
 
-from aegis_swr.backends.ai._base import _BaseAIBackend
+from aegis_swr.backends.ai.base import _BaseAIBackend
 from aegis_swr.core.exceptions import AIOutputValidationError
 from aegis_swr.config.settings import AnthropicSettings
 
@@ -73,11 +73,18 @@ class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]],
     ) -> tuple[str | dict[str, Any], dict[str, int]]:
+        """
+        Invoke the model and return the raw response text or a parsed object.
+        Note that Claude requires temperature == 1 whenever extended thinking is on.
+        :param system_prompt: The system prompt to guide the model's behavior.
+        :param messages: A list of messages to provide context for the model.
+        :param output_schema: An optional Pydantic model for structured output.
+        :return: A tuple containing the model's response and token usage.
+        """
         thinking = self._thinking_enabled(output_schema)
         kwargs: dict[str, Any] = {
             "model": self.model_name,
             "max_tokens": self._settings.max_tokens,
-            # Claude requires temperature == 1 whenever extended thinking is on.
             "temperature": 1.0 if thinking else self._settings.temperature,
             "system": self._system_blocks(system_prompt),
             "messages": messages,

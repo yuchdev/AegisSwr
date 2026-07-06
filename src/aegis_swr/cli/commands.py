@@ -19,14 +19,14 @@ from loguru import logger
 from rich.console import Console
 from typer.core import TyperGroup
 
-from aegis_swr.cli._config import (
+from aegis_swr.cli.config import (
     DEFAULT_CONFIG_PATH,
     AnalyzeConfig,
     collect_cli_overrides,
     load_analyze_config,
     save_analyze_config,
 )
-from aegis_swr.cli._formatters import json_formatter, rich_formatter, stream_and_display
+from aegis_swr.cli.formatters import json_formatter, rich_formatter, stream_and_display
 from aegis_swr.cli.aegis_logging import configure_logging
 from aegis_swr.config.settings import CONFIG_DIR
 
@@ -439,7 +439,7 @@ def analyze(  # noqa: PLR0913
     else:
         # For json / json-full output, stream the live display to stderr so
         # stdout carries only the machine-readable payload.
-        from aegis_swr.cli._formatters import make_console
+        from aegis_swr.cli.formatters import make_console
 
         stream_con = make_console(stderr=(fmt in ("json", "json-full")))
         report = asyncio.run(

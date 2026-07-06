@@ -18,7 +18,7 @@ from aegis_swr.backends.debug import (
     WinDbgJSBackend,
     create_debug_backend,
 )
-from aegis_swr.backends.debug._symbol_path import resolve_symbol_path
+from aegis_swr.backends.debug.symbol_path import resolve_symbol_path
 from aegis_swr.backends.debug.cdb_worker import _extract_exception_code, parse_cdb_frames
 from aegis_swr.backends.debug.windbg_js_worker import _CallbackBridge
 from aegis_swr.config.settings import DebugSettings

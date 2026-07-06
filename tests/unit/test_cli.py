@@ -9,7 +9,7 @@ from unittest import mock
 import pytest
 import typer.testing
 
-from aegis_swr.cli._config import (
+from aegis_swr.cli.config import (
     load_analyze_config,
     save_analyze_config,
 )

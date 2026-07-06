@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import ClassVar
 
-from aegis_swr.backends.debug._base import _BaseDebugBackend, normalize_address
+from aegis_swr.backends.debug.base import _BaseDebugBackend, normalize_address
 from aegis_swr.core.fault_codes import FaultClass, map_linux_signal
 from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, IncidentSource, StackFrame
 

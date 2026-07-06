@@ -1172,7 +1172,7 @@ def test_persist_evidence_writes_transcript_file(tmp_path: Path):
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by views
     """
-    from aegis_swr.cli._formatters import _persist_evidence
+    from aegis_swr.cli.formatters import _persist_evidence
 
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())
@@ -1205,7 +1205,7 @@ def test_persist_evidence_is_noop_without_a_directory():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by views
     """
-    from aegis_swr.cli._formatters import _persist_evidence
+    from aegis_swr.cli.formatters import _persist_evidence
 
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())

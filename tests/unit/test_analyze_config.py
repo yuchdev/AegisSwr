@@ -13,7 +13,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from aegis_swr.cli._config import (
+from aegis_swr.cli.config import (
     ANALYZE_CONFIG_KEYS,
     DEFAULT_CONFIG_PATH,
     AnalyzeConfig,

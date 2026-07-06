@@ -11,8 +11,8 @@ import re
 from datetime import datetime
 from typing import ClassVar, Optional
 
-from aegis_swr.backends.debug._base import _BaseDebugBackend, normalize_address
-from aegis_swr.backends.debug._symbol_path import resolve_symbol_path
+from aegis_swr.backends.debug.base import _BaseDebugBackend, normalize_address
+from aegis_swr.backends.debug.symbol_path import resolve_symbol_path
 from aegis_swr.core.fault_codes import map_windows_ntstatus
 from aegis_swr.core.schemas import DebugExtractionResult, DumpFormat, IncidentSource, StackFrame
 

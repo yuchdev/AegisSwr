@@ -38,7 +38,7 @@ import botocore.exceptions
 from loguru import logger
 from pydantic import BaseModel
 
-from aegis_swr.backends.ai._base import _BaseAIBackend
+from aegis_swr.backends.ai.base import _BaseAIBackend
 from aegis_swr.config.settings import BedrockSettings
 from aegis_swr.core.exceptions import AIBackendError, AIOutputValidationError
 

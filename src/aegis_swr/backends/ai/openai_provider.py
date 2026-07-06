@@ -12,7 +12,7 @@ from typing import Any, Optional
 import openai
 from pydantic import BaseModel
 
-from aegis_swr.backends.ai._base import _BaseAIBackend
+from aegis_swr.backends.ai.base import _BaseAIBackend
 from aegis_swr.config.settings import OpenAISettings
 
 

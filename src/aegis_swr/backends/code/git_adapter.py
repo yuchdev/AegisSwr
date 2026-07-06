@@ -17,7 +17,7 @@ from pathlib import Path
 from loguru import logger
 
 from aegis_swr.backends.base import CodeBackend
-from aegis_swr.backends.code._paths import safe_repo_path
+from aegis_swr.backends.code.paths import safe_repo_path
 from aegis_swr.core.exceptions import CodeBackendError
 from aegis_swr.core.schemas import BlameRecord, CommitRecord
 from aegis_swr.config.settings import CodeBackendSettings
