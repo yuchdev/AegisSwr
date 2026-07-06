@@ -64,7 +64,7 @@ def _make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]:
                 self.send_header("Content-Type", "text/plain")
                 self.end_headers()
                 self.wfile.write(b"OK")
-            except Exception as exc:  # pragma: no cover
+            except (OSError, UnicodeDecodeError, ValueError) as exc:  # pragma: no cover
                 logger.error(f"Bridge handler error: {exc}")
                 self.send_response(500)
                 self.end_headers()
@@ -198,9 +198,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         """Read the JS asset; raise DebugExtractionError if it is missing"""
         path = self._asset_path()
         if not path.exists():
-            raise DebugExtractionError(
-                f"WinDbg JS asset not found: {path}. Reinstall or repair the aegis-swr package."
-            )
+            raise DebugExtractionError(f"WinDbg JS asset not found: {path}. Reinstall or repair the aegis-swr package.")
         return path.read_text(encoding="utf-8")
 
     def _inject_params(self, template: str, port: int) -> str:

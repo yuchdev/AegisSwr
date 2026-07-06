@@ -47,8 +47,12 @@ cd AegisSwr
 poetry install
 ```
 
+3. Check if openclaude is installed by Poetry hook; otherwise, install it manually:
+```bash
+openclaude --version || npm install -g @gitlawb/openclaude@latest
+```
 
-3. Configure your telemetry and backend providers. Runtime settings live in
+4. Configure your telemetry and backend providers. Runtime settings live in
    `<config-dir>/config.json`; the per-fault-class agent weight matrix
    lives alongside it in `<config-dir>/agents.json`. Seed both from the
    templates in the repo root:
@@ -61,10 +65,21 @@ cp agents.example.json <config-dir>/agents.json
 ```
 ```json
 {
-  "core": { "max_debate_rounds": 4, "consensus_threshold": 0.85 },
+  "core": {
+     "max_debate_rounds": 4, 
+     "consensus_threshold": 0.85
+  },
   "backends": {
-    "ai": { "provider": "anthropic", "anthropic": { "model": "claude-sonnet-4-6" } },
-    "debug": { "engine": "auto", "symbol_server_url": "https://symbols.internal.net" },
+    "ai": {
+       "provider": "anthropic", 
+       "anthropic": {
+          "model": "claude-sonnet-4-6"
+       }
+    },
+    "debug": {
+       "engine": "auto", 
+       "symbol_server_url": "https://symbols.internal.net"
+    },
     "storage": {
       "database_url": "postgresql://user:pass@localhost:5432/aegis",
       "object_store_url": "s3://prod-incidents"
@@ -78,7 +93,7 @@ runtime with `AEGIS__*` environment variables. `aegis config show` prints the
 resolved settings with secrets redacted.
 
 
-4. Launch the core orchestration server:
+5. Launch the core orchestration server:
 ```bash
 poetry run python -m aegis.core.server
 ```

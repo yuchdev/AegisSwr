@@ -1,6 +1,6 @@
 # Task 05.0 — Event Types & Exceptions
 
-**Parent milestone:** [Milestone 0005 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
+**Parent milestone:** [Milestone 0004 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
 **Status:** ⬜ Not started
 
 ## Scope
@@ -24,11 +24,11 @@ written alongside task 02.0 since tasks 03.0 and 04.0 depend on these types.
 
 ## Subtasks
 
-| # | Name | Status |
-|---|------|--------|
-| 01 | Seven event dataclasses | ⬜ Not started |
-| 02 | Three exception types | ⬜ Not started |
-| 03 | EventBus registry update | ⬜ Not started |
+| # | Name | Status | Blocks |
+|---|------|--------|--------|
+| 01 | [Seven event dataclasses](01-event-dataclasses.md) | ⬜ Not started | 03, 03.0, 04.0 |
+| 02 | [Three exception types](02-exception-types.md) | ⬜ Not started | 03.0, 04.0 |
+| 03 | [EventBus registry update](03-eventbus-registration.md) | ⬜ Not started | - |
 
 ## Key constraints
 

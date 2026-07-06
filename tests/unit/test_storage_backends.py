@@ -1,4 +1,5 @@
 """Unit tests for all four storage backends - no external services required"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,6 +8,7 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from botocore.exceptions import ClientError
 
 from aegis_swr.backends.storage import (
     FilesystemStore,
@@ -28,6 +30,7 @@ from aegis_swr.core.schemas import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _report(dump_hash: Optional[str] = None) -> RCAReport:
     return RCAReport(
@@ -213,7 +216,7 @@ async def test_filesystem_upload_raw_get_raw(fs_store: FilesystemStore):
         - Recent changes in code paths exercised by storage backends
     """
     incident_id = uuid4()
-    data = b"MDMP\x00\x00\x00\x00" + b"\xAB" * 64
+    data = b"MDMP\x00\x00\x00\x00" + b"\xab" * 64
     key = await fs_store.upload_raw(incident_id, "dump.dmp", data)
     assert key == f"{incident_id}/dump.dmp"
     recovered = await fs_store.get_raw(key)
@@ -273,10 +276,12 @@ async def test_filesystem_path_traversal_blocked(fs_store: FilesystemStore):
 
 @pytest.fixture
 def sq_store(tmp_path: Path) -> SQLiteStore:
-    return SQLiteStore(StorageSettings(
-        provider="sqlite",
-        db_path=str(tmp_path / "test.db"),
-    ))
+    return SQLiteStore(
+        StorageSettings(
+            provider="sqlite",
+            db_path=str(tmp_path / "test.db"),
+        )
+    )
 
 
 async def test_sqlite_save_get_roundtrip(sq_store: SQLiteStore):
@@ -439,11 +444,13 @@ async def test_sqlite_update_hitl_response(sq_store: SQLiteStore):
 def s3_store() -> S3Store:
     with mock.patch("boto3.client") as mock_client_cls:
         mock_client_cls.return_value = mock.MagicMock()
-        store = S3Store(StorageSettings(
-            provider="s3",
-            object_store_url="s3://test-bucket",
-            object_store_region="us-east-1",
-        ))
+        store = S3Store(
+            StorageSettings(
+                provider="s3",
+                object_store_url="s3://test-bucket",
+                object_store_region="us-east-1",
+            )
+        )
     return store
 
 
@@ -451,10 +458,11 @@ def _s3_get_object_response(body: bytes) -> dict[str, Any]:
     return {"Body": mock.Mock(read=mock.Mock(return_value=body))}
 
 
-def _s3_no_such_key() -> Exception:
-    err = Exception("NoSuchKey")
-    err.response = {"Error": {"Code": "NoSuchKey"}}  # type: ignore[attr-defined]
-    return err
+def _s3_no_such_key() -> ClientError:
+    return ClientError(
+        {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+        "GetObject",
+    )
 
 
 async def test_s3_save_get_roundtrip(s3_store: S3Store):
@@ -583,7 +591,7 @@ async def test_s3_upload_raw_get_raw(s3_store: S3Store):
         - Recent changes in code paths exercised by storage backends
     """
     incident_id = uuid4()
-    data = b"\xDE\xAD\xBE\xEF"
+    data = b"\xde\xad\xbe\xef"
     stored: dict[str, bytes] = {}
 
     def _put(Bucket: str, Key: str, Body: bytes, **_: Any):  # noqa: N803
@@ -757,9 +765,9 @@ def test_factory_sqlite(tmp_path: Path):
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by storage backends
     """
-    relational, object_store = create_storage_backends(StorageSettings(
-        provider="sqlite", db_path=str(tmp_path / "t.db")
-    ))
+    relational, object_store = create_storage_backends(
+        StorageSettings(provider="sqlite", db_path=str(tmp_path / "t.db"))
+    )
     assert isinstance(relational, SQLiteStore)
     assert object_store is None
 
@@ -784,9 +792,7 @@ def test_factory_s3():
         - Recent changes in code paths exercised by storage backends
     """
     with mock.patch("boto3.client"):
-        relational, object_store = create_storage_backends(
-            StorageSettings(provider="s3")
-        )
+        relational, object_store = create_storage_backends(StorageSettings(provider="s3"))
     assert isinstance(relational, S3Store)
     assert isinstance(object_store, S3Store)
     assert relational is object_store

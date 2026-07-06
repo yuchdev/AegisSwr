@@ -1,6 +1,6 @@
 # Task 09.0 — Documentation & CI
 
-**Parent milestone:** [Milestone 0005 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
+**Parent milestone:** [Milestone 0004 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
 **Status:** ⬜ Not started
 
 ## Scope
@@ -26,13 +26,13 @@ entry referencing all nine tasks and the supersession of Milestone 0004.
 
 ## Subtasks
 
-| # | Name | Status |
-|---|------|--------|
-| 01 | `docs/openclaude-setup.md` | ⬜ Not started |
-| 02 | `docs/openclaude-config-reference.md` | ⬜ Not started |
-| 03 | CI `grep` boundary check extension | ⬜ Not started |
-| 04 | CI coverage gate extension | ⬜ Not started |
-| 05 | Milestone closeout + `CHANGELOG.md` | ⬜ Not started |
+| # | Name | Status | Blocks |
+|---|------|--------|--------|
+| 01 | [`docs/openclaude-setup.md`](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/01-setup-guide.md) | ⬜ Not started | none |
+| 02 | [`docs/openclaude-config-reference.md`](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/02-config-reference.md) | ⬜ Not started | none |
+| 03 | [CI `grep` boundary check extension](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/03-ci-boundary-check.md) | ⬜ Not started | none |
+| 04 | [CI coverage gate extension](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/04-ci-coverage-gate.md) | ⬜ Not started | none |
+| 05 | [Milestone closeout + `CHANGELOG.md`](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/05-milestone-closeout.md) | ⬜ Not started | none |
 
 ## Key constraints
 

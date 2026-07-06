@@ -1,6 +1,6 @@
 # Task 04.0 — OpenClaudeTool Implementor
 
-**Parent milestone:** [Milestone 0005 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
+**Parent milestone:** [Milestone 0004 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
 **Status:** ⬜ Not started
 
 ## Scope
@@ -30,12 +30,12 @@ carries tool-call and stream-frame counts for observability.
 
 ## Subtasks
 
-| # | Name | Status |
-|---|------|--------|
-| 01 | Tool skeleton + input schema | ⬜ Not started |
-| 02 | Stream processing + content accumulation | ⬜ Not started |
-| 03 | Permission request handling + allowlist | ⬜ Not started |
-| 04 | Budget pre-check + truncation | ⬜ Not started |
+| # | Name | Blocks | Status |
+|---|------|--------|--------|
+| 01 | [Tool skeleton + input schema](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/01-tool-skeleton.md) | 02, 03, 04 | ⬜ Not started |
+| 02 | [Stream processing + content accumulation](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/02-stream-processing.md) | 03, 04 | ⬜ Not started |
+| 03 | [Permission request handling + allowlist](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/03-permission-allowlist.md) | 04 | ⬜ Not started |
+| 04 | [Budget pre-check + truncation](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/04-budget-truncation.md) | 06.0, 07.0 | ⬜ Not started |
 
 ## Key constraints
 

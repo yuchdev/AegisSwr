@@ -272,7 +272,7 @@ rate limiting, and how we prevent injection via log/stack-trace fields.
 **Step 2 - Implement**
 
 ```
-Use the coder agent to implement the webhook endpoint following ADR 0005.
+Use the coder agent to implement the webhook endpoint following ADR 0004.
 ```
 
 **Step 3 - Security review before any PR**

@@ -1,6 +1,6 @@
 # Task 08.0 — Test Suite — Integration
 
-**Parent milestone:** [Milestone 0005 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
+**Parent milestone:** [Milestone 0004 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
 **Status:** ⬜ Not started
 
 ## Scope
@@ -28,13 +28,13 @@ cannot sustain multi-step tool flows will surface here.
 
 ## Subtasks
 
-| # | Name | Status |
-|---|------|--------|
-| 01 | `integration/conftest.py` + skip guards | ⬜ Not started |
-| 02 | `test_process_lifecycle.py` | ⬜ Not started |
-| 03 | `test_grpc_stream.py` | ⬜ Not started |
-| 04 | `test_tool_live.py` | ⬜ Not started |
-| 05 | `test_allowlist_enforcement.py` | ⬜ Not started |
+| # | Name | Blocks | Status |
+|---|------|--------|--------|
+| 01 | [`integration/conftest.py` + skip guards](/docs/roadmap/0004-code-intelligence/08.0-test-suite-integration/01-conftest-skip-guards.md) | 02, 03, 04, 05 | ⬜ Not started |
+| 02 | [`test_process_lifecycle.py`](/docs/roadmap/0004-code-intelligence/08.0-test-suite-integration/02-test-process-lifecycle.md) | none | ⬜ Not started |
+| 03 | [`test_grpc_stream.py`](/docs/roadmap/0004-code-intelligence/08.0-test-suite-integration/03-test-grpc-stream.md) | none | ⬜ Not started |
+| 04 | [`test_tool_live.py`](/docs/roadmap/0004-code-intelligence/08.0-test-suite-integration/04-test-tool-live.md) | none | ⬜ Not started |
+| 05 | [`test_allowlist_enforcement.py`](/docs/roadmap/0004-code-intelligence/08.0-test-suite-integration/05-test-allowlist-enforcement.md) | none | ⬜ Not started |
 
 ## Key constraints
 

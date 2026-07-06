@@ -9,11 +9,11 @@ from unittest import mock
 import pytest
 import typer.testing
 
+from aegis_swr.cli.commands import app
 from aegis_swr.cli.config import (
     load_analyze_config,
     save_analyze_config,
 )
-from aegis_swr.cli.commands import app
 from aegis_swr.core.schemas import (
     ConfidenceLevel,
     HITLRequest,
@@ -352,7 +352,7 @@ def test_save_config_default_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
         - Recent changes in code paths exercised by cli
     """
     config_file = tmp_path / "analyze.json"
-    monkeypatch.setattr("aegis_swr.cli._config.DEFAULT_CONFIG_PATH", config_file)
+    monkeypatch.setattr("aegis_swr.cli.config.DEFAULT_CONFIG_PATH", config_file)
     monkeypatch.setattr("aegis_swr.cli.commands.DEFAULT_CONFIG_PATH", config_file)
     result = runner.invoke(app, ["analyze", "--ai", "openai", "--save-config"])
     assert result.exit_code == 0
@@ -1209,7 +1209,7 @@ def test_config_example_has_bedrock_section():
     known_fields = set(BedrockSettings.model_fields.keys())
     for key in bedrock_block:
         assert key in known_fields, (
-            f"config.example.json backends.ai.bedrock has unknown key {key!r}; " f"valid keys: {sorted(known_fields)}"
+            f"config.example.json backends.ai.bedrock has unknown key {key!r}; valid keys: {sorted(known_fields)}"
         )
 
     # The required identity fields must be present.
@@ -1232,12 +1232,10 @@ def test_env_example_documents_bedrock_auth():
         stripped = line.strip()
         if stripped.startswith("AWS_BEARER_TOKEN_BEDROCK="):
             value = stripped[len("AWS_BEARER_TOKEN_BEDROCK=") :]
-            assert value == "", (
-                f"AWS_BEARER_TOKEN_BEDROCK must be an empty placeholder in .env.example, " f"got {value!r}"
-            )
+            assert value == "", f"AWS_BEARER_TOKEN_BEDROCK must be an empty placeholder in .env.example, got {value!r}"
         if stripped.startswith("AWS_DEFAULT_REGION="):
             value = stripped[len("AWS_DEFAULT_REGION=") :]
-            assert value == "", f"AWS_DEFAULT_REGION must be an empty placeholder in .env.example, " f"got {value!r}"
+            assert value == "", f"AWS_DEFAULT_REGION must be an empty placeholder in .env.example, got {value!r}"
 
 
 def test_evidence_persist_is_wired_to_stream_and_display(tmp_path: Path):

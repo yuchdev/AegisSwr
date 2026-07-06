@@ -7,14 +7,14 @@ stable persona/schema instructions are billed at the cached rate.
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import anthropic
 from pydantic import BaseModel
 
 from aegis_swr.backends.ai.base import _BaseAIBackend
-from aegis_swr.core.exceptions import AIOutputValidationError
 from aegis_swr.config.settings import AnthropicSettings
+from aegis_swr.core.exceptions import AIOutputValidationError
 
 _STRUCTURED_TOOL_NAME = "structured_output"
 
@@ -67,21 +67,12 @@ class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
             and self.has_reasoning
         )
 
-    async def _invoke(
+    def _create_request(
         self,
         system_prompt: str,
         messages: list[dict[str, Any]],
-        output_schema: Optional[type[BaseModel]],
-    ) -> tuple[str | dict[str, Any], dict[str, int]]:
-        """
-        Invoke the model and return the raw response text or a parsed object.
-        Note that Claude requires temperature == 1 whenever extended thinking is on.
-        :param system_prompt: The system prompt to guide the model's behavior.
-        :param messages: A list of messages to provide context for the model.
-        :param output_schema: An optional Pydantic model for structured output.
-        :return: A tuple containing the model's response and token usage.
-        """
-        thinking = self._thinking_enabled(output_schema)
+        thinking: bool,
+    ) -> dict[str, Any]:
         kwargs: dict[str, Any] = {
             "model": self.model_name,
             "max_tokens": self._settings.max_tokens,
@@ -94,6 +85,24 @@ class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
                 "type": "enabled",
                 "budget_tokens": self._settings.thinking_budget_tokens,
             }
+        return kwargs
+
+    async def _invoke(
+        self,
+        system_prompt: str,
+        messages: list[dict[str, Any]],
+        output_schema: Optional[type[BaseModel]],
+    ) -> tuple[Union[str, dict[Any, Any]], dict[str, int]]:
+        """
+        Invoke the model and return the raw response text or a parsed object.
+        Note that Claude requires temperature == 1 whenever extended thinking is on.
+        :param system_prompt: The system prompt to guide the model's behavior.
+        :param messages: A list of messages to provide context for the model.
+        :param output_schema: An optional Pydantic model for structured output.
+        :return: A tuple containing the model's response and token usage.
+        """
+        thinking = self._thinking_enabled(output_schema)
+        kwargs = self._create_request(system_prompt, messages, thinking)
         if output_schema is not None:
             kwargs["tools"] = [
                 {
@@ -129,18 +138,7 @@ class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
         messages: list[dict[str, Any]],
     ) -> AsyncGenerator[str, None]:
         thinking = self._thinking_enabled(output_schema=None)
-        kwargs: dict[str, Any] = {
-            "model": self.model_name,
-            "max_tokens": self._settings.max_tokens,
-            "temperature": 1.0 if thinking else self._settings.temperature,
-            "system": self._system_blocks(system_prompt),
-            "messages": messages,
-        }
-        if thinking:
-            kwargs["thinking"] = {
-                "type": "enabled",
-                "budget_tokens": self._settings.thinking_budget_tokens,
-            }
+        kwargs = self._create_request(system_prompt, messages, thinking)
         async with self._client.messages.stream(**kwargs) as stream:
             async for text in stream.text_stream:
                 yield text

@@ -55,14 +55,18 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.flake8_lint_tests]
 # Selects which custom X-rules tests/flake8_lint/test_plugin_direct.py exercises.
-#   include, select: when non-empty, only these rule codes are tested (whitelist).
-#   exclude, ignore: rule codes to skip (blacklist); applied after include, so it wins.
+# include/exclude: directories, first apply whitelist, then blacklist
+# select/ignore: rules, first apply whitelist, then blacklist
 # Leaving both empty (the default) tests every rule.
-select = []
-ignore = []
-
 include = []
 exclude = ["tests/flake8_lint/samples/"]
+
+select = ["X001", "X002"]
+ignore = []
+
+# When false, a `# noqa` comment never suppresses a violation (the rule
+# engine's noqa support is bypassed entirely). Default true.
+allow_noqa = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

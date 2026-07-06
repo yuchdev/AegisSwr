@@ -1,4 +1,4 @@
-# Milestone 0005 — OpenClaude Integration
+# Milestone 0004 — OpenClaude Integration
 
 **Package:** `aegis-swr` | **Module root:** `aegis/openclaude/`
 **Depends on:** Milestone 0003 (LiteLLM Model Router; `aegis/router/` in its
@@ -19,11 +19,13 @@ OpenAI-compatible endpoint can wire that model into Aegis SWR's code
 intelligence with a single environment variable (`OPENCLAUDE_GRPC_URL`) and
 zero Python changes.
 
-> **Supersedes Milestone 0004.** The bespoke tool-per-capability design
+> **Supersedes the original Code Intelligence Layer design.** This milestone
+> was renumbered from 0005 to 0004 after the bespoke tool-per-capability design
 > (`aegis/code_intel/` with `gtags` / `zoekt` / `tree-sitter` indices, six
-> hand-built `CodeTool`s and a custom `ReActLoop`) is cancelled as duplicate
-> effort. OpenClaude's own agentic loop replaces it. See
-> [docs/roadmap/0004-code-intelligence-layer/plan.md](/docs/roadmap/0004-code-intelligence-layer/plan.md).
+> hand-built `CodeTool`s and a custom `ReActLoop`) was cancelled as duplicate
+> effort and its plan document removed. OpenClaude's own agentic loop replaces
+> it. See [status.md](/docs/roadmap/0004-code-intelligence/status.md#notes--decisions)
+> for the full decision record.
 
 ---
 

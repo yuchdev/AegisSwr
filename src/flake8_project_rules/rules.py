@@ -5,18 +5,20 @@ This module is the authoritative production implementation of the custom rule
 engine.  It must never import from ``tests/lint/`` or any other test-only
 module.
 """
+
 from __future__ import annotations
 
 import ast
 import re
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence
-
+from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class RuleViolation:
@@ -33,8 +35,37 @@ def check_tree(
     tree: ast.AST,
     filename: str,
     source: Optional[str] = None,
+    *,
+    apply_noqa: bool = True,
 ) -> Iterable[RuleViolation]:
-    """Run all custom checks on a parsed AST and yield violations."""
+    """Run all custom checks on a parsed AST and yield violations.
+
+    When *source* is available and *apply_noqa* is True, violations located on
+    a line that carries a trailing ``# noqa`` comment are suppressed following
+    standard flake8 semantics: a bare ``# noqa`` drops every violation on that
+    line, while ``# noqa: X002`` (or ``# noqa: X001, X002`` - comma-separated
+    and whitespace-tolerant) drops only the listed codes.
+
+    :param tree: the parsed AST for the module under lint.
+    :param filename: path used for diagnostic reporting.
+    :param source: raw module source; required for ``# noqa`` suppression.
+    :param apply_noqa: when False, every violation is reported regardless of
+        any ``# noqa`` comment (see ``[tool.flake8_lint_tests] allow_noqa``).
+    :return: an iterable of :class:`RuleViolation` after noqa filtering.
+    """
+    lines: Optional[Sequence[str]] = source.splitlines() if source is not None else None
+    for violation in _iter_violations(tree, filename, source):
+        if apply_noqa and lines is not None and _is_noqa_suppressed(violation, lines):
+            continue
+        yield violation
+
+
+def _iter_violations(
+    tree: ast.AST,
+    filename: str,
+    source: Optional[str],
+) -> Iterable[RuleViolation]:
+    """Run every custom check and yield the raw (unfiltered) violations."""
     yield from _check_broad_exception(tree, filename)
     yield from _check_settings_set_method(tree, filename)
     yield from _check_muted_exception(tree, filename)
@@ -47,7 +78,44 @@ def check_tree(
     yield from _check_union_none_annotations(tree, filename)
 
 
-def check_file(path: Path) -> List[RuleViolation]:
+# Matches a trailing ``# noqa`` marker anywhere in a line's comment, optionally
+# followed by ``: CODE[, CODE...]``. The code list stops at the first character
+# outside ``[A-Z0-9, ]`` (e.g. a trailing '` - explanation`'), so a rationale
+# after the codes is tolerated.
+_NOQA_RE = re.compile(r"#\s*noqa(?::\s*(?P<codes>[A-Z0-9, ]+))?", re.IGNORECASE)
+
+
+def _noqa_codes_for_line(line: str) -> Optional[frozenset[str]]:
+    """Return the ``# noqa`` suppression declared on *line*, if any.
+
+    :param line: a single physical source line.
+    :return: ``None`` when there is no ``# noqa`` marker; an empty frozenset when
+        a bare ``# noqa`` suppresses every code; otherwise the frozenset of the
+        explicitly listed codes (upper-cased).
+    """
+    match = _NOQA_RE.search(line)
+    if match is None:
+        return None
+    codes = match.group("codes")
+    if codes is None:
+        return frozenset()
+    return frozenset(code.strip().upper() for code in codes.split(",") if code.strip())
+
+
+def _is_noqa_suppressed(violation: RuleViolation, lines: Sequence[str]) -> bool:
+    """Return True when *violation* is suppressed by a ``# noqa`` on its line."""
+    index = violation.lineno - 1
+    if not (0 <= index < len(lines)):
+        return False
+    codes = _noqa_codes_for_line(lines[index])
+    if codes is None:
+        return False
+    if not codes:
+        return True
+    return violation.code in codes
+
+
+def check_file(path: Path) -> list[RuleViolation]:
     """Run all custom lint rules on a Python file and return violations."""
     src = path.read_text(encoding="utf-8")
     tree = ast.parse(src, filename=str(path))
@@ -58,15 +126,13 @@ def check_file(path: Path) -> List[RuleViolation]:
 # Helper utilities
 # ---------------------------------------------------------------------------
 
+
 def _contains_exception(exc_node: ast.expr) -> bool:
     """Return True if the except type contains ``Exception``."""
     if isinstance(exc_node, ast.Name) and exc_node.id == "Exception":
         return True
     if isinstance(exc_node, ast.Tuple):
-        return any(
-            isinstance(elt, ast.Name) and elt.id == "Exception"
-            for elt in exc_node.elts
-        )
+        return any(isinstance(elt, ast.Name) and elt.id == "Exception" for elt in exc_node.elts)
     return False
 
 
@@ -153,9 +219,9 @@ def _iter_test_functions(tree: ast.AST) -> Iterable[ast.AST]:
 
         def __init__(self):
             """Initialise with empty class stack and function-depth counter."""
-            self._class_stack: List[ast.ClassDef] = []
+            self._class_stack: list[ast.ClassDef] = []
             self._function_depth = 0
-            self.test_functions: List[ast.AST] = []
+            self.test_functions: list[ast.AST] = []
 
         def visit_ClassDef(self, node: ast.ClassDef):
             """Push class onto stack, recurse, pop."""
@@ -321,6 +387,7 @@ def _is_union_with_none(ann: Optional[ast.expr]) -> bool:
 # Rule implementations
 # ---------------------------------------------------------------------------
 
+
 def _check_broad_exception(tree: ast.AST, filename: str) -> Iterable[RuleViolation]:
     """X001/X002: Forbid bare ``except:`` and ``except Exception:``."""
     for node in ast.walk(tree):
@@ -433,7 +500,7 @@ def _check_docstrings(
                     continue
 
                 raw_doc = ast.get_docstring(node, clean=False) or ""
-                missing_parts: List[str] = []
+                missing_parts: list[str] = []
 
                 if not _docstring_has_structured_header(raw_doc):
                     missing_parts.append("header line like '[Unit] component: behavior summary'")
@@ -476,7 +543,7 @@ def _check_local_imports(tree: ast.AST, filename: str) -> Iterable[RuleViolation
         def __init__(self):
             """Initialise with zero function depth and empty violations list."""
             self._function_depth = 0
-            self.violations: List[RuleViolation] = []
+            self.violations: list[RuleViolation] = []
 
         def visit_FunctionDef(self, node: ast.FunctionDef):
             """Increment depth before traversal, decrement after."""
@@ -493,39 +560,43 @@ def _check_local_imports(tree: ast.AST, filename: str) -> Iterable[RuleViolation
         def visit_Import(self, node: ast.Import):
             """Flag imports inside function bodies."""
             if self._function_depth > 0:
-                self.violations.append(RuleViolation(
-                    filename,
-                    node.lineno,
-                    node.col_offset,
-                    "X006",
-                    "Do not use local imports inside function bodies; "
-                    "move imports to module scope.",
-                ))
+                self.violations.append(
+                    RuleViolation(
+                        filename,
+                        node.lineno,
+                        node.col_offset,
+                        "X006",
+                        "Do not use local imports inside function bodies; " "move imports to module scope.",
+                    )
+                )
 
         def visit_ImportFrom(self, node: ast.ImportFrom):
             """Flag from-imports inside function bodies."""
             if self._function_depth > 0:
-                self.violations.append(RuleViolation(
-                    filename,
-                    node.lineno,
-                    node.col_offset,
-                    "X006",
-                    "Do not use local imports inside function bodies; "
-                    "move imports to module scope.",
-                ))
+                self.violations.append(
+                    RuleViolation(
+                        filename,
+                        node.lineno,
+                        node.col_offset,
+                        "X006",
+                        "Do not use local imports inside function bodies; " "move imports to module scope.",
+                    )
+                )
 
         def visit_Call(self, node: ast.Call):
             """Flag ``__import__()`` calls inside function bodies."""
             if self._function_depth > 0:
                 if isinstance(node.func, ast.Name) and node.func.id == "__import__":
-                    self.violations.append(RuleViolation(
-                        filename,
-                        node.lineno,
-                        node.col_offset,
-                        "X006",
-                        "Do not use local imports inside function bodies; "
-                        "move imports to module scope (including __import__() calls).",
-                    ))
+                    self.violations.append(
+                        RuleViolation(
+                            filename,
+                            node.lineno,
+                            node.col_offset,
+                            "X006",
+                            "Do not use local imports inside function bodies; "
+                            "move imports to module scope (including __import__() calls).",
+                        )
+                    )
             self.generic_visit(node)
 
     visitor = _LocalImportVisitor()
@@ -624,7 +695,7 @@ def _check_percent_formatting(tree: ast.AST, filename: str) -> Iterable[RuleViol
                 message=(
                     "Do not use old-style '%' formatting in logging calls "
                     "(e.g. '... %s', '... %d'); use f-strings instead, "
-                    "e.g. logger.info(f\"... {value}\")."
+                    'e.g. logger.info(f"... {value}").'
                 ),
             )
 

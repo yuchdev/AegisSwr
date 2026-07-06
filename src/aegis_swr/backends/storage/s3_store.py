@@ -9,6 +9,7 @@ Key layout::
     hash-index/{dump_hash}          content = incident_id (plain text)
     objects/{incident_id}/{name}    raw binary artifacts
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -17,12 +18,13 @@ import json
 from typing import Any, Optional
 from uuid import UUID
 
+from botocore.exceptions import ClientError
 from loguru import logger
 
 from aegis_swr.backends.base import ObjectStore, RelationalStore
-from aegis_swr.core.exceptions import IncidentNotFoundError
-from aegis_swr.core.schemas import RCAReport
 from aegis_swr.config.settings import StorageSettings
+from aegis_swr.core.exceptions import IncidentNotFoundError, RelationalStoreError
+from aegis_swr.core.schemas import RCAReport
 
 _NO_SUCH_KEY = "NoSuchKey"
 
@@ -65,7 +67,7 @@ class S3Store(RelationalStore, ObjectStore):
             resp = self._client.get_object(Bucket=self._bucket, Key=key)
             raw: str = resp["Body"].read().decode("utf-8")
             return raw
-        except Exception as exc:
+        except ClientError as exc:
             if self._is_no_such_key(exc):
                 return None
             raise
@@ -86,7 +88,7 @@ class S3Store(RelationalStore, ObjectStore):
             resp = self._client.get_object(Bucket=self._bucket, Key=key)
             data: bytes = resp["Body"].read()
             return data
-        except Exception as exc:
+        except ClientError as exc:
             if self._is_no_such_key(exc):
                 raise IncidentNotFoundError(f"Object not found: {key}") from exc
             raise
@@ -99,9 +101,12 @@ class S3Store(RelationalStore, ObjectStore):
         await asyncio.to_thread(self._sync_save_report, report)
 
     def _sync_save_report(self, report: RCAReport):
-        self._put_text(f"reports/{report.incident_id}.json", report.model_dump_json())
-        if report.dump_hash:
-            self._put_text(f"hash-index/{report.dump_hash}", str(report.incident_id))
+        try:
+            self._put_text(f"reports/{report.incident_id}.json", report.model_dump_json())
+            if report.dump_hash:
+                self._put_text(f"hash-index/{report.dump_hash}", str(report.incident_id))
+        except ClientError as exc:
+            raise RelationalStoreError(f"S3 save_report failed: {exc}") from exc
         logger.debug(f"S3Store: saved report {report.incident_id}")
 
     async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
@@ -148,22 +153,25 @@ class S3Store(RelationalStore, ObjectStore):
         return await asyncio.to_thread(self._sync_load_recent, limit)
 
     def _sync_load_recent(self, limit: int) -> list[RCAReport]:
-        keys: list[str] = []
-        paginator = self._client.get_paginator("list_objects_v2")
-        for page in paginator.paginate(Bucket=self._bucket, Prefix="reports/"):
-            for obj in page.get("Contents", []):
-                key: str = obj["Key"]
-                if key.endswith(".json"):
-                    keys.append(key)
-        keys.sort(reverse=True)
-        if limit > 0:
-            keys = keys[:limit]
-        reports: list[RCAReport] = []
-        for key in keys:
-            text = self._get_text(key)
-            if text:
-                with contextlib.suppress(Exception):
-                    reports.append(RCAReport.model_validate_json(text))
+        try:
+            keys: list[str] = []
+            paginator = self._client.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=self._bucket, Prefix="reports/"):
+                for obj in page.get("Contents", []):
+                    key: str = obj["Key"]
+                    if key.endswith(".json"):
+                        keys.append(key)
+            keys.sort(reverse=True)
+            if limit > 0:
+                keys = keys[:limit]
+            reports: list[RCAReport] = []
+            for key in keys:
+                text = self._get_text(key)
+                if text:
+                    with contextlib.suppress(Exception):
+                        reports.append(RCAReport.model_validate_json(text))
+        except ClientError as exc:
+            raise RelationalStoreError(f"S3 load_recent failed: {exc}") from exc
         return reports
 
     async def upload_raw(

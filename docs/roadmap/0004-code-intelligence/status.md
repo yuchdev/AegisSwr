@@ -1,4 +1,4 @@
-# Milestone 0005 — OpenClaude Integration — Status
+# Milestone 0004 — OpenClaude Integration — Status
 
 Tracks progress against [plan.md](/docs/roadmap/0004-code-intelligence/plan.md).
 Updated as each task lands.
@@ -19,12 +19,58 @@ Updated as each task lands.
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
-**Current gate status:** task-level decomposition complete; implementation not
-started. Each of the nine tasks has a `README.md` carrying its scope, subtask
-list, and constraints; the numbered subtask specs are **deferred** and not yet
-written. No `aegis/openclaude/` or `aegis/code_intel/` module exists yet;
-`app.py` has no code-backend registration path; `agents.yaml` has no
-`openclaude_agent` role.
+**Current gate status:** full task → subtask decomposition complete;
+implementation not started. Each of the nine tasks has a `README.md` carrying
+its scope, a linked subtask table, and constraints, plus numbered subtask spec
+files (39 total) with concrete file/class/method targets and success criteria.
+No `aegis/openclaude/` or `aegis/code_intel/` module exists yet; `app.py` has
+no code-backend registration path; `agents.yaml` has no `openclaude_agent`
+role.
+
+**Decomposition review found several cross-cutting design gaps that should be
+resolved before implementation starts** (not fixed in this pass — they are
+genuine architecture decisions, not typos):
+
+- **Package path mismatch.** Every task in this milestone (and 0003 before it)
+  is written against a module root of `aegis/...`; the real package is
+  `src/aegis_swr/...`. This is pre-existing across the roadmap tree, not new to
+  0004, but it means every file path in every subtask doc needs translating at
+  implementation time.
+- **`CodeBackend` name collision.** `src/aegis_swr/backends/base.py` already
+  defines an unrelated `CodeBackend` (the VCS/git-history backend). Task 06.0's
+  new code-intelligence `CodeBackend` contract reuses the same name in a
+  different module — a real import-confusion risk; consider renaming the new
+  one (e.g. `CodeIntelBackend`).
+- **Method name/shape drift for the delegation entry point.** plan.md's
+  Architecture diagram specifies `delegate(task) → CodeResult`; Tasks 04.0 and
+  07.0 use `run(task, ctx)` with a `ToolContext` that no task formally defines.
+  Task 06.0 (which owns `aegis/code_intel/backend.py`) needs to settle the
+  method name, signature, and the context type's home before 04.0/07.0 can be
+  implemented as written.
+- **TLS/secure-channel selection has no backing settings field.** Task 02.0
+  says the gRPC channel goes secure "when the URL is `https`"; Task 01.0's
+  `OpenClaudeSettings.grpc_url` validator explicitly *rejects* scheme-prefixed
+  URLs. Neither a URL scheme nor a `use_tls`-style field currently exists to
+  drive this — C1 needs an explicit TLS field, or the milestone should commit
+  to insecure-only for now.
+- **Permission-enforcement ownership conflict (C2 vs Task 04.0).** C2 places
+  allowlist enforcement for `PERMISSION_REQ` frames in the gRPC client; Task
+  04.0's subtasks (following its own README, which is authoritative per this
+  decomposition pass) place it in `OpenClaudeTool`. Pick one owner.
+- **EventBus integration model unconfirmed.** The live `EventBus`
+  (`src/aegis_swr/core/events.py`) dispatches by `DomainEvent` subclass +
+  `type[DomainEvent]`; the Milestone 0003 pattern this milestone's event specs
+  follow assumes bus dispatch by an `event_type` string on a plain frozen
+  dataclass. As written, the new `OpenClaude*` events may not actually be
+  deliverable on the real bus without subclassing `DomainEvent`.
+- Smaller items: no `OpenClaudeGrpcClient.from_url(...)` constructor is
+  defined anywhere but Task 08.0's live fixtures need one; `AgentConfig.provider`
+  was missing from Task 01.0 subtask 03's original draft (fixed in this pass);
+  C7's external-mode allowlist probe has no dedicated subtask; plan.md's
+  dependency graph is missing a 05.0 → 02.0 edge (`client.py` imports
+  `OpenClaudeUnavailableError` from 05.0).
+
+See each task's numbered subtask files for where these are flagged inline.
 
 ## Notes & decisions
 
@@ -33,13 +79,15 @@ written. No `aegis/openclaude/` or `aegis/code_intel/` module exists yet;
   mechanism. The bespoke tool-per-capability design in 0004 (`gtags` / `zoekt` /
   `tree-sitter` indices, six hand-built tools, a custom `ReActLoop`) is
   cancelled as duplicate effort — OpenClaude's own internal agentic loop
-  provides the same navigation via `Bash`. Consequently 0005 now depends only
+  provides the same navigation via `Bash`. Consequently 0004 now depends only
   on 0003, becomes the sole backend behind `aegis/code_intel/`, and stands up a
   minimal generic scaffolding (a `CodeBackend` contract, a `CodeAgent` entry
   point, and boundary-level `CallBudget` accounting) folded into task 06.0. The
   trade-off is accepted knowingly: token accounting degrades to a boundary
   estimate and correlation becomes model-driven rather than deterministic (see
-  plan.md Background and [topology-notes.md](/docs/roadmap/0004-code-intelligence/topology-notes.md)).
+  plan.md's Background and Communication-architecture sections — a planned
+  standalone `topology-notes.md` was never written; the topology analysis
+  lives inline in plan.md's "three viable topologies" section instead).
 - **OpenClaude chosen** over stock Claude Code MCP because it supports
   user-supplied backends (any OpenAI-compatible endpoint, including the
   project's own vLLM instance on Vast.ai) via environment variables, and
@@ -78,36 +126,35 @@ written. No `aegis/openclaude/` or `aegis/code_intel/` module exists yet;
 
 ## Decomposition tree (as built)
 
-The milestone is decomposed to the **task level**: 9 tasks, each with a
-`README.md` carrying its scope, subtask names, and constraints. Numbered
-subtask spec files are **not yet created** — the tree below shows the current
-on-disk state; subtask names are tracked in each `README.md`'s `## Subtasks`
-table (and mirrored in Per-task detail below) as forward-looking names only.
+The milestone is decomposed to the **full subtask level**: 9 tasks, each with
+a `README.md` (scope, linked subtask table, constraints) and its numbered
+subtask spec files (39 total) — matching the granularity of Milestones
+0001-0003. Implementation has not started; every subtask below is still ⬜.
 
 ```
 docs/roadmap/0004-code-intelligence/
 ├── plan.md                                       ← milestone spec (tasks, contracts C1–C9)
 ├── status.md                                     ← this tracker
-├── topology-notes.md                             ← integration-topology analysis
-├── 01.0-settings-config/README.md                ← configuration
-├── 02.0-grpc-proto-client/README.md              ← infrastructure (gRPC isolation)
-├── 03.0-process-lifecycle/README.md              ← infrastructure (subprocess mgmt)
-├── 04.0-openclaude-tool/README.md                ← infrastructure (CodeTool impl)
-├── 05.0-events-exceptions/README.md              ← infrastructure (EventBus types)
-├── 06.0-app-wiring/README.md                     ← integration (+ code_intel scaffolding)
-├── 07.0-test-suite-unit/README.md                ← testing (unit)
-├── 08.0-test-suite-integration/README.md         ← testing (integration)
-└── 09.0-documentation-ci/README.md               ← documentation & milestone closeout
+├── 01.0-settings-config/          (4 subtasks)   ← configuration
+├── 02.0-grpc-proto-client/        (4 subtasks)   ← infrastructure (gRPC isolation)
+├── 03.0-process-lifecycle/        (4 subtasks)   ← infrastructure (subprocess mgmt)
+├── 04.0-openclaude-tool/          (4 subtasks)   ← infrastructure (CodeBackend impl)
+├── 05.0-events-exceptions/        (3 subtasks)   ← infrastructure (EventBus types)
+├── 06.0-app-wiring/               (4 subtasks)   ← integration (+ code_intel scaffolding)
+├── 07.0-test-suite-unit/          (6 subtasks)   ← testing (unit)
+├── 08.0-test-suite-integration/   (5 subtasks)   ← testing (integration)
+└── 09.0-documentation-ci/         (5 subtasks)   ← documentation & milestone closeout
 ```
 
-Each task's `README.md` lists the planned subtask breakdown (3-6 subtasks per
-task, ~38 planned in total); numbered `{NN}-{subtask-slug}.md` files are
-written when that task is picked up for implementation, not before.
+Each task directory's `README.md` links every subtask to its `{NN}-{slug}.md`
+spec file. See "Notes & decisions" above for the design gaps the decomposition
+pass surfaced — several subtask specs note an open question inline pending
+those decisions.
 
 ## Per-task detail
 
-_Filled in as tasks complete. Subtask names below are the planned breakdown
-from each task's README.md — not yet materialised as individual spec files._
+_Filled in as tasks complete. Subtask names link to their spec file; "Done"
+tracks implementation, not spec-writing (all specs now exist)._
 
 ### Task 01.0 — OpenClaude Settings & Config
 
@@ -115,10 +162,10 @@ from each task's README.md — not yet materialised as individual spec files._
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | `OpenClaudeSettings` Pydantic class      | ⬜   |
-| 02      | `agents.yaml` `openclaude_agent` role    | ⬜   |
-| 03      | `RouterConfig` `enabled_when` extension  | ⬜   |
-| 04      | Settings composition in top-level config | ⬜   |
+| 01      | [`OpenClaudeSettings` Pydantic class](01.0-settings-config/01-openclaude-settings.md) | ⬜   |
+| 02      | [`agents.yaml` `openclaude_agent` role](01.0-settings-config/02-agents-yaml-role.md) | ⬜   |
+| 03      | [`RouterConfig` `enabled_when` extension](01.0-settings-config/03-router-config-enabled-when.md) | ⬜   |
+| 04      | [Settings composition in top-level config](01.0-settings-config/04-settings-composition.md) | ⬜   |
 
 **Delivered:** —
 **Test coverage:** —
@@ -131,10 +178,10 @@ from each task's README.md — not yet materialised as individual spec files._
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | `openclaude.proto` schema                | ⬜   |
-| 02      | `make proto-gen` target                  | ⬜   |
-| 03      | `OpenClaudeGrpcClient` implementation    | ⬜   |
-| 04      | `health_check()` + timeout handling      | ⬜   |
+| 01      | [`openclaude.proto` schema](02.0-grpc-proto-client/01-proto-schema.md) | ⬜   |
+| 02      | [`make proto-gen` target](02.0-grpc-proto-client/02-proto-gen-makefile.md) | ⬜   |
+| 03      | [`OpenClaudeGrpcClient` implementation](02.0-grpc-proto-client/03-grpc-client.md) | ⬜   |
+| 04      | [`health_check()` + timeout handling](02.0-grpc-proto-client/04-health-check-timeouts.md) | ⬜   |
 
 **Delivered:** —
 **Test coverage:** —
@@ -147,10 +194,10 @@ from each task's README.md — not yet materialised as individual spec files._
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | External mode `__aenter__` / `__aexit__` | ⬜   |
-| 02      | Managed mode subprocess start/stop       | ⬜   |
-| 03      | Port-0 free-port selection               | ⬜   |
-| 04      | stderr forwarding to `logger`            | ⬜   |
+| 01      | [External mode `__aenter__` / `__aexit__`](03.0-process-lifecycle/01-external-mode.md) | ⬜   |
+| 02      | [Managed mode subprocess start/stop](03.0-process-lifecycle/02-managed-mode.md) | ⬜   |
+| 03      | [Port-0 free-port selection](03.0-process-lifecycle/03-port-selection.md) | ⬜   |
+| 04      | [stderr forwarding to `logger`](03.0-process-lifecycle/04-stderr-forwarding.md) | ⬜   |
 
 **Delivered:** —
 **Test coverage:** —
@@ -163,10 +210,10 @@ from each task's README.md — not yet materialised as individual spec files._
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | Tool skeleton + `input_schema`           | ⬜   |
-| 02      | Stream processing + content accumulation | ⬜   |
-| 03      | Permission request handling + allowlist  | ⬜   |
-| 04      | Budget pre-check + truncation            | ⬜   |
+| 01      | [Tool skeleton + input schema](04.0-openclaude-tool/01-tool-skeleton.md) | ⬜   |
+| 02      | [Stream processing + content accumulation](04.0-openclaude-tool/02-stream-processing.md) | ⬜   |
+| 03      | [Permission request handling + allowlist](04.0-openclaude-tool/03-permission-allowlist.md) | ⬜   |
+| 04      | [Budget pre-check + truncation](04.0-openclaude-tool/04-budget-truncation.md) | ⬜   |
 
 **Delivered:** —
 **Test coverage:** —
@@ -179,9 +226,9 @@ from each task's README.md — not yet materialised as individual spec files._
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | Seven event dataclasses                  | ⬜   |
-| 02      | Three exception types                    | ⬜   |
-| 03      | EventBus registry update                 | ⬜   |
+| 01      | [Seven event dataclasses](05.0-events-exceptions/01-event-dataclasses.md) | ⬜   |
+| 02      | [Three exception types](05.0-events-exceptions/02-exception-types.md) | ⬜   |
+| 03      | [EventBus registry update](05.0-events-exceptions/03-eventbus-registration.md) | ⬜   |
 
 **Delivered:** —
 **Test coverage:** —
@@ -194,10 +241,10 @@ from each task's README.md — not yet materialised as individual spec files._
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | `app.py` composition root update         | ⬜   |
-| 02      | `--dry-run` path with `grpc_url` set     | ⬜   |
-| 03      | `agents.yaml` `openclaude_agent` update  | ⬜   |
-| 04      | `README.md` / `docs/setup.md` update     | ⬜   |
+| 01      | [`app.py` composition root update (+ `code_intel/` scaffolding)](06.0-app-wiring/01-code-intel-scaffolding-and-app-wiring.md) | ⬜   |
+| 02      | [`--dry-run` path with `grpc_url` set](06.0-app-wiring/02-dry-run-path.md) | ⬜   |
+| 03      | [`agents.yaml` `openclaude_agent` update](06.0-app-wiring/03-agents-yaml-finalisation.md) | ⬜   |
+| 04      | [`README.md` / `docs/setup.md` update](06.0-app-wiring/04-readme-update.md) | ⬜   |
 
 **Delivered:** —
 **Test coverage:** —
@@ -210,12 +257,12 @@ from each task's README.md — not yet materialised as individual spec files._
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | `conftest.py` fixtures                   | ⬜   |
-| 02      | `test_config.py`                         | ⬜   |
-| 03      | `test_grpc_client.py`                    | ⬜   |
-| 04      | `test_process.py`                        | ⬜   |
-| 05      | `test_tool.py` (100% branch required)    | ⬜   |
-| 06      | `test_events.py`                         | ⬜   |
+| 01      | [`conftest.py` fixtures](07.0-test-suite-unit/01-conftest-fixtures.md) | ⬜   |
+| 02      | [`test_config.py`](07.0-test-suite-unit/02-test-config.md) | ⬜   |
+| 03      | [`test_grpc_client.py`](07.0-test-suite-unit/03-test-grpc-client.md) | ⬜   |
+| 04      | [`test_process.py`](07.0-test-suite-unit/04-test-process.md) | ⬜   |
+| 05      | [`test_tool.py` (100% branch required)](07.0-test-suite-unit/05-test-tool.md) | ⬜   |
+| 06      | [`test_events.py`](07.0-test-suite-unit/06-test-events.md) | ⬜   |
 
 **Delivered:** —
 **Test coverage:** —
@@ -228,11 +275,11 @@ from each task's README.md — not yet materialised as individual spec files._
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | `integration/conftest.py` + skip guards  | ⬜   |
-| 02      | `test_process_lifecycle.py`              | ⬜   |
-| 03      | `test_grpc_stream.py`                    | ⬜   |
-| 04      | `test_tool_live.py`                      | ⬜   |
-| 05      | `test_allowlist_enforcement.py`          | ⬜   |
+| 01      | [`integration/conftest.py` + skip guards](08.0-test-suite-integration/01-conftest-skip-guards.md) | ⬜   |
+| 02      | [`test_process_lifecycle.py`](08.0-test-suite-integration/02-test-process-lifecycle.md) | ⬜   |
+| 03      | [`test_grpc_stream.py`](08.0-test-suite-integration/03-test-grpc-stream.md) | ⬜   |
+| 04      | [`test_tool_live.py`](08.0-test-suite-integration/04-test-tool-live.md) | ⬜   |
+| 05      | [`test_allowlist_enforcement.py`](08.0-test-suite-integration/05-test-allowlist-enforcement.md) | ⬜   |
 
 **Delivered:** —
 **Test coverage:** —
@@ -245,11 +292,11 @@ from each task's README.md — not yet materialised as individual spec files._
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | `docs/openclaude-setup.md`               | ⬜   |
-| 02      | `docs/openclaude-config-reference.md`    | ⬜   |
-| 03      | CI `grep` boundary check extension       | ⬜   |
-| 04      | CI coverage gate extension               | ⬜   |
-| 05      | Milestone closeout + `CHANGELOG.md`      | ⬜   |
+| 01      | [`docs/openclaude-setup.md`](09.0-documentation-ci/01-setup-guide.md) | ⬜   |
+| 02      | [`docs/openclaude-config-reference.md`](09.0-documentation-ci/02-config-reference.md) | ⬜   |
+| 03      | [CI `grep` boundary check extension](09.0-documentation-ci/03-ci-boundary-check.md) | ⬜   |
+| 04      | [CI coverage gate extension](09.0-documentation-ci/04-ci-coverage-gate.md) | ⬜   |
+| 05      | [Milestone closeout + `CHANGELOG.md`](09.0-documentation-ci/05-milestone-closeout.md) | ⬜   |
 
 **Delivered:** —
 **Test coverage:** —

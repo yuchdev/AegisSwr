@@ -18,8 +18,8 @@ from aegis_swr.backends.debug import (
     WinDbgJSBackend,
     create_debug_backend,
 )
-from aegis_swr.backends.debug.symbol_path import resolve_symbol_path
 from aegis_swr.backends.debug.cdb_worker import _extract_exception_code, parse_cdb_frames
+from aegis_swr.backends.debug.symbol_path import resolve_symbol_path
 from aegis_swr.backends.debug.windbg_js_worker import _CallbackBridge
 from aegis_swr.config.settings import DebugSettings
 from aegis_swr.core.exceptions import DebugExtractionError, PlatformNotSupportedError
@@ -27,7 +27,7 @@ from aegis_swr.core.fault_codes import FaultClass, map_windows_ntstatus
 from aegis_swr.core.schemas import IncidentMode, IncidentSource
 
 FIXTURES = Path(__file__).parent / "fixtures"
-_RUN = "aegis_swr.backends.debug._base.subprocess.run"
+_RUN = "aegis_swr.backends.debug.base.subprocess.run"
 
 
 @pytest.fixture
@@ -248,9 +248,7 @@ def test_cdb_symbol_chain_two_paths(debug_settings: DebugSettings):
     assert chain.index("C:/proj/x64/Release") < chain.index("C:/symbols")
 
 
-def test_sym_paths_flow_from_incident_source_to_command(
-    debug_settings: DebugSettings, dump_path: str
-):
+def test_sym_paths_flow_from_incident_source_to_command(debug_settings: DebugSettings, dump_path: str):
     """symbol_path list on IncidentSource is forwarded verbatim to the -y chain."""
     backend = CdbBackend(debug_settings)
     source = IncidentSource(
@@ -664,9 +662,7 @@ _JS_AVAIL = "aegis_swr.backends.debug._windbg_js_available"
     "platform,expected",
     [("linux", GdbBackend), ("darwin", LldbBackend)],
 )
-def test_factory_selects_non_windows_backend(
-    debug_settings: DebugSettings, platform: str, expected: type
-):
+def test_factory_selects_non_windows_backend(debug_settings: DebugSettings, platform: str, expected: type):
     """
     [Unit] debug backends: verifies factory selects non windows backend.
 

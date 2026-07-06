@@ -15,10 +15,11 @@ Pipeline stages:
     8. Code-history query (optional)
     9. Incident-brief assembly
 """
+
 from __future__ import annotations
 
-import re
 import hashlib
+import re
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timedelta
@@ -29,6 +30,7 @@ from loguru import logger
 
 try:
     from presidio_analyzer import AnalyzerEngine as _AnalyzerEngine
+
     _HAS_PRESIDIO = True
 except ImportError:
     _AnalyzerEngine = None  # type: ignore[assignment,misc]
@@ -37,12 +39,16 @@ except ImportError:
 try:
     import pytesseract as _pytesseract
     from PIL import Image as _Image
+
     _HAS_OCR = True
 except ImportError:
     _pytesseract = None  # type: ignore[assignment]
     _Image = None  # type: ignore[assignment]
     _HAS_OCR = False
 
+from aegis_swr.backends.base import CodeBackend, DebugBackend, LogBackend
+from aegis_swr.config.settings import Settings
+from aegis_swr.core.exceptions import CodeBackendError, LogBackendError
 from aegis_swr.core.schemas import (
     CommitRecord,
     DumpFormat,
@@ -51,9 +57,6 @@ from aegis_swr.core.schemas import (
     UIContext,
 )
 from aegis_swr.core.tokens import count_tokens, truncate_to_tokens
-from aegis_swr.backends.base import CodeBackend, DebugBackend, LogBackend
-from aegis_swr.config.settings import Settings
-
 
 # ---------------------------------------------------------------------------
 # Stage 3: noise filter (module-level so DebugBackends can reuse it)
@@ -95,9 +98,7 @@ def apply_noise_filter(text: str) -> str:
 
 _ISO_TS_RE = re.compile(r"(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})")
 _TIME_ONLY_RE = re.compile(r"\[(\d{2}):(\d{2}):(\d{2})]")
-_SEVERITY_RE = re.compile(
-    r"\b(TRACE|DEBUG|INFO|WARNING|WARN|ERROR|FATAL|CRITICAL)\b", re.IGNORECASE
-)
+_SEVERITY_RE = re.compile(r"\b(TRACE|DEBUG|INFO|WARNING|WARN|ERROR|FATAL|CRITICAL)\b", re.IGNORECASE)
 _SEVERITY_RANK = {
     "TRACE": 0,
     "DEBUG": 1,
@@ -128,9 +129,7 @@ def _parse_timestamp(line: str, reference: datetime) -> Optional[datetime]:
     if clock:
         hour, minute, second = (int(g) for g in clock.groups())
         try:
-            return reference.replace(
-                hour=hour, minute=minute, second=second, microsecond=0
-            )
+            return reference.replace(hour=hour, minute=minute, second=second, microsecond=0)
         except ValueError:
             return None
     return None
@@ -282,9 +281,7 @@ class DataAdapter:
 
         # Stage 4: log processing (merge file lines + LogBackend lines), then scrub
         backend_lines = await self._query_log_backend(source, log_backend)
-        log_summary = self._process_logs(
-            source.log_paths, source.incident_timestamp, extra_lines=backend_lines
-        )
+        log_summary = self._process_logs(source.log_paths, source.incident_timestamp, extra_lines=backend_lines)
         if log_summary:
             log_summary = self._scrub_text(log_summary, scrub)
 
@@ -555,13 +552,15 @@ class DataAdapter:
             try:
                 if not _HAS_OCR:
                     continue
-                data = _pytesseract.image_to_data(
-                    _Image.open(path), output_type=_pytesseract.Output.DICT
-                )
-            except Exception as exc:  # pragma: no cover - depends on tesseract binary
+                data = _pytesseract.image_to_data(_Image.open(path), output_type=_pytesseract.Output.DICT)
+            except (
+                OSError,
+                ValueError,
+                _pytesseract.TesseractError,
+            ) as exc:  # pragma: no cover - depends on tesseract binary
                 logger.warning(f"OCR failed for {raw_path}: {exc}")
                 continue
-            for text, conf in zip(data.get("text", []), data.get("conf", [])):
+            for text, conf in zip(data.get("text", []), data.get("conf", []), strict=False):
                 try:
                     confidence = float(conf)
                 except (TypeError, ValueError):
@@ -615,6 +614,7 @@ class DataAdapter:
                 :rtype: str
                 """
                 return state.token_for(label_, match.group(0))
+
             return _replace
 
         for label, pattern in _PII_RULES:
@@ -635,7 +635,7 @@ class DataAdapter:
                 value = text[res.start : res.end]
                 token = state.token_for(res.entity_type, value)
                 text = text[: res.start] + token + text[res.end :]
-        except Exception as exc:  # pragma: no cover - depends on spaCy models
+        except (OSError, ValueError) as exc:  # pragma: no cover - depends on spaCy models
             logger.warning(f"Presidio enhancement failed; using regex baseline only: {exc}")
         return text
 
@@ -656,9 +656,7 @@ class DataAdapter:
         limit = self._settings.core.user_assumption_token_limit
         truncated_text, was_truncated = truncate_to_tokens(text, limit)
         if was_truncated:
-            logger.warning(
-                f"User assumption exceeded {limit}-token cap; truncated."
-            )
+            logger.warning(f"User assumption exceeded {limit}-token cap; truncated.")
         return truncated_text
 
     # -- Stage 4 (LogBackend) ----------------------------------------------
@@ -682,11 +680,9 @@ class DataAdapter:
                 end_time=source.incident_timestamp + window,
             )
         except NotImplementedError:
-            logger.warning(
-                "LogBackend is a stub (e.g. fluent); falling back to file-based logs only."
-            )
+            logger.warning("LogBackend is a stub (e.g. fluent); falling back to file-based logs only.")
             return []
-        except Exception as exc:  # pragma: no cover - backend-specific
+        except LogBackendError as exc:  # pragma: no cover - backend-specific
             logger.warning(f"LogBackend query failed; using file logs only: {exc}")
             return []
 
@@ -722,7 +718,7 @@ class DataAdapter:
                 window_hours=2,
                 limit=5,
             )
-        except Exception as exc:  # pragma: no cover - backend-specific
+        except CodeBackendError as exc:  # pragma: no cover - backend-specific
             logger.warning(f"Code history query failed: {exc}")
             return []
 

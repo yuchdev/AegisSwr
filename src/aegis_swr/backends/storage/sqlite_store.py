@@ -14,21 +14,22 @@ Schema::
         report_json  TEXT  NOT NULL
     )
 """
+
 from __future__ import annotations
-from typing import Optional
 
 import asyncio
 import json
 import sqlite3
 from pathlib import Path
+from typing import Optional
 from uuid import UUID
 
 from loguru import logger
 
 from aegis_swr.backends.base import RelationalStore
-from aegis_swr.core.exceptions import IncidentNotFoundError
-from aegis_swr.core.schemas import RCAReport
 from aegis_swr.config.settings import StorageSettings
+from aegis_swr.core.exceptions import IncidentNotFoundError, RelationalStoreError
+from aegis_swr.core.schemas import RCAReport
 
 _CREATE = """
 CREATE TABLE IF NOT EXISTS reports (
@@ -77,15 +78,18 @@ class SQLiteStore(RelationalStore):
         await asyncio.to_thread(self._sync_save, report)
 
     def _sync_save(self, report: RCAReport):
-        row = (
-            str(report.incident_id),
-            report.dump_hash,
-            report.created_at.isoformat(),
-            report.mode.value,
-            report.model_dump_json(),
-        )
-        with self._connect() as conn:
-            conn.execute(_UPSERT, row)
+        try:
+            row = (
+                str(report.incident_id),
+                report.dump_hash,
+                report.created_at.isoformat(),
+                report.mode.value,
+                report.model_dump_json(),
+            )
+            with self._connect() as conn:
+                conn.execute(_UPSERT, row)
+        except (sqlite3.Error, ValueError) as exc:
+            raise RelationalStoreError(f"SQLite save_report failed: {exc}") from exc
         logger.debug(f"SQLiteStore: saved report {report.incident_id}")
 
     async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
@@ -147,6 +151,9 @@ class SQLiteStore(RelationalStore):
         sql = "SELECT report_json FROM reports ORDER BY created_at DESC"
         if limit > 0:
             sql += f" LIMIT {limit}"
-        with self._connect() as conn:
-            rows = conn.execute(sql).fetchall()
+        try:
+            with self._connect() as conn:
+                rows = conn.execute(sql).fetchall()
+        except sqlite3.Error as exc:
+            raise RelationalStoreError(f"SQLite load_recent failed: {exc}") from exc
         return [RCAReport.model_validate_json(row[0]) for row in rows]

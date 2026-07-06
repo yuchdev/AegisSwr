@@ -6,18 +6,20 @@ falls inside the requested window, optionally filtered by severity. The
 
 See ``docs/specs/generic_implementation_plan.md`` C.4 LogBackend
 """
+
 from __future__ import annotations
-from typing import Optional
 
 import asyncio
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from loguru import logger
 
 from aegis_swr.backends.base import LogBackend
-from aegis_swr.core.data_adapter import _parse_timestamp, _severity_token
 from aegis_swr.config.settings import LogBackendSettings
+from aegis_swr.core.data_adapter import _parse_timestamp, _severity_token
+from aegis_swr.core.exceptions import LogBackendError
 
 
 def _safe_under(base: Path, candidate: Path) -> bool:
@@ -37,9 +39,7 @@ class FileLogAdapter(LogBackend):
         end_time: datetime,
         severity_levels: Optional[list[str]] = None,
     ) -> list[str]:
-        return await asyncio.to_thread(
-            self._sync_query, service, start_time, end_time, severity_levels
-        )
+        return await asyncio.to_thread(self._sync_query, service, start_time, end_time, severity_levels)
 
     def _sync_query(
         self,
@@ -58,6 +58,8 @@ class FileLogAdapter(LogBackend):
                 content = path.read_text(encoding="utf-8", errors="replace")
             except (FileNotFoundError, IsADirectoryError):
                 continue
+            except OSError as exc:
+                raise LogBackendError(f"File log query failed for {service!r}: {exc}") from exc
             for line in content.splitlines():
                 ts = _parse_timestamp(line, start_time)
                 if ts is None or not (start_time <= ts <= end_time):

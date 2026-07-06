@@ -1,6 +1,6 @@
 # Task 07.0 — Test Suite — Unit
 
-**Parent milestone:** [Milestone 0005 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
+**Parent milestone:** [Milestone 0004 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
 **Status:** ⬜ Not started
 
 ## Scope
@@ -29,14 +29,14 @@ retriable), and `test_events.py` (all seven types instantiate and emit;
 
 ## Subtasks
 
-| # | Name | Status |
-|---|------|--------|
-| 01 | `conftest.py` fixtures | ⬜ Not started |
-| 02 | `test_config.py` | ⬜ Not started |
-| 03 | `test_grpc_client.py` | ⬜ Not started |
-| 04 | `test_process.py` | ⬜ Not started |
-| 05 | `test_tool.py` (100% branch required) | ⬜ Not started |
-| 06 | `test_events.py` | ⬜ Not started |
+| # | Name | Status | Blocks |
+|---|------|--------|--------|
+| 01 | [`conftest.py` fixtures](01-conftest-fixtures.md) | ⬜ Not started | 02, 03, 04, 05, 06 |
+| 02 | [`test_config.py`](02-test-config.md) | ⬜ Not started | - |
+| 03 | [`test_grpc_client.py`](03-test-grpc-client.md) | ⬜ Not started | - |
+| 04 | [`test_process.py`](04-test-process.md) | ⬜ Not started | - |
+| 05 | [`test_tool.py` (100% branch required)](05-test-tool.md) | ⬜ Not started | - |
+| 06 | [`test_events.py`](06-test-events.md) | ⬜ Not started | - |
 
 ## Key constraints
 

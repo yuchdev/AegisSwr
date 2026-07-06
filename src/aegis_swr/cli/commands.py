@@ -19,6 +19,7 @@ from loguru import logger
 from rich.console import Console
 from typer.core import TyperGroup
 
+from aegis_swr.cli.aegis_logging import configure_logging
 from aegis_swr.cli.config import (
     DEFAULT_CONFIG_PATH,
     AnalyzeConfig,
@@ -27,8 +28,8 @@ from aegis_swr.cli.config import (
     save_analyze_config,
 )
 from aegis_swr.cli.formatters import json_formatter, rich_formatter, stream_and_display
-from aegis_swr.cli.aegis_logging import configure_logging
 from aegis_swr.config.settings import CONFIG_DIR
+from aegis_swr.core.exceptions import PlatformNotSupportedError
 
 console = Console()
 
@@ -408,7 +409,7 @@ def analyze(  # noqa: PLR0913
     if source.dump_path:
         try:
             debug_backend = create_debug_backend(settings.backends.debug)
-        except Exception as exc:  # noqa: BLE001
+        except PlatformNotSupportedError as exc:
             typer.echo(f"Warning: debug backend unavailable ({exc})", err=True)
 
     code_backend = create_code_backend(settings.backends.code)
@@ -416,7 +417,7 @@ def analyze(  # noqa: PLR0913
     log_backend = None
     try:
         log_backend = create_log_backend(settings.backends.log)
-    except Exception as exc:  # noqa: BLE001
+    except (NotImplementedError, ValueError) as exc:
         typer.echo(f"Warning: log backend unavailable ({exc})", err=True)
 
     from aegis_swr.core.orchestrator import Orchestrator

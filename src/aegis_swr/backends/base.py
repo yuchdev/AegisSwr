@@ -97,7 +97,15 @@ class RelationalStore(ABC):
 
     @abstractmethod
     async def save_report(self, report: RCAReport):
-        """Insert or update a completed RCA report"""
+        """Insert or update a completed RCA report.
+
+        :raises RelationalStoreError: on any backend failure (connection, query,
+            or serialization error). Implementations must wrap backend-specific
+            exceptions in ``RelationalStoreError`` and never let them leak.
+        :raises NotImplementedError: when the concrete adapter is a deliberate
+            stub (e.g. Postgres, pending a future phase); callers treat this
+            distinctly from a failure.
+        """
 
     @abstractmethod
     async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
@@ -123,6 +131,13 @@ class RelationalStore(ABC):
         """Return up to *limit* reports ordered by created_at descending.
 
         ``limit=0`` means return all reports.  Used by ``aegis export``.
+
+        :raises RelationalStoreError: on any backend failure (connection, query,
+            or serialization error). Implementations must wrap backend-specific
+            exceptions in ``RelationalStoreError`` and never let them leak.
+        :raises NotImplementedError: when the concrete adapter is a deliberate
+            stub (e.g. Postgres, pending a future phase); callers treat this
+            distinctly from a failure.
         """
 
 
@@ -148,7 +163,12 @@ class VectorStore(ABC):
 
     @abstractmethod
     async def upsert_incident(self, report: RCAReport):
-        """Embed the report summary and upsert into the vector collection"""
+        """Embed the report summary and upsert into the vector collection.
+
+        :raises VectorStoreError: on any backend failure (connection, embedding,
+            or query error). Implementations must wrap backend-specific
+            exceptions in ``VectorStoreError`` and never let them leak.
+        """
 
     @abstractmethod
     async def search_similar(
@@ -157,7 +177,12 @@ class VectorStore(ABC):
         faulting_module: Optional[str],
         top_k: int = 5,
     ) -> list[RCAReport]:
-        """Return the top-k most similar historical incidents"""
+        """Return the top-k most similar historical incidents.
+
+        :raises VectorStoreError: on any backend failure (connection, embedding,
+            or query error). Implementations must wrap backend-specific
+            exceptions in ``VectorStoreError`` and never let them leak.
+        """
 
 
 class LogBackend(ABC):
@@ -171,7 +196,14 @@ class LogBackend(ABC):
         end_time: datetime,
         severity_levels: Optional[list[str]] = None,
     ) -> list[str]:
-        """Return filtered log lines from the configured source within the time window"""
+        """Return filtered log lines from the configured source within the time window.
+
+        :raises LogBackendError: on any backend failure (connection, auth, or a
+            malformed response). Implementations must wrap backend-specific
+            exceptions in ``LogBackendError`` and never let them leak.
+        :raises NotImplementedError: when the concrete adapter is a deliberate
+            stub (e.g. Fluent/ELK); callers treat this distinctly from a failure.
+        """
 
 
 class CodeBackend(ABC):

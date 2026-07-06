@@ -8,15 +8,16 @@ This module is pure Python - it must never import UI libraries.
 Subscription is by event type and covers subclasses: subscribing to
 ``DomainEvent`` itself receives every event.
 """
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from loguru import logger
 
 from aegis_swr.core.schemas import AgentTurn, IncidentSource, RCAReport
-
 
 # ---------------------------------------------------------------------------
 # Domain events
@@ -26,6 +27,7 @@ from aegis_swr.core.schemas import AgentTurn, IncidentSource, RCAReport
 @dataclass(frozen=True)
 class DomainEvent:
     """Base class for all investigation events"""
+
     pass
 
 
@@ -39,6 +41,7 @@ class InvestigationStarted(DomainEvent):
     :ivar source: Source of the incident triggering the investigation.
     :type source: IncidentSource
     """
+
     incident_id: str
     source: IncidentSource
 
@@ -50,6 +53,7 @@ class EvidenceExtracted(DomainEvent):
     :ivar brief: The incident brief
     :type brief: dict[str, Any]
     """
+
     brief: dict[str, Any] = field(default_factory=dict)
 
 
@@ -62,6 +66,7 @@ class AgentSpoke(DomainEvent):
     :ivar turn: The turn that was spoken
     :type turn: AgentTurn
     """
+
     node: str
     turn: AgentTurn
 
@@ -75,6 +80,7 @@ class ConsensusEvaluated(DomainEvent):
     :ivar round_number: The round number
     :type round_number: Optional[int]
     """
+
     score: float
     round_number: Optional[int] = None
 
@@ -86,6 +92,7 @@ class InvestigationCompleted(DomainEvent):
     :ivar report: The final report
     :type report: RCAReport
     """
+
     report: RCAReport
 
 
@@ -96,6 +103,7 @@ class HumanInputRequired(DomainEvent):
     :ivar report: The final report
     :type report: RCAReport
     """
+
     report: RCAReport
 
 
@@ -145,8 +153,5 @@ class EventBus:
             for callback in list(self._subscribers.get(event_type, [])):
                 try:
                     callback(event)
-                except Exception as exc:  # noqa: BLE001 - view errors must not kill the run
-                    logger.warning(
-                        f"Event subscriber {callback!r} failed on "
-                        f"{type(event).__name__}: {exc}"
-                    )
+                except Exception as exc:  # noqa: BLE001, X002 - one bad subscriber must not block delivery to the rest
+                    logger.warning(f"Event subscriber {callback!r} failed on " f"{type(event).__name__}: {exc}")

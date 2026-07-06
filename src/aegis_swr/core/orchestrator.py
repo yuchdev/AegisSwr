@@ -5,6 +5,7 @@ four specialized agents (OS Kernel → Code Analyst → Log Historian → Skepti
 evaluates weighted consensus after every round, and terminates by routing to
 either the output synthesizer or the HITL handler.
 """
+
 from __future__ import annotations
 
 import json
@@ -19,6 +20,16 @@ from aegis_swr.agents.code_analyst import CodeAnalystAgent
 from aegis_swr.agents.log_historian import LogHistorianAgent
 from aegis_swr.agents.os_kernel import OSKernelAgent
 from aegis_swr.agents.skeptic import SkepticAgent
+from aegis_swr.backends.base import (
+    AIAPIBackend,
+    CodeBackend,
+    DebugBackend,
+    LogBackend,
+    ObjectStore,
+    RelationalStore,
+    VectorStore,
+)
+from aegis_swr.config.settings import Settings
 from aegis_swr.core.consensus import ConsensusEvaluator
 from aegis_swr.core.data_adapter import DataAdapter
 from aegis_swr.core.events import (
@@ -31,6 +42,7 @@ from aegis_swr.core.events import (
     InvestigationCompleted,
     InvestigationStarted,
 )
+from aegis_swr.core.exceptions import RelationalStoreError, VectorStoreError
 from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.schemas import (
     AgentTurn,
@@ -38,21 +50,10 @@ from aegis_swr.core.schemas import (
     HITLRequest,
     Hypothesis,
     IncidentMode,
+    IncidentSource,
     InvestigationState,
     RCAReport,
 )
-
-from aegis_swr.backends.base import (
-    AIAPIBackend,
-    CodeBackend,
-    DebugBackend,
-    LogBackend,
-    ObjectStore,
-    RelationalStore,
-    VectorStore,
-)
-from aegis_swr.config.settings import Settings
-from aegis_swr.core.schemas import IncidentSource
 
 
 class Orchestrator:
@@ -140,9 +141,7 @@ class Orchestrator:
         that need the final report or a transport translation (SSE).
         """
         initial = self._initial_state(source)
-        started = InvestigationStarted(
-            incident_id=str(initial["incident_id"]), source=source
-        )
+        started = InvestigationStarted(incident_id=str(initial["incident_id"]), source=source)
         self._bus.publish(started)
         yield started
         async for chunk in self._graph.astream(initial, stream_mode="updates"):
@@ -152,9 +151,7 @@ class Orchestrator:
                     yield event
 
     @staticmethod
-    def _events_from_update(
-        node_name: str, update: dict[str, Any]
-    ) -> list[DomainEvent]:
+    def _events_from_update(node_name: str, update: dict[str, Any]) -> list[DomainEvent]:
         """Translate one LangGraph node update into domain events"""
         events: list[DomainEvent] = []
         if node_name == "data_adapter_node" and "incident_brief" in update:
@@ -213,8 +210,7 @@ class Orchestrator:
     ) -> RCAReport:
         """Resume a HITL-pending investigation with data supplied by the user"""
         raise NotImplementedError(
-            "continue_investigation requires Phase 6 storage backends. "
-            "Implement after PostgresStore is available."
+            "continue_investigation requires Phase 6 storage backends. " "Implement after PostgresStore is available."
         )
 
     # ------------------------------------------------------------------
@@ -256,9 +252,7 @@ class Orchestrator:
     # Node implementations
     # ------------------------------------------------------------------
 
-    async def _data_adapter_node(
-        self, state: InvestigationState
-    ) -> dict[str, Any]:
+    async def _data_adapter_node(self, state: InvestigationState) -> dict[str, Any]:
         """Orchestrate forensic data extraction from all available sources.
 
         Calls the DataAdapter to ingest and normalize the incident dump, logs,
@@ -307,9 +301,7 @@ class Orchestrator:
         scores[agent_key] = turn.confidence_score
         return tracker, history, scores
 
-    async def _os_kernel_node(
-        self, state: InvestigationState
-    ) -> dict[str, Any]:
+    async def _os_kernel_node(self, state: InvestigationState) -> dict[str, Any]:
         """Invoke the OS/Kernel Agent for system-level fault analysis.
 
         The OS Kernel Agent examines kernel context (interrupts, CPU state, memory
@@ -334,9 +326,7 @@ class Orchestrator:
             update["primary_hypothesis"] = primary
         return update
 
-    async def _code_analyst_node(
-        self, state: InvestigationState
-    ) -> dict[str, Any]:
+    async def _code_analyst_node(self, state: InvestigationState) -> dict[str, Any]:
         """Invoke the Code Analyst Agent for application-level fault diagnosis.
 
         The Code Analyst examines stack traces, register contents, and symbols to
@@ -361,9 +351,7 @@ class Orchestrator:
             update["primary_hypothesis"] = primary
         return update
 
-    async def _log_historian_node(
-        self, state: InvestigationState
-    ) -> dict[str, Any]:
+    async def _log_historian_node(self, state: InvestigationState) -> dict[str, Any]:
         """Invoke the Log Historian Agent for temporal and recurrence analysis.
 
         The Log Historian compares the current incident against prior reports in
@@ -377,9 +365,7 @@ class Orchestrator:
             Update dict with agent turn and consensus scores.
         """
         history = await self._load_history()
-        turn = await self._historian.run(
-            state, vector_store=self._vector, history=history
-        )
+        turn = await self._historian.run(state, vector_store=self._vector, history=history)
         tracker, history, scores = self._fold_turn(state, turn, "log_historian")
         return {
             "discussion_history": history,
@@ -387,9 +373,7 @@ class Orchestrator:
             "token_tracker": tracker,
         }
 
-    async def _skeptic_node(
-        self, state: InvestigationState
-    ) -> dict[str, Any]:
+    async def _skeptic_node(self, state: InvestigationState) -> dict[str, Any]:
         """Invoke the Skeptic Agent to challenge the emerging consensus.
 
         The Skeptic critically examines all prior agent hypotheses and evidence,
@@ -437,9 +421,7 @@ class Orchestrator:
             "token_tracker": tracker,
         }
 
-    async def _output_synthesizer_node(
-        self, state: InvestigationState
-    ) -> dict[str, Any]:
+    async def _output_synthesizer_node(self, state: InvestigationState) -> dict[str, Any]:
         """Build the final RCA report when consensus is reached.
 
         Synthesises all agent turns, hypotheses, and scores into a structured
@@ -457,18 +439,18 @@ class Orchestrator:
         if self._relational:
             try:
                 await self._relational.save_report(report)
-            except Exception as exc:  # pragma: no cover
+            except NotImplementedError:
+                logger.warning("RelationalStore is a stub; report was not persisted.")
+            except RelationalStoreError as exc:  # pragma: no cover
                 logger.warning(f"Could not save report to relational store: {exc}")
         if self._vector:
             try:
                 await self._vector.upsert_incident(report)
-            except Exception as exc:  # pragma: no cover
+            except VectorStoreError as exc:  # pragma: no cover
                 logger.warning(f"Could not upsert report to vector store: {exc}")
         return {"result": json.loads(report.model_dump_json()), "hitl_pending": False}
 
-    async def _hitl_node(
-        self, state: InvestigationState
-    ) -> dict[str, Any]:
+    async def _hitl_node(self, state: InvestigationState) -> dict[str, Any]:
         """Build a Human-In-The-Loop report when max debate rounds are exhausted.
 
         When the panel cannot converge within the configured debate limit, the
@@ -487,7 +469,9 @@ class Orchestrator:
         if self._relational:
             try:
                 await self._relational.save_report(report)
-            except Exception as exc:  # pragma: no cover
+            except NotImplementedError:
+                logger.warning("RelationalStore is a stub; HITL report was not persisted.")
+            except RelationalStoreError as exc:  # pragma: no cover
                 logger.warning(f"Could not save HITL report: {exc}")
         return {"result": json.loads(report.model_dump_json()), "hitl_pending": True}
 
@@ -638,10 +622,11 @@ class Orchestrator:
             self._history_cache = []
             return self._history_cache
         try:
-            self._history_cache = await self._relational.load_recent(
-                limit=self._HISTORY_LIMIT
-            )
-        except Exception as exc:  # noqa: BLE001 - history is best-effort
+            self._history_cache = await self._relational.load_recent(limit=self._HISTORY_LIMIT)
+        except NotImplementedError:
+            logger.warning("RelationalStore is a stub; no incident history available.")
+            self._history_cache = []
+        except RelationalStoreError as exc:
             logger.warning("Failed to load incident history: {}", exc)
             self._history_cache = []
         return self._history_cache

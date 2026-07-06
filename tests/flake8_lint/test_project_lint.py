@@ -9,6 +9,14 @@ the ``X`` rules run over a file.
 The set of directories to lint is built by :func:`covered_dirs`, which both this
 suite and the reference suite share, so the two linters always scan exactly the
 same files and therefore report exactly the same violations.
+
+Scope is further narrowed by the ``[tool.flake8_lint_tests]`` section of
+``pyproject.toml`` (see ``tests/flake8_lint/config.py``): ``include``/
+``exclude`` pick which directories are scanned (default: ``src`` and
+``tests``), ``select``/``ignore`` pick which of the custom X-rules gate
+this test, and ``allow_noqa`` (default ``True``) controls whether a ``#
+noqa`` comment can suppress a diagnostic here at all - so the two suites
+(this one and ``test_plugin_direct.py``) always enforce the same policy.
 """
 
 from __future__ import annotations
@@ -21,6 +29,7 @@ from typing import Union
 import pytest
 
 from flake8_project_rules.plugin import ProjectRulesPlugin
+from tests.flake8_lint.config import active_rule_codes, allow_noqa, configured_directories
 
 PROJECT_ROOT = Path(__file__).parents[2]
 
@@ -124,34 +133,45 @@ def covered_dirs(
 
 
 def _iter_python_files() -> Iterable[Path]:
-    """Yield top-level ``*.py`` files in every covered directory (non-recursive)."""
-    for dir_str in covered_dirs(["src", "tests"], []):
-        for path in Path(dir_str).glob("*.py"):
-            yield path
+    """Yield top-level ``*.py`` files in every covered directory (non-recursive).
+
+    The covered directories are the ``include``/``exclude`` lists from
+    ``[tool.flake8_lint_tests]``, defaulting to ``src`` and ``tests`` when
+    ``include`` is empty.
+    """
+    include, exclude = configured_directories(["src", "tests"])
+    for dir_str in covered_dirs(include, exclude):
+        yield from Path(dir_str).glob("*.py")
 
 
 def _run_plugin(path: Path) -> list[tuple[int, int, str]]:
-    """Run the Flake8 plugin over *path* and return ``(line, col, message)`` tuples."""
+    """Run the Flake8 plugin over *path* and return ``(line, col, message)`` tuples.
+
+    Honours ``[tool.flake8_lint_tests] allow_noqa``: when the config disables
+    it, every violation is reported regardless of any ``# noqa`` comment.
+    """
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(path))
-    plugin = ProjectRulesPlugin(tree, str(path))
+    plugin = ProjectRulesPlugin(tree, str(path), apply_noqa=allow_noqa())
     return [(lineno, col, text) for (lineno, col, text, _type) in plugin.run()]
 
 
 def test_project_custom_flake8_rules_pass():
     """
-    [Integration] flake8 plugin: covered source files pass all custom X-rules.
+    [Integration] flake8 plugin: covered source files pass all active custom X-rules.
 
     Scenario:
-        Given the same top-level Python files that the reference manual-AST
-        linter (tests/lint/test_linting.py) scans via covered_dirs()
+        Given the directories selected by [tool.flake8_lint_tests] include/exclude
+        (the same top-level Python files the reference manual-AST linter in
+        tests/lint/test_linting.py scans via covered_dirs())
         When the production Flake8 plugin (ProjectRulesPlugin) runs over them
-        Then no custom-rule diagnostics are produced
-        And the result is identical to the reference linter's verdict.
+        Then no diagnostic whose rule code is in the active select/ignore set
+        is produced.
 
     Boundaries:
         - Real: AST parsing, flake8 plugin rule engine, file I/O
-        - Scope: covered_dirs(["src", "tests"], []) - same set as the reference
+        - Scope: configured_directories(["src", "tests"]) via covered_dirs()
+        - Rules: the active subset of X001-X011 from [tool.flake8_lint_tests]
         - Excludes: git-ignored dirs (.venv, build, dist, caches, ...)
 
     On failure, first check:
@@ -160,11 +180,14 @@ def test_project_custom_flake8_rules_pass():
         - Whether the diagnostics match tests/lint/test_linting.py (they must)
         - The flake8_project_rules.rules module for the rule implementation.
     """
+    active = set(active_rule_codes())
     diagnostics: list[str] = []
 
     for path in _iter_python_files():
         for lineno, col, message in _run_plugin(path):
-            diagnostics.append(f"{path}:{lineno}:{col}: {message}")
+            code = message.split(" ", 1)[0]
+            if code in active:
+                diagnostics.append(f"{path}:{lineno}:{col}: {message}")
 
     if diagnostics:
         msg = "Custom flake8 rule violations found:\n" + "\n".join(diagnostics)

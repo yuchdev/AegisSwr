@@ -1,6 +1,6 @@
 # Task 02.0 — gRPC Proto & Client
 
-**Parent milestone:** [Milestone 0005 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
+**Parent milestone:** [Milestone 0004 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
 **Status:** ⬜ Not started
 
 ## Scope
@@ -25,12 +25,12 @@ tests need no live process. `close()` shuts the channel down.
 
 ## Subtasks
 
-| # | Name | Status |
-|---|------|--------|
-| 01 | `openclaude.proto` schema | ⬜ Not started |
-| 02 | `make proto-gen` target | ⬜ Not started |
-| 03 | `OpenClaudeGrpcClient` implementation | ⬜ Not started |
-| 04 | `health_check()` + timeout handling | ⬜ Not started |
+| # | Name | Status | Blocks |
+|---|------|--------|--------|
+| 01 | [`openclaude.proto` schema](01-proto-schema.md) | ⬜ Not started | 02, 03, 04.0 |
+| 02 | [`make proto-gen` target](02-proto-gen-makefile.md) | ⬜ Not started | 03, 04.0, 09.0 |
+| 03 | [`OpenClaudeGrpcClient` implementation](03-grpc-client.md) | ⬜ Not started | 04, 03.0, 04.0 |
+| 04 | [`health_check()` + timeout handling](04-health-check-timeouts.md) | ⬜ Not started | 03.0, 04.0 |
 
 ## Key constraints
 
