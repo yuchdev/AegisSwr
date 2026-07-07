@@ -1062,7 +1062,6 @@ def test_bedrock_bearer_hook_does_not_log_token(
 ):
     """The bearer token value must never appear in log output during client construction;
     the auth-mode label 'bearer-token' must appear."""
-    import io
 
     from loguru import logger
 
@@ -1102,7 +1101,7 @@ async def test_bedrock_stream_interruption_raises_backend_error(
         def __init__(self) -> None:
             self._count = 0
 
-        def __iter__(self) -> "_FaultingIterator":
+        def __iter__(self) -> _FaultingIterator:
             return self
 
         def __next__(self) -> dict[str, Any]:

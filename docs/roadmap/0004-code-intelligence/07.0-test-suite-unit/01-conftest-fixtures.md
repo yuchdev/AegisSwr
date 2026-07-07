@@ -188,4 +188,4 @@ def live_ctx() -> ToolContext:
 - [ ] `ample_budget` passes an `OpenClaudeTool` pre-check against
       `max_response_tokens // 4`; `dry_run_ctx.dry_run is True`.
 - [ ] `conftest.py` imports neither `grpc` nor any `_pb2` module (grep-clean).
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

@@ -97,7 +97,7 @@ async def _delegate(self, task: str, ctx: CodeContext) -> CodeResult:
 - `from __future__ import annotations`; `Optional[T]` never `T | None` (C9).
 - Each frame type is handled in its own flat `if/elif` arm — no nested
   compound conditionals — so every arm is independently coverable (task 07.0).
-- No `Any`; `mypy --strict` and `ruff` clean.
+- No `Any`; `ruff` clean.
 - No unredacted `TEXT_CHUNK` / accumulated content reaches any log sink (C9).
 - Counters are function-local; the tool holds no per-call mutable state.
 
@@ -114,4 +114,4 @@ async def _delegate(self, task: str, ctx: CodeContext) -> CodeResult:
 - [ ] A stream of only `TEXT_CHUNK` + `DONE` returns the joined text with zero
       tool counts.
 - [ ] No `msg.content` or accumulated content is logged.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

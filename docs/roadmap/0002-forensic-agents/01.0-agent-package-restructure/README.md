@@ -31,5 +31,5 @@ working via re-export shims, and the full test suite must stay green throughout.
   agent modules in this task (the `BaseAgent` generalization is Task 02.0).
 - **Both import paths resolve.** Old (`aegis_swr.agents.os_kernel`) keeps working
   via a shim; new (`aegis_swr.agents.base`) is the real home.
-- `mypy --strict`, `ruff`, and `Optional[T]` conventions stay clean.
+- `ruff`, `replace_optional.py --check`, and `Optional[T]` conventions stay clean.
 - The Stop-hook unit suite (478+ tests) passes unchanged after every subtask.

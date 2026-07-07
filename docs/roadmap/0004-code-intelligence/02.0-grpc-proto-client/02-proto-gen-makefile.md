@@ -59,14 +59,11 @@ proto-gen:  ## Regenerate committed OpenClaude gRPC stubs from openclaude.proto
   codegen output must be committed together with the regenerated stubs. This CI
   wiring is authored in Task 09.0 - this subtask only guarantees the target
   exists and is byte-stable when re-run on an unchanged schema.
-- **mypy exclusion.** The two generated modules are excluded from `mypy
-  --strict` via a `per-module` `[[tool.mypy.overrides]]` entry
-  (`ignore_errors = true` scoped to `aegis.openclaude.grpc.proto.*`), per C9;
-  no `# type: ignore` comments are hand-added to generated files. That override
-  lands with the config in Task 01.0 / 06.0; note the requirement here.
-- **No `.pyi` requirement.** Do not require `--mypy_out` / stub-only generation;
-  the module is excluded from strict typing, and the only typed surface is
-  `client.py`, which wraps the stubs behind typed method signatures.
+- **Generated-module handling.** The two generated modules are committed as-is, with
+  no inline `# type: ignore` comments hand-added to generated files. Task 01.0 / 06.0
+  owns any supporting configuration; note the requirement here.
+- **No `.pyi` requirement.** Do not require stub-only generation; the only typed
+  surface is `client.py`, which wraps the stubs behind explicit method signatures.
 
 ## Constraints
 
@@ -88,7 +85,6 @@ proto-gen:  ## Regenerate committed OpenClaude gRPC stubs from openclaude.proto
 - [ ] Generated stubs are committed and not git-ignored.
 - [ ] `grpcio-tools` is pinned in the dev dependency group and absent from
       runtime dependencies.
-- [ ] Generated modules are covered by a `per-module` mypy override, not inline
-      `# type: ignore` (C9).
+- [ ] Generated modules avoid inline `# type: ignore` comments (C9).
 - [ ] The CI drift check (re-generate + `git diff --exit-code`) is recorded as a
       Task 09.0 expectation.

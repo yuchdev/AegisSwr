@@ -85,8 +85,10 @@ Validates a remediation playbook (YAML/JSON) or consensus-weight file:
    an explicit `rollback: none` with justification.
 5. **Authorisation** - production-affecting steps set
    `requires_authorisation: true`.
-6. **Weight files** - for `agents.example.json`-style files, each fault class's
-   agent weights must sum to 1.0 ± 0.01.
+6. **Consensus weights** - consensus weight is a `default_weight` `ClassVar` on
+   each agent class (`src/aegis_swr/agents/`), not a file. Validate that every
+   registered agent declares a numeric weight and that the built-in roster's
+   weights sum to 1.0 ± 0.01.
 
 ### Output
 
@@ -101,8 +103,8 @@ Validates a remediation playbook (YAML/JSON) or consensus-weight file:
 
 ### When to use it
 
-Before trusting a playbook to drive any automated remediation, and after every
-edit to `agents.example.json`.
+Before trusting a playbook to drive any automated remediation, and after any
+change to an agent's `default_weight` (`src/aegis_swr/agents/`).
 
 ---
 
@@ -252,8 +254,8 @@ The skill then offers to have `testing-expert` write the P0 tests immediately.
 
 ### What happens
 
-1. Cross-references the incident type against `agents.example.json`
-   (consensus weights), `core/fault_codes.py`, and `IncidentMode` so the
+1. Cross-references the incident type against the agents' declared consensus
+   weights (`src/aegis_swr/agents/`), `core/fault_codes.py`, and `IncidentMode` so the
    runbook matches real product classifications.
 2. Writes `docs/runbooks/<incident-type>.md` using the Aegis runbook template.
 3. Adds an index line to `docs/README.md`.

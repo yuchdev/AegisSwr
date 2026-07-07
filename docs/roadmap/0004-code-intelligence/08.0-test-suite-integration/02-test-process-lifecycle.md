@@ -105,8 +105,8 @@ async def test_no_process_survives_session(stub_project: Path) -> None:
 - The leak assertion uses a PID/process-table probe (e.g. `psutil.pid_exists`) —
   the child PID is captured inside the block before exit.
 - `from __future__ import annotations`; `Optional[T]`, never `T | None`;
-  `asyncio.sleep` (never `time.sleep`) if any polling is needed; `mypy --strict`
-  and `ruff` clean.
+  `asyncio.sleep` (never `time.sleep`) if any polling is needed; `ruff`
+  and `replace_optional.py --check` clean.
 
 ## Success criteria
 
@@ -117,4 +117,4 @@ async def test_no_process_survives_session(stub_project: Path) -> None:
 - [ ] `OpenClaudeDisconnected` asserted emitted **exactly once** per exit.
 - [ ] A PID/process-table check confirms **no** OpenClaude process survives.
 - [ ] All tests report **skipped** (not failed) when the binary or signal is absent.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

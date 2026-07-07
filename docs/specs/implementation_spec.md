@@ -162,7 +162,6 @@ dev = [
     "pytest-asyncio>=0.24,<0.25",
     "pytest-cov>=6.0,<7",
     "ruff>=0.8,<0.9",
-    "mypy>=1.13,<2",
 ]
 
 [build-system]
@@ -549,7 +548,7 @@ These are the authoritative behaviors of the implemented AI backends:
 
 5. **OpenAI strict schema.** `_to_openai_strict_schema()` adapts the Pydantic JSON schema to OpenAI strict rules - recursively setting `additionalProperties: false`, listing all properties as `required`, and stripping `default`. Anthropic uses the raw `model_json_schema()` as the tool `input_schema`.
 
-6. **SDK clients are typed as `Any`.** Each provider stores `self._client: Any = anthropic.AsyncAnthropic()` / `openai.AsyncOpenAI()` to avoid coupling to the SDKs' internal `TypedDict` parameter types under `mypy --strict`. API keys are read from the environment by the SDKs (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`).
+6. **SDK clients are typed as `Any`.** Each provider stores `self._client: Any = anthropic.AsyncAnthropic()` / `openai.AsyncOpenAI()` to avoid coupling to the SDKs' internal `TypedDict` parameter types. API keys are read from the environment by the SDKs (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`).
 
 7. **Provider-aware model resolution.** `model` in `AISettings` defaults to an Anthropic name, so switching only the provider (e.g. CLI `--ai openai`) would otherwise send an Anthropic model id to OpenAI. `AISettings.resolved_model` substitutes the provider's default (`gpt-5.4` for OpenAI, `claude-sonnet-4-6` for Anthropic) **only when the configured model does not belong to the selected provider**; an explicit, provider-matching model is always respected. `_BaseAIBackend` uses `resolved_model`, so the CLI, API, and orchestrator all get this for free.
 

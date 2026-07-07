@@ -57,7 +57,6 @@ EXCLUDED_DIRS = {
     ".idea",
     ".pytest_cache",
     ".ruff_cache",
-    ".mypy_cache",
     "dist",
     "build",
     "state",
@@ -480,10 +479,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     # Determine targets.
-    if args.paths:
-        raw_targets = [Path(p) for p in args.paths]
-    else:
-        raw_targets = [REPO_ROOT / r for r in SCAN_ROOTS]
+    raw_targets = [Path(p) for p in args.paths] if args.paths else [REPO_ROOT / r for r in SCAN_ROOTS]
 
     targets = iter_targets(raw_targets)
     if not targets:

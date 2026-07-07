@@ -49,5 +49,5 @@ carries tool-call and stream-frame counts for observability.
 - `--dry-run` returns `[dry-run]`/`0` without calling `client.query`.
 - 100% branch coverage required on this file (task 07.0); no unhandled
   exceptions escape `run()`.
-- `Optional[T]`, `from __future__ import annotations`, `mypy --strict` /
-  `ruff` clean; no unredacted response text logged (C9).
+- `Optional[T]`, `from __future__ import annotations`, `ruff` /
+  `replace_optional.py --check` clean; no unredacted response text logged (C9).

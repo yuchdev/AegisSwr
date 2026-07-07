@@ -1,10 +1,10 @@
 """Cross-platform symbol cache directory resolution"""
 from __future__ import annotations
-from typing import Optional
 
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 _ENV_OVERRIDE = "AEGIS_SYMBOL_CACHE"
 

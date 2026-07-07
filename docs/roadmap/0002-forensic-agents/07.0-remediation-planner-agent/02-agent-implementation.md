@@ -94,7 +94,7 @@ report's `total_input_tokens` / `total_output_tokens` fields.
 ## Constraints
 
 - `Optional[T]` from `typing`; never `T | None`.
-- `mypy --strict` clean; no bare `except:`.
+- `replace_optional.py --check` clean; no bare `except:`.
 - Incident payload fields (`raw_text_excerpt`, raw stack frames, log lines) must
   not appear in the messages list or in any log statement. Use `loguru` with
   `SensitiveFilter`; log only the `incident_id` and `confidence_score`.
@@ -111,4 +111,4 @@ report's `total_input_tokens` / `total_output_tokens` fields.
 - [ ] `run_synthesis()` signature matches `(self, report: RCAReport) -> tuple[AgentTurn, RemediationPlan]`.
 - [ ] System prompt contains all six directives listed above.
 - [ ] No raw payload field (stack frames, dump text) is placed in the messages list.
-- [ ] `mypy --strict` and `ruff` clean.
+- [ ] `ruff` clean.

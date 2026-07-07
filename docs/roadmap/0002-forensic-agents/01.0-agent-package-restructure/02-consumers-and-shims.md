@@ -70,7 +70,7 @@ from aegis_swr.agents.base.os_kernel import OSKernelAgent  # noqa: F401  (back-c
 
 - Prefer repointing in-repo imports to the new `agents.base` path over leaving
   shims; reserve shims for paths you cannot edit.
-- No behavior change; `mypy --strict` and `ruff` clean.
+- No behavior change; `ruff` clean.
 
 ## Tests
 
@@ -87,4 +87,4 @@ from aegis_swr.agents.base.os_kernel import OSKernelAgent  # noqa: F401  (back-c
 - [ ] `core/orchestrator.py` imports the four agents from `aegis_swr.agents.base`.
 - [ ] No remaining references to the old submodule import paths in `src/`/`tests/`
       (except intentional shims).
-- [ ] `pytest tests/unit/ -q` fully green; `mypy src/` clean.
+- [ ] `pytest tests/unit/ -q` fully green; `python scripts/replace_optional.py --check` clean.

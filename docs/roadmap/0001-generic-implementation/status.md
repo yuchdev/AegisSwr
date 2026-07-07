@@ -52,7 +52,7 @@ Cross-cutting refactor (plan [Task 6.2](/docs/roadmap/0001-generic-implementatio
 ## Task 1 - Foundation & Package Setup ✅
 
 Delivered:
-- `pyproject.toml` (Poetry, `aegis-swr`, `src/aegis_swr/` root, `aegis` CLI entry point, ruff/mypy/pytest config)
+- `pyproject.toml` (Poetry, `aegis-swr`, `src/aegis_swr/` root, `aegis` CLI entry point, ruff/pytest config)
 - Full package directory skeleton with `__init__.py` files and `py.typed`
 - `core/schemas.py` - all Pydantic v2 models + `InvestigationState` TypedDict
 - `core/fault_codes.py` - `FaultClass` enum + Windows/Linux/macOS mapping functions

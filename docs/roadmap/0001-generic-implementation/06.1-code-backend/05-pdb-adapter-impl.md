@@ -309,7 +309,7 @@ from aegis_swr.backends.code.pdbstr_wrapper import _is_windows
   (it is a module-level function, already unit-tested).
 - Windows paths from SrcSrv entries contain backslashes; `_find_revision_for_file`
   normalises both sides to lowercase POSIX before comparing.
-- `SUPPORTED_PLATFORMS` class variable uses `ClassVar[list[str]]` for `mypy`.
+- `SUPPORTED_PLATFORMS` uses `ClassVar[list[str]]` to keep the class-level contract explicit.
 
 ## Tests
 
@@ -324,4 +324,4 @@ included in that document.
 - [ ] `blame` returns per-line blame for `VERCTRL=git`; `[]` for others.
 - [ ] Constructor raises `CodeBackendError` on non-Windows.
 - [ ] Both git helpers fail open (no exception propagation).
-- [ ] `mypy --strict` clean.
+- [ ] `replace_optional.py --check` clean.

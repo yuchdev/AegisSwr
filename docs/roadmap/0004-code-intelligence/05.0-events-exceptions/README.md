@@ -38,4 +38,4 @@ written alongside task 02.0 since tasks 03.0 and 04.0 depend on these types.
   (C9); only counts, ids, estimates, and status strings.
 - `OpenClaudeStreamCompleted` is the only event carrying the token estimate; it
   is not duplicated across events (C8).
-- `Optional[T]`, `from __future__ import annotations`, `mypy --strict` clean.
+- `Optional[T]`, `from __future__ import annotations`, `replace_optional.py --check` clean.

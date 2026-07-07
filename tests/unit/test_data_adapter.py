@@ -1,8 +1,8 @@
 from __future__ import annotations
-from typing import Optional
 
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -511,7 +511,7 @@ class _FakeLogBackend:
         self._lines = lines
         self.called_with: tuple = ()
 
-    async def query_window(self, service, start_time, end_time, severity_levels=None):  # type: ignore[no-untyped-def]
+    async def query_window(self, service, start_time, end_time, severity_levels=None):
         self.called_with = (service, start_time, end_time)
         return self._lines
 
@@ -519,7 +519,7 @@ class _FakeLogBackend:
 class _StubLogBackend:
     """LogBackend stub that always raises (like FluentAdapter)"""
 
-    async def query_window(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+    async def query_window(self, *args, **kwargs):
         raise NotImplementedError("stub")
 
 

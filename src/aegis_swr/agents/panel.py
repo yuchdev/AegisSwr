@@ -22,9 +22,8 @@ from loguru import logger
 from aegis_swr.agents.base import AgentSpec, BaseAgent
 from aegis_swr.agents.registry import UnknownAgentError, create_agent
 from aegis_swr.backends.base import AIAPIBackend
-from aegis_swr.config.settings import AgentWeightsSettings, Settings
+from aegis_swr.config.settings import Settings
 from aegis_swr.core.exceptions import AegisSWRError
-from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.schemas import AgentRole
 
 
@@ -90,66 +89,36 @@ def resolve_panel(
 def resolve_consensus_weights(
     panel: list[BaseAgent],
     specs: list[AgentSpec],
-    fault_class: FaultClass,
-    weights_settings: AgentWeightsSettings,
 ) -> dict[str, float]:
     """Resolve the per-agent consensus weight map for *panel*.
 
-    Applies a three-tier precedence (highest wins) per agent:
+    Weight is an intrinsic property of each agent (its
+    :attr:`~aegis_swr.agents.base.BaseAgent.default_weight` class attribute), not
+    an external per-fault-class matrix. Resolution applies a two-tier precedence
+    (highest wins) per agent:
 
     1. **Explicit override** - ``AgentSpec.weight`` when set (non-``None``).
-    2. **Curated per-fault-class weight** - the ops-authored value from
-       ``weights_settings.for_fault_class(fault_class.value).weights`` when
-       present for that key.
-    3. **Priority-normalized default** - for agents that fall through the first
-       two tiers, ``spec.priority`` divided by the summed priority of *only*
-       the agents that also fell through to this tier.
+    2. **Agent's own declared weight** - ``agent.default_weight`` otherwise.
 
-    No whole-map renormalization is performed: tier 1/2 values are already
-    resolved weights, and :meth:`ConsensusEvaluator.calculate` divides by the
-    sum of the map it receives, so a mix of curated and priority-derived values
-    normalizes correctly on its own. Tier 3's internal normalization therefore
-    sums raw priorities of tier-3 agents only, never the resolved weights of
-    tier 1/2 agents.
+    No whole-map renormalization is performed:
+    :meth:`~aegis_swr.core.consensus.ConsensusEvaluator.calculate` divides by the
+    sum of the map it receives, so the returned values self-normalize over
+    whatever panel is live.
 
     :param panel: The instantiated agents whose weights are being resolved.
     :type panel: list[BaseAgent]
     :param specs: The specs the panel was built from; used to look up each
-        agent's priority/weight by ``agent_key`` (an agent's own ``.spec`` is
-        used as a fallback when no matching spec is present).
+        agent's explicit weight override by ``agent_key`` (an agent's own
+        ``.spec`` is used as a fallback when no matching spec is present).
     :type specs: list[AgentSpec]
-    :param fault_class: The incident's fault class, selecting the curated
-        weight vector.
-    :type fault_class: FaultClass
-    :param weights_settings: The ops-curated per-fault-class weight matrix.
-    :type weights_settings: AgentWeightsSettings
     :return: Mapping of each panel agent's ``agent_key`` to its resolved weight.
     :rtype: dict[str, float]
     """
     spec_by_key: dict[str, AgentSpec] = {spec.agent_key: spec for spec in specs}
-    curated = weights_settings.for_fault_class(fault_class.value).weights
 
     resolved: dict[str, float] = {}
-    tier3_keys: list[str] = []
     for agent in panel:
         spec = spec_by_key.get(agent.agent_key, agent.spec)
-        if spec.weight is not None:
-            resolved[agent.agent_key] = spec.weight
-            continue
-        curated_weight = curated.get(agent.agent_key)
-        if curated_weight is not None:
-            resolved[agent.agent_key] = curated_weight
-            continue
-        tier3_keys.append(agent.agent_key)
-
-    tier3_priority_sum = sum(spec_by_key.get(key, _default_spec(key)).priority for key in tier3_keys)
-    for key in tier3_keys:
-        priority = spec_by_key.get(key, _default_spec(key)).priority
-        resolved[key] = priority / tier3_priority_sum if tier3_priority_sum else 0.0
+        resolved[agent.agent_key] = spec.weight if spec.weight is not None else agent.default_weight
 
     return {agent.agent_key: resolved[agent.agent_key] for agent in panel}
-
-
-def _default_spec(agent_key: str) -> AgentSpec:
-    """Return a default spec for *agent_key* (fallback when none was supplied)."""
-    return AgentSpec(agent_key=agent_key)

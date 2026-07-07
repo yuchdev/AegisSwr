@@ -15,7 +15,7 @@ advertises `name` / `description` marking it as the open-ended multi-file
 navigation backend, and declares the public `run()` entry method plus the
 private helper stubs that subtasks 02–04 flesh out. No stream is opened and no
 budget is touched here; every body is `...`. The point is a compiling,
-`mypy --strict`-clean skeleton whose signatures the later subtasks fill in
+typing-clean skeleton whose signatures the later subtasks fill in
 without changing.
 
 ## File: `aegis/openclaude/tool.py`
@@ -161,7 +161,7 @@ class OpenClaudeTool(CodeBackend):
   never `T | None` (C9).
 - No `import grpc` and no `_pb2` import in this file (C3); frame types come
   from the client module only.
-- No `Any` in any signature; `mypy --strict` and `ruff` clean.
+- No `Any` in any signature; `ruff` clean.
 - Every public class/method has an RST-style docstring (C9).
 - Constructor opens no connection, starts no process, and does not touch the
   budget.
@@ -170,12 +170,11 @@ class OpenClaudeTool(CodeBackend):
 
 - [ ] `OpenClaudeTool(client, settings, bus, budget)` constructs with all four
       collaborators injected and performs no I/O.
-- [ ] `OpenClaudeTool` is a structural/nominal `CodeBackend`; `mypy --strict`
-      accepts it where a `CodeBackend` is expected.
+- [ ] `OpenClaudeTool` is a structural/nominal `CodeBackend` and is accepted where a `CodeBackend` is expected.
 - [ ] `name` and `description` are class attributes; `description` advertises
       open-ended multi-file navigation.
 - [ ] `run`, `_delegate`, `_is_allowlisted`, `_truncate`, `_failure`,
       `_success` exist with the signatures above and `...` bodies.
 - [ ] No `import grpc` / `_pb2` import appears in the file (C3 grep check).
-- [ ] `mypy --strict`, `ruff`, and `replace_optional.py --check` are clean; no
+- [ ] `ruff` and `replace_optional.py --check` are clean; no
       `Any` in any signature.

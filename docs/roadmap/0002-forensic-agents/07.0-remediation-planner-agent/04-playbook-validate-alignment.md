@@ -105,7 +105,7 @@ validate in `mode="after"` that if `idempotent is False`, then
   no AI calls) and covered by a unit test in subtask 05.
 - The adapter is only used for export/validation; it must never be called on
   the hot path of `_output_synthesizer_node`.
-- `Optional[T]`, `mypy --strict`, `ruff` clean on the adapter function.
+- `Optional[T]`, `replace_optional.py --check`, `ruff` clean on the adapter function.
 
 ## Success criteria
 
@@ -120,4 +120,4 @@ validate in `mode="after"` that if `idempotent is False`, then
       required by `/playbook-validate`.
 - [ ] The incident-analyst safety rule comment appears in the orchestrator's
       `_output_synthesizer_node` method.
-- [ ] `mypy --strict` and `ruff` clean on `remediation_planner.py`.
+- [ ] `ruff` clean on `remediation_planner.py`.

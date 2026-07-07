@@ -9,11 +9,11 @@ Two concrete strategies ship today:
 
 - :class:`ExplicitPanelStrategy` - returns specs supplied ahead of time via
   config/CLI, ignoring the brief.
-- :class:`AgenticManagerStrategy` - a heuristic that maps the brief's fault
-  class to a curated candidate pool. It is deliberately fronted by the abstract
-  :class:`PanelSelectionStrategy` interface so an LLM-backed manager can replace
-  the heuristic later without any change to the orchestrator or this module's
-  callers.
+- :class:`AgenticManagerStrategy` - a heuristic that proposes the full roster of
+  registered agents as the candidate pool. It is deliberately fronted by the
+  abstract :class:`PanelSelectionStrategy` interface so an LLM-backed manager can
+  replace the heuristic later without any change to the orchestrator or this
+  module's callers.
 
 :class:`PanelResolver` is the top-level entry point later phases call: hand it
 the brief plus whatever explicit specs came from config/CLI (or ``None``) and it
@@ -28,7 +28,6 @@ from typing import Any, Optional
 from aegis_swr.agents.base import AgentSpec
 from aegis_swr.agents.registry import AGENT_REGISTRY
 from aegis_swr.config.settings import Settings
-from aegis_swr.core.fault_codes import FaultClass
 
 
 class PanelSelectionStrategy(ABC):
@@ -83,21 +82,21 @@ class ExplicitPanelStrategy(PanelSelectionStrategy):
 
 
 class AgenticManagerStrategy(PanelSelectionStrategy):
-    """Heuristic auto-selection of a panel from the incident's fault class.
+    """Heuristic auto-selection of a panel from the registered agent roster.
 
-    Reads the ops-curated candidate pool from :class:`AgentPanelSettings`: a
-    per-fault-class override list when one exists for the brief's fault class,
-    otherwise the default panel. Candidate keys are filtered to those present in
-    the agent registry (an unknown key in ops policy contributes nothing here),
-    and each surviving key becomes an :class:`AgentSpec` with the default
-    priority.
+    Proposes one default-priority :class:`AgentSpec` per key in the agent
+    registry, in registry order. The registry is the single source of truth for
+    which agents exist, so there is no separate ops-curated candidate-pool file
+    to keep in sync - adding an agent to the registry automatically makes it a
+    candidate here.
 
     This heuristic intentionally implements the same
     :class:`PanelSelectionStrategy` interface an LLM-backed manager would, so a
     smarter selector can be swapped in later with no change to callers.
 
-    :ivar _settings: Application settings, read for the curated panel policy.
-    :ivar _registry: The agent registry used to validate candidate keys.
+    :ivar _settings: Application settings, retained for a future
+        brief-aware/LLM-backed manager.
+    :ivar _registry: The agent registry supplying the candidate roster.
     """
 
     def __init__(
@@ -105,46 +104,30 @@ class AgenticManagerStrategy(PanelSelectionStrategy):
         settings: Settings,
         registry: Optional[dict[str, Any]] = None,
     ) -> None:
-        """Construct the manager over the curated policy and agent registry.
+        """Construct the manager over the agent registry.
 
-        :param settings: Application settings; ``settings.agent_panel`` supplies
-            the default and per-fault-class candidate pools.
+        :param settings: Application settings; retained for a future
+            brief-aware/LLM-backed selection policy.
         :type settings: Settings
-        :param registry: Agent registry used to filter candidate keys to
-            registered agents. Defaults to
-            :data:`~aegis_swr.agents.registry.AGENT_REGISTRY`.
+        :param registry: Agent registry supplying the candidate roster. Defaults
+            to :data:`~aegis_swr.agents.registry.AGENT_REGISTRY`.
         :type registry: Optional[dict[str, Any]]
         """
         self._settings = settings
         self._registry = registry if registry is not None else AGENT_REGISTRY
 
     async def select(self, incident_brief: dict[str, Any]) -> list[AgentSpec]:
-        """Select candidate specs from the brief's fault class.
+        """Select one default-priority spec per registered agent.
 
-        :param incident_brief: The serialized incident brief; its
-            ``fault_class`` value drives the candidate-pool lookup.
+        :param incident_brief: The serialized incident brief. Currently unused
+            by this heuristic (the full roster is always proposed); retained so
+            a brief-aware selector can be swapped in without a signature change.
         :type incident_brief: dict[str, Any]
-        :return: One default-priority spec per registered candidate key.
+        :return: One default-priority spec per registered agent key, in registry
+            order.
         :rtype: list[AgentSpec]
         """
-        fault_class = self._fault_class(incident_brief)
-        panel_settings = self._settings.agent_panel
-        candidates = panel_settings.per_fault_class.get(fault_class.value, panel_settings.default_panel)
-        return [AgentSpec(agent_key=key) for key in candidates if key in self._registry]
-
-    @staticmethod
-    def _fault_class(incident_brief: dict[str, Any]) -> FaultClass:
-        """Extract the brief's fault class, defaulting to ``UNKNOWN``.
-
-        Mirrors the orchestrator's existing extraction: read ``fault_class``
-        from the brief, coerce it to a :class:`FaultClass`, and fall back to
-        :attr:`FaultClass.UNKNOWN` on an unrecognized value.
-        """
-        fault_str = incident_brief.get("fault_class") or "unknown"
-        try:
-            return FaultClass(fault_str)
-        except ValueError:
-            return FaultClass.UNKNOWN
+        return [AgentSpec(agent_key=key) for key in self._registry]
 
 
 class PanelResolver:

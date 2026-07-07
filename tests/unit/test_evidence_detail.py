@@ -5,11 +5,11 @@ human file sizes, filesystem properties, the ±2-minute log window, and the
 libpcap header parser (little/big-endian, pcapng detection, malformed input).
 """
 from __future__ import annotations
-from typing import Optional
 
 import struct
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 from aegis_swr.views.evidence_detail import (
     LOG_WINDOW,
@@ -207,10 +207,7 @@ def _write_pcap(
     packets: Optional[list[tuple[int, int, bytes]]] = None,
 ) -> Path:
     """Write a minimal but valid libpcap file with *packets* records"""
-    if nanosecond:
-        magic = 0xA1B23C4D
-    else:
-        magic = 0xA1B2C3D4
+    magic = 2712812621 if nanosecond else 2712847316
     header = struct.pack(f"{endian}IHHiIII", magic, 2, 4, 0, 0, 65535, link_type)
     body = b""
     for ts_sec, ts_sub, payload in packets or []:
@@ -255,8 +252,8 @@ def test_pcap_metadata_little_endian(tmp_path: Path):
     assert info.snaplen == 65535
     assert info.link_type == "ETHERNET"
     assert info.packet_count == 2
-    assert info.first_timestamp == datetime.fromtimestamp(1_700_000_000, tz=timezone.utc)
-    assert info.last_timestamp == datetime.fromtimestamp(1_700_000_002.5, tz=timezone.utc)
+    assert info.first_timestamp == datetime.fromtimestamp(1_700_000_000, tz=UTC)
+    assert info.last_timestamp == datetime.fromtimestamp(1_700_000_002.5, tz=UTC)
 
 
 def test_pcap_metadata_big_endian_and_linktype(tmp_path: Path):

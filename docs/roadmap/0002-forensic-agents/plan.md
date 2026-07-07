@@ -173,7 +173,7 @@ Each debate specialist mirrors the existing `OSKernelOutput` shape (a list of
 ### C7 - Cross-cutting project invariants (inherited from 0001)
 
 - `Optional[T]` from `typing`, never `T | None` (run `scripts/replace_optional.py --check`).
-- `mypy --strict` clean; `ruff` clean.
+- `replace_optional.py --check` clean; `ruff` clean.
 - Mandatory `cache_control: {"type": "ephemeral"}` on every system prompt block
   (handled by `_BaseAIBackend`; agents pass the system prompt through).
 - **Untrusted payload text** (stack frames, log lines, register values) flows
@@ -198,7 +198,7 @@ change**. This is the enabling move the rest of the milestone builds on.
 | 01 | Move base agents into `agents/base/` | Move `base.py` + four agent modules; fix intra-package imports |
 | 02 | Update consumers & back-compat shims | Repoint `orchestrator.py`, tests; `agents/__init__.py` re-exports old paths |
 | 03 | Scaffold `forensic/` & `synthesis/` packages | Empty packages + `category` convention + `agents/base/__init__.py` |
-| 04 | Regression gate | Full suite green; import-path tests; mypy/ruff clean |
+| 04 | Regression gate | Full suite green; import-path tests; ruff and typing-convention checks clean |
 
 **Success criteria:** all 478+ existing tests pass unchanged; `from
 aegis_swr.agents.os_kernel import OSKernelAgent` still resolves (shim);

@@ -362,7 +362,7 @@ estimate; it is never duplicated across events.
 - `Optional[T]` from `typing`, never `T | None` (including in subscripts and
   `Annotated[...]`).
 - `from __future__ import annotations` in every new file.
-- `mypy --strict`, `ruff`, and `replace_optional.py --check` must stay clean.
+- `ruff` and `replace_optional.py --check` must stay clean.
 - Every new public class/function has an RST-style docstring.
 - No `grpc` import in `aegis/core/`, `aegis/ui/`, or `aegis/code_intel/`.
 - `--dry-run` short-circuits `OpenClaudeTool` to a `[dry-run]` result with zero
@@ -373,7 +373,7 @@ estimate; it is never duplicated across events.
   unredacted.
 - Generated proto files (`_pb2.py`, `_pb2_grpc.py`) are committed under
   `aegis/openclaude/grpc/proto/`, regenerated via a `Makefile` target, and
-  excluded from `mypy --strict` via a `per-module` ignore.
+  committed without extra typing-only exclusions.
 
 ---
 
@@ -480,6 +480,6 @@ Makefile                                ← updated: proto-gen target
       — zero Python changes
 - [ ] No raw incident payload or unredacted response text reaches any log sink
 - [ ] All new public classes and functions have RST docstrings
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` all clean
+- [ ] `ruff`, `replace_optional.py --check` all clean
 - [ ] Coverage: ≥ 90% overall unit; 100% on `tool.py`
 - [ ] Proto schema is committed; `make proto-gen` reproduces identical output

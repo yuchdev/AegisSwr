@@ -128,4 +128,4 @@ error detail is truncated to 200 characters before being included in the
 - [ ] The hierarchy table above is respected (each class is a subclass of the
       stated parent).
 - [ ] `FluentRecordParseError` carries `raw` attribute.
-- [ ] All unit tests above pass; `mypy --strict` clean.
+- [ ] All unit tests above pass; `replace_optional.py --check` clean.

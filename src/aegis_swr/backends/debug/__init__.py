@@ -1,18 +1,18 @@
 """Debug backend factory (platform-detected, engine-selected)"""
 from __future__ import annotations
-from typing import Optional
 
 import subprocess
 import sys
 from functools import lru_cache
+from typing import Optional
 
 from aegis_swr.backends.base import DebugBackend
 from aegis_swr.backends.debug.cdb_worker import CdbBackend
 from aegis_swr.backends.debug.gdb_worker import GdbBackend
 from aegis_swr.backends.debug.lldb_worker import LldbBackend
 from aegis_swr.backends.debug.windbg_js_worker import WinDbgJSBackend
-from aegis_swr.core.exceptions import PlatformNotSupportedError
 from aegis_swr.config.settings import DebugSettings
+from aegis_swr.core.exceptions import PlatformNotSupportedError
 
 __all__ = [
     "CdbBackend",

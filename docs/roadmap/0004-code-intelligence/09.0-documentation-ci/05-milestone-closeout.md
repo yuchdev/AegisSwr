@@ -41,7 +41,7 @@ is met; record the evidence (test/CI job/command) next to each:
       changes.
 - [ ] No raw incident payload or unredacted response text reaches any log sink.
 - [ ] All new public classes/functions have RST docstrings.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` all clean.
+- [ ] `ruff`, `replace_optional.py --check` all clean.
 - [ ] Coverage: ≥ 90% overall unit; 100% on `tool.py` — evidence: subtask 04 gates.
 - [ ] Proto schema committed; `make proto-gen` reproduces identical output.
 

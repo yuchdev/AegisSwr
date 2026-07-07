@@ -107,7 +107,7 @@ async def test_at_least_one_tool_call_emitted(
 - No raw stub content or streamed response text is logged (C9); tool-call events
   carry only tool names/counts/estimates, never payload text.
 - `from __future__ import annotations`; `Optional[T]`, never `T | None`;
-  `mypy --strict` and `ruff` clean.
+  `ruff` clean.
 
 ## Success criteria
 
@@ -117,4 +117,4 @@ async def test_at_least_one_tool_call_emitted(
 - [ ] The run uses a non-dry-run context with sufficient budget.
 - [ ] Tests report **skipped** (not failed) when the binary or signal is absent.
 - [ ] No OpenClaude process survives the run.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

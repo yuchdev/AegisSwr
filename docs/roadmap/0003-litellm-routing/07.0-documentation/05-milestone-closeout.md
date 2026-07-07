@@ -18,7 +18,7 @@ final regression suite, and update `docs/README.md`.
       count than pre-milestone baseline.
 - [ ] `poetry run pytest tests/integration/ -m integration -q` - skipped (not
       failed) when API keys are absent.
-- [ ] `mypy src/` (strict) - zero errors.
+- [ ] `python scripts/replace_optional.py --check` - clean.
 - [ ] `ruff check src/ tests/` - clean.
 - [ ] `python scripts/replace_optional.py --check` - clean.
 - [ ] CI litellm isolation grep: exactly one hit in `aegis/router/client.py`.

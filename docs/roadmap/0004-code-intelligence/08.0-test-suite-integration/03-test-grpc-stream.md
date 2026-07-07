@@ -81,7 +81,7 @@ async def test_health_check_true_against_live_process(
   main (task 09.0 CI wiring).
 - No raw stub content or streamed response text is logged (C9).
 - `from __future__ import annotations`; `Optional[T]`, never `T | None`;
-  `mypy --strict` and `ruff` clean.
+  `ruff` clean.
 
 ## Success criteria
 
@@ -91,4 +91,4 @@ async def test_health_check_true_against_live_process(
 - [ ] `health_check()` returns `True` against the live process.
 - [ ] Tests report **skipped** (not failed) when the binary or signal is absent.
 - [ ] No OpenClaude process survives the run.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

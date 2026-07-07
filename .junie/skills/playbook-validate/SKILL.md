@@ -2,9 +2,9 @@
 name: playbook-validate
 description: >-
   User-invoked as /playbook-validate <path>. Validates an Aegis remediation
-  playbook or consensus-weight file (e.g. agents.example.json or a playbook
-  YAML/JSON) for step ordering, required fields, idempotency, and rollback
-  coverage. Use before a playbook is trusted to run automated remediation.
+  playbook (YAML/JSON) for step ordering, required fields, idempotency, and
+  rollback coverage. Use before a playbook is trusted to run automated
+  remediation.
 allowed-tools: Read, Grep, Glob, Bash
 invocation: /playbook-validate <path>
 ---
@@ -31,9 +31,9 @@ a malformed one is a safety hazard.
 5. **Authorisation** - any production-affecting step sets
    `requires_authorisation: true`; cross-check against the `AEGIS_PROD_CONFIRMED`
    guard convention.
-6. **Weight files** - if validating `agents.example.json`-style consensus
-   weights: each fault class's agent weights sum to ~1.0 (±0.01) and no single
-   agent exceeds a sane ceiling.
+6. **Consensus weights** - consensus weight is a `default_weight` `ClassVar` on
+   each agent class (`src/aegis_swr/agents/`), not a file: check every registered
+   agent declares a numeric weight and the built-in roster sums to ~1.0 (±0.01).
 
 ## Output
 

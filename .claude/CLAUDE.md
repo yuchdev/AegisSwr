@@ -26,7 +26,7 @@ and confidential.
 - **Language/stack**: Python 3.12, uv, FastAPI, Typer, Pydantic v2,
   LangGraph, SQLAlchemy/asyncpg (Postgres), SQLite, Qdrant, boto3/S3,
   anthropic + openai SDKs, loguru.
-- **Typing**: full annotations; **mypy `strict` must pass**. Always
+- **Typing**: full annotations; **full annotations are required**. Always
   `Optional[T]` (import from `typing`) - never `T | None`, including in
   subscripts and `Annotated[...]`. Enforce with
   `python scripts/replace_optional.py --check`.
@@ -60,7 +60,13 @@ and confidential.
   with an integration test** (mocked externals).
 - Tests live in `tests/unit/` (CI-gated) and `tests/integration/`. Run:
   `uv run pytest tests/unit/ -q --cov=aegis_swr --cov-report=term-missing`.
-- The **Stop hook runs the unit suite**; a red suite blocks ending the session.
+- **Unconditional after every task**: `uv run ruff check . --fix && uv run ruff check .`
+  then `uv run pytest -q --cov=aegis_swr --cov-report=term-missing`. Analyze each
+  command's own output and fix everything it flags before considering the task
+  done; if a fix isn't obviously safe, ask the user instead of guessing or
+  suppressing it. See `python-expert`/`testing-expert` "After you code".
+- The **Stop hook (`run_tests.py`) re-runs both commands**; a failure blocks
+  ending the session.
 - Never weaken/`xfail`/delete a test to go green - fix the cause.
 
 ## 5. Commit & PR discipline

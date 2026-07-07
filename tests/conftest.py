@@ -16,9 +16,9 @@ def _isolate_runtime_config(monkeypatch: pytest.MonkeyPatch) -> None:
     environment overrides, so a local config (e.g. ``backends.ai.provider=openai``)
     would silently flip default-asserting tests. We neutralise the JSON settings
     source (the only caller of ``_read_json_object``) and drop ``AEGIS__*`` env vars
-    so unit tests always see pristine schema defaults. The ``CONFIG_JSON`` /
-    ``AGENTS_JSON`` path constants are left untouched, so tests asserting the
-    canonical config location still see the production values.
+    so unit tests always see pristine schema defaults. The ``CONFIG_JSON`` path
+    constant is left untouched, so tests asserting the canonical config location
+    still see the shipped values.
     """
     monkeypatch.setattr(settings_module, "_read_json_object", lambda _path: {})
     for key in list(os.environ):

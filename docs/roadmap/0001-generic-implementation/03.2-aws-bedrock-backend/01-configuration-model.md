@@ -60,4 +60,4 @@ No mock/integration tests are required (pure settings).
 - [ ] `AISettings.provider` validator includes `"bedrock"`.
 - [ ] `resolved_model` returns the Bedrock `model_id` for `provider="bedrock"`.
 - [ ] No credential value is representable as a settings field.
-- [ ] `mypy --strict` clean; the unit tests above pass.
+- [ ] `replace_optional.py --check` clean; the unit tests above pass.

@@ -15,7 +15,7 @@ violation`, `deadlock`, `resource-exhaustion`, `log-forensics-anomaly`).
 
 1. Cross-reference the fault class against the
    **`.github/copilot/skills/runbook-write/references/fault-class-catalog.md`**
-   (which distils `agents.example.json`, `core/fault_codes.py`, and `IncidentMode`)
+   (which distils the agents' declared consensus weights, `core/fault_codes.py`, and `IncidentMode`)
    so the runbook matches real product classifications.
 2. Write `docs/runbooks/<incident-type>.md` using the template below.
    `.github/copilot/skills/runbook-write/examples/access-violation.md` is a fully-filled
@@ -62,7 +62,7 @@ mitigation/escalation steps for safety before the runbook is trusted.
 
 ## Completion checklist
 
-- [ ] Fault class cross-referenced against `agents.example.json` and `IncidentMode`
+- [ ] Fault class cross-referenced against the fault-class catalog and `IncidentMode`
 - [ ] Every state-changing mitigation step has rollback and `requires AEGIS_PROD_CONFIRMED` documented
 - [ ] `docs/README.md` and `docs/runbooks/` index updated
 - [ ] `incident-analyst` review requested before runbook is marked trusted

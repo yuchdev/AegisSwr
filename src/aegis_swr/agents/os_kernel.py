@@ -31,6 +31,7 @@ class OSKernelAgent(BaseAgent):
     display_name: ClassVar[str] = "OS Kernel Agent"
     category: ClassVar[AgentCategory] = "base"
     role: ClassVar[AgentRole] = AgentRole.INVESTIGATOR
+    default_weight: ClassVar[float] = 0.35
 
     @property
     def system_prompt(self) -> str:

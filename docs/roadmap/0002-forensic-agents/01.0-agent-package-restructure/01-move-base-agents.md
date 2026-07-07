@@ -61,7 +61,7 @@ that break because of the move.
 ## Tests
 
 No new tests in this subtask. The gate is that `pytest tests/unit/ -q` and
-`mypy src/` are unaffected **after** subtask 02 repoints the consumers. Within
+`python scripts/replace_optional.py --check` is unaffected **after** subtask 02 repoints the consumers. Within
 this subtask, verify imports resolve in isolation:
 
 ```

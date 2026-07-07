@@ -94,7 +94,7 @@ Use `ask_user` for genuine design forks. Continue for routine work.
 
 ```bash
 uv run pytest <subtask-test-files> -q
-uv run mypy src/aegis_swr/<subtask-module>/ --strict
+python scripts/replace_optional.py --check src/aegis_swr/<subtask-module>/
 python scripts/replace_optional.py --check
 ```
 

@@ -66,5 +66,5 @@
 ## Related
 
 - Fault catalog: [../references/fault-class-catalog.md](../references/fault-class-catalog.md)
-- Consensus weights: [`agents.example.json`](../../../../agents.example.json)
+- Consensus weights: `default_weight` ClassVars in `src/aegis_swr/agents/`
 - ADRs / playbooks / prior post-mortems for this fault class (link as they exist).

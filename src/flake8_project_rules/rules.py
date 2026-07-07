@@ -203,8 +203,7 @@ def _has_test_imports(tree: ast.AST) -> bool:
                 root = alias.name.split(".", 1)[0]
                 if root in ("pytest", "unittest"):
                     return True
-        elif isinstance(node, ast.ImportFrom):
-            if node.module:
+        elif isinstance(node, ast.ImportFrom) and node.module:
                 root = node.module.split(".", 1)[0]
                 if root in ("pytest", "unittest"):
                     return True
@@ -266,10 +265,8 @@ def _is_test_class(node: ast.ClassDef) -> bool:
     for base in node.bases:
         if isinstance(base, ast.Name) and base.id == "TestCase":
             return True
-        if isinstance(base, ast.Attribute):
-            if isinstance(base.value, ast.Name) and base.value.id == "unittest":
-                if base.attr == "TestCase":
-                    return True
+        if isinstance(base, ast.Attribute) and isinstance(base.value, ast.Name) and base.value.id == "unittest" and base.attr == "TestCase":
+            return True
     return False
 
 
@@ -585,8 +582,7 @@ def _check_local_imports(tree: ast.AST, filename: str) -> Iterable[RuleViolation
 
         def visit_Call(self, node: ast.Call):
             """Flag ``__import__()`` calls inside function bodies."""
-            if self._function_depth > 0:
-                if isinstance(node.func, ast.Name) and node.func.id == "__import__":
+            if self._function_depth > 0 and isinstance(node.func, ast.Name) and node.func.id == "__import__":
                     self.violations.append(
                         RuleViolation(
                             filename,
@@ -709,8 +705,7 @@ def _check_import_error_suppression(tree: ast.AST, filename: str) -> Iterable[Ru
             for node in ast.walk(stmt):
                 if isinstance(node, (ast.Import, ast.ImportFrom)):
                     return True
-                if isinstance(node, ast.Call):
-                    if isinstance(node.func, ast.Name) and node.func.id == "__import__":
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "__import__":
                         return True
         return False
 

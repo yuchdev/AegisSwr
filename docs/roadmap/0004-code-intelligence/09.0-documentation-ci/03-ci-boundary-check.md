@@ -55,8 +55,8 @@ in docstrings, matching the 0003 constraint.
 ```
 
 Notes on the second rule: the generated `_pb2.py` / `_pb2_grpc.py` files under
-`aegis/openclaude/grpc/proto/` legitimately contain `grpc`/`_pb2` and are excluded
-(C9 commits them and excludes them from `mypy --strict`); only `client.py` may
+`aegis/openclaude/grpc/proto/` legitimately contain `grpc`/`_pb2` and are
+committed as generated code; only `client.py` may
 *import* them into hand-written code.
 
 ## Acceptance test for the check itself

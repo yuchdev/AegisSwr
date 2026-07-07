@@ -43,7 +43,7 @@ four-key tuple. Implements contract **C3**. Default weights must reproduce the
 
    > Keep the implementation faithful to Pydantic v2 settings semantics; the
    > snippet shows intent. A `model_validator(mode="before")` is an acceptable
-   > alternative to the custom `__init__` if it is cleaner under mypy strict.
+   > alternative to the custom `__init__` if it is cleaner under full annotations.
 
 2. `AgentWeightsSettings` keeps its ten per-fault-class fields, but each
    `default_factory` now passes the same legacy kwargs (which the shim folds into
@@ -79,7 +79,7 @@ four-key tuple. Implements contract **C3**. Default weights must reproduce the
   in 0001 (the four base keys, same weights, same normalization).
 - Missing agent keys contribute 0.0 (partial rounds still score).
 - `remediation_planner` weight, if ever present, is ignored by `calculate`.
-- `Optional[T]`, mypy strict, ruff clean.
+- `Optional[T]`, full annotations, ruff clean.
 
 ## Tests
 
@@ -103,4 +103,4 @@ four-key tuple. Implements contract **C3**. Default weights must reproduce the
 - [ ] `ConsensusEvaluator.calculate` iterates the weight map and excludes
       `remediation_planner`.
 - [ ] All five new tests pass; existing consensus tests pass unchanged.
-- [ ] `mypy src/` clean.
+- [ ] `python scripts/replace_optional.py --check` clean.

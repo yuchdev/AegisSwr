@@ -219,4 +219,4 @@ Extend the `backends.code` section with the new fields from subtask 01:
 - [ ] `--code-provider` help text mentions `pdb`.
 - [ ] `config.example.json` shows the three new PDB fields.
 - [ ] All unit and integration tests above pass.
-- [ ] `mypy --strict` clean.
+- [ ] `replace_optional.py --check` clean.

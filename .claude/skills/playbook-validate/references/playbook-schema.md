@@ -44,9 +44,9 @@ in sync.
    triggering condition is confirmed. Canonical order:
    `detect/confirm → contain → remediate → verify`.
 4. **Unbounded step** — `timeout` missing or non-numeric/duration.
-5. **Weight file only** (`agents.example.json`-style): a fault class whose agent
-   weights do not sum to `1.0 ± 0.01`, or a single agent weight above a sane
-   ceiling (~0.60).
+5. **Consensus weights** (`default_weight` ClassVars in `src/aegis_swr/agents/`):
+   a registered agent missing a numeric weight, or the built-in roster not
+   summing to `1.0 ± 0.01`, or a single agent weight above a sane ceiling (~0.60).
 
 ### Non-blocking warnings
 
@@ -69,10 +69,10 @@ Classify each step's intent from its `action`/`description`:
 Reject if any `remediate` step precedes the first `detect/confirm`, or if a
 `verify` step precedes the `remediate` it verifies.
 
-## Consensus-weight files
+## Consensus weights
 
-A weight file is a different shape (no `steps`) — a `{fault_class: {agent: weight}}`
-map, e.g. [`agents.example.json`](../../../../agents.example.json). Validate: every
-fault class present in `FaultClass` has an entry, each entry sums to `1.0 ± 0.01`,
-and the four agent keys (`os_kernel`, `code_analyst`, `log_historian`, `skeptic`)
-are all present. See `agents.example.json` for the canonical valid file.
+Consensus weight is not a file — it is a `default_weight` `ClassVar` declared on
+each agent class in `src/aegis_swr/agents/` (a flat scalar per agent, no longer a
+per-fault-class matrix). Validate: every registered agent
+(`os_kernel`, `code_analyst`, `log_historian`, `skeptic`) declares a numeric
+`default_weight`, and the built-in roster's weights sum to `1.0 ± 0.01`.

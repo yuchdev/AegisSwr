@@ -186,13 +186,81 @@ class OpenClaudeGrpcClient:
   (C9, security). `SensitiveFilter` is on the sink but is not a substitute for
   not logging payloads at all.
 
+## First-use setup: launching OpenClaude in gRPC mode
+
+`OpenClaudeGrpcClient` is inert without a live sidecar to dial. Before writing
+or debugging this file against a real process (as opposed to the
+`from_channel` mock seam used by unit tests), start OpenClaude yourself in
+external mode:
+
+```bash
+openclaude --version || npm install -g @gitlawb/openclaude@latest
+
+openclaude --grpc --port 50051 \
+  --allowed-tools Read,Grep,Glob,Bash \
+  --bash-allowlist gtags,global,semgrep,rg,find,cat
+```
+
+The flags mirror the C1 defaults (`OPENCLAUDE_ALLOWED_TOOLS` /
+`OPENCLAUDE_BASH_ALLOWLIST`) - in external mode the operator supplies them by
+hand; Aegis SWR only injects them itself in managed mode (Task 03.0 subtask
+02). Leave this process running in a separate terminal for the rest of this
+subtask's manual testing, and point the client at it:
+
+```bash
+export OPENCLAUDE_GRPC_URL=localhost:50051
+```
+
+With the sidecar up, sanity-check the raw gRPC channel before trusting this
+client's own code - this isolates "is OpenClaude reachable" from "is my
+client code correct":
+
+```bash
+python3 - <<'PY'
+import grpc
+
+channel = grpc.insecure_channel("localhost:50051")
+grpc.channel_ready_future(channel).result(timeout=5)
+print("openclaude gRPC endpoint is reachable")
+channel.close()
+PY
+```
+
+This needs only `grpcio` (already a dependency of this subtask), never the
+generated `_pb2` stubs, so it works even before `query()` is implemented.
+Once `query()` is implemented, drive it end-to-end with a real prompt:
+
+```bash
+python3 - <<'PY'
+import asyncio
+
+from aegis.openclaude.config import OpenClaudeSettings
+from aegis.openclaude.grpc.client import OpenClaudeGrpcClient
+
+
+async def main() -> None:
+    client = OpenClaudeGrpcClient(OpenClaudeSettings(grpc_url="localhost:50051"))
+    async for frame in client.query("ping", run_id="smoke-test"):
+        print(frame.frame_type, len(frame.content))
+    await client.close()
+
+
+asyncio.run(main())
+PY
+```
+
+A connection refusal here almost always means the `--port` OpenClaude was
+launched with doesn't match `grpc_url`; a permission/allowlist error means the
+launch flags above don't match `settings.allowed_tools` /
+`settings.bash_allowlist`.
+
 ## Constraints
 
 - **This file is the only place `import grpc` or `openclaude_pb2*` may appear**
   (C3); enforced by the isolation `grep` CI check.
 - `from __future__ import annotations` at the top; `Optional[T]` from `typing`,
   never `T | None`, including in subscripts (C9).
-- `mypy --strict` and `ruff` clean; zero new `# type: ignore` (the generated
+- `ruff` clean; zero new `# type: ignore` (the generated
   stubs are excluded via the per-module override from subtask 02, so the client
   needs none).
 - All public methods carry RST docstrings (`:param:`, `:return:`, `:raises:`).
@@ -213,4 +281,4 @@ class OpenClaudeGrpcClient:
 - [ ] `query(prompt, run_id)` is an async generator yielding one `AgentFrame`
       per `AgentMessage`, stopping after the first `DONE` / `ERROR`.
 - [ ] `close()` is idempotent and safe when the channel was never opened.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` all clean.
+- [ ] `ruff`, `replace_optional.py --check` all clean.

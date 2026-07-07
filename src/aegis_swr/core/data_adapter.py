@@ -311,6 +311,7 @@ class DataAdapter:
             mode=source.mode,
             dump_hash=dump_hash,
             fault_class=fault_class,
+            exception_code=exception_code,
             exception_code_raw=exception_code_raw,
             exception_address=exception_address,
             faulting_module=faulting_module,

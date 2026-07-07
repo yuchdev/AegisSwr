@@ -163,4 +163,4 @@ Expand the `ingest.log_source` block:
 - [ ] CLI validation rejects unknown `--log-fluent-protocol`.
 - [ ] Integration test confirms graceful fail-open when Fluent is unreachable.
 - [ ] `docs/configuration/cli.md` updated with new flag rows.
-- [ ] `mypy --strict` clean; all tests pass.
+- [ ] `replace_optional.py --check` clean; all tests pass.

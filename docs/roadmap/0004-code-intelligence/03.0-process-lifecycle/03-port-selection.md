@@ -101,7 +101,7 @@ class OpenClaudeProcess:
   caller agree on the port.
 - TOCTOU race is documented as an accepted limitation, not silently ignored.
 - `Optional[T]` from `typing`; `from __future__ import annotations` (C9).
-- `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- `ruff`, `replace_optional.py --check` clean.
 
 ## Success criteria
 
@@ -115,4 +115,4 @@ class OpenClaudeProcess:
       leaks (verifiable by asserting the socket is closed).
 - [ ] The module docstring records the TOCTOU limitation and recommends a fixed
       port in production.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

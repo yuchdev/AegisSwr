@@ -6,9 +6,10 @@ returns ``None`` and Data Adapter Stage 8 is skipped.
 from __future__ import annotations
 
 from typing import Optional
+
+from aegis_swr.backends.base import CodeBackend
 from aegis_swr.backends.code.filesystem_adapter import FilesystemCodeAdapter
 from aegis_swr.backends.code.git_adapter import GitCodeAdapter
-from aegis_swr.backends.base import CodeBackend
 from aegis_swr.config.settings import CodeBackendSettings
 
 __all__ = [

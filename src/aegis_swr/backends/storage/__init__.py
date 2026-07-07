@@ -1,5 +1,6 @@
 """Storage backend factory"""
 from __future__ import annotations
+
 from typing import Optional
 
 from aegis_swr.backends.base import ObjectStore, RelationalStore

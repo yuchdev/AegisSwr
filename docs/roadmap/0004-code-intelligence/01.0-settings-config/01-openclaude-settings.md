@@ -205,7 +205,7 @@ command.
 
 - `Optional[T]` from `typing`, never `T | None`; `from __future__ import
   annotations` at the top of the file (C9).
-- No `Any` in field types; `mypy --strict` clean.
+- No `Any` in field types; `replace_optional.py --check` clean.
 - `OpenClaudeConfigError` here is a temporary forward declaration; Task 05.0
   moves the canonical definition to `exceptions.py` and replaces this with a
   re-export alias — no downstream import path changes when 05.0 lands.
@@ -230,7 +230,7 @@ command.
       `OpenClaudeConfigError`.
 - [ ] `OpenClaudeSettings(connect_timeout_s=100, request_timeout_s=10)` raises
       `OpenClaudeConfigError`.
-- [ ] `mypy --strict` clean; no `Any` in field types.
+- [ ] `replace_optional.py --check` clean; no `Any` in field types.
 - [ ] On a host with `npm` available, running `poetry install` installs
       `@gitlawb/openclaude@latest` globally (verify via `npm list -g
       @gitlawb/openclaude` or `which openclaude`) with no separate manual

@@ -25,7 +25,7 @@ You work on implementing Aegis SWR features and turn agreed designs into working
 
 ### Typing
 
-Full annotations, mypy `strict` clean. Always `Optional[T]` (import from `typing`), never `T | None` - including in subscripts and `Annotated[...]`. Run `python scripts/replace_optional.py --check` if unsure.
+Full annotations, full annotations required. Always `Optional[T]` (import from `typing`), never `T | None` - including in subscripts and `Annotated[...]`. Run `python scripts/replace_optional.py --check` if unsure.
 
 
 ### Style
@@ -70,10 +70,19 @@ Add/maintain docstrings on every public function, class, and agent interface you
 
 ## After you code
 
-1. `uv run pytest -q` - must stay green. If you changed behavior, the matching tests must change with it (or ask `testing-expert`).
-2. `uv run mypy src/` and `uv run ruff check src/ tests/` - must pass.
-3. **If any test regresses, you are blocked**: fix it before continuing. Do not weaken or `xfail` a test to make the bar turn green.
-4. Commit with **Conventional Commits**: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `perf:`. One logical change per commit. Never push directly to `master`/`master` - open a branch and PR.
+Run these unconditionally, in order, regardless of how small the change is - this step is never optional and never skipped because "the diff was tiny":
+
+1. `uv run ruff check . --fix && uv run ruff check .`
+2. `uv run pytest -q --cov=aegis_swr --cov-report=term-missing`
+
+After each command, read its output and act on it before moving on:
+
+- Fix every warning/error that command left behind. If you changed behavior, the matching tests must change with it (or ask `testing-expert`).
+- If a fix isn't obviously safe - it would change behavior, silence a real defect, or the correct resolution is ambiguous - stop and ask the user instead of guessing or suppressing it (`# noqa`, a weaker assertion, `xfail`).
+- **If any test regresses, you are blocked**: fix the cause before continuing. Never weaken or `xfail` a test to turn the bar green.
+- The Stop hook (`.claude/hooks/run_tests.py`) re-runs the same two commands and blocks the session on failure - treat that as a backstop, not a substitute for running them yourself while you still have full context on the change.
+
+Commit with **Conventional Commits**: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `perf:`. One logical change per commit. Never push directly to `master` - open a branch and PR.
 
 ## Traceability
 

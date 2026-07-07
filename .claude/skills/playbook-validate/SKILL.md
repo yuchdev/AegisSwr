@@ -1,6 +1,6 @@
 ---
 name: playbook-validate
-description: User-invoked as /playbook-validate <path>. Validates an Aegis remediation playbook or consensus-weight file (e.g. agents.example.json or a playbook YAML/JSON) for step ordering, required fields, idempotency, and rollback coverage. Use before a playbook is trusted to run automated remediation.
+description: User-invoked as /playbook-validate <path>. Validates an Aegis remediation playbook (YAML/JSON) for step ordering, required fields, idempotency, and rollback coverage. Use before a playbook is trusted to run automated remediation.
 allowed-tools: Read, Grep, Glob, Bash
 invocation: /playbook-validate <path>
 ---
@@ -38,11 +38,13 @@ a malformed one is a safety hazard.
 5. **Authorisation** - any production-affecting step sets
    `requires_authorisation: true`; cross-check against the `AEGIS_PROD_CONFIRMED`
    guard convention.
-6. **Weight files** - if validating `agents.example.json`-style consensus
-   weights: each fault class's agent weights sum to ~1.0 (±0.01) and no single
-   agent exceeds a sane ceiling. Example valid entry:
-   ```json
-   { "crash_dump": { "os_kernel": 0.35, "code_analyst": 0.30,
+6. **Consensus weights** - consensus weight is a `default_weight` `ClassVar`
+   on each agent class (`src/aegis_swr/agents/`), not a file. Check that every
+   registered agent declares a numeric weight and that the built-in roster's
+   weights sum to ~1.0 (±0.01), with no single agent above a sane ceiling.
+   Example roster:
+   ```text
+   { "os_kernel": 0.35, "code_analyst": 0.35,
                      "log_historian": 0.20, "skeptic":  0.15 } }
    ```
    (sum = 1.00 ✓ | max single weight = 0.35 ✓)
@@ -69,5 +71,5 @@ lacks a rollback.
 - [ ] Step ordering validated against `detect/confirm → contain → remediate → verify` - no remediation before the trigger is confirmed
 - [ ] No state-changing step (`idempotent: false` or `requires_authorisation: true`) uses the `read-only: no state change` rollback sentinel
 - [ ] Every step has a bounded `timeout`
-- [ ] Weight files (`agents.example.json`-style): each fault class sums to `1.0 ± 0.01` and no single agent weight exceeds the ceiling
+- [ ] Consensus weights (`default_weight` ClassVars in `src/aegis_swr/agents/`): every registered agent declares a numeric weight and the built-in roster sums to `1.0 ± 0.01`
 - [ ] Verdict defaults to INVALID on any missing required field or missing rollback; warnings listed separately and do not block

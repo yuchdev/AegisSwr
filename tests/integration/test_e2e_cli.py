@@ -46,7 +46,7 @@ def _write_dump(tmp_path: Path) -> Path:
     return dump
 
 
-async def _mock_run(self: object, source: object) -> RCAReport:  # type: ignore[override]
+async def _mock_run(self: object, source: object) -> RCAReport:
     return _make_report()
 
 
@@ -226,7 +226,7 @@ def test_e2e_analyze_log_only_mode(tmp_path: Path):
     log_file = tmp_path / "app.log"
     log_file.write_text("2026-05-30T14:02:11 FATAL unhandled exception\n")
 
-    async def _log_run(self: object, source: object) -> RCAReport:  # type: ignore[override]
+    async def _log_run(self: object, source: object) -> RCAReport:
         rep = _make_report()
         return rep.model_copy(update={"mode": IncidentMode.LOG_FORENSICS, "dump_hash": None})
 
@@ -285,7 +285,7 @@ def test_e2e_config_roundtrip(tmp_path: Path):
 
     # Step 2: run using saved config (no --ai flag).
 
-    async def _capturing_run(self: object, source: object) -> RCAReport:  # type: ignore[override]
+    async def _capturing_run(self: object, source: object) -> RCAReport:
         return _make_report()
 
     with mock.patch(_MOCK_RUN, _capturing_run):
@@ -330,7 +330,7 @@ def test_e2e_nested_log_sections_flow_through(tmp_path: Path):
     )
     captured: dict[str, object] = {}
 
-    async def _capture(self: object, source: object) -> RCAReport:  # type: ignore[override]
+    async def _capture(self: object, source: object) -> RCAReport:
         captured["service"] = source.metadata.get("service")  # type: ignore[attr-defined]
         return _make_report()
 
@@ -518,7 +518,7 @@ def test_e2e_evidence_persist_writes_file(tmp_path: Path, monkeypatch):
         )
     )
 
-    async def mock_stream_events(self, source):  # type: ignore[no-untyped-def]
+    async def mock_stream_events(self, source):
         self.events.publish(
             InvestigationStarted(incident_id=str(report.incident_id), source=source)
         )
@@ -564,7 +564,7 @@ def test_e2e_legacy_logging_config_is_migrated(tmp_path: Path):
     `logging.service` migrates to `ingest.log_source.service` and reaches metadata."""
     captured: dict[str, object] = {}
 
-    async def capture(self: object, source: object) -> RCAReport:  # type: ignore[override]
+    async def capture(self: object, source: object) -> RCAReport:
         captured["service"] = source.metadata.get("service")  # type: ignore[attr-defined]
         return _make_report()
 

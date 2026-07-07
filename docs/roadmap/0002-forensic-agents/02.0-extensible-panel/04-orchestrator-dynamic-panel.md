@@ -69,7 +69,7 @@ behavior.
   same order, same conditional edges).
 - `skeptic` always terminal; round-increment and HITL/converge routing unchanged.
 - No raw payload logged; existing `EventBus`/`AgentSpoke` contract preserved.
-- `Optional[T]`, mypy strict, ruff clean.
+- `Optional[T]`, full annotations, ruff clean.
 
 ## Tests
 
@@ -89,4 +89,4 @@ behavior.
 - [ ] Orchestrator builds debate nodes from `create_agent_panel`; skeptic terminal.
 - [ ] Default config reproduces the 0001 node chain, routing, and convergence.
 - [ ] Enabling a specialist adds a debate node and a turn in history.
-- [ ] All orchestrator tests pass; `mypy src/` clean.
+- [ ] All orchestrator tests pass; `python scripts/replace_optional.py --check` clean.

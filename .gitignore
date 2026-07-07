@@ -167,11 +167,6 @@ venv.bak/
 # mkdocs documentation
 /site
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
 # Pyre type checker
 .pyre/
 
@@ -221,4 +216,3 @@ __marimo__/
 .claude/logs/*.log
 .claude/state/*.md
 .claude/state/*.json
-

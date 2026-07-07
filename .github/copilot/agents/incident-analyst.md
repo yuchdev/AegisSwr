@@ -23,7 +23,7 @@ Mapped onto the code:
 - Modes (`IncidentMode`): `crash_dump`, `log_forensics`, `live_process`,
   `telemetry_anomaly`.
 - Multi-agent debate: `os_kernel`, `code_analyst`, `log_historian`, `skeptic`
-  → `core/consensus.py`, weighted per fault class (`agents.example.json`).
+  → `core/consensus.py`, weighted by each agent's own declared `default_weight`.
 - Outputs: `Hypothesis`, `SkepticVerdict`, `RCAReport`, `ConfidenceLevel`,
   `HITLRequest` (`core/schemas.py`).
 

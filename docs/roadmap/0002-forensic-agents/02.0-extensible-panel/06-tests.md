@@ -30,7 +30,7 @@ whole and adds the cross-cutting **back-compat equivalence** and
 
 1. `poetry run pytest tests/unit/ -q` - green, no weakened tests.
 2. `poetry run pytest tests/integration/ -q` - green, including the two new tests.
-3. `mypy src/` (strict) - zero errors.
+3. `python scripts/replace_optional.py --check` - clean.
 4. `ruff check` + `ruff format --check`; `scripts/replace_optional.py --check`.
 
 ## Success criteria

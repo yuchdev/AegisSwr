@@ -62,7 +62,7 @@ specialist panel example.
 - Defaults reproduce the legacy panel + weights (back-compat gate).
 - Out-of-range / unknown keys are tolerated by `create_agent_panel` (warn+skip);
   the config schema itself accepts free-form key lists.
-- `Optional[T]`, mypy strict, ruff clean.
+- `Optional[T]`, full annotations, ruff clean.
 
 ## Tests
 
@@ -79,4 +79,4 @@ specialist panel example.
 - [ ] `AgentPanelSettings` exists and is reachable from `Settings`.
 - [ ] `config.yaml` and `agents.example.json` carry the panel + weight blocks with
       legacy defaults.
-- [ ] Settings tests pass; `mypy src/` clean.
+- [ ] Settings tests pass; `python scripts/replace_optional.py --check` clean.

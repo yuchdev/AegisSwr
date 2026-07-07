@@ -39,7 +39,7 @@ Subtasks 02–04 are independent of each other and may proceed in parallel.
   configurable timeout, mapping failures to `CodeBackendError`.
 - All git operations within the adapter (for `get_file_diff` / `blame`) follow
   the same subprocess pattern as `GitCodeAdapter`.
-- `mypy --strict` must pass; `Optional[T]` not `T | None`.
+- `replace_optional.py --check` must pass; `Optional[T]` not `T | None`.
 - Data Adapter Stage 8 wraps `CodeBackend` calls in `try/except CodeBackendError`
   and fails open to empty `code_history` - the adapter must never swallow errors
   silently; it must raise them so Stage 8 can degrade gracefully.

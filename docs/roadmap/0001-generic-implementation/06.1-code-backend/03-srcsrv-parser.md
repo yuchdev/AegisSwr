@@ -283,4 +283,4 @@ Empty `source files` section (no entries).
 - [ ] Malformed lines skipped without raising.
 - [ ] All three fixture files created with the content above.
 - [ ] All 14 unit tests above pass with zero I/O.
-- [ ] `mypy --strict` clean.
+- [ ] `replace_optional.py --check` clean.

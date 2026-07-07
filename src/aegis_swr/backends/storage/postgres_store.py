@@ -6,15 +6,15 @@ dedicated future phase. This stub exists so the factory can return a
 configured in advance without import errors.
 """
 from __future__ import annotations
-from typing import Optional
 
+from typing import Optional
 from uuid import UUID
 
 from loguru import logger
 
 from aegis_swr.backends.base import RelationalStore
-from aegis_swr.core.schemas import RCAReport
 from aegis_swr.config.settings import StorageSettings
+from aegis_swr.core.schemas import RCAReport
 
 _MSG = (
     "PostgresStore is a stub. "

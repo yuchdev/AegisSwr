@@ -43,6 +43,7 @@ class SkepticAgent(BaseAgent):
     display_name: ClassVar[str] = "Skeptic Agent"
     category: ClassVar[AgentCategory] = "base"
     role: ClassVar[AgentRole] = AgentRole.ARBITER
+    default_weight: ClassVar[float] = 0.13
 
     @property
     def system_prompt(self) -> str:

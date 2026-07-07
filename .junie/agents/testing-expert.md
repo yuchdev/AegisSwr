@@ -97,5 +97,5 @@ You possess comprehensive knowledge of:
 
 - A test must assert real behavior, not merely "does not raise". Use precise assertions on `RCAReport`/`SkepticVerdict`/`ConfidenceLevel` fields.
 - Never weaken or delete a failing test to go green - fix the cause or escalate to `python-expert`.
-- Honor conventions: `Optional[T]`, `Union[T], mypy strict (tests too where practical), ruff clean. Conventional commit prefix `test:`.
+- Honor conventions: `Optional[T]`, `Union[T], full annotations (tests too where practical), ruff clean. Conventional commit prefix `test:`.
 - Always end with the coverage delta vs. the baseline and a green/red verdict.

@@ -90,7 +90,7 @@ skeptic confirmation, labelled `"Remediation Planner Agent"`.
   continue, `remediation_plan` stays `None`.
 - `report.model_copy(update=...)` is the correct Pydantic v2 pattern for
   producing an updated immutable copy; do not mutate the report in place.
-- `Optional[T]`, `mypy --strict`, `ruff` clean.
+- `Optional[T]`, `replace_optional.py --check`, `ruff` clean.
 - No raw incident payload in any log statement emitted by the synthesizer path.
 
 ## Success criteria
@@ -105,4 +105,4 @@ skeptic confirmation, labelled `"Remediation Planner Agent"`.
       `RCAReport.remediation_plan` is `None` in that case.
 - [ ] `_hitl_node` is unchanged and never references `RemediationPlannerAgent`.
 - [ ] An `AgentSpoke` event is emitted on the `EventBus` for the synthesis turn.
-- [ ] `mypy --strict` and `ruff` clean on all modified files.
+- [ ] `ruff` clean on all modified files.

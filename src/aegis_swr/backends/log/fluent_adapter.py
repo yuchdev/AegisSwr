@@ -11,14 +11,13 @@ records to log lines. The stub makes no network connection.
 See ``docs/specs/generic_implementation_plan.md`` C.5 CodeBackend.
 """
 from __future__ import annotations
-from typing import Optional
 
 from datetime import datetime
+from typing import Optional
 
 from loguru import logger
 
 from aegis_swr.backends.base import LogBackend
-
 from aegis_swr.config.settings import LogBackendSettings
 
 _MSG = (

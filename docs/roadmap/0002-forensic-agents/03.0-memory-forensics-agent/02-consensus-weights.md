@@ -84,7 +84,7 @@ Sum: 1.00.
 - The three **unaffected** fault classes (`stack_overflow`, `integer_divide_by_zero`,
   `deadlock`, `assertion_failure`, `resource_exhaustion`, `unhandled_exception`,
   `unknown`) must not be altered.
-- `Optional[T]` from `typing`; `mypy --strict` clean; `ruff` clean.
+- `Optional[T]` from `typing`; `replace_optional.py --check` clean; `ruff` clean.
 - The `AgentWeightEntry` at this point uses the `weights: dict[str, float]` map
   introduced by Task 02.0/subtask 02. Do not revert to the four fixed-field form.
 
@@ -111,4 +111,4 @@ In `tests/unit/test_consensus_weights.py` (create if absent):
 - [ ] Unaffected fault classes are not modified.
 - [ ] `agents.example.json` reflects the same vectors.
 - [ ] All five unit tests pass.
-- [ ] `mypy --strict` clean; `ruff` clean.
+- [ ] `replace_optional.py --check` clean; `ruff` clean.

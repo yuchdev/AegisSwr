@@ -1,34 +1,28 @@
 """Integration tests for the dynamic-panel orchestrator redesign (Phase 6).
 
-Covers the four verification gates from the design document's "Verification"
-section, plus a config-artifact check that the reshaped agents.example.json
-parses correctly through Settings:
+Covers the verification gates from the design document's "Verification" section:
 
-1. Config shape: agents.example.json uses the new {'weights':…,'panel':…}
-   envelope and all numeric values are byte-identical to the pre-refactor matrix.
-
-2. Back-compat equivalence: stream_events() with the default 4-agent auto-
+1. Back-compat equivalence: stream_events() with the default 4-agent auto-
    selected panel produces the same discussion order and report values as the
    pre-refactor implementation, and the new PanelResolved event is published
    with correct agent roles.
 
-3. Variable-panel: an explicit 5-agent panel (one custom test-double beyond the
-   four built-in agents) runs in descending-priority order, weight tier-1
-   explicit beats tier-2 curated, and _build_report's role/capability-driven
-   synthesis extracts the probabilistic fix without any display-name string.
+2. Variable-panel: an explicit 5-agent panel (one custom test-double beyond the
+   four built-in agents) runs in descending-priority order, an explicit
+   per-incident weight override beats the agent's own declared default_weight,
+   and _build_report's role/capability-driven synthesis extracts the
+   probabilistic fix without any display-name string.
 
-4. Recursion-limit: a high max_debate_rounds value that would exhaust LangGraph's
+3. Recursion-limit: a high max_debate_rounds value that would exhaust LangGraph's
    default 25-step recursion limit without the (len(panel)+2)*rounds+5 budget
    formula completes successfully and returns a valid HITL report.
 
 All tests run fully in-process with MockAIBackend; no network, subprocess, or
-file-system side effects are introduced beyond reading the example config file.
+file-system side effects are introduced.
 """
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any, ClassVar, Optional
 
 import pytest
@@ -62,10 +56,6 @@ from aegis_swr.core.schemas import (
 )
 from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
-_REPO_ROOT = Path(__file__).parent.parent.parent
-_AGENTS_EXAMPLE = _REPO_ROOT / "agents.example.json"
-
-
 # ---------------------------------------------------------------------------
 # Test-double: a synthetic fifth investigator for the variable-panel test.
 #
@@ -86,6 +76,7 @@ class _ExtraAnalystAgent(BaseAgent):
     display_name: ClassVar[str] = "Extra Analyst"
     category: ClassVar[str] = "forensic"
     role: ClassVar[AgentRole] = AgentRole.INVESTIGATOR
+    default_weight: ClassVar[float] = 0.20
 
     @property
     def system_prompt(self) -> str:
@@ -163,110 +154,7 @@ def _log_only_source() -> IncidentSource:
 
 
 # ---------------------------------------------------------------------------
-# Test 1: agents.example.json config-artifact shape verification
-# ---------------------------------------------------------------------------
-
-
-def test_agents_example_json_loads_with_new_nested_shape(settings: Settings) -> None:
-    """The reshaped agents.example.json uses the new {'weights':…,'panel':…} top-level envelope.
-
-    Loads agents.example.json directly (bypassing the autouse isolation fixture
-    which replaces _read_json_object with a no-op) and passes the parsed data
-    through Settings() as init kwargs - the highest-precedence source, which
-    wins over the JSON settings source. Asserts:
-
-    - The file has exactly the two top-level keys 'weights' and 'panel', not
-      the old flat fault-class-at-root shape.
-    - Every fault class's numeric weights are byte-identical to the pre-refactor
-      matrix (same floats, just nested under 'weights').
-    - The 'panel' section seeds agent_panel.default_panel with the four built-in
-      keys and agent_panel.per_fault_class is empty.
-
-    This is the config-artifact gate for Phase 6 Step 1.
-    """
-    raw = json.loads(_AGENTS_EXAMPLE.read_text(encoding="utf-8"))
-
-    # The reshaped file must have exactly these two top-level keys.
-    assert set(raw.keys()) == {"weights", "panel"}, (
-        f"agents.example.json must have exactly top-level keys 'weights' and 'panel'; found: {sorted(raw.keys())}"
-    )
-
-    # The old flat fault-class keys must NOT appear at the top level.
-    assert "memory_access_violation" not in raw, (
-        "agents.example.json must not use the old flat shape where fault-class names appear directly at the top level"
-    )
-
-    # Parse via Settings init kwargs (highest-precedence source; the autouse
-    # _isolate_runtime_config fixture only patches _read_json_object, not init).
-    loaded = Settings(agent_weights=raw["weights"], agent_panel=raw["panel"])
-
-    # Spot-check all 10 fault classes with representative keys.
-    mav = loaded.agent_weights.memory_access_violation.weights
-    assert mav["os_kernel"] == pytest.approx(0.40)
-    assert mav["code_analyst"] == pytest.approx(0.35)
-    assert mav["log_historian"] == pytest.approx(0.15)
-    assert mav["skeptic"] == pytest.approx(0.10)
-
-    npd = loaded.agent_weights.null_pointer_dereference.weights
-    assert npd["os_kernel"] == pytest.approx(0.40)
-    assert npd["code_analyst"] == pytest.approx(0.35)
-
-    uaf = loaded.agent_weights.use_after_free.weights
-    assert uaf["os_kernel"] == pytest.approx(0.35)
-    assert uaf["code_analyst"] == pytest.approx(0.40)
-    assert uaf["log_historian"] == pytest.approx(0.15)
-    assert uaf["skeptic"] == pytest.approx(0.10)
-
-    stack = loaded.agent_weights.stack_overflow.weights
-    assert stack["os_kernel"] == pytest.approx(0.45)
-    assert stack["code_analyst"] == pytest.approx(0.30)
-    assert stack["log_historian"] == pytest.approx(0.10)
-    assert stack["skeptic"] == pytest.approx(0.15)
-
-    idz = loaded.agent_weights.integer_divide_by_zero.weights
-    assert idz["os_kernel"] == pytest.approx(0.35)
-    assert idz["code_analyst"] == pytest.approx(0.40)
-    assert idz["log_historian"] == pytest.approx(0.10)
-    assert idz["skeptic"] == pytest.approx(0.15)
-
-    dl = loaded.agent_weights.deadlock.weights
-    assert dl["os_kernel"] == pytest.approx(0.35)
-    assert dl["code_analyst"] == pytest.approx(0.30)
-    assert dl["log_historian"] == pytest.approx(0.20)
-    assert dl["skeptic"] == pytest.approx(0.15)
-
-    af = loaded.agent_weights.assertion_failure.weights
-    assert af["os_kernel"] == pytest.approx(0.25)
-    assert af["code_analyst"] == pytest.approx(0.45)
-
-    re_entry = loaded.agent_weights.resource_exhaustion.weights
-    assert re_entry["os_kernel"] == pytest.approx(0.35)
-    assert re_entry["code_analyst"] == pytest.approx(0.25)
-    assert re_entry["log_historian"] == pytest.approx(0.30)
-    assert re_entry["skeptic"] == pytest.approx(0.10)
-
-    ue = loaded.agent_weights.unhandled_exception.weights
-    assert ue["os_kernel"] == pytest.approx(0.30)
-    assert ue["code_analyst"] == pytest.approx(0.35)
-
-    unk = loaded.agent_weights.unknown.weights
-    assert unk["os_kernel"] == pytest.approx(0.30)
-    assert unk["code_analyst"] == pytest.approx(0.35)
-    assert unk["log_historian"] == pytest.approx(0.20)
-    assert unk["skeptic"] == pytest.approx(0.15)
-
-    # Panel section wires the default roster and leaves per_fault_class empty.
-    assert loaded.agent_panel.default_panel == [
-        "os_kernel",
-        "code_analyst",
-        "log_historian",
-        "skeptic",
-    ]
-    assert loaded.agent_panel.per_fault_class == {}
-
-
-# ---------------------------------------------------------------------------
-# Test 2: back-compat equivalence via stream_events()
+# Test 1: back-compat equivalence via stream_events()
 # ---------------------------------------------------------------------------
 
 
@@ -385,7 +273,7 @@ async def test_stream_events_default_panel_preserves_prerefactor_order_and_publi
 
 
 # ---------------------------------------------------------------------------
-# Test 3: variable-panel - explicit 5-agent panel with mixed weight tiers
+# Test 2: variable-panel - explicit 5-agent panel with mixed weight tiers
 # ---------------------------------------------------------------------------
 
 
@@ -393,7 +281,7 @@ async def test_explicit_five_agent_panel_respects_priority_order_and_weight_tier
     settings: Settings,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """An explicit 5-agent panel runs in priority order with three-tier weight resolution.
+    """An explicit 5-agent panel runs in priority order with two-tier weight resolution.
 
     Registers _ExtraAnalystAgent into AGENT_REGISTRY for the duration of this
     test via monkeypatch.setitem, then runs a full investigation with an explicit
@@ -406,15 +294,15 @@ async def test_explicit_five_agent_panel_respects_priority_order_and_weight_tier
       code_analyst's turn via the contributes_fix=True capability flag, not via
       any 'Code Analyst Agent' display-name check.
     - consensus_score equals the analytically expected weighted average, proving
-      the three-tier weight precedence was applied:
-        * extra_analyst:  explicit weight=0.60  (tier 1)
-        * os_kernel:      curated unknown=0.30  (tier 2)
-        * code_analyst:   curated unknown=0.35  (tier 2)
-        * log_historian:  curated unknown=0.20  (tier 2)
-        * skeptic:        curated unknown=0.15  (tier 2)
+      the two-tier weight precedence was applied:
+        * extra_analyst:  explicit weight=0.60  (tier 1: per-incident override)
+        * os_kernel:      default_weight=0.35   (tier 2: agent-declared)
+        * code_analyst:   default_weight=0.35   (tier 2: agent-declared)
+        * log_historian:  default_weight=0.17   (tier 2: agent-declared)
+        * skeptic:        default_weight=0.13   (tier 2: agent-declared)
       With scores extra=0.50, all others=0.90:
-        CS = (0.60×0.50 + 0.30×0.90 + 0.35×0.90 + 0.20×0.90 + 0.15×0.90)
-             / (0.60+0.30+0.35+0.20+0.15) = 1.20/1.60 = 0.75
+        CS = (0.60×0.50 + 0.35×0.90 + 0.35×0.90 + 0.17×0.90 + 0.13×0.90)
+             / (0.60+0.35+0.35+0.17+0.13) = 1.20/1.60 = 0.75
 
     A custom consensus_threshold=0.70 is used so that this analytically-derived
     score triggers convergence; the default 0.85 threshold is deliberately
@@ -431,9 +319,8 @@ async def test_explicit_five_agent_panel_respects_priority_order_and_weight_tier
     # Lower threshold so the computed CS=0.75 triggers convergence.
     low_threshold_settings = Settings(core={"consensus_threshold": 0.70})
 
-    # Explicit specs: extra_analyst gets tier-1 explicit weight; all real agents
-    # will fall to tier-2 curated weights for FaultClass.UNKNOWN (LOG_FORENSICS
-    # source produces a brief with fault_class=None → UNKNOWN fallback).
+    # Explicit specs: extra_analyst gets a tier-1 explicit weight override; all
+    # real agents fall to tier-2 (their own class-declared default_weight).
     explicit_specs = [
         AgentSpec(agent_key="extra_analyst", priority=5, weight=0.6),
         AgentSpec(agent_key="os_kernel", priority=4),
@@ -484,17 +371,17 @@ async def test_explicit_five_agent_panel_respects_priority_order_and_weight_tier
         f"Expected fix extracted from code_analyst; got: {report.probabilistic_fix!r}"
     )
 
-    # Verify the three-tier weight precedence took effect by asserting the
+    # Verify the two-tier weight precedence took effect by asserting the
     # consensus_score matches the analytically computed expected value.
     # Scores: extra=0.50 (hardcoded), all others 0.90.
-    # Weights: extra=0.60 (tier-1 explicit), os=0.30, code=0.35, historian=0.20,
-    #          skeptic=0.15 (all tier-2 curated, fault_class=UNKNOWN).
+    # Weights: extra=0.60 (tier-1 explicit override), os=0.35, code=0.35,
+    #          historian=0.17, skeptic=0.13 (all tier-2 agent-declared defaults).
     _weights = {
         "extra_analyst": 0.60,
-        "os_kernel": 0.30,
+        "os_kernel": 0.35,
         "code_analyst": 0.35,
-        "log_historian": 0.20,
-        "skeptic": 0.15,
+        "log_historian": 0.17,
+        "skeptic": 0.13,
     }
     _scores = {
         "extra_analyst": 0.50,
@@ -511,7 +398,7 @@ async def test_explicit_five_agent_panel_respects_priority_order_and_weight_tier
 
 
 # ---------------------------------------------------------------------------
-# Test 4: recursion-limit fix prevents GraphRecursionError at high round counts
+# Test 3: recursion-limit fix prevents GraphRecursionError at high round counts
 # ---------------------------------------------------------------------------
 
 

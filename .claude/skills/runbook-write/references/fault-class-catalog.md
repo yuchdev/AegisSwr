@@ -2,12 +2,13 @@
 
 Cross-reference for `/runbook-write`. Maps each `FaultClass`
 (`src/aegis_swr/core/fault_codes.py`) to the incident modes it appears in, the
-consensus agents that dominate its analysis (from
-[`agents.example.json`](../../../../agents.example.json)), and a **suggested**
-default severity.
+consensus agents whose analysis is most relevant to it (domain guidance), and
+a **suggested** default severity.
 
-> The dominant-agent column is authoritative — it is read directly from the
-> weight matrix. The severity column is a *starting recommendation only*; the
+> The most-relevant-agent column is domain guidance for runbook authoring, not
+> a weight lookup: consensus weight is now a flat `default_weight` `ClassVar` per
+> agent (`src/aegis_swr/agents/`) and no longer varies by fault class. The
+> severity column is a *starting recommendation only*; the
 > product does not hard-code severity per fault class, so tune it per deployment
 > and let `incident-analyst` confirm.
 
@@ -16,28 +17,28 @@ default severity.
 `crash_dump`, `log_forensics`, `live_process`, `telemetry_anomaly`
 (`schemas.IncidentMode`). A runbook's `trigger` is usually `<mode>/<fault_class>`.
 
-## Fault classes → dominant agents → suggested severity
+## Fault classes → most-relevant agents → suggested severity
 
-| FaultClass | Dominant agents (weight) | Suggested default | Typical mode |
+| FaultClass | Most-relevant agents | Suggested default | Typical mode |
 |------------|--------------------------|-------------------|--------------|
-| `memory_access_violation` | os_kernel 0.40, code_analyst 0.35 | P1 | crash_dump |
-| `null_pointer_dereference` | os_kernel 0.40, code_analyst 0.35 | P2 | crash_dump |
-| `use_after_free` | code_analyst 0.40, os_kernel 0.35 | P1 | crash_dump |
-| `stack_overflow` | os_kernel 0.45, code_analyst 0.30 | P2 | crash_dump |
-| `integer_divide_by_zero` | code_analyst 0.40, os_kernel 0.35 | P2 | crash_dump |
-| `deadlock` | os_kernel 0.35, code_analyst 0.30, log_historian 0.20 | P1 | live_process |
-| `assertion_failure` | code_analyst 0.45, os_kernel 0.25 | P2 | crash_dump |
-| `resource_exhaustion` | os_kernel 0.35, log_historian 0.30, code_analyst 0.25 | P1 | telemetry_anomaly |
-| `unhandled_exception` | code_analyst 0.35, os_kernel 0.30 | P2 | crash_dump / log_forensics |
-| `unknown` | code_analyst 0.35, os_kernel 0.30 | P2 | any |
+| `memory_access_violation` | os_kernel, code_analyst | P1 | crash_dump |
+| `null_pointer_dereference` | os_kernel, code_analyst | P2 | crash_dump |
+| `use_after_free` | code_analyst, os_kernel | P1 | crash_dump |
+| `stack_overflow` | os_kernel, code_analyst | P2 | crash_dump |
+| `integer_divide_by_zero` | code_analyst, os_kernel | P2 | crash_dump |
+| `deadlock` | os_kernel, code_analyst, log_historian | P1 | live_process |
+| `assertion_failure` | code_analyst, os_kernel | P2 | crash_dump |
+| `resource_exhaustion` | os_kernel, log_historian, code_analyst | P1 | telemetry_anomaly |
+| `unhandled_exception` | code_analyst, os_kernel | P2 | crash_dump / log_forensics |
+| `unknown` | code_analyst, os_kernel | P2 | any |
 
-**Reading the dominant-agent column into a runbook:** the highest-weighted agent
+**Reading the most-relevant-agent column into a runbook:** the first-listed agent
 tells you which analysis to trust first. `os_kernel`-dominant faults
 (access violations, stack overflow) → read `RCAReport.faulting_module`,
 `exception_code_raw`, and the raw stack first. `code_analyst`-dominant faults
 (use-after-free, assertion, unhandled exception) → read the primary
 `Hypothesis.root_cause`, `code_location`, and any `probabilistic_fix`.
-`log_historian` weight ≥ 0.20 (deadlock, resource exhaustion) → the recurrence
+`log_historian`-relevant faults (deadlock, resource exhaustion) → the recurrence
 history and temporal pattern matter; check for a matching prior incident.
 
 ## Native fault-code sources (for the Detection signals section)

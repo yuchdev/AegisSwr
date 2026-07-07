@@ -79,7 +79,7 @@ class AgentPanelSettings(BaseSettings):
 - It never raises on a bad config key - it warns and skips.
 - No import cycle: `registry.py` imports the concrete agent classes; orchestrator
   imports `create_agent_panel` (not the classes directly, going forward).
-- `Optional[T]`, mypy strict, ruff clean.
+- `Optional[T]`, full annotations, ruff clean.
 
 ## Tests
 
@@ -98,4 +98,4 @@ class AgentPanelSettings(BaseSettings):
       ordered, instantiated panel.
 - [ ] Default panel reproduces the legacy four-agent chain; skeptic always last.
 - [ ] Synthesis agents and unknown keys are excluded gracefully.
-- [ ] All registry tests pass; `mypy src/` clean.
+- [ ] All registry tests pass; `python scripts/replace_optional.py --check` clean.

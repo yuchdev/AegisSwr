@@ -82,7 +82,7 @@ class AgentConfig:
   router tests are unaffected by this subtask.
 - `Optional[T]` from `typing`, never `T | None`; `from __future__ import
   annotations` (C9).
-- `mypy --strict` clean on `aegis/router/config.py`.
+- `replace_optional.py --check` clean on `aegis/router/config.py`.
 - No behaviour change for any role that omits `enabled_when`.
 
 ## Success criteria
@@ -96,4 +96,4 @@ class AgentConfig:
 - [ ] `AgentConfig` without `enabled_when` is parsed identically to before
       this subtask (no regressions on existing Milestone 0003 router unit
       tests - full existing suite re-run green).
-- [ ] `mypy --strict` clean on `aegis/router/config.py`.
+- [ ] `replace_optional.py --check` clean on `aegis/router/config.py`.

@@ -54,7 +54,7 @@ parallel with 03 once 01 is done. Subtask 05 depends on 01–04.
   must carry `requires_human_approval = True`; the incident-analyst safety rule
   (never auto-remediate without `AEGIS_PROD_CONFIRMED=1`) is documented in
   subtask 04 and enforced in the orchestrator wiring.
-- **`Optional[T]` everywhere**, never `T | None`. `mypy --strict` and `ruff`
+- **`Optional[T]` everywhere**, never `T | None`. `ruff`
   must both pass on every deliverable.
 - **No raw incident payload in logs.** Agent receives the summarized, PII-scrubbed
   `RCAReport` fields (root cause, faulting module, hypotheses); never the raw

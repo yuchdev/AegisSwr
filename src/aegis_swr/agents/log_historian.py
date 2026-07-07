@@ -42,6 +42,7 @@ class LogHistorianAgent(BaseAgent):
     display_name: ClassVar[str] = "Log Historian Agent"
     category: ClassVar[AgentCategory] = "base"
     role: ClassVar[AgentRole] = AgentRole.INVESTIGATOR
+    default_weight: ClassVar[float] = 0.17
 
     @property
     def system_prompt(self) -> str:

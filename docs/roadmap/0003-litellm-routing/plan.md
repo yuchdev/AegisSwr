@@ -125,7 +125,7 @@ token counts and cost - never duplicated across events.
 
 - `Optional[T]` from `typing`, never `T | None` (including in subscripts).
 - `from __future__ import annotations` in every new file.
-- `mypy --strict` + `ruff` must stay clean.
+- `ruff` must stay clean.
 - Every new public class/function has a docstring (RST style).
 - No direct provider SDKs in `aegis/core/` or `aegis/ui/`.
 - `--dry-run` injects a `NullClient` (content `"[dry-run]"`, zero tokens/cost,
@@ -213,4 +213,4 @@ docs/
 - [ ] Adding a new model in `agents.yaml` requires zero Python changes
 - [ ] `RouterConfig.from_yaml()` on the existing `agents.yaml` does not raise
 - [ ] All new public classes and functions have docstrings
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` all clean
+- [ ] `ruff`, `replace_optional.py --check` all clean

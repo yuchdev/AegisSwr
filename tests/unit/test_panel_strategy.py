@@ -1,8 +1,9 @@
 """Unit tests for the panel-selection strategies.
 
 Covers :class:`~aegis_swr.core.panel_strategy.ExplicitPanelStrategy`,
-:class:`~aegis_swr.core.panel_strategy.AgenticManagerStrategy`, and the
-:class:`~aegis_swr.core.panel_strategy.PanelResolver` dispatcher.
+:class:`~aegis_swr.core.panel_strategy.AgenticManagerStrategy` (now registry-
+driven), and the :class:`~aegis_swr.core.panel_strategy.PanelResolver`
+dispatcher.
 """
 
 from __future__ import annotations
@@ -10,8 +11,8 @@ from __future__ import annotations
 import pytest
 
 from aegis_swr.agents.base import AgentSpec
-from aegis_swr.config.settings import AgentPanelSettings, Settings
-from aegis_swr.core.fault_codes import FaultClass
+from aegis_swr.agents.registry import AGENT_REGISTRY
+from aegis_swr.config.settings import Settings
 from aegis_swr.core.panel_strategy import (
     AgenticManagerStrategy,
     ExplicitPanelStrategy,
@@ -19,9 +20,9 @@ from aegis_swr.core.panel_strategy import (
 )
 
 
-def _settings_with_panel(panel: AgentPanelSettings) -> Settings:
-    """Return a Settings whose agent_panel is *panel*."""
-    return Settings(agent_panel=panel)
+@pytest.fixture
+def settings() -> Settings:
+    return Settings()
 
 
 # ---------------------------------------------------------------------------
@@ -40,55 +41,35 @@ async def test_explicit_strategy_returns_its_specs_untouched():
 
 
 # ---------------------------------------------------------------------------
-# AgenticManagerStrategy
+# AgenticManagerStrategy (registry-driven)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_agentic_manager_uses_default_panel_when_no_override():
-    """[Unit] agentic: a fault class with no override falls back to default_panel."""
-    settings = _settings_with_panel(AgentPanelSettings(default_panel=["os_kernel", "skeptic"], per_fault_class={}))
+async def test_agentic_manager_proposes_the_full_registered_roster(settings: Settings):
+    """[Unit] agentic: the candidate pool is every registered agent, in registry order."""
     strategy = AgenticManagerStrategy(settings)
     result = await strategy.select({"fault_class": "memory_access_violation"})
-    assert [s.agent_key for s in result] == ["os_kernel", "skeptic"]
+    assert [s.agent_key for s in result] == list(AGENT_REGISTRY)
     assert all(s.priority == 3 for s in result)
 
 
 @pytest.mark.asyncio
-async def test_agentic_manager_prefers_fault_class_override():
-    """[Unit] agentic: a per-fault-class list wins over the default panel."""
-    settings = _settings_with_panel(
-        AgentPanelSettings(
-            default_panel=["os_kernel", "code_analyst", "log_historian", "skeptic"],
-            per_fault_class={"stack_overflow": ["os_kernel", "skeptic"]},
-        )
-    )
-    strategy = AgenticManagerStrategy(settings)
+async def test_agentic_manager_honors_a_custom_registry(settings: Settings):
+    """[Unit] agentic: a custom registry override defines the candidate roster and order."""
+    custom_registry = {"os_kernel": object, "skeptic": object}
+    strategy = AgenticManagerStrategy(settings, registry=custom_registry)
     result = await strategy.select({"fault_class": "stack_overflow"})
     assert [s.agent_key for s in result] == ["os_kernel", "skeptic"]
 
 
 @pytest.mark.asyncio
-async def test_agentic_manager_filters_unregistered_candidate_keys():
-    """[Unit] agentic: candidate keys not in the registry are dropped."""
-    settings = _settings_with_panel(AgentPanelSettings(default_panel=["os_kernel", "ghost_agent", "skeptic"]))
+async def test_agentic_manager_ignores_the_brief(settings: Settings):
+    """[Unit] agentic: selection is roster-driven and independent of the brief contents."""
     strategy = AgenticManagerStrategy(settings)
-    result = await strategy.select({})
-    assert [s.agent_key for s in result] == ["os_kernel", "skeptic"]
-
-
-@pytest.mark.asyncio
-async def test_agentic_manager_unknown_fault_class_falls_back_to_default():
-    """[Unit] agentic: an unrecognized fault_class string uses the default panel."""
-    settings = _settings_with_panel(
-        AgentPanelSettings(
-            default_panel=["os_kernel", "skeptic"],
-            per_fault_class={FaultClass.STACK_OVERFLOW.value: ["code_analyst", "skeptic"]},
-        )
-    )
-    strategy = AgenticManagerStrategy(settings)
-    result = await strategy.select({"fault_class": "not_a_real_fault"})
-    assert [s.agent_key for s in result] == ["os_kernel", "skeptic"]
+    from_full_brief = await strategy.select({"fault_class": "deadlock"})
+    from_empty_brief = await strategy.select({})
+    assert [s.agent_key for s in from_full_brief] == [s.agent_key for s in from_empty_brief] == list(AGENT_REGISTRY)
 
 
 # ---------------------------------------------------------------------------
@@ -97,9 +78,8 @@ async def test_agentic_manager_unknown_fault_class_falls_back_to_default():
 
 
 @pytest.mark.asyncio
-async def test_resolver_delegates_to_explicit_when_specs_present():
+async def test_resolver_delegates_to_explicit_when_specs_present(settings: Settings):
     """[Unit] resolver: explicit specs win and the brief is ignored."""
-    settings = _settings_with_panel(AgentPanelSettings(default_panel=["os_kernel", "skeptic"]))
     resolver = PanelResolver(settings)
     explicit = [AgentSpec(agent_key="code_analyst"), AgentSpec(agent_key="skeptic")]
     result = await resolver.resolve({"fault_class": "stack_overflow"}, explicit_specs=explicit)
@@ -107,18 +87,16 @@ async def test_resolver_delegates_to_explicit_when_specs_present():
 
 
 @pytest.mark.asyncio
-async def test_resolver_uses_auto_when_specs_absent():
-    """[Unit] resolver: None explicit specs route to the auto manager."""
-    settings = _settings_with_panel(AgentPanelSettings(default_panel=["os_kernel", "skeptic"]))
+async def test_resolver_uses_auto_when_specs_absent(settings: Settings):
+    """[Unit] resolver: None explicit specs route to the registry-driven auto manager."""
     resolver = PanelResolver(settings)
     result = await resolver.resolve({"fault_class": "memory_access_violation"}, explicit_specs=None)
-    assert [s.agent_key for s in result] == ["os_kernel", "skeptic"]
+    assert [s.agent_key for s in result] == list(AGENT_REGISTRY)
 
 
 @pytest.mark.asyncio
-async def test_resolver_treats_empty_explicit_list_as_auto():
+async def test_resolver_treats_empty_explicit_list_as_auto(settings: Settings):
     """[Unit] resolver: an empty explicit list falls through to auto selection."""
-    settings = _settings_with_panel(AgentPanelSettings(default_panel=["os_kernel", "skeptic"]))
     resolver = PanelResolver(settings)
     result = await resolver.resolve({"fault_class": "deadlock"}, explicit_specs=[])
-    assert [s.agent_key for s in result] == ["os_kernel", "skeptic"]
+    assert [s.agent_key for s in result] == list(AGENT_REGISTRY)

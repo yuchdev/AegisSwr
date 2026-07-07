@@ -201,4 +201,4 @@ async def test_budget_charged_after_stream_completion_not_precharged(
 - [ ] `test_run_non_allowlisted_permission_denied` asserts exactly one
       `OpenClaudePermissionDenied` emission and a non-retriable failure.
 - [ ] No `grpc` / `_pb2` import in this file.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

@@ -299,7 +299,7 @@ reduce prompt friction and protect sensitive files:
 
 **Pre-allowed (no prompt):**
 ```
-uv run pytest, uv run ruff, uv run mypy
+uv run pytest, uv run ruff
 ruff, pytest
 git status, diff, log, add, commit
 gh pr, gh issue

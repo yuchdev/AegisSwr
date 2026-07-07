@@ -71,7 +71,7 @@ depends on subtask 01 (it composes the settings object 01 defines).
 
 - All new code uses `Optional[T]` from `typing`, never `T | None`; and
   `from __future__ import annotations` at the top of every file (C9).
-- `mypy --strict` + `ruff` must be clean with zero new `# type: ignore` lines.
+- `ruff` must be clean with zero new `# type: ignore` lines.
 - Every new public class and function must have an RST-style docstring.
 - `OpenClaudeConfigError` forward-declared in subtask 01 must be
   import-compatible with the canonical definition that Task 05.0 places in

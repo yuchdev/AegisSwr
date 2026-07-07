@@ -50,7 +50,7 @@ This matches the `category` `ClassVar` introduced on `BaseAgent` in Task 02.0.
 ## Constraints
 
 - Packages stay importable but empty; no agent classes in this subtask.
-- `Optional[T]` / mypy / ruff conventions clean.
+- `Optional[T]` / `replace_optional.py --check` / ruff conventions clean.
 
 ## Tests
 
@@ -62,4 +62,4 @@ This matches the `category` `ClassVar` introduced on `BaseAgent` in Task 02.0.
 
 - [ ] `agents/forensic/` and `agents/synthesis/` exist as importable packages.
 - [ ] Both expose an empty `__all__` and a category docstring.
-- [ ] `mypy src/` clean.
+- [ ] `python scripts/replace_optional.py --check` clean.

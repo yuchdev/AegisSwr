@@ -28,12 +28,14 @@ class AgentSpec(BaseModel):
     :ivar agent_key: Canonical identifier of the agent this spec configures
         (matches :attr:`BaseAgent.agent_key`).
     :type agent_key: str
-    :ivar priority: Relative ordering/importance of the agent within the panel,
-        constrained to the inclusive range 1-5 (higher speaks earlier and
-        carries more default consensus weight). Defaults to ``3``.
+    :ivar priority: Relative ordering of the agent within the panel, constrained
+        to the inclusive range 1-5 (higher speaks earlier). Defaults to ``3``.
+        Priority controls *debate/speaking order only*; it no longer contributes
+        to consensus weight.
     :type priority: int
-    :ivar weight: Explicit consensus-weight override. When ``None`` the weight is
-        derived from :attr:`priority` (or a curated per-fault-class value).
+    :ivar weight: Explicit consensus-weight override for this incident. When
+        ``None`` the agent's own intrinsic :attr:`BaseAgent.default_weight`
+        class property is used instead.
     :type weight: Optional[float]
     :ivar enabled: Whether this agent participates in the resolved panel.
     :type enabled: bool
@@ -52,7 +54,8 @@ class BaseAgent(ABC):
     Concrete subclasses declare their identity and behavioural role via the
     class-level :class:`ClassVar` descriptors below so the orchestrator can drive
     a dynamically resolved panel purely off generic, self-declared facts (role,
-    category, capability) rather than any hardcoded display name.
+    category, capability, consensus weight) rather than any hardcoded display
+    name or external policy file.
 
     :cvar agent_key: Canonical, stable identifier of the agent (e.g.
         ``"skeptic"``). Used for all role/capability lookups.
@@ -62,6 +65,15 @@ class BaseAgent(ABC):
     :cvar role: Behavioural role the agent plays in the debate.
     :cvar contributes_fix: Whether the agent produces a probabilistic fix
         mid-debate (orthogonal to :attr:`role`).
+    :cvar default_weight: Intrinsic consensus weight - how much this agent's
+        confidence counts when the :class:`~aegis_swr.core.consensus.ConsensusEvaluator`
+        blends the panel's per-round scores. This is a property of the agent
+        itself (not an external per-fault-class matrix); every concrete agent
+        must declare it, and a missing declaration fails loudly at panel
+        resolution rather than being silently defaulted. A per-incident
+        :attr:`AgentSpec.weight` override takes precedence when set. The
+        evaluator normalizes by the summed weights of the live panel, so the
+        declared values need not sum to any particular total.
     """
 
     agent_key: ClassVar[str]
@@ -69,6 +81,7 @@ class BaseAgent(ABC):
     category: ClassVar[AgentCategory]
     role: ClassVar[AgentRole]
     contributes_fix: ClassVar[bool] = False
+    default_weight: ClassVar[float]
 
     def __init__(
         self,

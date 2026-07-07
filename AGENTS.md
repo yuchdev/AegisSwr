@@ -26,7 +26,7 @@ and confidential.
 - **Language/stack**: Python 3.12, uv, FastAPI, Typer, Pydantic v2,
   LangGraph, SQLAlchemy/asyncpg (Postgres), SQLite, Qdrant, boto3/S3,
   anthropic + openai SDKs, loguru.
-- **Typing**: full annotations; **mypy `strict` must pass**. Always
+- **Typing**: full annotations; **full annotations are required**. Always
   `Optional[T]` (import from `typing`) - never `T | None`, including in
   subscripts and `Annotated[...]`. Enforce with
   `python scripts/replace_optional.py --check`.

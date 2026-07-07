@@ -7,12 +7,12 @@ unit-tested in isolation; :mod:`aegis_swr.views.rich_view` formats their output
 into styled lines.
 """
 from __future__ import annotations
-from typing import Optional
 
 import struct
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 #: Display window shown around the incident for every analyzed log file.
 LOG_WINDOW = timedelta(minutes=2)
@@ -137,7 +137,7 @@ class PcapInfo:
 
 def _pcap_timestamp(sec: int, sub: int, resolution: str) -> datetime:
     frac = sub / 1_000_000_000 if resolution == "nanosecond" else sub / 1_000_000
-    return datetime.fromtimestamp(sec + frac, tz=timezone.utc)
+    return datetime.fromtimestamp(sec + frac, tz=UTC)
 
 
 def pcap_metadata(raw_path: str, *, max_packets: int = 5_000_000) -> PcapInfo:

@@ -2,8 +2,9 @@
 
 Covers :mod:`aegis_swr.agents.registry` (lookup + unknown-key error) and
 :mod:`aegis_swr.agents.panel` (``resolve_panel`` happy path, unknown-key
-warn-and-skip, arbiter-count enforcement, and the three-tier
-``resolve_consensus_weights`` precedence).
+warn-and-skip, arbiter-count enforcement, and the two-tier
+``resolve_consensus_weights`` precedence - explicit override then the agent's
+own declared ``default_weight``).
 """
 
 from __future__ import annotations
@@ -29,12 +30,7 @@ from aegis_swr.agents.registry import (
 )
 from aegis_swr.agents.skeptic import SkepticAgent
 from aegis_swr.backends.base import AIAPIBackend
-from aegis_swr.config.settings import (
-    AgentWeightEntry,
-    AgentWeightsSettings,
-    Settings,
-)
-from aegis_swr.core.fault_codes import FaultClass
+from aegis_swr.config.settings import Settings
 from aegis_swr.core.schemas import AgentRole, AgentTurn, InvestigationState
 from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
@@ -56,6 +52,7 @@ class _SecondArbiter(BaseAgent):
     display_name: ClassVar[str] = "Second Arbiter"
     category: ClassVar[str] = "base"
     role: ClassVar[AgentRole] = AgentRole.ARBITER
+    default_weight: ClassVar[float] = 0.10
 
     @property
     def system_prompt(self) -> str:
@@ -157,7 +154,8 @@ def test_resolve_panel_two_arbiters_raises(ai_backend, settings, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# resolve_consensus_weights (three-tier precedence)
+# resolve_consensus_weights (two-tier precedence: explicit override, then the
+# agent's own declared default_weight)
 # ---------------------------------------------------------------------------
 
 
@@ -167,62 +165,57 @@ def _panel(ai_backend, settings, specs: list[AgentSpec]) -> list[BaseAgent]:
 
 
 def test_weights_explicit_override_wins(ai_backend, settings):
-    """[Unit] weights: an explicit AgentSpec.weight beats the curated value."""
+    """[Unit] weights: an explicit AgentSpec.weight beats the agent's default."""
     specs = [
         AgentSpec(agent_key="os_kernel", weight=0.9),
         AgentSpec(agent_key="skeptic"),
     ]
     panel = _panel(ai_backend, settings, specs)
-    weights = resolve_consensus_weights(panel, specs, FaultClass.MEMORY_ACCESS_VIOLATION, AgentWeightsSettings())
-    # Curated os_kernel weight for this fault class is 0.40; explicit wins.
+    weights = resolve_consensus_weights(panel, specs)
+    # os_kernel's declared default_weight is 0.35; the explicit override wins.
     assert weights["os_kernel"] == 0.9
+    # skeptic has no override, so it falls back to its declared default_weight.
+    assert weights["skeptic"] == pytest.approx(SkepticAgent.default_weight)
 
 
-def test_weights_curated_wins_over_priority(ai_backend, settings):
-    """[Unit] weights: the curated fault-class value beats the priority default."""
+def test_weights_use_agent_declared_default(ai_backend, settings):
+    """[Unit] weights: with no override each agent contributes its own default_weight."""
     specs = [
         AgentSpec(agent_key="os_kernel"),
+        AgentSpec(agent_key="code_analyst"),
+        AgentSpec(agent_key="log_historian"),
         AgentSpec(agent_key="skeptic"),
     ]
     panel = _panel(ai_backend, settings, specs)
-    weights = resolve_consensus_weights(panel, specs, FaultClass.MEMORY_ACCESS_VIOLATION, AgentWeightsSettings())
-    assert weights["os_kernel"] == pytest.approx(0.40)
-    assert weights["skeptic"] == pytest.approx(0.10)
-
-
-def test_weights_priority_fallback_normalizes(ai_backend, settings):
-    """[Unit] weights: tier-3 agents normalize by priority/sum-of-tier-3."""
-    # An empty curated entry for UNKNOWN forces every agent through to tier 3.
-    weights_settings = AgentWeightsSettings(unknown=AgentWeightEntry(weights={}))
-    specs = [
-        AgentSpec(agent_key="os_kernel", priority=4),
-        AgentSpec(agent_key="code_analyst", priority=2),
-        AgentSpec(agent_key="skeptic", priority=3),
-    ]
-    panel = _panel(ai_backend, settings, specs)
-    weights = resolve_consensus_weights(panel, specs, FaultClass.UNKNOWN, weights_settings)
-    # Tier-3 priority sum = 4 + 2 + 3 = 9.
-    assert weights["os_kernel"] == pytest.approx(4 / 9)
-    assert weights["code_analyst"] == pytest.approx(2 / 9)
-    assert weights["skeptic"] == pytest.approx(3 / 9)
+    weights = resolve_consensus_weights(panel, specs)
+    assert weights == {
+        "os_kernel": pytest.approx(0.35),
+        "code_analyst": pytest.approx(0.35),
+        "log_historian": pytest.approx(0.17),
+        "skeptic": pytest.approx(0.13),
+    }
+    # The four built-in defaults are authored to sum to exactly 1.0.
     assert sum(weights.values()) == pytest.approx(1.0)
 
 
-def test_weights_mixed_tiers_do_not_cross_contaminate(ai_backend, settings):
-    """[Unit] weights: tier-3 normalization ignores tier-1/2 resolved weights."""
-    # os_kernel: explicit (tier 1). code_analyst: curated (tier 2).
-    # log_historian + skeptic: priority default (tier 3), curated emptied.
-    weights_settings = AgentWeightsSettings(unknown=AgentWeightEntry(weights={"code_analyst": 0.5}))
+def test_weights_priority_does_not_affect_weight(ai_backend, settings):
+    """[Unit] weights: priority is ordering-only and no longer changes the weight."""
+    high = [AgentSpec(agent_key="os_kernel", priority=5), AgentSpec(agent_key="skeptic")]
+    low = [AgentSpec(agent_key="os_kernel", priority=1), AgentSpec(agent_key="skeptic")]
+    w_high = resolve_consensus_weights(_panel(ai_backend, settings, high), high)
+    w_low = resolve_consensus_weights(_panel(ai_backend, settings, low), low)
+    assert w_high["os_kernel"] == w_low["os_kernel"] == pytest.approx(OSKernelAgent.default_weight)
+
+
+def test_weights_mixed_override_and_default(ai_backend, settings):
+    """[Unit] weights: an override on one agent leaves the others on their defaults."""
     specs = [
         AgentSpec(agent_key="os_kernel", weight=0.7),
         AgentSpec(agent_key="code_analyst"),
-        AgentSpec(agent_key="log_historian", priority=1),
-        AgentSpec(agent_key="skeptic", priority=3),
+        AgentSpec(agent_key="skeptic"),
     ]
     panel = _panel(ai_backend, settings, specs)
-    weights = resolve_consensus_weights(panel, specs, FaultClass.UNKNOWN, weights_settings)
+    weights = resolve_consensus_weights(panel, specs)
     assert weights["os_kernel"] == 0.7
-    assert weights["code_analyst"] == pytest.approx(0.5)
-    # Tier-3 sum of priorities is 1 + 3 = 4 (os_kernel/code_analyst excluded).
-    assert weights["log_historian"] == pytest.approx(1 / 4)
-    assert weights["skeptic"] == pytest.approx(3 / 4)
+    assert weights["code_analyst"] == pytest.approx(CodeAnalystAgent.default_weight)
+    assert weights["skeptic"] == pytest.approx(SkepticAgent.default_weight)

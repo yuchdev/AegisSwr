@@ -133,7 +133,7 @@ A `@staticmethod` that accepts `brief: dict[str, object]` and returns
 ## Constraints
 
 - `Optional[T]` from `typing`; never `T | None`.
-- `mypy --strict` clean.
+- `replace_optional.py --check` clean.
 - `ruff` clean; line length 100.
 - No bare `except:`; catch specific exception types.
 - `_extract_leak_indicators` must never pass raw brief text to a shell, SQL,
@@ -151,4 +151,4 @@ A `@staticmethod` that accepts `brief: dict[str, object]` and returns
 - [ ] `_extract_leak_indicators` matches all listed signal patterns via regex
       only; never logs raw text; never raises.
 - [ ] `AgentTurn.agent` equals `"Resource Exhaustion Agent"`.
-- [ ] `mypy --strict` clean; `ruff` clean.
+- [ ] `replace_optional.py --check` clean; `ruff` clean.

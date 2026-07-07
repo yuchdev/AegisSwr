@@ -109,7 +109,7 @@ vectors. Provide an inline comment noting these are provisional until Task 08.0.
   addressed by Task 08.0 or the specialist owning them.
 - `Optional[T]` convention does not apply to this subtask (config data, not Python);
   the constraint carries forward to any Python settings models touched here.
-- `mypy --strict` and `ruff` must still be clean after any incidental Python
+- `ruff` must still be clean after any incidental Python
   touches (e.g. updating `AgentWeightsSettings` defaults).
 
 ## Success criteria

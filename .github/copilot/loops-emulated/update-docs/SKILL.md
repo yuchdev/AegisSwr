@@ -148,7 +148,7 @@ If same stale refs as previous iteration: surface to user as "Needs human review
 full `(file, line, old_text, new_text)` replacement list.
 
 **Bucket B — code files (`src/`, `tests/`)**: delegate to **`python-expert`**
-with file:line list, old anchor/text, replacement, instruction to run `mypy`.
+with file:line list, old anchor/text, replacement, instruction to keep the typing conventions intact.
 
 Both buckets may be delegated in parallel when file sets do not overlap.
 

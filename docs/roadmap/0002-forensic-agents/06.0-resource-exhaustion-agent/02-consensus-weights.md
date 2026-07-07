@@ -104,5 +104,5 @@ relies on this invariant; a un-normalized map will silently produce biased score
 - [ ] Each of the three touched fault classes sums to 1.0 (verified by
       `tests/unit/test_consensus_weights.py`).
 - [ ] No fault class outside the three is modified.
-- [ ] `mypy --strict` and `ruff` clean (no Python changes in this subtask,
+- [ ] `ruff` clean (no Python changes in this subtask,
       but any helper touched must remain clean).

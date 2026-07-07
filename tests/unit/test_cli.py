@@ -208,10 +208,10 @@ def test_repo_flag_enables_git_code_backend(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         return _report()
 
-    def _capture_code(settings):  # type: ignore[no-untyped-def]
+    def _capture_code(settings):
         captured["enabled"] = settings.enabled
         captured["provider"] = settings.provider
         captured["repo_path"] = settings.repo_path
@@ -263,7 +263,7 @@ def test_log_service_sets_metadata(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         captured["service"] = source.metadata.get("service")
         return _report()
 
@@ -386,7 +386,7 @@ def test_config_file_sets_defaults(tmp_path: Path):
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"backends": {"ai": {"provider": "openai"}}, "output": "json"}))
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         return _report()
 
     with (
@@ -418,7 +418,7 @@ def test_cli_reads_settings_from_config_asset(tmp_path: Path):
     """A config.json fixture is read and applied end-to-end through the CLI."""
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         captured["logs"] = list(source.log_paths)
         return _report()
 
@@ -466,7 +466,7 @@ def test_cli_flag_overrides_config_file(tmp_path: Path):
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"ai": "openai"}))
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         return _report()
 
     with (
@@ -502,7 +502,7 @@ def test_config_nested_ingest_service_reaches_metadata(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         captured["service"] = source.metadata.get("service")
         return _report()
 
@@ -547,7 +547,7 @@ def _run_capturing_assumption(args: list[str], tmp_path: Path) -> tuple[object, 
     """Invoke ``analyze`` with *args*, capturing ``source.user_assumption``."""
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         captured["assumption"] = source.user_assumption
         return _report()
 
@@ -733,7 +733,7 @@ def test_analyze_json_output(tmp_path: Path):
     # stderr); the stream must end with a completion event carrying the report.
     from aegis_swr.core.events import InvestigationCompleted
 
-    async def mock_stream_events(self, source):  # type: ignore[override]
+    async def mock_stream_events(self, source):
         yield InvestigationCompleted(report=report)
 
     with mock.patch(_MOCK_STREAM_EVENTS, mock_stream_events):
@@ -781,7 +781,7 @@ def test_analyze_hitl_exits_nonzero(tmp_path: Path):
     """
     report = _report(with_hitl=True)
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         return report
 
     with mock.patch(_MOCK_RUN, mock_run):
@@ -1089,7 +1089,7 @@ def test_evidence_and_process_severity_thread_independently(tmp_path: Path):
 def test_log_sink_is_wired_to_configure_logging(tmp_path: Path):
     """--log-sink reaches configure_logging, which owns the warn+fallback for stubs."""
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         return _report()
 
     with (
@@ -1120,7 +1120,7 @@ def test_log_sink_is_wired_to_configure_logging(tmp_path: Path):
 def test_evidence_persist_quiet_mode_warns(tmp_path: Path):
     """--evidence-persist with --output quiet has nothing to persist → warns."""
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         return _report()
 
     with (
@@ -1163,7 +1163,7 @@ def test_cli_ai_bedrock_sets_provider(tmp_path: Path):
         m.model_name = "au.anthropic.claude-sonnet-4-6"
         return m
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         return _report()
 
     with (
@@ -1282,7 +1282,7 @@ def test_agent_flag_builds_explicit_specs(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         captured["explicit_specs"] = self._explicit_specs
         return _report()
 
@@ -1333,7 +1333,7 @@ def test_no_agent_flag_leaves_auto_selection(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):  # type: ignore[override]
+    async def mock_run(self, source):
         captured["explicit_specs"] = self._explicit_specs
         return _report()
 

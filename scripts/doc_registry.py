@@ -40,7 +40,6 @@ EXCLUDED_DIRS = {
     ".idea",
     ".pytest_cache",
     ".ruff_cache",
-    ".mypy_cache",
     "dist",
     "build",
     "state",  # .claude/state/ holds cursor files, not documentation

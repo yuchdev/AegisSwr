@@ -53,7 +53,7 @@ def test_backend_abc_cannot_be_instantiated(cls: type):
         - Recent changes in code paths exercised by interfaces
     """
     with pytest.raises(TypeError):
-        cls()  # type: ignore[call-arg]
+        cls()
 
 
 def test_base_agent_cannot_be_instantiated():

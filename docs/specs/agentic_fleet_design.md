@@ -15,7 +15,7 @@ The design is grounded in the real repository, not a generic template:
 | Frameworks              | FastAPI, Typer (CLI `aegis`), Pydantic v2, **LangGraph**                                                                  |
 | Data layer              | SQLAlchemy + asyncpg (**Postgres**), **SQLite**, **Qdrant**, S3 (boto3)                                                   |
 | LLM SDKs                | `anthropic`, `openai`                                                                                                     |
-| Lint/type/test          | **ruff** (`E,F,I,UP,B,SIM`, len 100), **mypy strict**, **pytest** (+asyncio, +cov)                                        |
+| Lint/type/test          | **ruff** (`E,F,I,UP,B,SIM`, len 100), **full annotations**, **pytest** (+asyncio, +cov)                                        |
 | Formatter               | `ruff format` - **no Black/Prettier present**                                                                             |
 | CI                      | GitHub Actions: lint → typecheck → unit-test w/ coverage (`.github/workflows/ci.yml`)                                     |
 | Domain                  | Crash/incident forensics: debugger backends → multi-agent LLM debate → consensus → skeptic → `RCAReport`, HITL escalation |
@@ -34,8 +34,8 @@ The design is grounded in the real repository, not a generic template:
   `EventBus` (`core/events.py`).
 - **Modes** (`IncidentMode`): `crash_dump`, `log_forensics`, `live_process`,
   `telemetry_anomaly`.
-- **Consensus**: `core/consensus.py` blends the four product agents' hypotheses,
-  weighted per fault class (`agents.example.json`).
+- **Consensus**: `core/consensus.py` blends the product agents' hypotheses,
+  weighted by each agent's own declared `default_weight` class property.
 - **Key schemas** (`core/schemas.py`): `Hypothesis`, `SkepticVerdict`,
   `RCAReport`, `ConfidenceLevel`, `HITLRequest`, per-agent outputs.
 
@@ -45,7 +45,7 @@ The design is grounded in the real repository, not a generic template:
 
 The agent operating manually, loaded every session. It codifies: project purpose &
 security sensitivity; coding conventions (Python 3.12, `Optional[T]` never
-`T | None`, mypy strict, ruff, RAII, `SensitiveFilter`); the security rules
+`T | None`, full annotations, ruff, RAII, `SensitiveFilter`); the security rules
 (never log secrets, no hard-coded creds, all payloads sensitive); the testing
 mandate (unit per feature, integration per external, Stop-hook gate); commit
 discipline (Conventional Commits, atomic PRs, no direct pushes to `master`); the
@@ -163,7 +163,7 @@ in the file (see §11, secrets management).
 ## 7. Settings & permissions (`.claude/settings.json`)
 
 Beyond hooks, `settings.json` pre-allows safe, high-frequency commands (pytest,
-ruff, mypy, common git/gh read+commit verbs) to reduce prompt friction, and
+ruff, common git/gh read+commit verbs) to reduce prompt friction, and
 **denies reads** of `.env*` and `*.dmp` dumps
 
 ---

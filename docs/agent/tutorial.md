@@ -162,7 +162,7 @@ The coder will:
 1. Read the ADR
 2. Run the tests to capture a green baseline
 3. Implement the feature
-4. Run `pytest`, `mypy`, and `ruff` after
+4. Run `pytest` and `ruff` after
 5. Propose a conventional commit message (`feat(cli): add CSV export command`)
 
 **Step 3 - Add tests**

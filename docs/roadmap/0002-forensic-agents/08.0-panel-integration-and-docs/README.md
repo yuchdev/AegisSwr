@@ -72,4 +72,4 @@ skipped when HITL fires.
 code produced in this task must use `Optional[T]` from `typing`. Run
 `python scripts/replace_optional.py --check` before closing subtask 04.
 
-**mypy `--strict` and ruff.** All new test files must pass both checks.
+**`replace_optional.py --check` and ruff.** All new test files must pass both checks.

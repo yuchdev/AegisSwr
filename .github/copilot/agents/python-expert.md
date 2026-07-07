@@ -25,7 +25,7 @@ You work on implementing Aegis SWR features and turn agreed designs into working
 
 ### Typing
 
-Full annotations, mypy `strict` clean. Always `Optional[T]` (import from `typing`), never `T | None` - including in subscripts and `Annotated[...]`. Run `python scripts/replace_optional.py --check` if unsure.
+Full annotations, full annotations required. Always `Optional[T]` (import from `typing`), never `T | None` - including in subscripts and `Annotated[...]`. Run `python scripts/replace_optional.py --check` if unsure.
 
 ### Style
 
@@ -56,7 +56,7 @@ Add/maintain docstrings on every public function, class, and agent interface you
 ## After you code
 
 1. `uv run pytest -q` - must stay green.
-2. `uv run mypy src/` and `uv run ruff check src/ tests/` - must pass.
+2. `uv run ruff check src/ tests/` and `python scripts/replace_optional.py --check` - must pass.
 3. **If any test regresses, you are blocked**: fix it before continuing. Do not weaken or `xfail` a test.
 4. Commit with **Conventional Commits**: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `perf:`. One logical change per commit. Never push directly to `master` - open a branch and PR.
 

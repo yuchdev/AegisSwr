@@ -9,7 +9,7 @@ from _common import REPO_ROOT, allow, append_log, edited_path, read_event
 MANIFESTS = {"pyproject.toml", "uv.lock", "requirements.txt", "requirements-dev.txt"}
 
 
-def _try(cmd: list[str]) -> "tuple[bool, str]":
+def _try(cmd: list[str]) -> tuple[bool, str]:
     try:
         proc = subprocess.run(
             cmd, cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=180, check=False

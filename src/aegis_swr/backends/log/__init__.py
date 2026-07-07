@@ -4,12 +4,12 @@ The ``LogBackend`` is always optional: the Data Adapter only queries it in
 Stage 4 when a service name and incident timestamp are both available.
 """
 from __future__ import annotations
+
 from typing import Optional
 
+from aegis_swr.backends.base import LogBackend
 from aegis_swr.backends.log.file_adapter import FileLogAdapter
 from aegis_swr.backends.log.fluent_adapter import FluentAdapter
-
-from aegis_swr.backends.base import LogBackend
 from aegis_swr.config.settings import LogBackendSettings
 
 __all__ = [

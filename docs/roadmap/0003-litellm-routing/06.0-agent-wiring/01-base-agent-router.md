@@ -92,4 +92,4 @@ class BaseAgent(ABC):
 - [ ] `reason()` calls `self._router.complete(role=self.role, ...)`.
 - [ ] `AllProvidersExhausted` triggers `PipelineError` event then re-raise.
 - [ ] No direct provider SDK imports remain in this file.
-- [ ] `mypy --strict` passes on the updated file.
+- [ ] `replace_optional.py --check` passes on the updated file.

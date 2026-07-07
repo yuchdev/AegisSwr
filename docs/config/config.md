@@ -24,8 +24,8 @@ path to get started:
 cp config.example.json <config-dir>/config.json
 ```
 
-The agent weight matrix is **not** stored here - it lives in a sibling file,
-[`agents.json`](agents.md).
+Consensus weight is **not** stored here - it is an intrinsic property of each
+agent class (see [agents.md](agents.md)).
 
 ---
 
@@ -89,7 +89,7 @@ maps to a CLI flag - see [cli.md](cli.md#aegis-analyze).
 | `output`        | string         | `"rich"`       | `rich`, `json`, `json-full`, `quiet`     |
 
 > Unknown flat keys (typos) are loaded-but-ignored with a warning. The runtime
-> section names (`core`, `backends`, `sandbox`, `api`, `agent_weights`) are
+> section names (`core`, `backends`, `sandbox`, `api`, `panel`) are
 > recognized and ignored by the analysis loader without warning.
 
 ### Log-related analyze sections

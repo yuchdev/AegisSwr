@@ -52,7 +52,6 @@ from aegis_swr.core.events import (
     PanelResolved,
 )
 from aegis_swr.core.exceptions import RelationalStoreError, VectorStoreError
-from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.panel_strategy import PanelResolver
 from aegis_swr.core.schemas import (
     AgentRole,
@@ -317,12 +316,12 @@ class Orchestrator:
         """Resolve the panel for *brief* and compile a fresh graph for this run.
 
         Resolves panel specs (explicit config/CLI wins, else auto-selection),
-        instantiates the live panel, derives the consensus weight map for the
-        brief's fault class, orders the panel (investigators by descending
-        priority, arbiter last), and compiles a :class:`StateGraph` around it.
+        instantiates the live panel, derives the consensus weight map from each
+        agent's own declared weight (with per-incident overrides), orders the
+        panel (investigators by descending priority, arbiter last), and compiles
+        a :class:`StateGraph` around it.
 
-        :param brief: The incident brief driving auto-selection and the
-            fault-class weight lookup.
+        :param brief: The incident brief driving auto-selection.
         :type brief: IncidentBrief
         :return: A tuple of (ordered panel, compiled graph, recursion limit).
         :rtype: tuple[list[BaseAgent], Any, int]
@@ -332,8 +331,7 @@ class Orchestrator:
         panel = resolve_panel(specs, self._ai, self._settings)
         ordered = self._order_panel(panel)
 
-        fault_class = self._fault_class_from_brief(brief_dict)
-        weight_map = resolve_consensus_weights(panel, specs, fault_class, self._settings.agent_weights)
+        weight_map = resolve_consensus_weights(panel, specs)
 
         graph = self._build_graph(ordered, weight_map)
         # LangGraph counts every node visit toward its default 25-step recursion
@@ -839,21 +837,6 @@ class Orchestrator:
             error=None,
         )
 
-    @staticmethod
-    def _fault_class_from_brief(brief: dict[str, Any]) -> FaultClass:
-        """Extract the brief's fault class, defaulting to ``UNKNOWN``.
-
-        :param brief: The serialized incident brief.
-        :type brief: dict[str, Any]
-        :return: The parsed :class:`FaultClass`, or :attr:`FaultClass.UNKNOWN`
-            when the value is missing or unrecognized.
-        :rtype: FaultClass
-        """
-        fault_str = brief.get("fault_class") or "unknown"
-        try:
-            return FaultClass(fault_str)
-        except ValueError:
-            return FaultClass.UNKNOWN
 
     @staticmethod
     def _deserialize_source(state: InvestigationState) -> IncidentSource:

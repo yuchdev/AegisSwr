@@ -55,7 +55,7 @@ from aegis_swr.config.settings import DEFAULT_CONFIG_PATH as DEFAULT_CONFIG_PATH
 #: schema. ``config.json`` is unified - it carries both the flat analyze options
 #: *and* these nested sections - so they are expected here and ignored without a
 #: warning (unlike genuine typos in analyze keys).
-_RUNTIME_SECTION_KEYS: frozenset[str] = frozenset({"core", "backends", "sandbox", "api", "agent_weights", "panel"})
+_RUNTIME_SECTION_KEYS: frozenset[str] = frozenset({"core", "backends", "sandbox", "api", "panel"})
 
 #: Flat ``AnalyzeConfig`` field → dotted JSON path inside config.json. The
 #: dataclass keeps the flat field names (each 1:1 with a CLI option); config.json

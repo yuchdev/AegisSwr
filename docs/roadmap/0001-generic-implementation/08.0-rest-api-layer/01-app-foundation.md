@@ -87,7 +87,7 @@ payloads/secrets):
 - Backends are built **once per process** in the lifespan, not per request.
 - Error bodies are sanitised; no incident payload or secret in any response.
 - `streaming requires --workers 1` documented in the `server` help text.
-- Full annotations; `mypy --strict` clean.
+- Full annotations; `replace_optional.py --check` clean.
 
 ## Tests
 

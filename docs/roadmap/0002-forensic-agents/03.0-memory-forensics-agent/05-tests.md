@@ -114,7 +114,7 @@ Uses a mocked AI backend (no live LLM call) and the full orchestrator path.
   `model_validate` or direct construction - no raw dict bypass).
 - All tests use `pytest.mark.asyncio` for `async` test functions.
 - No live network calls, no real filesystem writes in unit tests.
-- `Optional[T]` from `typing`; `mypy --strict` clean; `ruff` clean.
+- `Optional[T]` from `typing`; `replace_optional.py --check` clean; `ruff` clean.
 - The Stop hook runs the unit suite; integration tests run separately under
   `tests/integration/`.
 
@@ -127,4 +127,4 @@ Uses a mocked AI backend (no live LLM call) and the full orchestrator path.
 - [ ] Mock pipeline test confirms panel ordering (Skeptic last).
 - [ ] Integration tests confirm agent appears in debate for authoritative fault
       classes and is absent for non-authoritative ones.
-- [ ] `mypy --strict` clean; `ruff` clean.
+- [ ] `replace_optional.py --check` clean; `ruff` clean.

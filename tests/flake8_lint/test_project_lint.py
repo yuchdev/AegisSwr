@@ -12,11 +12,12 @@ same files and therefore report exactly the same violations.
 
 Scope is further narrowed by the ``[tool.flake8_lint_tests]`` section of
 ``pyproject.toml`` (see ``tests/flake8_lint/config.py``): ``include``/
-``exclude`` pick which directories are scanned (default: ``src`` and
-``tests``), ``select``/``ignore`` pick which of the custom X-rules gate
-this test, and ``allow_noqa`` (default ``True``) controls whether a ``#
-noqa`` comment can suppress a diagnostic here at all - so the two suites
-(this one and ``test_plugin_direct.py``) always enforce the same policy.
+``exclude`` pick which directories - or individual files - are scanned
+(default: ``src`` and ``tests``), ``select``/``ignore`` pick which of the
+custom X-rules gate this test, and ``allow_noqa`` (default ``True``)
+controls whether a ``# noqa`` comment can suppress a diagnostic here at all
+- so the two suites (this one and ``test_plugin_direct.py``) always enforce
+the same policy.
 """
 
 from __future__ import annotations
@@ -60,7 +61,6 @@ _DEFAULT_EXCLUDED_DIR_NAMES = frozenset(
         ".nox",
         ".cache",
         ".pytest_cache",
-        ".mypy_cache",
         ".hypothesis",
         ".htmlcov",
         "cover",
@@ -92,6 +92,19 @@ def _expand(entry: Union[str, Path], recursive: bool) -> list[Path]:
     return dirs
 
 
+def _excluded_dirs(excluded: list[Union[str, Path]], exclude_recursive: bool) -> set[Path]:
+    """Resolve directory entries of *excluded* to the full set of dirs they remove."""
+    removed: set[Path] = set()
+    for entry in excluded:
+        removed.update(_expand(entry, exclude_recursive))
+    return removed
+
+
+def _file_entries(entries: list[Union[str, Path]]) -> set[Path]:
+    """Resolve the entries of *entries* that name an individual file (not a directory)."""
+    return {_resolve(entry) for entry in entries if _resolve(entry).is_file()}
+
+
 def covered_dirs(
     included: list[Union[str, Path]],
     excluded: list[Union[str, Path]],
@@ -105,7 +118,8 @@ def covered_dirs(
     (recursively when *exclude_recursive*). Conventionally git-ignored
     directories (see :data:`_DEFAULT_EXCLUDED_DIR_NAMES`) are always dropped, so
     a broad include like ``src`` or ``tests`` never pulls in build artefacts,
-    virtualenvs, or caches.
+    virtualenvs, or caches. Entries that name an individual file rather than a
+    directory contribute nothing here - see :func:`covered_files`.
 
     :param included: directories (``str`` or :class:`~pathlib.Path`, relative to
         the project root or absolute) whose Python files should be linted.
@@ -120,9 +134,7 @@ def covered_dirs(
     for entry in included:
         selected.update(_expand(entry, include_recursive))
 
-    removed: set[Path] = set()
-    for entry in excluded:
-        removed.update(_expand(entry, exclude_recursive))
+    removed = _excluded_dirs(excluded, exclude_recursive)
 
     result = [
         directory
@@ -132,16 +144,56 @@ def covered_dirs(
     return sorted(str(directory) for directory in result)
 
 
-def _iter_python_files() -> Iterable[Path]:
-    """Yield top-level ``*.py`` files in every covered directory (non-recursive).
+def covered_files(
+    included: list[Union[str, Path]],
+    excluded: list[Union[str, Path]],
+    exclude_recursive: bool = True,
+) -> list[str]:
+    """Individual files named directly in *included*, minus the excluded ones.
 
-    The covered directories are the ``include``/``exclude`` lists from
-    ``[tool.flake8_lint_tests]``, defaulting to ``src`` and ``tests`` when
-    ``include`` is empty.
+    Mirrors :func:`covered_dirs`' whitelist-then-blacklist order: a file named
+    in *included* is dropped when it is itself named in *excluded*, or when it
+    falls under a directory named in *excluded* - the blacklist always wins.
+
+    :param included: entries that may name an individual file to lint.
+    :param excluded: entries (files or directories) that veto an included file.
+    :param exclude_recursive: when True, an excluded directory vetoes files in
+        its subdirectories too, not just its immediate children.
+    :return: a sorted list of file paths (as strings) to lint.
+    """
+    removed_dirs = _excluded_dirs(excluded, exclude_recursive)
+    excluded_files = _file_entries(excluded)
+
+    result = [
+        path for path in _file_entries(included) if path not in excluded_files and path.parent not in removed_dirs
+    ]
+    return sorted(str(path) for path in result)
+
+
+def _iter_python_files() -> Iterable[Path]:
+    """Yield the ``*.py`` files selected by ``[tool.flake8_lint_tests]``.
+
+    Covered directories (see :func:`covered_dirs`) contribute their top-level
+    files (non-recursive glob per directory); individual files named directly
+    in ``include``/``exclude`` are layered on top via :func:`covered_files`,
+    with the exclude blacklist always winning. Defaults to ``src`` and
+    ``tests`` when ``include`` is empty.
     """
     include, exclude = configured_directories(["src", "tests"])
+    excluded_files = _file_entries(exclude)
+
+    seen: set[Path] = set()
     for dir_str in covered_dirs(include, exclude):
-        yield from Path(dir_str).glob("*.py")
+        for path in Path(dir_str).glob("*.py"):
+            if path in excluded_files:
+                continue
+            seen.add(path)
+            yield path
+
+    for file_str in covered_files(include, exclude):
+        path = Path(file_str)
+        if path not in seen:
+            yield path
 
 
 def _run_plugin(path: Path) -> list[tuple[int, int, str]]:

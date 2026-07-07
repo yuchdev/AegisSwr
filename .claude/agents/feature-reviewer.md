@@ -22,7 +22,7 @@ Establish what changed first: `git diff --stat` and `git diff` (or fetch the PR 
    - Any secret or raw payload reaching a log, exception message, or store unredacted (`SensitiveFilter` must cover it).
    - Hard-coded credentials or endpoints.
 3. **Domain accuracy**: does the change respect the incident lifecycle, the Factory-Strategy backend contract, consensus weighting, and the `RCAReport`/ `SkepticVerdict` schemas? Could it cause a missed escalation or a malformed verdict?
-4. **Project conventions**: strictly follow `@docs/dev/python_coding_standard.md`; mypy strict; ruff clean; docstrings on changed public APIs; conventional commit message.
+4. **Project conventions**: strictly follow `@docs/dev/python_coding_standard.md`; full annotations; ruff clean; docstrings on changed public APIs; conventional commit message.
 5. **Tests**: does the change ship with tests? Do they actually exercise the new behavior or just assert it doesn't crash? Flag gaps for `testing-expert`.
 
 ## Output format (always exactly this shape)

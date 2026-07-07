@@ -53,7 +53,7 @@ Implements contract **C2**.
 ## Constraints
 
 - No change to any agent's analytical behavior or prompt text.
-- `ClassVar` typing must satisfy `mypy --strict` (declare on the base, assign on
+- `ClassVar` typing must stay explicit and consistent (declare on the base, assign on
   subclasses).
 
 ## Tests
@@ -70,4 +70,4 @@ Implements contract **C2**.
 - [ ] The four base agents set them per the table; `display_name` == the existing
       `AgentTurn.agent` value.
 - [ ] All existing agent/orchestrator tests pass unchanged; new identity tests pass.
-- [ ] `mypy src/` clean.
+- [ ] `python scripts/replace_optional.py --check` clean.

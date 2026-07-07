@@ -153,7 +153,7 @@ In `tests/unit/test_agent_registry.py`, add:
 
 - All tests use `MockAIBackend`; no real AI calls.
 - No real filesystem, DB, or network access in unit tests.
-- `mypy --strict` clean; `ruff` clean.
+- `replace_optional.py --check` clean; `ruff` clean.
 - `Optional[T]` in any new test helpers; never `T | None`.
 - Tests must pass under `poetry run pytest tests/unit/ -q`.
 
@@ -165,4 +165,4 @@ In `tests/unit/test_agent_registry.py`, add:
 - [ ] Three consensus weight normalization tests pass.
 - [ ] Three registry/panel tests pass.
 - [ ] Integration smoke test passes.
-- [ ] `mypy --strict` clean; `ruff` clean across all new test files.
+- [ ] `replace_optional.py --check` clean; `ruff` clean across all new test files.

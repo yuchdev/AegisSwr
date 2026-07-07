@@ -158,4 +158,4 @@ async def test_managed_mode_port_never_opens_raises_and_terminates(
 - [ ] `test_external_mode_never_spawns_subprocess` asserts
       `create_subprocess_exec` was never called.
 - [ ] No `grpc` / `_pb2` import in this file; no real process spawned.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

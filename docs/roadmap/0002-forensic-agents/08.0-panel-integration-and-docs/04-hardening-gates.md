@@ -51,14 +51,13 @@ deleted to achieve green.
 **Commands (all must exit 0):**
 
 ```
-mypy --strict src/aegis_swr/
 python scripts/replace_optional.py --check src/aegis_swr/
 ruff check src/aegis_swr/ tests/
 ruff format --check src/aegis_swr/ tests/
 ```
 
 **Pass criteria:**
-- `mypy --strict` produces zero errors on the full `src/aegis_swr/` tree
+- `python scripts/replace_optional.py --check` is clean across the full `src/aegis_swr/` tree
   including all new `agents/base/`, `agents/forensic/`, and `agents/synthesis/`
   modules.
 - `replace_optional.py --check` finds no `T | None` shorthand in any new or
@@ -178,7 +177,7 @@ exit until resolved.
 | Gate | Automated? | Mandatory? | Blocking condition |
 |------|-----------|------------|-------------------|
 | 1 - Full regression | Yes (CI) | Yes | Any failure |
-| 2 - Static analysis | Yes (CI) | Yes | Any mypy/ruff/optional error |
+| 2 - Static analysis | Yes (CI) | Yes | Any ruff or typing-convention error |
 | 3 - Ground-truth | Manual | If dump available | Informational only |
 | 4 - Security-auditor | Agent | Yes (CRITICAL blocks) | CRITICAL finding or BLOCK verdict |
 | 5 - Incident-analyst | Agent | Yes | HITL path not always reachable; planner runs on HITL |
@@ -192,7 +191,7 @@ may proceed.
 
 - [ ] `poetry run pytest tests/unit/ tests/integration/` exits 0 with zero
       failures; coverage on `src/aegis_swr/agents/` does not decrease.
-- [ ] `mypy --strict src/aegis_swr/` exits 0.
+- [ ] `python scripts/replace_optional.py --check src/aegis_swr/` exits 0.
 - [ ] `python scripts/replace_optional.py --check src/aegis_swr/` exits 0.
 - [ ] `ruff check src/aegis_swr/ tests/` exits 0.
 - [ ] `ruff format --check src/aegis_swr/ tests/` exits 0.

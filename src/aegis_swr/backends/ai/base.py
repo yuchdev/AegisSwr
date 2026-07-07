@@ -15,8 +15,8 @@ from loguru import logger
 from pydantic import BaseModel, ValidationError
 
 from aegis_swr.backends.base import AIAPIBackend
-from aegis_swr.core.exceptions import AIOutputValidationError
 from aegis_swr.config.settings import ProviderSettingsBase
+from aegis_swr.core.exceptions import AIOutputValidationError
 
 #: The concrete provider sub-config a backend is parameterised over, so that
 #: ``self._settings`` is precisely typed in each provider implementation.

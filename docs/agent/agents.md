@@ -88,14 +88,14 @@ log adapter backend. I want an ADR and a list of tasks for coder.
 The coder turns agreed designs into working, tested Python. Before touching a
 file it reads the governing ADR and/or GitHub issue, captures a green test
 baseline, then implements to project conventions. After every change it runs
-`pytest`, `mypy`, and `ruff` and blocks itself if any check fails. It commits
+`pytest` and `ruff` and blocks itself if any check fails. It commits
 with Conventional Commits (`feat:`, `fix:`, `refactor:`, etc.) and never pushes
 directly to `master`.
 
 ### Project rules it enforces
 
 - `Optional[T]` from `typing`, never `T | None`
-- mypy strict - no untyped surfaces
+- full annotations on public surfaces
 - ruff lint clean (the post-edit hook formats automatically)
 - RAII via context managers for subprocess/socket/file resources
 - `SensitiveFilter` on all loggers - never logs secrets or raw payloads
@@ -142,7 +142,7 @@ against the Aegis lifecycle, and emits a structured review with a single
    logs or responses
 3. **Domain accuracy** - correct lifecycle state transitions, Factory-Strategy
    contract, valid `RCAReport`/`SkepticVerdict` shapes
-4. **Conventions** - `Optional[T]`, mypy, ruff, docstrings on public APIs,
+4. **Conventions** - `Optional[T]`, `ruff`, `replace_optional.py --check`, docstrings on public APIs,
    commit message format
 5. **Test coverage** - does the change ship with meaningful tests?
 

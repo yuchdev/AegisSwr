@@ -1,8 +1,9 @@
 """Shared TOML config loader for the ``[tool.flake8_lint_tests]`` pytest section.
 
 Five keys, analogous to Ruff's project config: ``include``/``exclude`` are
-directories that scope *which paths* get linted, and ``select``/``ignore``
-are rule codes that scope *which* of the custom X-rules are enforced. Within
+directories or individual files that scope *which paths* get linted, and
+``select``/``ignore`` are rule codes that scope *which* of the custom X-rules
+are enforced. Within
 each pair the whitelist (``include``/``select``) is applied first and the
 blacklist (``exclude``/``ignore``) is subtracted last, so it always wins. An
 empty whitelist means "everything". ``allow_noqa`` (bool, default ``True``)
@@ -77,13 +78,13 @@ def allow_noqa() -> bool:
 
 
 def configured_directories(default_include: list[str]) -> tuple[list[str], list[str]]:
-    """Resolve the (include, exclude) directory lists, honouring the config.
+    """Resolve the (include, exclude) path lists, honouring the config.
 
     :param default_include: directories to scan when the config's
         ``include`` list is empty/absent.
-    :return: a ``(include, exclude)`` pair of directory paths (relative to
-        the project root or absolute), ready for
-        ``test_project_lint.covered_dirs``.
+    :return: a ``(include, exclude)`` pair of paths (relative to the project
+        root or absolute), each entry either a directory or an individual
+        file, ready for ``test_project_lint.covered_dirs``/``covered_files``.
     """
     config = load_config()
     include = list(config.get("include") or []) or list(default_include)

@@ -55,15 +55,14 @@ openclaude --version || npm install -g @gitlawb/openclaude@latest
 ```
 
 4. Configure your telemetry and backend providers. Runtime settings live in
-   `<config-dir>/config.json`; the per-fault-class agent weight matrix
-   lives alongside it in `<config-dir>/agents.json`. Seed both from the
-   templates in the repo root:
+   `<config-dir>/config.json`; seed it from the template in the repo root.
+   Consensus weight is a property of each agent class, not a config file - see
+   [docs/config/agents.md](docs/config/agents.md):
 
 > `<config-dir>` = `~/.aegis-swr/`
 
 ```bash
 cp config.example.json <config-dir>/config.json
-cp agents.example.json <config-dir>/agents.json
 ```
 ```json
 {
@@ -99,6 +98,42 @@ resolved settings with secrets redacted.
 ```bash
 uv run python -m aegis.core.server
 ```
+
+6. Launch `openclaude` in gRPC mode. This starts the headless sidecar that
+   backs Code Intelligence (see
+   [Milestone 0004 — OpenClaude Integration](docs/roadmap/0004-code-intelligence/plan.md)).
+   Aegis SWR never launches this process for you in external mode
+   (`OPENCLAUDE_AUTO_START=false`, the default) - start it yourself and point
+   Aegis SWR at it:
+```bash
+openclaude --grpc --port 50051 \
+  --allowed-tools Read,Grep,Glob,Bash \
+  --bash-allowlist gtags,global,semgrep,rg,find,cat
+```
+   Then export the endpoint so Aegis SWR can find it:
+```bash
+export OPENCLAUDE_GRPC_URL=localhost:50051
+```
+   Verify the sidecar is actually up before relying on it. A plain TCP check
+   works with no extra tooling:
+```bash
+bash -c '</dev/tcp/localhost/50051' && echo "openclaude gRPC port is open"
+```
+   For a real protocol-level check (recommended once, to catch a port that's
+   open but not speaking gRPC), use
+   [`grpcurl`](https://github.com/fullstorydev/grpcurl) against the committed
+   proto contract:
+```bash
+grpcurl -plaintext \
+  -proto aegis/openclaude/grpc/proto/openclaude.proto \
+  -d '{"prompt": "ping", "run_id": "smoke-test"}' \
+  localhost:50051 aegis.openclaude.v1.AgentService/Query
+```
+   A healthy sidecar streams back frames terminated by a `DONE` message. If
+   the connection is refused, re-check the `--port` you launched with against
+   `OPENCLAUDE_GRPC_URL`; if `grpcurl` reports a permission/allowlist error,
+   your launch flags don't match `OPENCLAUDE_ALLOWED_TOOLS` /
+   `OPENCLAUDE_BASH_ALLOWLIST` (see [C7](docs/roadmap/0004-code-intelligence/plan.md#c7--permission-and-tool-allowlist-enforcement)).
 
 ## 💻 Examples
 

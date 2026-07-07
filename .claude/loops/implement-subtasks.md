@@ -140,7 +140,7 @@ pasting a spec bills it twice (once in your context, once in theirs):
 - The subtask spec **path** (`{task_folder}/{NN}-{subtask-slug}.md`) - the agent reads it
   itself. Add a one-line scope note, not the spec text.
 - The cross-cutting rules in **[.claude/CLAUDE.md](/.claude/CLAUDE.md)** §2 (conventions),
-  §3 (security), §4 (testing) - `Optional[T]` not `T | None`, mypy strict, ruff, RAII,
+  §3 (security), §4 (testing) - `Optional[T]` not `T | None`, full annotations, ruff, RAII,
   `SensitiveFilter`, no bare `except:`, unit + mocked-integration tests. If the milestone's
   `plan.md` carries its own cross-cutting guidelines section, name it for the agent to read.
 - The specific **anchor** in **[/docs/specs/implementation_spec.md](/docs/specs/implementation_spec.md)**
@@ -170,8 +170,7 @@ reverse. (Routine, unambiguous implementation does **not** pause - only genuine 
 
 Run **only this subtask's** verification, not the whole suite: scope `pytest` to the
 subtask's own test file(s) and use `-q` (capture the summary line, not per-test `-v` output),
-plus `mypy src/aegis_swr/<subtask-module>/ --strict` and
-`python scripts/replace_optional.py --check`. Do **not** pipe full pytest output into context -
+plus `python scripts/replace_optional.py --check`. Do **not** pipe full pytest output into context -
 a green run is one summary line; on failure, tail only the failing assertions. The full suite
 runs once at task completion (Step 7), and the Stop hook gates the session end regardless.
 
@@ -270,7 +269,7 @@ Key invariant: **path traversal must be blocked at the temp-dir boundary** befor
 Docker command is constructed - the auditor must confirm this in the threat model before
 coding starts. The sandbox Dockerfiles (`sandbox/Dockerfile.cpp`, `sandbox/Dockerfile.python`)
 are implementation artifacts, not product code - `python-expert` writes them but they do not
-need mypy/ruff passes.
+need ruff and typing-convention passes.
 
 ### Task 10 - Testing & Hardening
 

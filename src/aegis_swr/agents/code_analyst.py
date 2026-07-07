@@ -33,6 +33,7 @@ class CodeAnalystAgent(BaseAgent):
     category: ClassVar[AgentCategory] = "base"
     role: ClassVar[AgentRole] = AgentRole.INVESTIGATOR
     contributes_fix: ClassVar[bool] = True
+    default_weight: ClassVar[float] = 0.35
 
     @property
     def system_prompt(self) -> str:

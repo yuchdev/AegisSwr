@@ -34,7 +34,7 @@ their full spec so the milestone can be re-derived or re-reviewed end to end.
 
 - **Factory-Strategy** for the backend family; provider branching only inside
   `create_ai_backend`.
-- **Typing**: full annotations, `mypy --strict` clean, always `Optional[T]`
+- **Typing**: full annotations, `replace_optional.py --check` clean, always `Optional[T]`
   (never `T | None`).
 - **Error handling**: every external call gets a timeout and a defined failure
   path; no bare `except:`; no raw `botocore` exception escapes.
@@ -76,7 +76,7 @@ their full spec so the milestone can be re-derived or re-reviewed end to end.
 ```
 
 **Definition of done for the milestone:** all of 01-10 satisfied and green under
-`poetry run pytest tests/unit/ tests/integration/ -q`; `mypy --strict` clean;
+`poetry run pytest tests/unit/ tests/integration/ -q`; `replace_optional.py --check` clean;
 `ruff` clean; status tracker row `3.2 AWS Bedrock` flipped to ✅ Complete.
 Subtask 11 is an explicitly deferred enhancement and is **not** required for the
 milestone.

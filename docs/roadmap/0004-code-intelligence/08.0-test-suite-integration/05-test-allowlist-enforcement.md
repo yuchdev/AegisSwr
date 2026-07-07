@@ -107,7 +107,7 @@ async def test_read_only_task_succeeds(
   main (task 09.0 CI wiring).
 - No raw stub content or streamed response text is logged (C9).
 - `from __future__ import annotations`; `Optional[T]`, never `T | None`;
-  `mypy --strict` and `ruff` clean.
+  `ruff` clean.
 
 ## Success criteria
 
@@ -119,4 +119,4 @@ async def test_read_only_task_succeeds(
 - [ ] The deny path leaves budget accounting intact (non-retriable failure, no crash).
 - [ ] Tests report **skipped** (not failed) when the binary or signal is absent.
 - [ ] No OpenClaude process survives the run.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

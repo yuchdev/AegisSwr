@@ -11,15 +11,15 @@ from __future__ import annotations
 
 import hashlib
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from loguru import logger
 
 from aegis_swr.backends.base import CodeBackend
 from aegis_swr.backends.code.paths import safe_repo_path
-from aegis_swr.core.schemas import BlameRecord, CommitRecord
 from aegis_swr.config.settings import CodeBackendSettings
+from aegis_swr.core.schemas import BlameRecord, CommitRecord
 
 # Directories never worth walking for crash attribution.
 _PRUNE_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv"}
@@ -94,7 +94,7 @@ class FilesystemCodeAdapter(CodeBackend):
         path = safe_repo_path(repo_path, file_path)
         try:
             lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-            mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+            mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
         except (FileNotFoundError, IsADirectoryError):
             return []
         start, end = line_range

@@ -101,4 +101,4 @@ pdb_search_dirs: list[str] = []        # NEW
 - [ ] `provider` validator accepts `"pdb"`.
 - [ ] `config.example.json` `backends.code` block includes the three new fields.
 - [ ] All four unit tests above pass.
-- [ ] `mypy --strict` clean.
+- [ ] `replace_optional.py --check` clean.

@@ -17,7 +17,7 @@ on top (enforced by the `post_edit_format` hook and CI gates):
 
 - **`Optional[T]` always** - never `T | None`, including inside subscripts and
   `Annotated[...]`. Enforced by `scripts/replace_optional.py --check`.
-- **mypy `strict`** must pass. Unannotated public symbols are a CI failure.
+- **Public APIs must be fully annotated.** Unannotated public symbols are a CI failure.
 - **ruff** (`select = E,F,I,UP,B,SIM`, line length 100) is the linter and
   formatter (`ruff format`). No Black, no Prettier.
 - **`SensitiveFilter`** must be applied to every logger. Never log secrets,

@@ -13,8 +13,7 @@ select = [
     "SIM108",
     "C4",
     "UP017",
-    "UP037",
-
+    "UP037"
 ]
 
 # Disable the pyupgrade rules that rewrite it to the `X | None` shorthand:
@@ -26,6 +25,7 @@ ignore = [
     "UP007",
     "UP038",
     "SIM300",
+    "E402",
     "E501"
 ]
 

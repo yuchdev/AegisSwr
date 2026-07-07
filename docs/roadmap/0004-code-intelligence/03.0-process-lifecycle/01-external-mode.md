@@ -141,7 +141,7 @@ class OpenClaudeProcess:
   `OpenClaudeDisconnected` exactly once on exit — in this mode too (C6).
 - No raw endpoint credentials or probe payload text reaches any log sink;
   loguru sinks carry `SensitiveFilter` (C9).
-- `mypy --strict`, `ruff`, and `replace_optional.py --check` stay clean.
+- `ruff` and `replace_optional.py --check` stay clean.
 
 ## Success criteria
 
@@ -155,4 +155,4 @@ class OpenClaudeProcess:
       exception-in-body case, and does not suppress the exception.
 - [ ] An injected mock `OpenClaudeGrpcClient` is used verbatim (no real client
       constructed) — the unit-test seam holds.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

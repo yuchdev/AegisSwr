@@ -99,7 +99,7 @@ class OpenClaudeProcess:
   dangling task, no leaked `CancelledError`.
 - No bare `except:`; logging failures never crash the lifecycle manager.
 - `Optional[T]` from `typing`; `from __future__ import annotations` (C9).
-- `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- `ruff`, `replace_optional.py --check` clean.
 
 ## Success criteria
 
@@ -115,4 +115,4 @@ class OpenClaudeProcess:
       safe no-op).
 - [ ] A logging/decode error inside the loop does not propagate out of the
       context manager.
-- [ ] `mypy --strict`, `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff`, `replace_optional.py --check` clean.

@@ -27,7 +27,7 @@ Read the subtask doc and extract every verifiable requirement into a checklist:
 | **Sensitive fields** | Any field listed under "Sensitive field coverage" / `_SECRET_KEYS` update |
 | **Tests** | Every explicitly named test function (e.g. `test_fluent_config_defaults`) |
 | **Success criteria** | Each bullet in the "Success criteria" checklist |
-| **Constraints** | Key constraints: mypy strict, no bare `except:`, Optional[T] style, etc. |
+| **Constraints** | Key constraints: full annotations, no bare `except:`, Optional[T] style, etc. |
 
 If the spec uses a section name not listed above, map it to the nearest category or add it
 as a free-form row.

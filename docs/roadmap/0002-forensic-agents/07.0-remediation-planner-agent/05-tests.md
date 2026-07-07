@@ -112,8 +112,8 @@ All integration tests use mocked AI and storage backends (no live LLM or DB).
   pre-built `RemediationPlan` fixture.
 - Test fixtures for `RemediationPlan` and `RCAReport` must use `Optional[T]`
   types consistently (no `T | None` in test helper code).
-- `mypy --strict` clean on all new test files (test files are included in
-  `mypy` scope per project convention).
+- `replace_optional.py --check` clean on all new test files (test files are included in
+  the project typing conventions).
 - `ruff` clean; no unused imports.
 
 ## Success criteria
@@ -129,4 +129,4 @@ All integration tests use mocked AI and storage backends (no live LLM or DB).
       `remediation_plan is not None` and `all(step.rollback for step in plan.steps)`.
 - [ ] `test_hitl_investigation_yields_no_remediation_plan` confirms
       `remediation_plan is None`.
-- [ ] `mypy --strict` and `ruff` clean across all new test files.
+- [ ] `ruff` clean across all new test files.

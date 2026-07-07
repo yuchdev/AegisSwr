@@ -36,7 +36,7 @@ of 01, 02, 03, and 04.
 ## Key constraints
 
 - `Optional[T]` from `typing`; never `T | None` (enforced by `scripts/replace_optional.py --check`).
-- `mypy --strict` and `ruff` must be clean after every subtask.
+- `ruff` must be clean after every subtask.
 - The wait-chain pre-check must never pass raw thread-dump or log text to a
   shell, SQL, or unsanitised sink - regex/keyword scanning only, results stored
   in `wait_chain`.

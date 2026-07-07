@@ -15,9 +15,9 @@ violation`, `deadlock`, `resource-exhaustion`, `log-forensics-anomaly`).
 
 ## Steps
 
-1. Cross-reference the fault class against `agents.example.json`, `core/
-   fault_codes.py`, and `IncidentMode` so the runbook matches real product
-   classifications.
+1. Cross-reference the fault class against the agents' declared consensus
+   weights, `core/fault_codes.py`, and `IncidentMode` so the runbook matches
+   real product classifications.
 2. Write `docs/runbooks/<incident-type>.md` using the template below.
 3. Add an index line to `docs/README.md` and `docs/runbooks/` index if present.
 

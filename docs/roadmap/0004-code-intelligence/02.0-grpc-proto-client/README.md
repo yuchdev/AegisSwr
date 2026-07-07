@@ -36,11 +36,10 @@ tests need no live process. `close()` shuts the channel down.
 
 - `import grpc` (and the generated `_pb2` stubs) appear in **this file only**;
   enforced by the C3 boundary check.
-- Generated proto files are committed and excluded from `mypy --strict` via a
-  `per-module` ignore; `make proto-gen` must reproduce identical output.
+- Generated proto files are committed without extra typing-only exclusions; `make proto-gen` must reproduce identical output.
 - Channel/stub injectable via `from_channel`; unit tests drive a scripted frame
   sequence through a mock channel with no real OpenClaude process.
 - `health_check()` returns `False` on unreachable within `connect_timeout_s`;
   it does not raise. `query()` raises `OpenClaudeUnavailableError` on
   `UNAVAILABLE` / `DEADLINE_EXCEEDED`.
-- Client code is `mypy --strict` and `ruff` clean; `Optional[T]`, no `T | None`.
+- Client code is `ruff` clean; `Optional[T]`, no `T | None`.

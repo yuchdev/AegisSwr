@@ -208,5 +208,5 @@ def _truncate(self, content: str) -> tuple[str, bool]:
 - [ ] `OpenClaudeStreamCompleted` is the only event carrying `token_estimate`.
 - [ ] No exception escapes `run()`; a fault-injected `_delegate` still yields a
       typed failure.
-- [ ] 100% branch coverage on `tool.py`; `mypy --strict`, `ruff`,
+- [ ] 100% branch coverage on `tool.py`; `ruff` and
       `replace_optional.py --check` clean.

@@ -1,196 +1,96 @@
-# Agent Policy File (`agents.json`)
+# Agent consensus weight
 
-> `<config-dir>` = `~/.aegis-swr/`
+> There is **no `agents.json` file** and no agent-weight config section. This
+> page explains where consensus weight now lives.
 
-The per-fault-class **domain-authority weights** and the **agent panel policy**
-for the Synthetic War Room live in:
+Each forensic agent's **consensus weight** - how much its confidence counts when
+the debate's consensus score is computed - is an **intrinsic property of the
+agent class**, not an external configuration file. Weight is declared alongside
+the agent's other self-describing `ClassVar` descriptors (`agent_key`,
+`display_name`, `category`, `role`, `contributes_fix`) on
+[`BaseAgent`](../../src/aegis_swr/agents/base.py):
 
+```python
+class BaseAgent(ABC):
+    agent_key: ClassVar[str]
+    display_name: ClassVar[str]
+    category: ClassVar[AgentCategory]
+    role: ClassVar[AgentRole]
+    contributes_fix: ClassVar[bool] = False
+    default_weight: ClassVar[float]   # ← the agent's intrinsic consensus weight
 ```
-<config-dir>/agents.json
-```
 
-A template lives at [`agents.example.json`](../../agents.example.json) - copy it
-to the default path:
-
-```bash
-cp agents.example.json <config-dir>/agents.json
-```
-
-`Settings` loads this file and mounts its `weights` sub-object under the
-`agent_weights` key and its `panel` sub-object under the `agent_panel` key. A
-missing or malformed file falls back to the built-in defaults (identical to the
-example), so the file is optional.
+Every concrete agent declares its own `default_weight`. A concrete agent that
+forgets to declare one fails loudly at panel resolution rather than being
+silently mis-weighted (the same contract as `role`).
 
 ---
 
-## File shape
+## The four built-in agents and their weights
 
-The file has a **two-key top-level structure**:
+| Agent | Key | `default_weight` | Role |
+|---|---|---|---|
+| **OS Kernel** | `os_kernel` | `0.35` | System-environment specialist. Focuses on memory-allocation state, I/O latency, driver conflicts, thread-blocking primitives, and hardware-signal mapping. Maps raw exception codes to a `FaultClass` and forms the first structural hypothesis. |
+| **Code Analyst** | `code_analyst` | `0.35` | Software-architecture / logic-error specialist. Pinpoints the code-level root cause - faulting function, line, and logical path - and may emit a probabilistic fix (unified diff). |
+| **Log Historian** | `log_historian` | `0.17` | Historical-pattern correlator. Compares the current signature to historical baselines, decides first-occurrence vs. recurrence, and adjusts confidence (±0.2). |
+| **Skeptic** | `skeptic` | `0.13` | Adversarial moderator / arbiter. Challenges the primary hypothesis - verifies the faulting module appears in the stack, checks exception-code consistency, surfaces overlooked evidence - and confirms (HIGH/MEDIUM) or rejects (LOW). |
 
-```json
-{
-  "weights": { "<fault_class>": { "<agent_key>": <weight>, ... }, ... },
-  "panel":   { "default_panel": [...], "per_fault_class": {...} }
-}
-```
+The four built-in weights are authored to sum to exactly `1.0`. They are the mean
+of the agents' historical per-fault-class weights (see the
+[ADR](../adr/0002-agent-weight-as-property.md)), so `os_kernel = code_analyst >
+log_historian > skeptic` preserves the previous relative authority ordering.
 
-### `weights` section
-
-A JSON object keyed by **fault class**. Each value is an object of agent weights:
-
-```json
-{
-  "weights": {
-    "memory_access_violation": {
-      "os_kernel": 0.40,
-      "code_analyst": 0.35,
-      "log_historian": 0.15,
-      "skeptic": 0.10
-    },
-    "unknown": {
-      "os_kernel": 0.30,
-      "code_analyst": 0.35,
-      "log_historian": 0.20,
-      "skeptic": 0.15
-    }
-  }
-}
-```
-
-Weight keys are arbitrary agent keys - the schema is agent-count-agnostic so
-the roster can grow without a format change. Any agent key absent from a
-fault-class entry falls back to the priority-normalized default at runtime.
-
-| Default weight key | Description |
-|---|---|
-| `os_kernel` | Authority of the **OS Kernel** agent. |
-| `code_analyst` | Authority of the **Code Analyst** agent. |
-| `log_historian` | Authority of the **Log Historian** agent. |
-| `skeptic` | Authority of the **Skeptic** agent. |
-
-> **Weights should sum to 1.0** per fault class by convention. The consensus
-> math normalises by the total anyway (so any positive sum is valid), but the
-> defaults are authored to sum to exactly 1.0.
-
-### `panel` section
-
-The ops-curated candidate pool that seeds automatic panel selection:
-
-```json
-{
-  "panel": {
-    "default_panel": ["os_kernel", "code_analyst", "log_historian", "skeptic"],
-    "per_fault_class": {}
-  }
-}
-```
-
-| Field | Type | Description |
-|---|---|---|
-| `default_panel` | `list[str]` | Ordered agent keys for the default panel when no per-fault-class override applies. |
-| `per_fault_class` | `dict[str, list[str]]` | Optional overrides keyed by fault-class value (e.g. `"stack_overflow"`). When a matching entry exists for the detected fault class, those keys are used instead of `default_panel`. |
-
-Leave `per_fault_class` as `{}` when no curated per-fault-class rosters have been
-defined yet. The `AgenticManagerStrategy` treats an empty map as "always use
-the default panel".
-
----
-
-## The four built-in agents
-
-| Agent | Key | Role |
-|---|---|---|
-| **OS Kernel** | `os_kernel` | System-environment specialist. Focuses on memory-allocation state, I/O latency, driver conflicts, thread-blocking primitives, and hardware-signal mapping. Maps raw exception codes to a `FaultClass` and forms the first structural hypothesis. |
-| **Code Analyst** | `code_analyst` | Software-architecture / logic-error specialist. Pinpoints the code-level root cause - faulting function, line, and logical path - and may emit a probabilistic fix (unified diff). |
-| **Log Historian** | `log_historian` | Historical-pattern correlator. Compares the current signature to historical baselines, decides first-occurrence vs. recurrence, and adjusts confidence (±0.2). |
-| **Skeptic** | `skeptic` | Adversarial moderator. Challenges the primary hypothesis - verifies the faulting module appears in the stack, checks exception-code consistency, surfaces overlooked evidence - and confirms (HIGH/MEDIUM) or rejects (LOW). |
+The weights need **not** sum to any particular total in general - the consensus
+math normalises by the summed weights of whatever panel is live (see below), so
+adding an agent does not require rebalancing the others.
 
 ---
 
 ## How weights are used
 
-The `ConsensusEvaluator` computes a weighted consensus score each debate round:
+The [`ConsensusEvaluator`](../../src/aegis_swr/core/consensus.py) computes a
+weighted consensus score each debate round:
 
 ```
 CS = Σ(Wᵢ · Sᵢ) / Σ(Wᵢ)
 ```
 
-where `Wᵢ` is the weight of agent *i* for the **detected fault class** and `Sᵢ`
-is that agent's confidence score (`[0.0, 1.0]`) this round. Agents missing from a
-round contribute `0.0`. The round converges when `CS ≥` `core.consensus_threshold`
+where `Wᵢ` is the resolved weight of agent *i* and `Sᵢ` is that agent's
+confidence score (`[0.0, 1.0]`) this round. Agents missing from a round
+contribute `0.0`. The round converges when `CS ≥` `core.consensus_threshold`
 (default `0.85`) on a stable hypothesis; it deadlocks into a human-in-the-loop
 request when rounds are exhausted with `CS <` `core.hitl_confidence_threshold`
 (default `0.50`). See [config.md](config.md#core).
 
-### Three-tier weight precedence
+### Two-tier weight precedence
 
-When computing the weight map for a panel, the orchestrator applies the following
-precedence (highest wins) **per agent**:
+When building the weight map for a resolved panel
+([`resolve_consensus_weights`](../../src/aegis_swr/agents/panel.py)), the
+following precedence applies **per agent** (highest wins):
 
-1. **Explicit override** — `AgentSpec.weight` when set via CLI (`--agent key::0.7`)
-   or `config.json`'s `panel.explicit` list.
-2. **Curated per-fault-class weight** — the ops-authored value from this file's
-   `weights` section for the detected fault class.
-3. **Priority-normalized default** — for agents not covered by tiers 1 or 2,
-   their `priority` (1–5) divided by the sum of all tier-3 agents' priorities.
+1. **Per-incident override** - `AgentSpec.weight` when set via the CLI
+   (`--agent key::0.7`) or `config.json`'s `panel.explicit` list. Use this to
+   retune influence for a single investigation without changing code.
+2. **The agent's own declared weight** - `agent.default_weight` otherwise.
 
 No pre-normalization is needed - `ConsensusEvaluator` divides by `Σ(Wᵢ)`.
 
-The fault class is detected from the crash's exception code (Windows NTSTATUS,
-Linux signal, or macOS Mach exception). If the detected class has **no entry** in
-`agents.json`, the evaluator falls back to the `unknown` entry.
+> **Note:** weight no longer varies by fault class. Prior to
+> [ADR 0002](../adr/0002-agent-weight-as-property.md) an ops-curated
+> `agents.json` file held a per-fault-class weight matrix; that file and its
+> `AgentWeightsSettings` / `AgentPanelSettings` models were removed. `AgentSpec.priority`
+> now controls debate/speaking order only, and no longer contributes to weight.
 
 ---
 
-## Fault classes (the keys)
+## Changing an agent's weight
 
-All ten `FaultClass` values are valid keys. Provide every class for full
-coverage; any class you omit (except `unknown`) is resolved via the `unknown`
-fallback at runtime.
+- **Permanently, for an agent:** edit that agent's `default_weight` `ClassVar` in
+  `src/aegis_swr/agents/<agent>.py` (a code change + review + redeploy).
+- **For a single investigation:** pass an explicit override -
+  `aegis analyze --agent os_kernel::0.5 ...` - or set `panel.explicit` in
+  `config.json`.
 
-| Fault class key | Meaning | Default weights (`os_kernel` / `code_analyst` / `log_historian` / `skeptic`) |
-|---|---|---|
-| `memory_access_violation` | Invalid memory access (e.g. SIGSEGV, `0xc0000005`, heap corruption). | 0.40 / 0.35 / 0.15 / 0.10 |
-| `null_pointer_dereference` | Null-pointer dereference. | 0.40 / 0.35 / 0.15 / 0.10 |
-| `use_after_free` | Access to freed memory. | 0.35 / 0.40 / 0.15 / 0.10 |
-| `stack_overflow` | Stack exhaustion (`0xc00000fd`). | 0.45 / 0.30 / 0.10 / 0.15 |
-| `integer_divide_by_zero` | Division by zero / integer overflow (SIGFPE, `0xc0000094`). | 0.35 / 0.40 / 0.10 / 0.15 |
-| `deadlock` | Thread deadlock / lock contention. | 0.35 / 0.30 / 0.20 / 0.15 |
-| `assertion_failure` | Assertion / breakpoint / abort (SIGABRT, `0x80000003`). | 0.25 / 0.45 / 0.15 / 0.15 |
-| `resource_exhaustion` | Out of memory / handles / stack fault (`0xc0000017`). | 0.35 / 0.25 / 0.30 / 0.10 |
-| `unhandled_exception` | Uncaught exception / illegal or privileged instruction. | 0.30 / 0.35 / 0.20 / 0.15 |
-| `unknown` | Fallback when the exception code is unrecognised. | 0.30 / 0.35 / 0.20 / 0.15 |
-
-The weighting reflects domain authority: kernel-level faults (memory, stack)
-lean on `os_kernel`; logic faults (`use_after_free`, `integer_divide_by_zero`,
-`assertion_failure`) lean on `code_analyst`; `resource_exhaustion` gives more
-weight to `log_historian` for trend evidence.
-
----
-
-## Tuning example
-
-Make the Skeptic more influential for null-pointer faults by editing
-`<config-dir>/agents.json`:
-
-```json
-{
-  "weights": {
-    "null_pointer_dereference": {
-      "os_kernel": 0.35,
-      "code_analyst": 0.30,
-      "log_historian": 0.15,
-      "skeptic": 0.20
-    }
-  },
-  "panel": {
-    "default_panel": ["os_kernel", "code_analyst", "log_historian", "skeptic"],
-    "per_fault_class": {}
-  }
-}
-```
-
-Re-run `aegis analyze`; the new weights take effect on the next investigation.
-
-See also: [config.md](config.md) (which references `core.consensus_threshold` and
-`core.hitl_confidence_threshold`) and [cli.md](cli.md).
+See also: [config.md](config.md) (`core.consensus_threshold`,
+`core.hitl_confidence_threshold`), [cli.md](cli.md), and
+[ADR 0002](../adr/0002-agent-weight-as-property.md).

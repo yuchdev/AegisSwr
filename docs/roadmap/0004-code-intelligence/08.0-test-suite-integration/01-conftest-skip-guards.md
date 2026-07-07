@@ -183,7 +183,7 @@ infrastructure. Its behavior is validated indirectly by subtasks 02–05:
   **never** the Aegis SWR source tree, and the process runs strictly read-only
   under the default allowlist (`Read,Grep,Glob,Bash`; no `Write`/`Edit`).
 - `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None`; `mypy --strict` and `ruff` clean (test tree still linted).
+  `T | None`; `ruff` clean (test tree still linted).
 - No raw stub-file contents or streamed response text is logged (C9); loguru sinks
   keep `SensitiveFilter`.
 
@@ -201,4 +201,4 @@ infrastructure. Its behavior is validated indirectly by subtasks 02–05:
       PID/process-table check in subtask 02).
 - [ ] `live_grpc_client` connects to the managed process and is closed on teardown.
 - [ ] `stub_project` is created under a temp dir and is never the repo source tree.
-- [ ] `mypy --strict`, `ruff`, and `replace_optional.py --check` are clean on the file.
+- [ ] `ruff` and `replace_optional.py --check` are clean on the file.

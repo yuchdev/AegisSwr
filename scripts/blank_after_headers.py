@@ -33,7 +33,6 @@ EXCLUDED_DIRS = {
     ".idea",
     ".pytest_cache",
     ".ruff_cache",
-    ".mypy_cache",
     "dist",
     "build",
 }

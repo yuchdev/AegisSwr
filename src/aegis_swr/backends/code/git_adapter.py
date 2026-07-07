@@ -8,19 +8,19 @@ failures to :class:`CodeBackendError`.
 See ``docs/specs/generic_implementation_plan.md`` C.1. AIAPIBackend
 """
 from __future__ import annotations
-from typing import Optional
 
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 from loguru import logger
 
 from aegis_swr.backends.base import CodeBackend
 from aegis_swr.backends.code.paths import safe_repo_path
+from aegis_swr.config.settings import CodeBackendSettings
 from aegis_swr.core.exceptions import CodeBackendError
 from aegis_swr.core.schemas import BlameRecord, CommitRecord
-from aegis_swr.config.settings import CodeBackendSettings
 
 # Record/field separators chosen to never appear in commit metadata.
 _RS = "\x1e"  # record separator (leads every commit)

@@ -774,6 +774,8 @@ class IncidentBrief(BaseModel):
     :type dump_hash: Optional[str]
     :ivar fault_class: The classification of the fault, providing insight into the type or category of the issue.
     :type fault_class: Optional[FaultClass]
+    :ivar exception_code: The exception code captured during the incident.
+    :type exception_code: Optional[str]
     :ivar exception_code_raw: The raw exception code captured during the incident.
     :type exception_code_raw: Optional[str]
     :ivar exception_address: The memory address where the exception occurred.
@@ -803,6 +805,7 @@ class IncidentBrief(BaseModel):
     mode: IncidentMode
     dump_hash: Optional[str] = None
     fault_class: Optional[FaultClass] = None
+    exception_code: Optional[str] = None
     exception_code_raw: Optional[str] = None
     exception_address: Optional[str] = None
     faulting_module: Optional[str] = None

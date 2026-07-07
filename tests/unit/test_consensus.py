@@ -4,22 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from aegis_swr.config.settings import AgentWeightsSettings
+from aegis_swr.agents.registry import AGENT_REGISTRY
 from aegis_swr.core.consensus import ConsensusEvaluator
-from aegis_swr.core.fault_codes import FaultClass
 
-#: Shared curated weight matrix, used to derive per-fault-class weight maps.
-_WEIGHTS = AgentWeightsSettings()
-
-
-def _weight_map(fault_class: FaultClass) -> dict[str, float]:
-    """Return the curated agent-key -> weight map for *fault_class*.
-
-    Mirrors the caller-side resolution that ``agents/panel.py`` now performs:
-    ``ConsensusEvaluator.calculate`` is handed a plain weight map, no longer a
-    fault class.
-    """
-    return _WEIGHTS.for_fault_class(fault_class.value).weights
+#: Default consensus weight map built from each registered agent's own declared
+#: ``default_weight`` (weight is now an intrinsic property of the agent, not a
+#: per-fault-class matrix). The four built-in agents are authored to sum to 1.0.
+_DEFAULT_WEIGHTS: dict[str, float] = {key: cls.default_weight for key, cls in AGENT_REGISTRY.items()}
 
 
 @pytest.fixture
@@ -34,153 +25,146 @@ def evaluator() -> ConsensusEvaluator:
 
 def test_all_agents_full_confidence(evaluator: ConsensusEvaluator):
     """
-    [Unit] consensus: verifies all agents full confidence.
+    [Unit] consensus: all agents at full confidence yields a consensus of 1.0.
 
     Scenario:
-        Given test inputs and fixtures for all agents full confidence
-        When test_all_agents_full_confidence executes the target flow
-        Then the expected outcome for all agents full confidence is confirmed.
+        Given the default agent-declared weight map and every agent reporting a
+        confidence of 1.0, when calculate runs, then the normalized weighted
+        average is exactly 1.0 regardless of the individual weights.
 
     Boundaries:
-        - Focus: all agents full confidence
+        - Focus: normalization when all scores are 1.0
         - Fixtures/params: evaluator
         - Scope: assertions and setup in this test case only
 
     On failure, first check:
-        - Assertion details tied to all agents full confidence
-        - Fixture or parameter values used by this test
+        - Whether the weight map still sums to a positive total
+        - Whether calculate normalizes by the summed weights
         - Recent changes in code paths exercised by consensus
     """
     scores = {"os_kernel": 1.0, "code_analyst": 1.0, "log_historian": 1.0, "skeptic": 1.0}
-    cs = evaluator.calculate(scores, _weight_map(FaultClass.MEMORY_ACCESS_VIOLATION))
+    cs = evaluator.calculate(scores, _DEFAULT_WEIGHTS)
     assert cs == pytest.approx(1.0)
 
 
 def test_all_agents_zero_confidence(evaluator: ConsensusEvaluator):
     """
-    [Unit] consensus: verifies all agents zero confidence.
+    [Unit] consensus: all agents at zero confidence yields a consensus of 0.0.
 
     Scenario:
-        Given test inputs and fixtures for all agents zero confidence
-        When test_all_agents_zero_confidence executes the target flow
-        Then the expected outcome for all agents zero confidence is confirmed.
+        Given the default agent-declared weight map and every agent reporting a
+        confidence of 0.0, when calculate runs, then the result is 0.0.
 
     Boundaries:
-        - Focus: all agents zero confidence
+        - Focus: zero-score aggregation
         - Fixtures/params: evaluator
         - Scope: assertions and setup in this test case only
 
     On failure, first check:
-        - Assertion details tied to all agents zero confidence
-        - Fixture or parameter values used by this test
+        - Whether calculate multiplies scores by weights before summing
         - Recent changes in code paths exercised by consensus
     """
     scores = {"os_kernel": 0.0, "code_analyst": 0.0, "log_historian": 0.0, "skeptic": 0.0}
-    cs = evaluator.calculate(scores, _weight_map(FaultClass.MEMORY_ACCESS_VIOLATION))
+    cs = evaluator.calculate(scores, _DEFAULT_WEIGHTS)
     assert cs == pytest.approx(0.0)
 
 
-def test_weighted_formula_memory_violation(evaluator: ConsensusEvaluator):
-    # Weights for MEMORY_ACCESS_VIOLATION: os=0.40, code=0.35, log=0.15, skep=0.10
+def test_weighted_formula_uses_agent_declared_weights(evaluator: ConsensusEvaluator):
     """
-    [Unit] consensus: verifies weighted formula memory violation.
+    [Unit] consensus: the weighted average uses each agent's declared weight.
 
     Scenario:
-        Given test inputs and fixtures for weighted formula memory violation
-        When test_weighted_formula_memory_violation executes the target flow
-        Then the expected outcome for weighted formula memory violation is confirmed.
+        Given per-agent confidence scores and the default agent-declared weight
+        map (os=0.35, code=0.35, log=0.17, skeptic=0.13), when calculate runs,
+        then the result equals the analytically computed weighted average.
 
     Boundaries:
-        - Focus: weighted formula memory violation
+        - Focus: weighted-average arithmetic against agent-declared weights
         - Fixtures/params: evaluator
         - Scope: assertions and setup in this test case only
 
     On failure, first check:
-        - Assertion details tied to weighted formula memory violation
-        - Fixture or parameter values used by this test
+        - Whether the default_weight ClassVars changed on the four agents
+        - Whether calculate divides by the summed weights
         - Recent changes in code paths exercised by consensus
     """
     scores = {"os_kernel": 0.8, "code_analyst": 0.9, "log_historian": 0.7, "skeptic": 0.6}
-    expected = 0.40 * 0.8 + 0.35 * 0.9 + 0.15 * 0.7 + 0.10 * 0.6
-    cs = evaluator.calculate(scores, _weight_map(FaultClass.MEMORY_ACCESS_VIOLATION))
+    expected = sum(_DEFAULT_WEIGHTS[k] * scores[k] for k in _DEFAULT_WEIGHTS) / sum(_DEFAULT_WEIGHTS.values())
+    cs = evaluator.calculate(scores, _DEFAULT_WEIGHTS)
     assert cs == pytest.approx(expected)
 
 
 def test_missing_agent_treated_as_zero(evaluator: ConsensusEvaluator):
-    # Log historian and skeptic absent.
     """
-    [Unit] consensus: verifies missing agent treated as zero.
+    [Unit] consensus: an agent in the weight map but absent from scores counts as zero.
 
     Scenario:
-        Given test inputs and fixtures for missing agent treated as zero
-        When test_missing_agent_treated_as_zero executes the target flow
-        Then the expected outcome for missing agent treated as zero is confirmed.
+        Given a weight map naming four agents but only two present in the scores,
+        when calculate runs, then the two absent agents contribute 0.0 so the
+        result is strictly between 0.0 and 1.0.
 
     Boundaries:
-        - Focus: missing agent treated as zero
+        - Focus: absent-agent-as-zero behavior
         - Fixtures/params: evaluator
         - Scope: assertions and setup in this test case only
 
     On failure, first check:
-        - Assertion details tied to missing agent treated as zero
-        - Fixture or parameter values used by this test
+        - Whether calculate uses scores.get(key, 0.0)
         - Recent changes in code paths exercised by consensus
     """
     scores = {"os_kernel": 1.0, "code_analyst": 1.0}
-    cs = evaluator.calculate(scores, _weight_map(FaultClass.DEADLOCK))
-    # Only os_kernel (0.35) and code_analyst (0.30) contribute.
+    cs = evaluator.calculate(scores, _DEFAULT_WEIGHTS)
     assert cs < 1.0
     assert cs > 0.0
 
 
 def test_score_bounded_zero_to_one(evaluator: ConsensusEvaluator):
     """
-    [Unit] consensus: verifies score bounded zero to one.
+    [Unit] consensus: the consensus score stays within [0.0, 1.0].
 
     Scenario:
-        Given test inputs and fixtures for score bounded zero to one
-        When test_score_bounded_zero_to_one executes the target flow
-        Then the expected outcome for score bounded zero to one is confirmed.
+        Given every agent at a mid confidence of 0.5 and the default weight map,
+        when calculate runs, then the result is bounded to [0.0, 1.0].
 
     Boundaries:
-        - Focus: score bounded zero to one
+        - Focus: output range invariant
         - Fixtures/params: evaluator
         - Scope: assertions and setup in this test case only
 
     On failure, first check:
-        - Assertion details tied to score bounded zero to one
-        - Fixture or parameter values used by this test
+        - Whether calculate normalizes by the summed weights
         - Recent changes in code paths exercised by consensus
     """
     scores = {"os_kernel": 0.5, "code_analyst": 0.5, "log_historian": 0.5, "skeptic": 0.5}
-    cs = evaluator.calculate(scores, _weight_map(FaultClass.UNKNOWN))
+    cs = evaluator.calculate(scores, _DEFAULT_WEIGHTS)
     assert 0.0 <= cs <= 1.0
 
 
-def test_weight_selection_uses_fault_class(evaluator: ConsensusEvaluator):
-    # STACK_OVERFLOW: os_kernel weight is 0.45 (higher than default 0.30)
+def test_default_weight_map_comes_from_the_agents(evaluator: ConsensusEvaluator):
     """
-    [Unit] consensus: verifies weight selection uses fault class.
+    [Unit] consensus: the default weight map is the agents' declared weights.
 
     Scenario:
-        Given test inputs and fixtures for weight selection uses fault class
-        When test_weight_selection_uses_fault_class executes the target flow
-        Then the expected outcome for weight selection uses fault class is confirmed.
+        Given the registered agent roster, when their ``default_weight`` values
+        are collected, then they match the authored defaults and sum to 1.0 -
+        confirming weight is sourced from the agent, not an external matrix.
 
     Boundaries:
-        - Focus: weight selection uses fault class
+        - Focus: weight-as-agent-property sourcing
         - Fixtures/params: evaluator
         - Scope: assertions and setup in this test case only
 
     On failure, first check:
-        - Assertion details tied to weight selection uses fault class
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by consensus
+        - Whether any concrete agent changed its default_weight ClassVar
+        - Recent changes in code paths exercised by the agent registry
     """
-    scores = {"os_kernel": 1.0, "code_analyst": 0.0, "log_historian": 0.0, "skeptic": 0.0}
-    cs_stack = evaluator.calculate(scores, _weight_map(FaultClass.STACK_OVERFLOW))
-    cs_default = evaluator.calculate(scores, _weight_map(FaultClass.UNKNOWN))
-    assert cs_stack > cs_default
+    assert _DEFAULT_WEIGHTS == {
+        "os_kernel": pytest.approx(0.35),
+        "code_analyst": pytest.approx(0.35),
+        "log_historian": pytest.approx(0.17),
+        "skeptic": pytest.approx(0.13),
+    }
+    assert sum(_DEFAULT_WEIGHTS.values()) == pytest.approx(1.0)
 
 
 def test_arbitrary_panel_weight_map(evaluator: ConsensusEvaluator):

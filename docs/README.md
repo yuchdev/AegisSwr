@@ -67,7 +67,7 @@ User-facing reference for every CLI option and configuration field, derived from
 |---|---|
 | [cli.md](config/cli.md) | Every `aegis` command (`analyze`, `export`, `server`, `config show/set`) with all options, defaults, allowed values, output modes, and exit codes. |
 | [config.md](config/config.md) | The unified `config.json`: analyze keys plus `ingest` / `logging` / `evidence` / `process` sections, nested `core` / `backends` / `sandbox` / `api` runtime config, sources, precedence, and env overrides. |
-| [agents.md](config/agents.md) | The `agents.json` weight matrix: the four forensic agents, all ten fault-class keys with default weights, and how the consensus score uses them. |
+| [agents.md](config/agents.md) | Agent consensus weight: how each forensic agent declares its own `default_weight` class property, the two-tier weight precedence, and how the consensus score uses it. |
 
 ---
 
