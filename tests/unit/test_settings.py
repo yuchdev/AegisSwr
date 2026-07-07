@@ -1,8 +1,9 @@
-
 import pytest
 from pydantic import ValidationError
 
 from aegis_swr.config.settings import (
+    AgentPanelSettings,
+    AgentWeightEntry,
     AISettings,
     AnthropicSettings,
     BedrockSettings,
@@ -536,13 +537,11 @@ def test_agent_weights_for_memory_fault(settings: Settings):
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by settings
     """
-    entry = settings.agent_weights.for_fault_class(
-        FaultClass.MEMORY_ACCESS_VIOLATION.value
-    )
-    assert entry.os_kernel == 0.40
-    assert entry.code_analyst == 0.35
+    entry = settings.agent_weights.for_fault_class(FaultClass.MEMORY_ACCESS_VIOLATION.value)
+    assert entry.weights["os_kernel"] == 0.40
+    assert entry.weights["code_analyst"] == 0.35
     # Weights for this fault class should sum to 1.0
-    total = entry.os_kernel + entry.code_analyst + entry.log_historian + entry.skeptic
+    total = sum(entry.weights.values())
     assert abs(total - 1.0) < 1e-6
 
 
@@ -566,7 +565,184 @@ def test_agent_weights_for_unknown_fault(settings: Settings):
         - Recent changes in code paths exercised by settings
     """
     entry = settings.agent_weights.for_fault_class(FaultClass.UNKNOWN.value)
-    assert entry.os_kernel == 0.30
+    assert entry.weights["os_kernel"] == 0.30
+
+
+def test_agent_weight_entry_accepts_flat_mapping():
+    """
+    [Unit] settings: verifies AgentWeightEntry accepts a bare agent-key map.
+
+    Scenario:
+        Given an ops-authored flat ``{agent_key: weight}`` mapping (no explicit
+        ``weights`` wrapper), when AgentWeightEntry is constructed, then the
+        before-validator wraps it so ``.weights`` holds the mapping verbatim.
+        An explicit ``{"weights": {...}}`` payload is accepted unchanged.
+
+    Boundaries:
+        - Focus: flat-vs-structured payload acceptance
+        - Fixtures/params: none
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to the flat-mapping validator
+        - Whether ``_accept_flat_mapping`` still wraps bare mappings
+        - Recent changes in code paths exercised by settings
+    """
+    flat = AgentWeightEntry.model_validate({"os_kernel": 0.6, "skeptic": 0.4})
+    assert flat.weights == {"os_kernel": 0.6, "skeptic": 0.4}
+    structured = AgentWeightEntry(weights={"os_kernel": 0.6, "skeptic": 0.4})
+    assert structured.weights == {"os_kernel": 0.6, "skeptic": 0.4}
+
+
+def test_default_agent_panel_settings(settings: Settings):
+    """
+    [Unit] settings: verifies default agent panel settings.
+
+    Scenario:
+        Given a pristine Settings instance, when the agent_panel section is
+        read, then the default candidate pool is the historical four agents and
+        the per-fault-class override map is empty.
+
+    Boundaries:
+        - Focus: AgentPanelSettings defaults on Settings
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to the default panel
+        - Whether Settings still wires the agent_panel field
+        - Recent changes in code paths exercised by settings
+    """
+    assert isinstance(settings.agent_panel, AgentPanelSettings)
+    assert settings.agent_panel.default_panel == [
+        "os_kernel",
+        "code_analyst",
+        "log_historian",
+        "skeptic",
+    ]
+    assert settings.agent_panel.per_fault_class == {}
+
+
+def test_default_panel_runtime_settings(settings: Settings):
+    """
+    [Unit] settings: verifies the runtime panel section defaults to auto mode.
+
+    Scenario:
+        Given a pristine Settings instance, when the runtime ``panel`` section is
+        read, then the mode is ``"auto"`` and the explicit spec list is empty -
+        so a default run auto-selects its panel.
+
+    Boundaries:
+        - Focus: PanelRuntimeSettings defaults wired onto Settings.panel
+        - Fixtures/params: settings
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Whether Settings still wires the runtime ``panel`` field
+        - PanelRuntimeSettings default mode/explicit values
+    """
+    from aegis_swr.config.settings import PanelRuntimeSettings
+
+    assert isinstance(settings.panel, PanelRuntimeSettings)
+    assert settings.panel.mode == "auto"
+    assert settings.panel.explicit == []
+
+
+def test_panel_runtime_settings_coerces_explicit_to_agent_specs():
+    """
+    [Unit] settings: verifies explicit entries coerce into validated AgentSpecs.
+
+    Scenario:
+        Given a runtime panel with explicit dict entries (crossing the config.json
+        boundary), when PanelRuntimeSettings is constructed, then each entry is
+        coerced into a real AgentSpec carrying the parsed priority/weight.
+
+    Boundaries:
+        - Focus: the mode="before" lazy-import validator on ``explicit``
+        - Fixtures/params: inline explicit dicts
+        - Scope: PanelRuntimeSettings only
+
+    On failure, first check:
+        - The lazy ``from aegis_swr.agents.base import AgentSpec`` import
+        - That AgentSpec.model_validate is applied per entry
+    """
+    from aegis_swr.agents.base import AgentSpec
+    from aegis_swr.config.settings import PanelRuntimeSettings
+
+    panel = PanelRuntimeSettings(
+        mode="explicit",
+        explicit=[
+            {"agent_key": "os_kernel", "priority": 5},
+            {"agent_key": "skeptic", "priority": 3, "weight": 0.2},
+        ],
+    )
+    assert panel.mode == "explicit"
+    assert all(isinstance(spec, AgentSpec) for spec in panel.explicit)
+    assert panel.explicit[0].agent_key == "os_kernel"
+    assert panel.explicit[0].priority == 5
+    assert panel.explicit[1].weight == 0.2
+
+
+def test_panel_runtime_settings_rejects_out_of_range_priority():
+    """
+    [Unit] settings: verifies an out-of-range explicit priority is rejected.
+
+    Scenario:
+        Given an explicit entry with a priority outside 1-5, when the runtime
+        panel is constructed, then a ValidationError is raised (the AgentSpec
+        range constraint is enforced through the coercion validator).
+
+    Boundaries:
+        - Focus: invalid-input path for the ``explicit`` coercion
+        - Fixtures/params: inline out-of-range priority
+        - Scope: PanelRuntimeSettings only
+
+    On failure, first check:
+        - AgentSpec's priority Field(ge=1, le=5) constraint
+        - That the before-validator surfaces AgentSpec validation errors
+    """
+    from aegis_swr.config.settings import PanelRuntimeSettings
+
+    with pytest.raises(ValidationError):
+        PanelRuntimeSettings(mode="explicit", explicit=[{"agent_key": "os_kernel", "priority": 9}])
+
+
+def test_panel_runtime_settings_loaded_from_config_json(monkeypatch: pytest.MonkeyPatch):
+    """
+    [Unit] settings: verifies the runtime panel loads from config.json.
+
+    Scenario:
+        Given a config.json carrying a top-level ``panel`` section, when Settings
+        is constructed, then Settings.panel reflects that section with its
+        explicit entries coerced into AgentSpec instances.
+
+    Boundaries:
+        - Focus: config.json → Settings.panel wiring via the JSON source
+        - Fixtures/params: monkeypatched JSON reader
+        - Scope: Settings only
+
+    On failure, first check:
+        - AegisJsonSettingsSource mounting the ``panel`` config.json section
+        - The explicit-coercion validator running on JSON-sourced data
+    """
+    import aegis_swr.config.settings as settings_module
+
+    payload = {
+        "panel": {
+            "mode": "explicit",
+            "explicit": [{"agent_key": "skeptic", "priority": 4}],
+        }
+    }
+
+    def _fake_reader(path: object) -> dict:
+        return dict(payload) if str(path).endswith("config.json") else {}
+
+    monkeypatch.setattr(settings_module, "_read_json_object", _fake_reader)
+
+    loaded = Settings()
+    assert loaded.panel.mode == "explicit"
+    assert loaded.panel.explicit[0].agent_key == "skeptic"
+    assert loaded.panel.explicit[0].priority == 4
 
 
 def test_redacted_dump_hides_database_url(settings: Settings):

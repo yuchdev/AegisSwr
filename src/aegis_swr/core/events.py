@@ -17,7 +17,7 @@ from typing import Any, Optional
 
 from loguru import logger
 
-from aegis_swr.core.schemas import AgentTurn, IncidentSource, RCAReport
+from aegis_swr.core.schemas import AgentRole, AgentTurn, IncidentSource, RCAReport
 
 # ---------------------------------------------------------------------------
 # Domain events
@@ -55,6 +55,37 @@ class EvidenceExtracted(DomainEvent):
     """
 
     brief: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class PanelAgentDescriptor:
+    """A JSON-serializable description of a single resolved panel agent.
+
+    :ivar node_name: The graph node name assigned to the agent.
+    :type node_name: str
+    :ivar display_name: The human-facing label for the agent.
+    :type display_name: str
+    :ivar role: The behavioral role the agent plays in the panel.
+    :type role: AgentRole
+    """
+
+    node_name: str
+    display_name: str
+    role: AgentRole
+
+
+@dataclass(frozen=True)
+class PanelResolved(DomainEvent):
+    """Panel resolution completed: the agent roster for this run is fixed
+
+    Views subscribe to this to learn which agents are running instead of
+    assuming a fixed panel, so tracking state adapts to any resolved roster.
+
+    :ivar panel: The resolved agents, in the order they run.
+    :type panel: list[PanelAgentDescriptor]
+    """
+
+    panel: list[PanelAgentDescriptor] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

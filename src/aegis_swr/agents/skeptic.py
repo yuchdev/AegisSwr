@@ -1,12 +1,19 @@
 """Skeptic Agent - adversarial moderator / consensus challenger"""
+
 from __future__ import annotations
-from typing import Optional
 
 import json
+from typing import ClassVar, Optional
 
-from aegis_swr.agents.base import BaseAgent
-from aegis_swr.core.schemas import AgentTurn, ConfidenceLevel, Hypothesis, SkepticVerdict
-from aegis_swr.core.schemas import InvestigationState
+from aegis_swr.agents.base import AgentCategory, BaseAgent
+from aegis_swr.core.schemas import (
+    AgentRole,
+    AgentTurn,
+    ConfidenceLevel,
+    Hypothesis,
+    InvestigationState,
+    SkepticVerdict,
+)
 
 _SYSTEM_PROMPT = """\
 You are the adversarial moderator of the Synthetic War Room. You receive the \
@@ -32,6 +39,11 @@ def _module_in_frames(module: str, frames: list[dict[str, object]]) -> bool:
 
 
 class SkepticAgent(BaseAgent):
+    agent_key: ClassVar[str] = "skeptic"
+    display_name: ClassVar[str] = "Skeptic Agent"
+    category: ClassVar[AgentCategory] = "base"
+    role: ClassVar[AgentRole] = AgentRole.ARBITER
+
     @property
     def system_prompt(self) -> str:
         return _SYSTEM_PROMPT
@@ -52,16 +64,11 @@ class SkepticAgent(BaseAgent):
                 verdict = SkepticVerdict(
                     confirmed=False,
                     confidence=ConfidenceLevel.LOW,
-                    challenges=[
-                        f"Stated faulting module '{faulting_module}' not found "
-                        "in top 5 stack frames."
-                    ],
+                    challenges=[f"Stated faulting module '{faulting_module}' not found in top 5 stack frames."],
                     corrections=[
                         f"Re-examine the stack - '{faulting_module}' may not be "
                         "the actual faulting module. Consider the top frames: "
-                        + ", ".join(
-                            str(f.get("module") or "unknown") for f in frames[:5]
-                        )
+                        + ", ".join(str(f.get("module") or "unknown") for f in frames[:5])
                     ],
                 )
                 return self._build_turn(verdict, primary_hyp, round_num)
@@ -86,8 +93,8 @@ class SkepticAgent(BaseAgent):
         self._accumulate_tokens(state)
         return self._build_turn(output, primary_hyp, round_num)
 
-    @staticmethod
     def _build_turn(
+        self,
         verdict: SkepticVerdict,
         primary_hyp: Optional[dict[str, object]],
         round_num: int,
@@ -96,8 +103,7 @@ class SkepticAgent(BaseAgent):
         message = (
             f"Confirmed ({verdict.confidence.value}): {primary_root}"
             if verdict.confirmed
-            else f"Challenged ({verdict.confidence.value}): "
-            + "; ".join(verdict.challenges)
+            else f"Challenged ({verdict.confidence.value}): " + "; ".join(verdict.challenges)
         )
         confidence_score = {
             ConfidenceLevel.HIGH: 0.90,
@@ -109,14 +115,13 @@ class SkepticAgent(BaseAgent):
                 Hypothesis(
                     root_cause=primary_root,
                     confidence=confidence_score,
-                    evidence=[c for c in verdict.challenges],
+                    evidence=list(verdict.challenges),
                 )
             ]
             if not verdict.confirmed
             else []
         )
-        return AgentTurn(
-            agent="Skeptic Agent",
+        return self.make_turn(
             turn_number=round_num,
             message=message,
             hypotheses=hyp,

@@ -86,7 +86,7 @@ Fixtures: `sample_cdb_output.txt`, `sample_logs_with_pii.txt`, `sample_logs_time
 ## Task 3 - AI Backends ✅
 
 Delivered:
-- `backends/ai/_base.py` - `_BaseAIBackend`: structured-output validation, one-shot correction retry, `last_usage` token accounting
+- `backends/ai/base.py` - `_BaseAIBackend`: structured-output validation, one-shot correction retry, `last_usage` token accounting
 - `backends/ai/anthropic_provider.py` - `AnthropicBackend`: tool-use structured output, mandatory `cache_control` ephemeral on the system block, `messages.stream()` token streaming
 - `backends/ai/openai_provider.py` - `OpenAIBackend`: `json_schema` strict structured output (`_to_openai_strict_schema`), `stream_options.include_usage` streaming
 - `backends/ai/__init__.py` - `create_ai_backend(settings)` factory
@@ -116,7 +116,7 @@ Integration coverage (`integration/test_ai_pipeline.py`, 5 tests): `IncidentSour
 ## Task 4 - Debug Backends ✅
 
 Delivered:
-- `backends/debug/_base.py` - `_BaseDebugBackend`: `extract()` template (validate → build argv → RAII subprocess w/ timeout → parse), `_symbol_score`, `normalize_address`
+- `backends/debug/base.py` - `_BaseDebugBackend`: `extract()` template (validate → build argv → RAII subprocess w/ timeout → parse), `_symbol_score`, `normalize_address`
 - `backends/debug/cdb_worker.py` - `CdbBackend` (Windows): ported `!analyze -v` regexes, `parse_cdb_frames`, NTSTATUS→FaultClass, symbol-server chain
 - `backends/debug/gdb_worker.py` - `GdbBackend` (Linux): `bt` parsing, `parse_gdb_frames`, signal→FaultClass
 - `backends/debug/lldb_worker.py` - `LldbBackend` (macOS): `bt all` parsing, `parse_lldb_frames`, Mach exception→FaultClass

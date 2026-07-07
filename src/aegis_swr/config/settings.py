@@ -18,7 +18,7 @@ simply ignored, leaving the model defaults intact.
 
 import json
 from pathlib import Path
-from typing import Any, Optional, Self
+from typing import Any, Literal, Optional, Self
 
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -47,7 +47,11 @@ of the app resolve the *same* file.
 """
 DEFAULT_CONFIG_PATH = CONFIG_JSON
 
-"""Per-fault-class agent weight matrix, mounted under the ``agent_weights`` key."""
+"""Ops-curated static agent-policy file. Its ``weights`` sub-object (the
+per-fault-class weight matrix) is mounted under the ``agent_weights`` key and
+its ``panel`` sub-object (the default candidate pool) under the ``agent_panel``
+key. See :class:`AegisJsonSettingsSource` for the exact shape.
+"""
 AGENTS_JSON = CONFIG_DIR / "agents.json"
 
 """Keywords for sensitive fields in the runtime settings file."""
@@ -450,9 +454,7 @@ class LogBackendSettings(BaseSettings):
 
     provider: str = "file"  # file | fluent  (elk deferred)
     file_root: Optional[str] = None  # base dir for service→file resolution (file)
-    default_severity_levels: list[str] = Field(
-        default_factory=lambda: ["FATAL", "CRITICAL", "ERROR", "WARNING"]
-    )
+    default_severity_levels: list[str] = Field(default_factory=lambda: ["FATAL", "CRITICAL", "ERROR", "WARNING"])
     elk_url: Optional[str] = None  # elk (deferred)
     fluent_host: Optional[str] = None  # fluent stub
     fluent_port: Optional[int] = None  # fluent stub
@@ -547,17 +549,36 @@ class APISettings(BaseSettings):
 class AgentWeightEntry(BaseSettings):
     """A per-agent weight vector used when combining agent opinions.
 
-    Each entry contains normalized weights (floats) assigned to the logical
-    agents that participate in the ensemble. These weights are used during
-    consensus and scoring to bias the influence of different agent roles.
+    Each entry contains normalized weights (floats) keyed by agent key (e.g.
+    ``"os_kernel"``). These weights bias the influence of different agents
+    during consensus scoring. The map is agent-count-agnostic: any number of
+    agent keys may appear, so the roster can grow without a schema change.
+
+    :ivar weights: Mapping of agent key to consensus weight for this fault
+        class. Need not be pre-normalized - the consensus evaluator divides by
+        the sum of the weights it is handed.
     """
 
     model_config = SettingsConfigDict(extra="ignore")
 
-    os_kernel: float = 0.30
-    code_analyst: float = 0.35
-    log_historian: float = 0.20
-    skeptic: float = 0.15
+    weights: dict[str, float] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_flat_mapping(cls, data: Any) -> Any:
+        """Accept either a structured or a bare agent-key mapping.
+
+        Ops-authored ``agents.json`` entries are human-friendly flat maps
+        (``{"os_kernel": 0.4, ...}``); an explicit ``{"weights": {...}}``
+        payload (as produced by this model's own construction) is also
+        accepted verbatim. A bare mapping is wrapped so both shapes load.
+
+        :param data: The raw input for this model.
+        :return: A ``{"weights": {...}}`` payload.
+        """
+        if isinstance(data, dict) and "weights" not in data:
+            return {"weights": data}
+        return data
 
 
 class AgentWeightsSettings(BaseSettings):
@@ -572,52 +593,52 @@ class AgentWeightsSettings(BaseSettings):
 
     memory_access_violation: AgentWeightEntry = Field(
         default_factory=lambda: AgentWeightEntry(
-            os_kernel=0.40, code_analyst=0.35, log_historian=0.15, skeptic=0.10
+            weights={"os_kernel": 0.40, "code_analyst": 0.35, "log_historian": 0.15, "skeptic": 0.10}
         )
     )
     null_pointer_dereference: AgentWeightEntry = Field(
         default_factory=lambda: AgentWeightEntry(
-            os_kernel=0.40, code_analyst=0.35, log_historian=0.15, skeptic=0.10
+            weights={"os_kernel": 0.40, "code_analyst": 0.35, "log_historian": 0.15, "skeptic": 0.10}
         )
     )
     use_after_free: AgentWeightEntry = Field(
         default_factory=lambda: AgentWeightEntry(
-            os_kernel=0.35, code_analyst=0.40, log_historian=0.15, skeptic=0.10
+            weights={"os_kernel": 0.35, "code_analyst": 0.40, "log_historian": 0.15, "skeptic": 0.10}
         )
     )
     stack_overflow: AgentWeightEntry = Field(
         default_factory=lambda: AgentWeightEntry(
-            os_kernel=0.45, code_analyst=0.30, log_historian=0.10, skeptic=0.15
+            weights={"os_kernel": 0.45, "code_analyst": 0.30, "log_historian": 0.10, "skeptic": 0.15}
         )
     )
     integer_divide_by_zero: AgentWeightEntry = Field(
         default_factory=lambda: AgentWeightEntry(
-            os_kernel=0.35, code_analyst=0.40, log_historian=0.10, skeptic=0.15
+            weights={"os_kernel": 0.35, "code_analyst": 0.40, "log_historian": 0.10, "skeptic": 0.15}
         )
     )
     deadlock: AgentWeightEntry = Field(
         default_factory=lambda: AgentWeightEntry(
-            os_kernel=0.35, code_analyst=0.30, log_historian=0.20, skeptic=0.15
+            weights={"os_kernel": 0.35, "code_analyst": 0.30, "log_historian": 0.20, "skeptic": 0.15}
         )
     )
     assertion_failure: AgentWeightEntry = Field(
         default_factory=lambda: AgentWeightEntry(
-            os_kernel=0.25, code_analyst=0.45, log_historian=0.15, skeptic=0.15
+            weights={"os_kernel": 0.25, "code_analyst": 0.45, "log_historian": 0.15, "skeptic": 0.15}
         )
     )
     resource_exhaustion: AgentWeightEntry = Field(
         default_factory=lambda: AgentWeightEntry(
-            os_kernel=0.35, code_analyst=0.25, log_historian=0.30, skeptic=0.10
+            weights={"os_kernel": 0.35, "code_analyst": 0.25, "log_historian": 0.30, "skeptic": 0.10}
         )
     )
     unhandled_exception: AgentWeightEntry = Field(
         default_factory=lambda: AgentWeightEntry(
-            os_kernel=0.30, code_analyst=0.35, log_historian=0.20, skeptic=0.15
+            weights={"os_kernel": 0.30, "code_analyst": 0.35, "log_historian": 0.20, "skeptic": 0.15}
         )
     )
     unknown: AgentWeightEntry = Field(
         default_factory=lambda: AgentWeightEntry(
-            os_kernel=0.30, code_analyst=0.35, log_historian=0.20, skeptic=0.15
+            weights={"os_kernel": 0.30, "code_analyst": 0.35, "log_historian": 0.20, "skeptic": 0.15}
         )
     )
 
@@ -629,6 +650,84 @@ class AgentWeightsSettings(BaseSettings):
         directly (for convenience when deserializing external inputs).
         """
         return getattr(self, fault_class_value, self.unknown)
+
+
+class AgentPanelSettings(BaseSettings):
+    """Ops-curated, static panel policy.
+
+    This is the operator-authored candidate pool that seeds panel selection -
+    the same ownership as the consensus weight matrix, so it ships in the same
+    ``agents.json`` file (under the ``panel`` key). It is *static policy*, not
+    the per-invocation runtime request (that ``config.json`` ``panel`` section
+    is introduced in a later phase and is a separate concern).
+
+    :ivar default_panel: Ordered agent keys forming the default candidate pool
+        used when no per-fault-class override applies.
+    :ivar per_fault_class: Optional per-fault-class overrides of the candidate
+        pool, keyed by :class:`~aegis_swr.core.fault_codes.FaultClass` value
+        string (e.g. ``"stack_overflow"``).
+    """
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    default_panel: list[str] = Field(default_factory=lambda: ["os_kernel", "code_analyst", "log_historian", "skeptic"])
+    per_fault_class: dict[str, list[str]] = Field(default_factory=dict)
+
+
+#: The two runtime panel-selection modes. Declared as a module-level alias
+#: (rather than an inline ``Literal[...]`` annotation) so ``UP037`` does not strip
+#: the quotes off the string members under ``from __future__ import annotations``.
+PanelMode = Literal["auto", "explicit"]
+
+
+class PanelRuntimeSettings(BaseSettings):
+    """Per-invocation runtime panel request (runtime, not ops policy).
+
+    This is the *user's* per-run choice of panel, distinct from the ops-curated
+    static :class:`AgentPanelSettings`. It lives in ``config.json`` (under the
+    top-level ``panel`` key), alongside ``core`` / ``backends`` / ``sandbox`` /
+    ``api``, because it captures "what the user is asking for on this run" rather
+    than "what the operator has decided about agent authority".
+
+    When :attr:`mode` is ``"explicit"`` and :attr:`explicit` is non-empty, those
+    specs are passed straight to the orchestrator as its explicit panel; when
+    ``"auto"`` (or ``explicit`` is empty) the orchestrator auto-selects the panel.
+
+    :ivar mode: ``"auto"`` (auto-select) or ``"explicit"`` (use :attr:`explicit`).
+    :ivar explicit: The per-run agent specs, deserialized into validated
+        :class:`~aegis_swr.agents.base.AgentSpec` instances. Stored under an
+        ``Any`` element annotation so the concrete ``AgentSpec`` type (which lives
+        in ``agents.base``, a module that itself imports :class:`Settings`) need
+        not be imported at module-load time; the ``mode="before"`` validator
+        performs the lazy import and coercion, and the default empty list never
+        triggers it.
+    """
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    mode: PanelMode = "auto"
+    explicit: list[Any] = Field(default_factory=list)
+
+    @field_validator("explicit", mode="before")
+    @classmethod
+    def _coerce_specs(cls, value: Any) -> list[Any]:
+        """Coerce raw ``explicit`` entries into validated ``AgentSpec`` objects.
+
+        ``agents.base`` imports :class:`Settings`, so importing ``AgentSpec`` at
+        the top of this module would form a circular import. The import is
+        therefore deferred to this validator, which only runs when non-default
+        ``explicit`` data is supplied (config.json / env / kwargs) - by which
+        point both modules are fully loaded.
+
+        :param value: The raw ``explicit`` value (list of dicts or specs).
+        :return: A list of validated ``AgentSpec`` instances.
+        """
+        from aegis_swr.agents.base import AgentSpec
+
+        specs: list[Any] = []
+        for item in value or []:
+            specs.append(item if isinstance(item, AgentSpec) else AgentSpec.model_validate(item))
+        return specs
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:
@@ -650,10 +749,18 @@ def _read_json_object(path: Path) -> dict[str, Any]:
 class AegisJsonSettingsSource(PydanticBaseSettingsSource):
     """Settings source backed by the two JSON files under :data:`DATA_DIR`.
 
-    ``config.json`` supplies the top-level runtime sections; ``agents.json``
-    supplies the weight matrix and is mounted under the ``agent_weights`` key.
-    A bad or missing file never aborts startup - it simply contributes nothing,
-    leaving the dataclass defaults in force.
+    ``config.json`` supplies the top-level runtime sections. ``agents.json`` is
+    the ops-curated static agent-policy file with a two-key top-level shape::
+
+        {
+          "weights": { "<fault_class>": { "<agent_key>": <weight>, ... }, ... },
+          "panel":   { "default_panel": [...], "per_fault_class": {...} }
+        }
+
+    Its ``weights`` sub-object is mounted under the ``agent_weights`` key and its
+    ``panel`` sub-object under the ``agent_panel`` key, so both concerns share a
+    single operator-owned file. A bad or missing file never aborts startup - it
+    simply contributes nothing, leaving the model defaults in force.
     """
 
     def __init__(self, settings_cls: type[BaseSettings]) -> None:
@@ -661,7 +768,12 @@ class AegisJsonSettingsSource(PydanticBaseSettingsSource):
         data = dict(_read_json_object(CONFIG_JSON))
         agents = _read_json_object(AGENTS_JSON)
         if agents:
-            data["agent_weights"] = agents
+            weights = agents.get("weights")
+            if isinstance(weights, dict):
+                data["agent_weights"] = weights
+            panel = agents.get("panel")
+            if isinstance(panel, dict):
+                data["agent_panel"] = panel
         self._data = data
 
     def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
@@ -683,9 +795,11 @@ class Settings(BaseSettings):
     """Top-level application settings.
 
     This is the primary settings class consumers should instantiate. It
-    aggregates the core, backends, sandbox, api and agent-weight sections and
-    wires in the custom JSON settings source so that ``config.json`` and
-    ``agents.json`` are read automatically.
+    aggregates the core, backends, sandbox, api, agent-weight, agent-panel and
+    runtime-panel sections and wires in the custom JSON settings source so that
+    ``config.json`` and ``agents.json`` are read automatically. The static
+    ``agent_panel`` policy is loaded from ``agents.json``; the runtime ``panel``
+    request (the user's per-run choice) is loaded from ``config.json``.
     """
 
     model_config = SettingsConfigDict(
@@ -721,6 +835,8 @@ class Settings(BaseSettings):
     sandbox: SandboxSettings = Field(default_factory=SandboxSettings)
     api: APISettings = Field(default_factory=APISettings)
     agent_weights: AgentWeightsSettings = Field(default_factory=AgentWeightsSettings)
+    agent_panel: AgentPanelSettings = Field(default_factory=AgentPanelSettings)
+    panel: PanelRuntimeSettings = Field(default_factory=PanelRuntimeSettings)
 
     def redacted_dump(self) -> dict[str, Any]:
         """Return the settings dict with secret values replaced by '***'"""

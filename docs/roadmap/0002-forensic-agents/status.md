@@ -8,7 +8,7 @@ Updated as each task lands.
 | Task  | Name                                  | Status         | Tests |
 |-------|---------------------------------------|----------------|-------|
 | 01.0  | Agent Package Restructure             | ⬜ Not started | -     |
-| 02.0  | Extensible Panel (Registry/Consensus) | ⬜ Not started | -     |
+| 02.0  | Extensible Panel (Registry/Consensus) | ✅ Superseded (see Notes) | 538 |
 | 03.0  | Memory Forensics Agent                | ⬜ Not started | -     |
 | 04.0  | Concurrency Analyst Agent             | ⬜ Not started | -     |
 | 05.0  | Exploitability Analyst Agent          | ⬜ Not started | -     |
@@ -18,13 +18,39 @@ Updated as each task lands.
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
-**Current gate status:** decomposition complete; implementation not started. The
-milestone is fully decomposed into the task → subtask tree (see each task's
-`README.md`). No `src/aegis_swr/agents/` code has changed yet; the existing
-four-agent panel and consensus matrix from Milestone 0001 remain in force.
+**Current gate status:** Task 02.0 (Extensible Panel) has been superseded and
+implemented outside this milestone's original decomposition — see below. Tasks
+01.0 and 03.0-08.0 remain "Not started" as originally decomposed.
 
 ## Notes & decisions
 
+- **Task 02.0 superseded (2026-07-07):** the "Dynamic Agent Roster" redesign
+  (plan: `/Users/atatat/.claude/plans/orchestrator-src-aegis-swr-core-orchestr-wondrous-harp.md`)
+  implements a superset of Task 02.0's scope directly in `src/aegis_swr/` -
+  `BaseAgent` ClassVars (`agent_key`/`display_name`/`category`/`role`/
+  `contributes_fix`), `AGENT_REGISTRY`/`create_agent` (`agents/registry.py`),
+  `resolve_panel`/`resolve_consensus_weights` (`agents/panel.py`), and
+  `PanelResolver`/`ExplicitPanelStrategy`/`AgenticManagerStrategy`
+  (`core/panel_strategy.py`) - plus a per-agent `priority`/`weight` model
+  (`AgentSpec`) and an `AgentRole` (`INVESTIGATOR`/`ARBITER`/`SYNTHESIS`)
+  invariant (exactly one `ARBITER` per panel) that Task 02.0's original spec
+  did not have. `core/orchestrator.py` now builds a fresh LangGraph per run
+  from the resolved panel instead of a static 4-node chain. The default
+  (no-explicit-panel) behavior remains byte-identical to Milestone 0001's
+  `os_kernel -> code_analyst -> log_historian -> skeptic` chain and weight
+  matrix - verified by `tests/integration/test_orchestrator_dynamic_panel.py`.
+  **Disposition of `02.0-extensible-panel/*.md`:** `01-generalize-base-agent.md`
+  and `02-consensus-weight-map.md` were consumed near-verbatim;
+  `03-registry-and-panel-factory.md`'s single `create_agent_panel(fault_class)`
+  factory was superseded by the `resolve_panel(specs)` + `PanelResolver` split
+  (needed for explicit-vs-auto selection); `04-orchestrator-dynamic-panel.md`'s
+  "union default panel + no-op specialist nodes" workaround was superseded by
+  building the graph fresh per run once the panel is known; `05-config-model.md`'s
+  single `AgentPanelSettings` was superseded by an ops-static (`agents.json`:
+  `weights` + `panel`) vs. runtime-explicit (`config.json`: `Settings.panel`)
+  split. Tasks 03.0-08.0 (the four forensic specialists + remediation planner)
+  are unaffected in scope and will register into `AGENT_REGISTRY` once
+  implemented.
 - **Roster (ratified 2026-06-29):** four `forensic/` specialists
   (`memory_forensics`, `concurrency_analyst`, `exploitability`,
   `resource_exhaustion`) + one `synthesis/` agent (`remediation_planner`).

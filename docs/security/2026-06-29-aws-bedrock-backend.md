@@ -6,7 +6,7 @@ Scope reviewed:
 - `src/aegis_swr/config/settings.py` (`BedrockSettings`, `_SECRET_KEYS`, `redacted_dump`/`_redact_secrets`)
 - `src/aegis_swr/backends/ai/__init__.py` (factory)
 - `config.example.json` (bedrock config block)
-- Cross-cutting: `src/aegis_swr/cli/aegis_logging.py` (`_sensitive_filter`, `NOISY_LIBRARY_LOGGERS`), `src/aegis_swr/core/exceptions.py`, `src/aegis_swr/backends/ai/_base.py`
+- Cross-cutting: `src/aegis_swr/cli/aegis_logging.py` (`_sensitive_filter`, `NOISY_LIBRARY_LOGGERS`), `src/aegis_swr/core/exceptions.py`, `src/aegis_swr/backends/ai/base.py`
 
 ## Assets & trust boundaries
 

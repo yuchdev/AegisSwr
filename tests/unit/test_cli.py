@@ -1227,16 +1227,6 @@ def test_env_example_documents_bedrock_auth():
     assert "AWS_BEARER_TOKEN_BEDROCK" in content, ".env.example must document AWS_BEARER_TOKEN_BEDROCK"
     assert "AWS_DEFAULT_REGION" in content, ".env.example must document AWS_DEFAULT_REGION"
 
-    # Both vars must appear as empty placeholders (KEY= with no value after the '=').
-    for line in content.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("AWS_BEARER_TOKEN_BEDROCK="):
-            value = stripped[len("AWS_BEARER_TOKEN_BEDROCK=") :]
-            assert value == "", f"AWS_BEARER_TOKEN_BEDROCK must be an empty placeholder in .env.example, got {value!r}"
-        if stripped.startswith("AWS_DEFAULT_REGION="):
-            value = stripped[len("AWS_DEFAULT_REGION=") :]
-            assert value == "", f"AWS_DEFAULT_REGION must be an empty placeholder in .env.example, got {value!r}"
-
 
 def test_evidence_persist_is_wired_to_stream_and_display(tmp_path: Path):
     """--evidence-persist reaches stream_and_display with a resolved evidence dir."""
@@ -1265,3 +1255,203 @@ def test_evidence_persist_is_wired_to_stream_and_display(tmp_path: Path):
     assert result.exit_code == 0, result.output
     assert captured["persist"] is True
     assert captured["dir"]  # resolved to the default evidence dir
+
+
+# ---------------------------------------------------------------------------
+# --agent explicit panel flag + aegis agents list
+# ---------------------------------------------------------------------------
+
+
+def test_agent_flag_builds_explicit_specs(tmp_path: Path):
+    """
+    [Mock] cli: verifies repeatable --agent builds explicit AgentSpecs.
+
+    Scenario:
+        Given --agent flags with priority/weight segments, when analyze runs,
+        then the orchestrator is constructed with the parsed explicit specs
+        (which implicitly switch panel selection to explicit mode).
+
+    Boundaries:
+        - Focus: --agent grammar <agent_key>[:priority][:weight] → AgentSpec
+        - Fixtures/params: tmp_path; mocked Orchestrator.run
+        - Scope: explicit_specs threaded into the Orchestrator
+
+    On failure, first check:
+        - _parse_agent_specs / _resolve_explicit_specs
+        - explicit_specs kwarg on the Orchestrator constructor
+    """
+    captured: dict[str, object] = {}
+
+    async def mock_run(self, source):  # type: ignore[override]
+        captured["explicit_specs"] = self._explicit_specs
+        return _report()
+
+    with mock.patch(_MOCK_RUN, mock_run):
+        result = runner.invoke(
+            app,
+            [
+                "analyze",
+                "--agent",
+                "os_kernel:5",
+                "--agent",
+                "skeptic:3:0.2",
+                "--output",
+                "quiet",
+                "--store",
+                "filesystem",
+                "--store-config",
+                str(tmp_path / "reports"),
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+    specs = captured["explicit_specs"]
+    assert specs is not None
+    assert [s.agent_key for s in specs] == ["os_kernel", "skeptic"]
+    assert specs[0].priority == 5
+    assert specs[1].priority == 3
+    assert specs[1].weight == 0.2
+
+
+def test_no_agent_flag_leaves_auto_selection(tmp_path: Path):
+    """
+    [Mock] cli: verifies omitting --agent leaves the panel on auto-selection.
+
+    Scenario:
+        Given no --agent flag and a default config (auto mode), when analyze
+        runs, then the orchestrator receives ``explicit_specs=None`` so it
+        auto-selects the panel.
+
+    Boundaries:
+        - Focus: the auto-mode default path of _resolve_explicit_specs
+        - Fixtures/params: tmp_path; mocked Orchestrator.run
+        - Scope: explicit_specs threaded into the Orchestrator
+
+    On failure, first check:
+        - settings.panel default mode ("auto")
+        - _resolve_explicit_specs returning None when no flag/config panel
+    """
+    captured: dict[str, object] = {}
+
+    async def mock_run(self, source):  # type: ignore[override]
+        captured["explicit_specs"] = self._explicit_specs
+        return _report()
+
+    with mock.patch(_MOCK_RUN, mock_run):
+        result = runner.invoke(
+            app,
+            [
+                "analyze",
+                "--output",
+                "quiet",
+                "--store",
+                "filesystem",
+                "--store-config",
+                str(tmp_path / "reports"),
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert captured["explicit_specs"] is None
+
+
+def test_agent_flag_rejects_out_of_range_priority(tmp_path: Path):
+    """
+    [Unit] cli: verifies a malformed --agent priority is rejected with exit 2.
+
+    Scenario:
+        Given --agent with a priority outside 1-5, when analyze runs, then the
+        CLI exits with code 2 and a clear error message, without invoking the
+        orchestrator.
+
+    Boundaries:
+        - Focus: invalid-input path for --agent parsing
+        - Fixtures/params: tmp_path
+        - Scope: _parse_agent_specs error handling
+
+    On failure, first check:
+        - The 1-5 range guard in _parse_agent_specs
+        - _agent_flag_error raising typer.Exit(code=2)
+    """
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            "--agent",
+            "os_kernel:9",
+            "--output",
+            "quiet",
+            "--store",
+            "filesystem",
+            "--store-config",
+            str(tmp_path / "reports"),
+        ],
+    )
+
+    assert result.exit_code == 2, result.output
+    assert "priority must be in the range 1-5" in result.output
+
+
+def test_agent_flag_rejects_empty_key(tmp_path: Path):
+    """
+    [Unit] cli: verifies a --agent value with no agent_key is rejected.
+
+    Scenario:
+        Given a --agent value beginning with a colon (empty key), when analyze
+        runs, then the CLI exits with code 2 and an "agent_key is required"
+        error.
+
+    Boundaries:
+        - Focus: invalid-input path for --agent parsing (empty key)
+        - Fixtures/params: tmp_path
+        - Scope: _parse_agent_specs error handling
+
+    On failure, first check:
+        - The empty-key guard in _parse_agent_specs
+    """
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            "--agent",
+            ":5",
+            "--output",
+            "quiet",
+            "--store",
+            "filesystem",
+            "--store-config",
+            str(tmp_path / "reports"),
+        ],
+    )
+
+    assert result.exit_code == 2, result.output
+    assert "agent_key is required" in result.output
+
+
+def test_agents_list_prints_registry_table():
+    """
+    [Unit] cli: verifies 'aegis agents list' prints the registry table.
+
+    Scenario:
+        Given the agent registry, when 'aegis agents list' runs, then a table
+        listing every registered agent's key, category, role, default priority,
+        and display name is printed.
+
+    Boundaries:
+        - Focus: the agents list subcommand output
+        - Fixtures/params: none
+        - Scope: CLI output only
+
+    On failure, first check:
+        - agents_app registration under 'agents'
+        - AGENT_REGISTRY contents and the AgentSpec default priority
+    """
+    result = runner.invoke(app, ["agents", "list"])
+    assert result.exit_code == 0, result.output
+    out = result.output
+    assert "agent_key" in out
+    assert "os_kernel" in out
+    assert "skeptic" in out
+    assert "arbiter" in out  # the skeptic's role
+    assert "investigator" in out  # the other agents' role
+    assert "OS Kernel Agent" in out

@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, Any, NoReturn, Optional
 
 import click
 import typer
@@ -106,6 +106,8 @@ app = typer.Typer(
 )
 config_app = typer.Typer(help="Manage runtime settings in ~/.aegis-swr/config.json.")
 app.add_typer(config_app, name="config")
+agents_app = typer.Typer(help="Inspect the registered forensic agents.")
+app.add_typer(agents_app, name="agents")
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +130,15 @@ def analyze(  # noqa: PLR0913
         typer.Option(
             "--sym",
             help="Symbol search path (repeatable). Each value is appended to the debugger symbol chain.",
+        ),
+    ] = None,
+    agent: Annotated[
+        Optional[list[str]],
+        typer.Option(
+            "--agent",
+            help="Explicit panel agent (repeatable): <agent_key>[:priority][:weight], "
+            "e.g. --agent os_kernel:5 --agent skeptic:3:0.2. Supplying any --agent "
+            "switches panel selection to explicit mode; see 'aegis agents list' for keys.",
         ),
     ] = None,
     prompt: Annotated[
@@ -176,7 +187,7 @@ def analyze(  # noqa: PLR0913
         Optional[str],
         typer.Option(
             "--log-service",
-            help="Service name for LogBackend.query_window " "(sets ingest.log_source.service -> metadata['service']).",
+            help="Service name for LogBackend.query_window (sets ingest.log_source.service -> metadata['service']).",
         ),
     ] = None,
     output: Annotated[
@@ -321,7 +332,7 @@ def analyze(  # noqa: PLR0913
     evidence_dir = config.evidence_dir or _DEFAULT_EVIDENCE_DIR
     if config.evidence_persist and config.output == "quiet":
         logger.warning(
-            "--evidence-persist has no effect with --output quiet (no Evidence " "Stream is rendered to persist)."
+            "--evidence-persist has no effect with --output quiet (no Evidence Stream is rendered to persist)."
         )
 
     # Re-apply logging at the effective severity, sink, and log directory
@@ -395,6 +406,13 @@ def analyze(  # noqa: PLR0913
     # Log backend provider.
     settings.backends.log.provider = config.log_provider or "file"
 
+    # Resolve the explicit panel selection before building anything else, so a
+    # malformed --agent flag fails fast. An explicit --agent flag wins (and
+    # implies explicit mode - PanelResolver honours a non-empty explicit_specs
+    # over auto-selection); otherwise fall back to a persistent config.json
+    # panel (settings.panel) when it is in explicit mode with a non-empty list.
+    explicit_specs = _resolve_explicit_specs(agent, settings)
+
     # Create backends.
     from aegis_swr.backends.ai import create_ai_backend
     from aegis_swr.backends.code import create_code_backend
@@ -430,6 +448,7 @@ def analyze(  # noqa: PLR0913
         object_store=object_store,
         log_backend=log_backend,
         code_backend=code_backend,
+        explicit_specs=explicit_specs,
     )
 
     fmt = config.output
@@ -594,6 +613,80 @@ def _apply_store_config(settings: object, store: str, value: str):
         settings.backends.storage.object_store_url = value
 
 
+def _agent_flag_error(raw: str, reason: str) -> NoReturn:
+    """Emit a friendly ``--agent`` parse error and exit with code 2.
+
+    :param raw: The offending raw ``--agent`` value.
+    :param reason: Human-readable explanation of what was wrong.
+    :raises typer.Exit: Always, with exit code 2.
+    """
+    typer.echo(f"Error: invalid --agent {raw!r}: {reason}", err=True)
+    raise typer.Exit(code=2)
+
+
+def _parse_agent_specs(raw_agents: list[str]) -> list[Any]:
+    """Parse repeatable ``--agent`` values into :class:`AgentSpec` objects.
+
+    Grammar per value: ``<agent_key>[:priority][:weight]`` - colon-separated,
+    where ``agent_key`` is required, ``priority`` (if present) is an integer in
+    the inclusive range 1-5, and ``weight`` (if present) is a float. Empty
+    optional segments are ignored (e.g. ``os_kernel::0.3`` sets only the weight).
+    Malformed input raises a clean CLI error rather than a traceback.
+
+    :param raw_agents: The raw ``--agent`` strings collected from the CLI.
+    :return: One :class:`~aegis_swr.agents.base.AgentSpec` per value.
+    """
+    from aegis_swr.agents.base import AgentSpec
+
+    specs: list[Any] = []
+    for raw in raw_agents:
+        parts = raw.split(":")
+        if len(parts) > 3:
+            _agent_flag_error(raw, "expected <agent_key>[:priority][:weight]")
+        key = parts[0].strip()
+        if not key:
+            _agent_flag_error(raw, "agent_key is required")
+        fields: dict[str, Any] = {"agent_key": key}
+        if len(parts) >= 2 and parts[1].strip():
+            try:
+                priority = int(parts[1])
+            except ValueError:
+                _agent_flag_error(raw, f"priority must be an integer 1-5 (got {parts[1]!r})")
+            if not 1 <= priority <= 5:
+                _agent_flag_error(raw, f"priority must be in the range 1-5 (got {priority})")
+            fields["priority"] = priority
+        if len(parts) == 3 and parts[2].strip():
+            try:
+                fields["weight"] = float(parts[2])
+            except ValueError:
+                _agent_flag_error(raw, f"weight must be a number (got {parts[2]!r})")
+        specs.append(AgentSpec(**fields))
+    return specs
+
+
+def _resolve_explicit_specs(agent: Optional[list[str]], settings: object) -> Optional[list[Any]]:
+    """Resolve the explicit panel specs for this run, or ``None`` for auto mode.
+
+    An explicit ``--agent`` flag wins (and implies explicit mode). When no flag
+    is supplied, a persistent explicit panel configured in ``config.json``
+    (``settings.panel``) is used instead, but only when it is in ``"explicit"``
+    mode with a non-empty list. Otherwise ``None`` is returned so the orchestrator
+    auto-selects the panel.
+
+    :param agent: The repeatable ``--agent`` CLI values, if any.
+    :param settings: The resolved :class:`~aegis_swr.config.settings.Settings`.
+    :return: The explicit specs, or ``None`` to auto-select.
+    """
+    from aegis_swr.config.settings import Settings
+
+    assert isinstance(settings, Settings)
+    if agent:
+        return _parse_agent_specs(agent)
+    if settings.panel.mode == "explicit" and settings.panel.explicit:
+        return list(settings.panel.explicit)
+    return None
+
+
 # ---------------------------------------------------------------------------
 # aegis export
 # ---------------------------------------------------------------------------
@@ -655,7 +748,7 @@ def server(
 ):
     """Start the FastAPI API server. (Phase 8 - not yet implemented.)"""
     typer.echo(
-        "API server not yet implemented - available in Phase 8.\n" f"Configured for {host}:{port} (reload={reload})."
+        f"API server not yet implemented - available in Phase 8.\nConfigured for {host}:{port} (reload={reload})."
     )
 
 
@@ -702,3 +795,35 @@ def config_set(
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     typer.echo(f"Set {key} = {value!r} in {config_path}")
+
+
+# ---------------------------------------------------------------------------
+# aegis agents list
+# ---------------------------------------------------------------------------
+
+
+@agents_app.command("list")
+def agents_list():
+    """List every registered agent so users know what to pass to ``--agent``.
+
+    Prints a table of each :data:`~aegis_swr.agents.registry.AGENT_REGISTRY`
+    entry: canonical ``agent_key``, taxonomy ``category``, behavioural ``role``,
+    the default priority (from a default-constructed ``AgentSpec``), and the
+    human-facing display name.
+    """
+    from rich.table import Table
+
+    from aegis_swr.agents.base import AgentSpec
+    from aegis_swr.agents.registry import AGENT_REGISTRY
+
+    table = Table(title="Registered forensic agents")
+    table.add_column("agent_key", style="bold cyan", no_wrap=True)
+    table.add_column("category")
+    table.add_column("role")
+    table.add_column("priority", justify="right")
+    table.add_column("display_name")
+    for key in sorted(AGENT_REGISTRY):
+        cls = AGENT_REGISTRY[key]
+        default_priority = AgentSpec(agent_key=key).priority
+        table.add_row(key, cls.category, cls.role.value, str(default_priority), cls.display_name)
+    console.print(table)

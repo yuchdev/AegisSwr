@@ -1,4 +1,5 @@
 """Unit tests for the four Synthetic War Room agents"""
+
 from __future__ import annotations
 
 import json
@@ -73,10 +74,18 @@ def _base_state(**extra: Any) -> InvestigationState:
             "faulting_module": "db_writer",
             "faulting_function": "db_writer::serialize",
             "stack_frames": [
-                {"frame_number": 0, "module": "db_writer", "function": "db_writer::serialize",
-                 "instruction_address": "0x00007ff8016a1c3f"},
-                {"frame_number": 1, "module": "db_writer", "function": "db_writer::flush",
-                 "instruction_address": "0x00007ff8016a2210"},
+                {
+                    "frame_number": 0,
+                    "module": "db_writer",
+                    "function": "db_writer::serialize",
+                    "instruction_address": "0x00007ff8016a1c3f",
+                },
+                {
+                    "frame_number": 1,
+                    "module": "db_writer",
+                    "function": "db_writer::flush",
+                    "instruction_address": "0x00007ff8016a2210",
+                },
             ],
             "log_summary": "14:02:10 ERROR write latency 480ms",
             "mode": "crash_dump",
@@ -232,16 +241,9 @@ async def test_os_kernel_injects_skeptic_corrections_on_round_2(settings: Settin
     """
     ai = MockAIBackend(responses=[_os_kernel_response()])
     agent = OSKernelAgent(ai, settings)
-    skeptic_turn = AgentTurn(
-        agent="Skeptic Agent",
-        turn_number=1,
-        message="Challenged",
-        confidence_score=0.30,
-        corrections=["Re-examine frame 3"],
-    )
     state = _base_state(
         round_number=2,
-        discussion_history=[skeptic_turn.model_dump(mode="json")],
+        latest_arbiter_feedback=["Re-examine frame 3"],
     )
     await agent.run(state)
     sent = ai.calls[0]["messages"][0]["content"]
@@ -312,7 +314,9 @@ async def test_code_analyst_requests_correct_schema(settings: Settings):
     ai = MockAIBackend(responses=[_code_analyst_response()])
     agent = CodeAnalystAgent(ai, settings)
     os_turn = AgentTurn(
-        agent="OS Kernel Agent", turn_number=1, message="UAF",
+        agent="OS Kernel Agent",
+        turn_number=1,
+        message="UAF",
         hypotheses=[Hypothesis(root_cause="UAF", confidence=0.85)],
         confidence_score=0.85,
     )
@@ -380,9 +384,7 @@ async def test_code_analyst_uses_latest_kernel_turn_and_encodes_fix(settings: Se
                     confidence=0.91,
                     code_location="db_writer.cpp:142",
                 ),
-                alternative_hypotheses=[
-                    Hypothesis(root_cause="Allocator poisoning", confidence=0.25)
-                ],
+                alternative_hypotheses=[Hypothesis(root_cause="Allocator poisoning", confidence=0.25)],
                 confidence_score=0.91,
                 probabilistic_fix="@@ -1 +1 @@\n-old\n+new",
                 fix_language="python",
@@ -397,20 +399,10 @@ async def test_code_analyst_uses_latest_kernel_turn_and_encodes_fix(settings: Se
         hypotheses=[Hypothesis(root_cause="Current UAF", confidence=0.82)],
         confidence_score=0.82,
     )
-    stale_turn = AgentTurn(
-        agent="OS Kernel Agent",
-        turn_number=1,
-        message="Stale kernel interpretation",
-        hypotheses=[Hypothesis(root_cause="Old UAF", confidence=0.55)],
-        confidence_score=0.55,
-    )
     turn = await agent.run(
         _base_state(
             round_number=2,
-            discussion_history=[
-                latest_turn.model_dump(mode="json"),
-                stale_turn.model_dump(mode="json"),
-            ],
+            latest_turn_this_round=latest_turn.model_dump(mode="json"),
         )
     )
     sent = json.loads(ai.calls[0]["messages"][0]["content"])
@@ -578,21 +570,11 @@ async def test_log_historian_uses_latest_code_turn_and_vector_results(settings: 
         hypotheses=[Hypothesis(root_cause="Current UAF", confidence=0.88)],
         confidence_score=0.88,
     )
-    stale_turn = AgentTurn(
-        agent="Code Analyst Agent",
-        turn_number=1,
-        message="Stale code analysis",
-        hypotheses=[Hypothesis(root_cause="Old UAF", confidence=0.52)],
-        confidence_score=0.52,
-    )
 
     await agent.run(
         _base_state(
             round_number=2,
-            discussion_history=[
-                latest_turn.model_dump(mode="json"),
-                stale_turn.model_dump(mode="json"),
-            ],
+            latest_turn_this_round=latest_turn.model_dump(mode="json"),
         ),
         vector_store=vector_store,
         history=[_prior_report()],
@@ -698,7 +680,7 @@ async def test_skeptic_confirmed_sets_high_confidence(settings: Settings):
     )
     turn = await agent.run(state)
     assert isinstance(turn, AgentTurn)
-    assert turn.confidence_score >= 0.65   # MEDIUM or HIGH
+    assert turn.confidence_score >= 0.65  # MEDIUM or HIGH
 
 
 async def test_skeptic_rejected_sets_low_confidence(settings: Settings):

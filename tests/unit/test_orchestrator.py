@@ -1,19 +1,30 @@
 """Unit tests for the MAS orchestrator: full pipeline, routing, HITL"""
+
 from __future__ import annotations
 
 from typing import Any
 from unittest import mock
 
+import pytest
+
+from aegis_swr.agents.base import AgentSpec, BaseAgent
+from aegis_swr.agents.code_analyst import CodeAnalystAgent
+from aegis_swr.agents.log_historian import LogHistorianAgent
+from aegis_swr.agents.os_kernel import OSKernelAgent
+from aegis_swr.agents.skeptic import SkepticAgent
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.orchestrator import Orchestrator
 from aegis_swr.core.schemas import (
+    AgentRole,
+    AgentTurn,
     CodeAnalystOutput,
     ConfidenceLevel,
     ExceptionSummary,
     Hypothesis,
     IncidentMode,
     IncidentSource,
+    InvestigationState,
     LogHistorianOutput,
     OSKernelOutput,
     RCAHypothesis,
@@ -177,9 +188,15 @@ async def test_skeptic_rejection_triggers_second_round(settings: Settings):
     """
     responses = [
         # Round 1: Skeptic rejects.
-        _os(0.90), _code(0.90), _historian(0.90), _skeptic_no(),
+        _os(0.90),
+        _code(0.90),
+        _historian(0.90),
+        _skeptic_no(),
         # Round 2: Skeptic confirms.
-        _os(0.90), _code(0.90), _historian(0.90), _skeptic_yes(),
+        _os(0.90),
+        _code(0.90),
+        _historian(0.90),
+        _skeptic_yes(),
     ]
     orch = _make_orchestrator(settings, responses)
     report = await orch.run(_log_only_source())
@@ -224,8 +241,7 @@ async def test_deadlock_produces_hitl_request(settings: Settings):
     report = await orch.run(_log_only_source())
 
     assert report.hitl_request is not None
-    assert "consensus" in report.hitl_request.question.lower() or \
-           "limit" in report.hitl_request.question.lower()
+    assert "consensus" in report.hitl_request.question.lower() or "limit" in report.hitl_request.question.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -341,3 +357,160 @@ async def test_run_streaming_yields_hitl_event_on_deadlock(settings: Settings):
         events.append(event)
 
     assert any(e["type"] == "hitl_request" for e in events)
+
+
+# ---------------------------------------------------------------------------
+# Dynamic-panel invariants (Phase 4 rewrite)
+# ---------------------------------------------------------------------------
+
+
+async def test_default_panel_preserves_investigator_order_and_consensus(settings: Settings):
+    """[Unit] orchestrator: the default panel keeps the pre-refactor node chain.
+
+    Back-compat sanity check: with no explicit specs the resolved default panel
+    must debate in the historical ``os_kernel → code_analyst → log_historian →
+    skeptic`` order (so the FIFO-scripted responses line up and each agent reads
+    the correct predecessor turn), and the weighted consensus of a uniform-0.90
+    round must equal 0.90.
+    """
+    orch = _make_orchestrator(settings, _one_round(confidence=0.90))
+    report = await orch.run(_log_only_source())
+
+    assert [turn.agent_key for turn in report.agent_dialogue] == [
+        "os_kernel",
+        "code_analyst",
+        "log_historian",
+        "skeptic",
+    ]
+    assert report.confidence_score == pytest.approx(0.90)
+
+
+def test_order_panel_sorts_by_priority_then_puts_arbiter_last(settings: Settings):
+    """[Unit] orchestrator: investigators sort by priority desc; arbiter is last.
+
+    Ties preserve incoming order (stable sort) so a same-priority default panel
+    stays in its declared sequence, and the sole arbiter is scheduled last
+    regardless of its own (here maximal) priority.
+    """
+    ai = MockAIBackend()
+    # Input order: os_kernel(1), code_analyst(5), log_historian(5), skeptic(5).
+    panel: list[BaseAgent] = [
+        OSKernelAgent(ai, settings, AgentSpec(agent_key="os_kernel", priority=1)),
+        CodeAnalystAgent(ai, settings, AgentSpec(agent_key="code_analyst", priority=5)),
+        LogHistorianAgent(ai, settings, AgentSpec(agent_key="log_historian", priority=5)),
+        SkepticAgent(ai, settings, AgentSpec(agent_key="skeptic", priority=5)),
+    ]
+    ordered = Orchestrator._order_panel(panel)
+
+    # code(5) and log(5) tie -> stable input order; os(1) after them; arbiter last.
+    assert [agent.agent_key for agent in ordered] == [
+        "code_analyst",
+        "log_historian",
+        "os_kernel",
+        "skeptic",
+    ]
+    assert ordered[-1].role is AgentRole.ARBITER
+
+
+# ---------------------------------------------------------------------------
+# Report synthesis is role/capability-driven, not display-name-driven
+# ---------------------------------------------------------------------------
+
+
+class _CustomArbiter(BaseAgent):
+    """Test-double arbiter with a deliberately non-'Skeptic Agent' display name."""
+
+    agent_key = "custom_arbiter"
+    display_name = "Custom Adversary 9000"
+    category = "base"
+    role = AgentRole.ARBITER
+
+    @property
+    def system_prompt(self) -> str:
+        return ""
+
+    async def run(self, state: InvestigationState) -> AgentTurn:  # pragma: no cover
+        raise NotImplementedError
+
+
+class _CustomFixer(BaseAgent):
+    """Test-double fix contributor with a non-'Code Analyst Agent' display name."""
+
+    agent_key = "custom_fixer"
+    display_name = "Custom Fixer 9000"
+    category = "base"
+    role = AgentRole.INVESTIGATOR
+    contributes_fix = True
+
+    @property
+    def system_prompt(self) -> str:
+        return ""
+
+    async def run(self, state: InvestigationState) -> AgentTurn:  # pragma: no cover
+        raise NotImplementedError
+
+
+def test_build_report_extracts_challenges_and_fix_by_role_not_name(settings: Settings):
+    """[Unit] orchestrator: _build_report keys off role/capability, not display name.
+
+    A synthetic panel whose arbiter and fix-contributor carry custom display
+    names (never 'Skeptic Agent'/'Code Analyst Agent') still has its challenges,
+    probabilistic fix, and alternative hypotheses extracted correctly - proving
+    the synthesis is driven by ``agent_key``/role/``contributes_fix`` and not by
+    any hardcoded name string.
+    """
+    ai = MockAIBackend()
+    fixer = _CustomFixer(ai, settings)
+    arbiter = _CustomArbiter(ai, settings)
+    panel: list[BaseAgent] = [fixer, arbiter]
+
+    fixer_turn = AgentTurn(
+        agent=fixer.display_name,
+        agent_key=fixer.agent_key,
+        turn_number=1,
+        message="root cause",
+        confidence_score=0.9,
+        hypotheses=[
+            Hypothesis(
+                root_cause="UAF in serialize()",
+                evidence=["stack shows freed block", "__fix__:python:guard the pointer"],
+                confidence=0.9,
+            ),
+            Hypothesis(root_cause="alt: double free", evidence=["maybe"], confidence=0.4),
+        ],
+    )
+    arbiter_turn = AgentTurn(
+        agent=arbiter.display_name,
+        agent_key=arbiter.agent_key,
+        turn_number=1,
+        message="challenged",
+        confidence_score=0.3,
+        hypotheses=[
+            Hypothesis(
+                root_cause="UAF in serialize()",
+                evidence=["module not in top frames"],
+                confidence=0.3,
+            )
+        ],
+    )
+
+    state: InvestigationState = {
+        "incident_brief": {"mode": IncidentMode.LOG_FORENSICS.value},
+        "discussion_history": [
+            fixer_turn.model_dump(mode="json"),
+            arbiter_turn.model_dump(mode="json"),
+        ],
+        "consensus_score": 0.72,
+        "primary_hypothesis": {"root_cause": "UAF in serialize()"},
+        "round_number": 2,
+        "token_tracker": {"input_tokens": 0, "output_tokens": 0},
+    }
+
+    report = Orchestrator._build_report(state, panel, hitl_pending=False)
+
+    # Arbiter's hypothesis evidence becomes the challenges.
+    assert report.skeptic_challenges == ["module not in top frames"]
+    # The fix-contributor's __fix__ annotation is extracted.
+    assert report.probabilistic_fix == "guard the pointer"
+    # The fixer's non-primary hypotheses become alternatives.
+    assert [h.root_cause for h in report.alternative_hypotheses] == ["alt: double free"]

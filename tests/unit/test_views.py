@@ -13,6 +13,7 @@ import struct
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from rich.console import Console
 from rich.text import Text
@@ -25,8 +26,11 @@ from aegis_swr.core.events import (
     HumanInputRequired,
     InvestigationCompleted,
     InvestigationStarted,
+    PanelAgentDescriptor,
+    PanelResolved,
 )
 from aegis_swr.core.schemas import (
+    AgentRole,
     AgentTurn,
     ConfidenceLevel,
     Hypothesis,
@@ -35,7 +39,6 @@ from aegis_swr.core.schemas import (
     RCAReport,
 )
 from aegis_swr.views.rich_view import (
-    AGENT_SEQUENCE,
     AgentState,
     RichView,
     WarRoomView,
@@ -47,6 +50,26 @@ from aegis_swr.views.rich_view import (
     make_view,
     render_verdict,
 )
+
+#: The default four-agent panel, mirroring the roster the orchestrator resolves
+#: for a default run: (node_name, display_name, role). Since the static
+#: ``AGENT_SEQUENCE`` constant was removed from ``rich_view`` (the view now learns
+#: the roster from the ``PanelResolved`` event), the tests carry their own copy.
+_DEFAULT_PANEL: list[PanelAgentDescriptor] = [
+    PanelAgentDescriptor("os_kernel_node", "OS Kernel Agent", AgentRole.INVESTIGATOR),
+    PanelAgentDescriptor("code_analyst_node", "Code Analyst Agent", AgentRole.INVESTIGATOR),
+    PanelAgentDescriptor("log_historian_node", "Log Historian Agent", AgentRole.INVESTIGATOR),
+    PanelAgentDescriptor("skeptic_node", "Skeptic Agent", AgentRole.ARBITER),
+]
+
+#: (node_name, display_name) pairs for the default panel, in speaking order.
+AGENT_SEQUENCE: list[tuple[str, str]] = [(d.node_name, d.display_name) for d in _DEFAULT_PANEL]
+
+
+def _resolve_panel(bus: EventBus, panel: Optional[list[PanelAgentDescriptor]] = None) -> None:
+    """Publish a ``PanelResolved`` event so the view builds its agent roster."""
+    bus.publish(PanelResolved(panel=list(panel if panel is not None else _DEFAULT_PANEL)))
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -71,9 +94,7 @@ def _report(*, hitl: bool = False) -> RCAReport:
         confidence_level=ConfidenceLevel.HIGH,
         primary_hypothesis=Hypothesis(root_cause="UAF", confidence=0.87),
         consensus_rounds=2,
-        hitl_request=HITLRequest(question="more data?", context_summary="deadlock")
-        if hitl
-        else None,
+        hitl_request=HITLRequest(question="more data?", context_summary="deadlock") if hitl else None,
     )
 
 
@@ -334,7 +355,9 @@ def test_started_resets_state_and_records_stage_marker():
     assert view._incident_label == "CrashUi.dmp"
     assert view._mode == "crash_dump"
     assert view._round == 1
-    assert all(s.status == "STANDBY" for s in view._agents.values())
+    # The agent roster is not built until the panel is resolved (see _on_panel),
+    # which happens after evidence extraction - so it is empty right after start.
+    assert view._agents == {}
     assert "CDB extraction started" in _evidence_text(view)
     view._stop_live()
 
@@ -363,6 +386,8 @@ def test_evidence_extracted_populates_stream_and_wakes_first_agent():
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    # The first agent is woken once the panel is resolved (fires after evidence).
+    _resolve_panel(bus)
 
     text = _evidence_text(view)
     assert "fault_class" in text
@@ -399,6 +424,7 @@ def test_agent_spoke_marks_done_and_wakes_next():
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _resolve_panel(bus)
     bus.publish(
         AgentSpoke(
             node="os_kernel_node",
@@ -446,6 +472,7 @@ def test_skeptic_is_last_and_wakes_no_one():
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _resolve_panel(bus)
     _run_round(bus, turn_number=1, confidence=0.8)
 
     # All four spoke; none left ANALYZING from the round itself (consensus has
@@ -478,6 +505,7 @@ def test_consensus_appends_row_and_resets_agents():
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _resolve_panel(bus)
     _run_round(bus, turn_number=1, confidence=0.8)
     bus.publish(ConsensusEvaluated(score=0.61, round_number=2))
 
@@ -514,6 +542,7 @@ def test_full_two_round_run_resolves_convergence_markers():
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _resolve_panel(bus)
     _run_round(bus, turn_number=1, confidence=0.6)
     bus.publish(ConsensusEvaluated(score=0.61, round_number=2))
     _run_round(bus, turn_number=2, confidence=0.87)
@@ -554,6 +583,7 @@ def test_hitl_finish_marks_no_convergence():
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _resolve_panel(bus)
     _run_round(bus, turn_number=1, confidence=0.3)
     bus.publish(ConsensusEvaluated(score=0.30, round_number=2))
     bus.publish(HumanInputRequired(report=_report(hitl=True)))
@@ -561,6 +591,125 @@ def test_hitl_finish_marks_no_convergence():
     assert view._finished is True
     assert view._consensus_history[0]["converged"] is False
     assert "human input required" in _process_text(view)
+    view._stop_live()
+
+
+# ---------------------------------------------------------------------------
+# Dynamic panel: the view scales to any resolved roster (not just the default 4)
+# ---------------------------------------------------------------------------
+
+
+def _six_agent_panel() -> list[PanelAgentDescriptor]:
+    """A synthetic 6-agent panel: five investigators followed by one arbiter."""
+    investigators = [
+        PanelAgentDescriptor(f"inv{i}_node", f"Investigator {i}", AgentRole.INVESTIGATOR) for i in range(5)
+    ]
+    arbiter = PanelAgentDescriptor("arb_node", "Adversary", AgentRole.ARBITER)
+    return [*investigators, arbiter]
+
+
+def _run_panel_round(
+    bus: EventBus,
+    panel: list[PanelAgentDescriptor],
+    turn_number: int,
+    confidence: float,
+) -> None:
+    """Publish one AgentSpoke per panel agent, in the panel's speaking order."""
+    for descriptor in panel:
+        bus.publish(
+            AgentSpoke(
+                node=descriptor.node_name,
+                turn=AgentTurn(
+                    agent=descriptor.display_name,
+                    turn_number=turn_number,
+                    message=f"finding from {descriptor.display_name}",
+                    confidence_score=confidence,
+                ),
+            )
+        )
+
+
+def test_warroom_scales_agent_tracking_to_six_agent_panel():
+    """
+    [Unit] views: verifies WarRoomView agent tracking scales to a 6-agent panel.
+
+    Scenario:
+        Given a resolved panel of six agents (five investigators + one arbiter)
+        When the view processes the PanelResolved event and two debate rounds
+        Then the roster, next-agent chaining, and stage totals all scale to the
+        panel size rather than assuming the default four agents.
+
+    Boundaries:
+        - Focus: dynamic per-run roster built from PanelResolved
+        - Fixtures/params: synthetic six-agent panel
+        - Scope: WarRoomView internal state only
+
+    On failure, first check:
+        - _on_panel building _agents / _next_agent / _stage_total from the event
+        - the len(panel) + 3 / += len(panel) + 1 stage arithmetic
+    """
+    view = WarRoomView(_headless_console(), auto_refresh=False)
+    bus = EventBus()
+    view.attach(bus)
+    panel = _six_agent_panel()
+    bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _resolve_panel(bus, panel)
+
+    # Roster and stage budget scale to the six-agent panel (len + 3 == 9).
+    assert len(view._agents) == 6
+    assert list(view._agents) == [d.display_name for d in panel]
+    assert view._stage_total == 9
+    # The first investigator is woken on panel resolution.
+    assert view._agents["Investigator 0"].status == "ANALYZING"
+    # Chaining is derived from the panel order; the arbiter has no successor.
+    assert view._next_agent["Investigator 0"] == "Investigator 1"
+    assert view._next_agent["Adversary"] is None
+
+    _run_panel_round(bus, panel, turn_number=1, confidence=0.6)
+    assert all(s.status == "DONE" for s in view._agents.values())
+
+    bus.publish(ConsensusEvaluated(score=0.50, round_number=2))
+    _run_panel_round(bus, panel, turn_number=2, confidence=0.7)
+    # A second round adds len(panel) + 1 stages (six turns + one consensus check).
+    assert view._stage_total == 9 + 7
+    assert view._round == 2
+    view._stop_live()
+
+
+def test_richview_scales_stage_total_and_next_status_to_panel():
+    """
+    [Unit] views: verifies RichView (fallback) scales to the resolved panel.
+
+    Scenario:
+        Given a six-agent panel resolved on the fallback trail view
+        When the PanelResolved event is processed
+        Then the progress-bar stage total and the node→next-status map are built
+        from the panel rather than the removed static _NEXT_STATUS constant.
+
+    Boundaries:
+        - Focus: RichView._on_panel building _next_status / _stages_total
+        - Fixtures/params: synthetic six-agent panel
+        - Scope: RichView internal state only
+
+    On failure, first check:
+        - _on_panel populating _next_status and resizing _stages_total
+        - the arbiter node handing off to the consensus check
+    """
+    view = RichView(_headless_console(width=70))
+    bus = EventBus()
+    view.attach(bus)
+    panel = _six_agent_panel()
+    bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _resolve_panel(bus, panel)
+
+    assert view._stages_total == 9
+    assert view._panel_size == 6
+    assert view._next_status["inv0_node"] == "Investigator 1 is analyzing the evidence…"
+    # The arbiter (last node) hands off to the consensus check, not another agent.
+    assert view._next_status["arb_node"] == "Weighing panel consensus…"
+    assert view._first_activity == "Investigator 0 is analyzing the evidence…"
     view._stop_live()
 
 
@@ -750,6 +899,7 @@ def test_finish_reveals_both_buffers():
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _resolve_panel(bus)
     _run_round(bus, turn_number=1, confidence=0.8)
     view._evidence_log._revealed = 0  # pretend pacing fell behind
     view._process_log._revealed = 0
@@ -788,6 +938,7 @@ def test_conversation_lives_in_process_not_evidence():
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _resolve_panel(bus)
     _run_round(bus, turn_number=1, confidence=0.8)
     bus.publish(ConsensusEvaluated(score=0.87, round_number=2))
 
@@ -830,6 +981,7 @@ def test_process_conversation_reveals_gradually():
     bus = EventBus()
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    _resolve_panel(bus)
     _run_round(bus, turn_number=1, confidence=0.8)
     log = view._process_log
     total = len(log.lines)
@@ -845,6 +997,7 @@ def _publish_multiline_turn(view: WarRoomView, message: str):
     bus = EventBus()
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
+    _resolve_panel(bus)
     bus.publish(
         AgentSpoke(
             node="os_kernel_node",
@@ -888,9 +1041,7 @@ def test_process_trace_surfaces_full_agent_reasoning():
 
     # … process TRACE surfaces the agent's full reasoning. Crucially this is the
     # *process* channel - evidence stays at INFO, proving the two are independent.
-    trace = WarRoomView(
-        _headless_console(), auto_refresh=False, level="INFO", process_level="TRACE"
-    )
+    trace = WarRoomView(_headless_console(), auto_refresh=False, level="INFO", process_level="TRACE")
     _publish_multiline_turn(trace, multiline)
     text = _process_text(trace)
     assert "headline finding" in text
@@ -928,6 +1079,7 @@ def _start(view: WarRoomView, source: IncidentSource):
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=source))
     bus.publish(EvidenceExtracted(brief=_debug_brief()))
+    _resolve_panel(bus)
 
 
 def _write_pcap(path: Path) -> Path:
@@ -1018,6 +1170,7 @@ def _start_with(view: WarRoomView, brief: dict, source: IncidentSource):
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=source))
     bus.publish(EvidenceExtracted(brief=brief))
+    _resolve_panel(bus)
 
 
 def test_trace_streams_full_core_dump_output():
@@ -1080,6 +1233,7 @@ def test_evidence_trace_does_not_surface_agent_reasoning():
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(EvidenceExtracted(brief=_debug_brief()))
+    _resolve_panel(bus)
     bus.publish(
         AgentSpoke(
             node="os_kernel_node",
@@ -1535,6 +1689,7 @@ def _populated_view(height: int = 40) -> WarRoomView:
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
     bus.publish(EvidenceExtracted(brief=_evidence_brief()))
+    _resolve_panel(bus)
     _run_round(bus, turn_number=1, confidence=0.8)
     bus.publish(ConsensusEvaluated(score=0.87, round_number=2))
     return view

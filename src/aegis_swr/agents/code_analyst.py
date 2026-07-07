@@ -1,12 +1,18 @@
 """Code Analyst Agent - software architecture and logic error specialist"""
+
 from __future__ import annotations
 
 import json
+from typing import Any, ClassVar
 
-from aegis_swr.agents.base import BaseAgent
-from aegis_swr.core.schemas import AgentTurn, CodeAnalystOutput, Hypothesis
-
-from aegis_swr.core.schemas import InvestigationState
+from aegis_swr.agents.base import AgentCategory, BaseAgent
+from aegis_swr.core.schemas import (
+    AgentRole,
+    AgentTurn,
+    CodeAnalystOutput,
+    Hypothesis,
+    InvestigationState,
+)
 
 _SYSTEM_PROMPT = """\
 You are a senior software engineer specialized in debugging algorithmic flaws, \
@@ -22,6 +28,12 @@ Include a probabilistic_fix (unified diff) when you have high confidence in the 
 
 
 class CodeAnalystAgent(BaseAgent):
+    agent_key: ClassVar[str] = "code_analyst"
+    display_name: ClassVar[str] = "Code Analyst Agent"
+    category: ClassVar[AgentCategory] = "base"
+    role: ClassVar[AgentRole] = AgentRole.INVESTIGATOR
+    contributes_fix: ClassVar[bool] = True
+
     @property
     def system_prompt(self) -> str:
         return _SYSTEM_PROMPT
@@ -29,17 +41,9 @@ class CodeAnalystAgent(BaseAgent):
     async def run(self, state: InvestigationState) -> AgentTurn:
         round_num = state.get("round_number", 1)
         brief = state.get("incident_brief", {})
-        history = state.get("discussion_history", [])
 
-        # Find the most recent OS Kernel turn for this round.
-        os_kernel_output: dict[str, object] = {}
-        for hist_turn in reversed(history):
-            if (
-                hist_turn.get("agent") == "OS Kernel Agent"
-                and hist_turn.get("turn_number") == round_num
-            ):
-                os_kernel_output = hist_turn
-                break
+        # Read the immediately-preceding investigator turn as context.
+        os_kernel_output: dict[str, Any] = state.get("latest_turn_this_round") or {}
 
         context: dict[str, object] = {
             "incident_brief": brief,
@@ -64,9 +68,7 @@ class CodeAnalystAgent(BaseAgent):
         # so the output synthesizer can extract it later without a separate field.
         primary_evidence = list(primary.evidence)
         if output.probabilistic_fix:
-            primary_evidence.append(
-                f"__fix__:{output.fix_language or 'unknown'}:{output.probabilistic_fix}"
-            )
+            primary_evidence.append(f"__fix__:{output.fix_language or 'unknown'}:{output.probabilistic_fix}")
         primary = Hypothesis(
             root_cause=primary.root_cause,
             faulting_module=primary.faulting_module,
@@ -74,8 +76,7 @@ class CodeAnalystAgent(BaseAgent):
             evidence=primary_evidence,
             confidence=primary.confidence,
         )
-        agent_turn = AgentTurn(
-            agent="Code Analyst Agent",
+        agent_turn = self.make_turn(
             turn_number=round_num,
             message=f"Root cause: {output.rca.root_cause}",
             hypotheses=[primary] + list(output.alternative_hypotheses),

@@ -539,7 +539,7 @@ class AIAPIBackend(ABC):
 
 These are the authoritative behaviors of the implemented AI backends:
 
-1. **Shared base class.** Both providers extend `_BaseAIBackend` (`backends/ai/_base.py`), which owns the provider-neutral logic: structured-output validation, the one-shot correction retry, and token accounting. Each provider implements only `_invoke()` (one API round-trip) and `stream()`. This guarantees identical retry/validation semantics across providers.
+1. **Shared base class.** Both providers extend `_BaseAIBackend` (`backends/ai/base.py`), which owns the provider-neutral logic: structured-output validation, the one-shot correction retry, and token accounting. Each provider implements only `_invoke()` (one API round-trip) and `stream()`. This guarantees identical retry/validation semantics across providers.
 
 2. **`stream()` is a plain `def` returning `AsyncGenerator`** in the ABC (not `async def`), so concrete async-generator implementations type-check cleanly. Call it without `await`: `async for token in backend.stream(...)`.
 
@@ -613,7 +613,7 @@ def create_debug_backend(config: DebugConfig) -> DebugBackend:
 
 Authoritative behaviors of the implemented debug backends:
 
-1. **Shared base class.** All three workers extend `_BaseDebugBackend` (`backends/debug/_base.py`), which owns the `extract()` template method: `_validate(source)` → `_build_command_sequence()` → `_run()` (RAII subprocess with timeout) → `_parse()`. Each worker implements only `_build_command_sequence` and `_parse`.
+1. **Shared base class.** All three workers extend `_BaseDebugBackend` (`backends/debug/base.py`), which owns the `extract()` template method: `_validate(source)` → `_build_command_sequence()` → `_run()` (RAII subprocess with timeout) → `_parse()`. Each worker implements only `_build_command_sequence` and `_parse`.
 
 2. **Errors.** A missing/absent dump raises `DebugExtractionError`; a missing debugger binary (`FileNotFoundError`) raises `PlatformNotSupportedError`; a timeout raises `DebugExtractionError`. (`DebugExtractionError` was added to `core/exceptions.py`.)
 

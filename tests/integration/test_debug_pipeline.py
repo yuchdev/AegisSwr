@@ -19,7 +19,7 @@ from aegis_swr.core.schemas import IncidentMode, IncidentSource, OSKernelOutput
 from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
 FIXTURES = Path(__file__).parent.parent / "unit" / "fixtures"
-_RUN = "aegis_swr.backends.debug._base.subprocess.run"
+_RUN = "aegis_swr.backends.debug.base.subprocess.run"
 
 
 def _proc(stdout: str) -> SimpleNamespace:

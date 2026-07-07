@@ -52,8 +52,16 @@ from aegis_swr.core.events import (
     HumanInputRequired,
     InvestigationCompleted,
     InvestigationStarted,
+    PanelAgentDescriptor,
+    PanelResolved,
 )
-from aegis_swr.core.schemas import AgentTurn, ConfidenceLevel, IncidentSource, RCAReport
+from aegis_swr.core.schemas import (
+    AgentRole,
+    AgentTurn,
+    ConfidenceLevel,
+    IncidentSource,
+    RCAReport,
+)
 from aegis_swr.views.evidence_detail import (
     describe_log_window,
     file_properties,
@@ -80,28 +88,24 @@ def make_console(*, stderr: bool = False) -> Console:
 #: Spinner frames cycled for the active forensic agent (Braille dots).
 SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
-#: Panel speaking order: (LangGraph node name, human-readable agent name).
-AGENT_SEQUENCE: list[tuple[str, str]] = [
-    ("os_kernel_node", "OS Kernel Agent"),
-    ("code_analyst_node", "Code Analyst Agent"),
-    ("log_historian_node", "Log Historian Agent"),
-    ("skeptic_node", "Skeptic Agent"),
-]
 
-# node → name and name → "the next agent to wake" derived from the sequence.
-_NODE_TO_AGENT: dict[str, str] = {node: name for node, name in AGENT_SEQUENCE}
-_NEXT_AGENT: dict[str, Optional[str]] = {
-    name: (AGENT_SEQUENCE[i + 1][1] if i + 1 < len(AGENT_SEQUENCE) else None)
-    for i, (_, name) in enumerate(AGENT_SEQUENCE)
-}
+def _activity_label(descriptor: PanelAgentDescriptor) -> str:
+    """What the Investigation Process status line says while an agent works.
 
-# What the Investigation Process line says while each agent is working.
-_AGENT_ACTIVITY: dict[str, str] = {
-    "OS Kernel Agent": "OS Kernel Agent is analyzing the exception…",
-    "Code Analyst Agent": "Code Analyst Agent is tracing the faulting code…",
-    "Log Historian Agent": "Log Historian Agent is mining incident history…",
-    "Skeptic Agent": "Skeptic Agent is stress-testing the hypothesis…",
-}
+    Derived from the agent's behavioural :class:`~aegis_swr.core.schemas.AgentRole`
+    (from the :class:`~aegis_swr.core.events.PanelResolved` event) so it works for
+    any dynamically resolved panel rather than a fixed set of named agents. The
+    adversarial arbiter gets a distinct "stress-testing" phrasing; every
+    investigator gets a generic "analyzing" phrasing.
+
+    :param descriptor: The resolved panel agent to describe.
+    :type descriptor: PanelAgentDescriptor
+    :return: A human-readable status line for the agent's active phase.
+    :rtype: str
+    """
+    if descriptor.role is AgentRole.ARBITER:
+        return f"{descriptor.display_name} is stress-testing the hypothesis…"
+    return f"{descriptor.display_name} is analyzing the evidence…"
 
 
 def _spinner_char(elapsed: float) -> str:
@@ -352,13 +356,16 @@ class WarRoomView:
         # Two scrolling logs: extracted artifacts (Evidence Stream) and the
         # agent deliberation (Investigation Process).  Each keeps the full
         # record and reveals it gradually as a scrolling tail.
-        self._evidence_log = _StreamLog(
-            max_lines=self._MAX_EVIDENCE, reveal_interval=self._REVEAL_INTERVAL
-        )
-        self._process_log = _StreamLog(
-            max_lines=self._MAX_EVIDENCE, reveal_interval=self._REVEAL_INTERVAL
-        )
+        self._evidence_log = _StreamLog(max_lines=self._MAX_EVIDENCE, reveal_interval=self._REVEAL_INTERVAL)
+        self._process_log = _StreamLog(max_lines=self._MAX_EVIDENCE, reveal_interval=self._REVEAL_INTERVAL)
+        # Per-run agent tracking, rebuilt from the PanelResolved event so the
+        # view adapts to any resolved roster rather than a fixed panel. Empty
+        # until the panel is announced.
         self._agents: dict[str, AgentState] = {}
+        self._node_to_agent: dict[str, str] = {}
+        self._next_agent: dict[str, Optional[str]] = {}
+        self._agent_activity: dict[str, str] = {}
+        self._panel_size = 0
         self._consensus_history: list[dict[str, object]] = []
 
         # Investigation-process bookkeeping.
@@ -373,6 +380,7 @@ class WarRoomView:
         unsubscribers = [
             bus.subscribe(InvestigationStarted, self._on_started),
             bus.subscribe(EvidenceExtracted, self._on_evidence),
+            bus.subscribe(PanelResolved, self._on_panel),
             bus.subscribe(AgentSpoke, self._on_agent),
             bus.subscribe(ConsensusEvaluated, self._on_consensus),
             bus.subscribe(InvestigationCompleted, self._on_completed),
@@ -406,7 +414,13 @@ class WarRoomView:
         self._finished = False
         self._evidence_log.reset(self._start)
         self._process_log.reset(self._start)
-        self._agents = {name: AgentState() for _, name in AGENT_SEQUENCE}
+        # Agent tracking is (re)built when the panel is resolved (see _on_panel),
+        # which happens after evidence extraction, so start from an empty roster.
+        self._agents = {}
+        self._node_to_agent = {}
+        self._next_agent = {}
+        self._agent_activity = {}
+        self._panel_size = 0
         self._consensus_history = []
         self._stage = 0
         self._stage_total = 7
@@ -446,7 +460,35 @@ class WarRoomView:
         if self._evidence_level == "TRACE":
             self._emit_trace_evidence(brief)
 
-        self._wake("OS Kernel Agent")
+        # The panel is not resolved yet (PanelResolved fires next); the first
+        # agent is woken there once the roster is known.
+        self._status = "Assembling the forensic panel…"
+        self._refresh()
+
+    def _on_panel(self, event: DomainEvent):
+        """Build per-run agent tracking from the resolved panel.
+
+        Replaces the former static ``AGENT_SEQUENCE``-derived constants: the
+        node→name, name→next-name, and activity-label maps and the per-agent
+        :class:`AgentState` roster are all rebuilt from :attr:`PanelResolved.panel`,
+        so the view scales to any resolved panel. The stage budget is resized to
+        the panel size, and the first agent is woken.
+        """
+        assert isinstance(event, PanelResolved)
+        panel = event.panel
+        self._panel_size = len(panel)
+        self._agents = {descriptor.display_name: AgentState() for descriptor in panel}
+        self._node_to_agent = {descriptor.node_name: descriptor.display_name for descriptor in panel}
+        names = [descriptor.display_name for descriptor in panel]
+        # Each agent's "next to wake" is the following one in speaking order; the
+        # last (the arbiter) has no successor - the round then moves to consensus.
+        self._next_agent = {name: (names[i + 1] if i + 1 < len(names) else None) for i, name in enumerate(names)}
+        self._agent_activity = {descriptor.display_name: _activity_label(descriptor) for descriptor in panel}
+        # Stage budget for round 1: evidence + one turn per agent + consensus +
+        # verdict == len(panel) + 3 (matching the historical 7 for a 4-agent panel).
+        self._stage_total = self._panel_size + 3
+        if names:
+            self._wake(names[0])
         self._refresh()
 
     def _emit_trace_evidence(self, brief: dict[str, object]):
@@ -537,11 +579,12 @@ class WarRoomView:
             if self._consensus_history:
                 self._consensus_history[-1]["converged"] = False
             self._round = turn.turn_number
-            self._stage_total += 5  # 4 agent turns + 1 consensus check
+            # One turn per panel agent + one consensus check for the extra round.
+            self._stage_total += self._panel_size + 1
             note = f"threshold not reached - re-deliberating round {self._round}"
             self._stamp_process(note, style="dim italic")
 
-        name = _NODE_TO_AGENT.get(event.node)
+        name = self._node_to_agent.get(event.node)
         message = turn.message.strip()
         finding = message.splitlines()[0] if message else ""
         if name and name in self._agents:
@@ -564,7 +607,7 @@ class WarRoomView:
                 self._add_process(_subdetail(Text(extra, style="grey62")), level="TRACE")
         self._advance()
 
-        nxt = _NEXT_AGENT.get(name) if name else None
+        nxt = self._next_agent.get(name) if name else None
         if nxt:
             self._wake(nxt)
         else:
@@ -646,7 +689,7 @@ class WarRoomView:
         state = self._agents.get(name)
         if state is not None and state.status != "DONE":
             state.status = "ANALYZING"
-        self._status = _AGENT_ACTIVITY.get(name, "Deliberating…")
+        self._status = self._agent_activity.get(name, "Deliberating…")
         self._advance()
 
     def _advance(self):
@@ -709,9 +752,7 @@ class WarRoomView:
         options = self._console.options.update(width=max(1, width))
         return max(1, len(self._console.render_lines(renderable, options, pad=False)))
 
-    def _fit_tail(
-        self, lines: list[RenderableType], *, width: int, height: int
-    ) -> list[RenderableType]:
+    def _fit_tail(self, lines: list[RenderableType], *, width: int, height: int) -> list[RenderableType]:
         """Return the trailing *lines* whose wrapped heights fit within *height*.
 
         Bottom-anchored: accumulates from the newest line backwards until the
@@ -769,8 +810,7 @@ class WarRoomView:
         elapsed = self._elapsed
 
         blocks: list[RenderableType] = []
-        for index, (_, name) in enumerate(AGENT_SEQUENCE):
-            state = self._agents.get(name, AgentState())
+        for index, (name, state) in enumerate(self._agents.items()):
             if index:
                 blocks.append(Rule(style="grey30"))
 
@@ -908,8 +948,7 @@ def _format_pcap(raw_path: str) -> list[str]:
     if info.first_timestamp and info.last_timestamp:
         duration = (info.last_timestamp - info.first_timestamp).total_seconds()
         lines.append(
-            f"span {info.first_timestamp:%Y-%m-%d %H:%M:%S} → "
-            f"{info.last_timestamp:%H:%M:%S}  ({duration:.3f}s)"
+            f"span {info.first_timestamp:%Y-%m-%d %H:%M:%S} → {info.last_timestamp:%H:%M:%S}  ({duration:.3f}s)"
         )
     return lines
 
@@ -939,17 +978,6 @@ def _turn_summary(turn: AgentTurn, limit: int = 96) -> Text:
     return Text(f"      {first_line}", style="dim italic")
 
 
-# What the waiting line says while each upcoming stage runs.  Keyed by the
-# node that just COMPLETED - the value describes who speaks next.
-_NEXT_STATUS: dict[str, str] = {
-    "data_adapter_node": "OS Kernel Agent is analyzing the exception…",
-    "os_kernel_node": "Code Analyst Agent is tracing the faulting code…",
-    "code_analyst_node": "Log Historian Agent is mining incident history…",
-    "log_historian_node": "Skeptic Agent is stress-testing the hypothesis…",
-    "skeptic_node": "Weighing panel consensus…",
-}
-
-
 class RichView:
     """Live terminal adapter: renders domain events as a single-column trail.
 
@@ -963,9 +991,16 @@ class RichView:
         self._live: Optional[Live] = None
         self._progress: Optional[Progress] = None
         self._task_id: Optional[TaskID] = None
-        # Stages in round 1: evidence, 4 agent turns, consensus check, verdict.
-        # Each extra debate round adds 4 agent turns + 1 consensus check.
+        # Stages in round 1: evidence, one turn per agent, consensus check,
+        # verdict == len(panel) + 3. Each extra debate round adds len(panel) + 1
+        # (one turn per agent + one consensus check). Both are resized from the
+        # PanelResolved event; 7 is a provisional default until then.
         self._stages_total = 7
+        self._panel_size = 0
+        # node-that-just-completed → status describing who speaks next, and the
+        # first agent's activity, both rebuilt from the resolved panel.
+        self._next_status: dict[str, str] = {}
+        self._first_activity = "Deliberating…"
         self._last_round = 0
         self._stage_started = 0.0
 
@@ -974,6 +1009,7 @@ class RichView:
         unsubscribers = [
             bus.subscribe(InvestigationStarted, self._on_started),
             bus.subscribe(EvidenceExtracted, self._on_evidence),
+            bus.subscribe(PanelResolved, self._on_panel),
             bus.subscribe(AgentSpoke, self._on_agent),
             bus.subscribe(ConsensusEvaluated, self._on_consensus),
             bus.subscribe(InvestigationCompleted, self._on_finished),
@@ -1014,6 +1050,9 @@ class RichView:
         # Reset state so one view instance can render successive runs.
         self._trail = []
         self._stages_total = 7
+        self._panel_size = 0
+        self._next_status = {}
+        self._first_activity = "Deliberating…"
         self._last_round = 0
         self._stage_started = time.monotonic()
         self._progress = Progress(
@@ -1024,9 +1063,7 @@ class RichView:
             TimeElapsedColumn(),
             console=self._console,
         )
-        self._task_id = self._progress.add_task(
-            "Extracting evidence from crash artifacts…", total=self._stages_total
-        )
+        self._task_id = self._progress.add_task("Extracting evidence from crash artifacts…", total=self._stages_total)
         self._live = Live(self._render(), console=self._console, refresh_per_second=12)
         self._live.start()
 
@@ -1046,7 +1083,35 @@ class RichView:
             line.append(f"  →  {where}")
         line.append(f"  ·  {elapsed:.1f}s", style="dim")
         self._trail.append(line)
-        self._set_status(_NEXT_STATUS["data_adapter_node"])
+        # The panel resolves next (PanelResolved); the first agent's activity is
+        # set there once the roster is known.
+        self._set_status("Assembling the forensic panel…")
+        self._refresh()
+
+    def _on_panel(self, event: DomainEvent):
+        """Resize the stage budget and build the next-status map from the panel.
+
+        Replaces the former static ``_NEXT_STATUS`` constant: the map keyed by
+        the node that just completed (whose value describes who speaks next) is
+        rebuilt from :attr:`PanelResolved.panel`, and the progress-bar total is
+        resized to the panel size, so the trail view scales to any roster.
+        """
+        assert isinstance(event, PanelResolved)
+        panel = event.panel
+        self._panel_size = len(panel)
+        activities = [_activity_label(descriptor) for descriptor in panel]
+        node_names = [descriptor.node_name for descriptor in panel]
+        # Each completed node advances to the next agent's activity; the last
+        # (the arbiter) hands off to the consensus check.
+        self._next_status = {
+            node: (activities[i + 1] if i + 1 < len(node_names) else "Weighing panel consensus…")
+            for i, node in enumerate(node_names)
+        }
+        self._first_activity = activities[0] if activities else "Deliberating…"
+        self._stages_total = self._panel_size + 3
+        if self._progress is not None and self._task_id is not None:
+            self._progress.update(self._task_id, total=self._stages_total, description=self._first_activity)
+        self._stage_started = time.monotonic()
         self._refresh()
 
     def _on_agent(self, event: DomainEvent):
@@ -1056,15 +1121,15 @@ class RichView:
 
         if turn.turn_number != self._last_round:
             if self._last_round and self._progress is not None and self._task_id is not None:
-                # Another debate round: 4 agent turns + consensus check.
-                self._stages_total += 5
+                # Another debate round: one turn per agent + one consensus check.
+                self._stages_total += self._panel_size + 1
                 self._progress.update(self._task_id, total=self._stages_total)
             self._last_round = turn.turn_number
             self._trail.append(Rule(f"Round {turn.turn_number} - panel deliberation", style="dim"))
 
         self._trail.append(_agent_trail_line(turn, elapsed))
         self._trail.append(_turn_summary(turn))
-        self._set_status(_NEXT_STATUS.get(event.node, "Deliberating…"))
+        self._set_status(self._next_status.get(event.node, "Deliberating…"))
         self._refresh()
 
     def _on_consensus(self, event: DomainEvent):
@@ -1112,9 +1177,7 @@ class RichView:
             self._live = None
 
 
-def make_view(
-    console: Console, *, level: str = "INFO", process_level: Optional[str] = None
-) -> RichView | WarRoomView:
+def make_view(console: Console, *, level: str = "INFO", process_level: Optional[str] = None) -> RichView | WarRoomView:
     """Pick the war-room view on wide terminals, the trail view otherwise.
 
     *level* selects the Evidence Stream (left pane) verbosity: ``INFO`` shows the
@@ -1124,11 +1187,7 @@ def make_view(
     reasoning is shown. ``DEBUG`` collapses into ``TRACE``; unrecognised values fall
     back to ``INFO``.
     """
-    return (
-        WarRoomView(console, level=level, process_level=process_level)
-        if console.width >= 80
-        else RichView(console)
-    )
+    return WarRoomView(console, level=level, process_level=process_level) if console.width >= 80 else RichView(console)
 
 
 # ---------------------------------------------------------------------------
@@ -1162,15 +1221,21 @@ def _final_findings(report: RCAReport) -> list[AgentTurn]:
     keep the *final* turn per agent (its most refined position after any
     re-deliberation) so the verdict frame can reproduce that reasoning instead
     of discarding it.
+
+    Ordering follows each agent's *first appearance* in
+    :attr:`RCAReport.agent_dialogue`, which is already recorded in panel-speaking
+    order. This replaces the former dependency on a static agent sequence, so the
+    findings reflect whatever dynamic panel actually ran.
     """
     latest: dict[str, AgentTurn] = {}
-    for turn in report.agent_dialogue:
+    first_seen: dict[str, int] = {}
+    for index, turn in enumerate(report.agent_dialogue):
+        first_seen.setdefault(turn.agent, index)
         prior = latest.get(turn.agent)
         if prior is None or turn.turn_number >= prior.turn_number:
             latest[turn.agent] = turn
 
-    order = {name: i for i, (_, name) in enumerate(AGENT_SEQUENCE)}
-    return sorted(latest.values(), key=lambda t: order.get(t.agent, len(order)))
+    return sorted(latest.values(), key=lambda t: first_seen.get(t.agent, len(first_seen)))
 
 
 def _build_diagnosis(report: RCAReport) -> str:
@@ -1216,10 +1281,7 @@ def _build_diagnosis(report: RCAReport) -> str:
     if report.alternative_hypotheses:
         md.append("")
         md.append("### Alternative Hypotheses")
-        md.extend(
-            f"- {alt.root_cause.strip()} ({alt.confidence:.0%})"
-            for alt in report.alternative_hypotheses
-        )
+        md.extend(f"- {alt.root_cause.strip()} ({alt.confidence:.0%})" for alt in report.alternative_hypotheses)
 
     if report.skeptic_challenges:
         md.append("")
@@ -1248,10 +1310,7 @@ def _build_diagnosis(report: RCAReport) -> str:
         md.extend(f"{i}. {step}" for i, step in enumerate(report.mitigation_instructions, start=1))
     else:
         target = report.faulting_module or "the implicated component"
-        md.append(
-            f"1. Review the faulting module `{target}` and add defensive checks "
-            "around the faulting code path."
-        )
+        md.append(f"1. Review the faulting module `{target}` and add defensive checks around the faulting code path.")
 
     if report.probabilistic_fix:
         conf = report.fix_confidence or 0.0

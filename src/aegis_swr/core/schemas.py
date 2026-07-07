@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Optional, TypedDict
 from uuid import UUID, uuid4
@@ -100,6 +100,33 @@ class ConfidenceLevel(str, Enum):
         if score >= 0.50:
             return cls.MEDIUM
         return cls.LOW
+
+
+class AgentRole(str, Enum):
+    """
+    Enumerates the generic behavioral roles an agent can play in the panel.
+
+    The orchestrator drives the debate purely off these roles rather than any
+    agent's identity or display name, so a dynamically resolved panel of any
+    size behaves consistently. Each role dictates when the agent speaks and
+    whether its output participates in consensus.
+
+    :ivar INVESTIGATOR: An agent that proposes and updates hypotheses and votes
+        in consensus. The bulk of a panel is investigators, chained in priority
+        order within a debate round.
+    :type INVESTIGATOR: str
+    :ivar ARBITER: The adversarial role that always speaks last in a round and
+        gates convergence. Generalizes the legacy Skeptic; exactly one arbiter
+        is expected per resolved panel.
+    :type ARBITER: str
+    :ivar SYNTHESIS: A non-voting role that runs once after convergence to
+        synthesize the final outcome.
+    :type SYNTHESIS: str
+    """
+
+    INVESTIGATOR = "investigator"
+    ARBITER = "arbiter"
+    SYNTHESIS = "synthesis"
 
 
 # ---------------------------------------------------------------------------
@@ -267,8 +294,16 @@ class AgentTurn(BaseModel):
     the turn number, the message they conveyed, associated hypotheses, confidence
     scores on decisions, timestamp of the turn, and any corrections made.
 
-    :ivar agent: Identifier of the agent responsible for the turn.
+    :ivar agent: Human display label of the agent responsible for the turn.
+        This is the label shown in views and serialized into the RCA report's
+        ``agent_dialogue``; it is intentionally left unchanged for display and
+        report-contract stability.
     :type agent: str
+    :ivar agent_key: Canonical, stable identifier of the agent (e.g. ``"skeptic"``,
+        ``"os_kernel"``). Unlike :ivar:`agent`, this is not a display string and
+        is used for all role/capability lookups. Defaults to an empty string until
+        a producer stamps it.
+    :type agent_key: str
     :ivar turn_number: Sequential number representing the turn in the conversation.
     :type turn_number: int
     :ivar message: The message content communicated by the agent.
@@ -284,11 +319,12 @@ class AgentTurn(BaseModel):
     """
 
     agent: str
+    agent_key: str = ""
     turn_number: int
     message: str
     hypotheses: list[Hypothesis] = Field(default_factory=list)
     confidence_score: float
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     corrections: list[str] = Field(default_factory=list)
 
 
@@ -692,7 +728,7 @@ class RCAReport(BaseModel):
     """
 
     incident_id: UUID = Field(default_factory=uuid4)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     mode: IncidentMode
     dump_hash: Optional[str] = None
     symbol_resolution_score: Optional[float] = None
@@ -798,8 +834,14 @@ class InvestigationState(TypedDict, total=False):
     :type source: dict[str, Any]
     :ivar discussion_history: A history of interactions or discussions pertaining to the investigation, represented as a list of dictionaries.
     :type discussion_history: list[dict[str, Any]]
-    :ivar current_agent: Identifier of the agent currently responsible for the investigation's progress.
-    :type current_agent: str
+    :ivar latest_turn_this_round: The serialized form of the most recently completed turn,
+        set by the orchestrator after every non-arbiter node. Investigators read this
+        instead of grepping history for a named predecessor. `None` until the first
+        turn of a round completes.
+    :type latest_turn_this_round: Optional[dict[str, Any]]
+    :ivar latest_arbiter_feedback: The arbiter's corrections, carried across the round
+        boundary and read by the first investigator of the next round.
+    :type latest_arbiter_feedback: list[str]
     :ivar round_number: The current round or iteration number within the investigation process.
     :type round_number: int
     :ivar consensus_score: The computed consensus score representing the degree of agreement among participants.
@@ -826,7 +868,8 @@ class InvestigationState(TypedDict, total=False):
     incident_brief: dict[str, Any]
     source: dict[str, Any]
     discussion_history: list[dict[str, Any]]
-    current_agent: str
+    latest_turn_this_round: Optional[dict[str, Any]]
+    latest_arbiter_feedback: list[str]
     round_number: int
     consensus_score: float
     is_converged: bool

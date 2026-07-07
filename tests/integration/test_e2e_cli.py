@@ -93,11 +93,11 @@ def test_e2e_analyze_json_output(tmp_path: Path):
 
     assert result.exit_code == 0, result.output
     # stdout carries only the locator; the report body lives in the result file.
-    data = json.loads(result.output)
+    data = json.loads(result.stdout)
     assert data["incident_id"]
     assert data["status"] == "complete"
     assert data["report_path"].endswith(f"{data['incident_id']}.json")
-    assert "Race condition" not in result.output
+    assert "Race condition" not in result.stdout
 
 
 def test_e2e_analyze_json_full_output(tmp_path: Path):
@@ -138,7 +138,7 @@ def test_e2e_analyze_json_full_output(tmp_path: Path):
 
     assert result.exit_code == 0, result.output
     # json-full dumps the complete report body to stdout instead of a locator.
-    data = json.loads(result.output)
+    data = json.loads(result.stdout)
     assert data["incident_id"]
     assert data["root_cause"] == "Race condition in serialize() exposes use-after-free."
     assert "primary_hypothesis" in data
@@ -247,7 +247,7 @@ def test_e2e_analyze_log_only_mode(tmp_path: Path):
         )
 
     assert result.exit_code == 0
-    data = json.loads(result.output)
+    data = json.loads(result.stdout)
     assert data["mode"] == "log_forensics"
 
 

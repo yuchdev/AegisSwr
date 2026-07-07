@@ -1,25 +1,32 @@
 """MAS orchestration engine.
 
-Builds a LangGraph :class:`StateGraph` that routes the investigation through
-four specialized agents (OS Kernel → Code Analyst → Log Historian → Skeptic),
-evaluates weighted consensus after every round, and terminates by routing to
+Builds, per run, a LangGraph :class:`StateGraph` that routes the investigation
+through a *dynamically resolved* panel of agents: the investigators (chained in
+priority order) then exactly one arbiter, which gates convergence. Weighted
+consensus is evaluated after every round, and the graph terminates by routing to
 either the output synthesizer or the HITL handler.
+
+The Orchestrator is a pure container/driver - it never chooses the panel. Team
+formation happens up front: the incident brief is extracted directly, a
+:class:`~aegis_swr.core.panel_strategy.PanelResolver` turns it (plus any explicit
+config/CLI selection) into :class:`~aegis_swr.agents.base.AgentSpec` objects,
+and :func:`~aegis_swr.agents.panel.resolve_panel` instantiates the live panel the
+graph is then built from.
 """
 
 from __future__ import annotations
 
 import json
 import uuid
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from typing import Any, Optional
 
 from langgraph.graph import END, START, StateGraph
 from loguru import logger
 
-from aegis_swr.agents.code_analyst import CodeAnalystAgent
+from aegis_swr.agents.base import AgentSpec, BaseAgent
 from aegis_swr.agents.log_historian import LogHistorianAgent
-from aegis_swr.agents.os_kernel import OSKernelAgent
-from aegis_swr.agents.skeptic import SkepticAgent
+from aegis_swr.agents.panel import resolve_consensus_weights, resolve_panel
 from aegis_swr.backends.base import (
     AIAPIBackend,
     CodeBackend,
@@ -41,19 +48,28 @@ from aegis_swr.core.events import (
     HumanInputRequired,
     InvestigationCompleted,
     InvestigationStarted,
+    PanelAgentDescriptor,
+    PanelResolved,
 )
 from aegis_swr.core.exceptions import RelationalStoreError, VectorStoreError
 from aegis_swr.core.fault_codes import FaultClass
+from aegis_swr.core.panel_strategy import PanelResolver
 from aegis_swr.core.schemas import (
+    AgentRole,
     AgentTurn,
     ConfidenceLevel,
     HITLRequest,
     Hypothesis,
+    IncidentBrief,
     IncidentMode,
     IncidentSource,
     InvestigationState,
     RCAReport,
 )
+
+# A LangGraph node is an async callable taking the shared state and returning a
+# partial state-update dict. The generic node factory produces these.
+AgentNode = Callable[[InvestigationState], Awaitable[dict[str, Any]]]
 
 
 class Orchestrator:
@@ -70,8 +86,15 @@ class Orchestrator:
         log_backend: Optional[LogBackend] = None,
         code_backend: Optional[CodeBackend] = None,
         event_bus: Optional[EventBus] = None,
+        panel_resolver: Optional[PanelResolver] = None,
+        explicit_specs: Optional[list[AgentSpec]] = None,
     ):
         """Initialize the Orchestrator with required backends and storage.
+
+        The Orchestrator no longer instantiates a fixed set of agents or builds a
+        static graph at construction time. Instead it holds the collaborators used
+        to *resolve* and *build* a fresh panel/graph on every :meth:`run` /
+        :meth:`stream_events` call.
 
         Args:
             settings: Application configuration and tuning parameters.
@@ -83,6 +106,12 @@ class Orchestrator:
             log_backend: Optional log aggregation source for forensic analysis.
             code_backend: Optional source code repository access for symbol lookup.
             event_bus: Optional custom event publisher; uses default if None.
+            panel_resolver: Optional panel-selection resolver; defaults to a
+                :class:`~aegis_swr.core.panel_strategy.PanelResolver` over
+                ``settings``. Injectable so tests can supply deterministic panels.
+            explicit_specs: Optional per-incident agent specs supplied via
+                config/CLI. When non-empty they win over auto-selection; when
+                ``None`` the resolver auto-selects the panel from the brief.
         """
         self._settings = settings
         self._bus = event_bus or EventBus()
@@ -99,13 +128,11 @@ class Orchestrator:
         self._history_cache: Optional[list[RCAReport]] = None
 
         self._adapter = DataAdapter(settings)
-        self._evaluator = ConsensusEvaluator(settings.agent_weights)
-        self._os_agent = OSKernelAgent(ai_backend, settings)
-        self._code_agent = CodeAnalystAgent(ai_backend, settings)
-        self._historian = LogHistorianAgent(ai_backend, settings)
-        self._skeptic = SkepticAgent(ai_backend, settings)
-
-        self._graph = self._build_graph()
+        # ConsensusEvaluator is now stateless (weight resolution lives in
+        # agents/panel.py); one shared instance is enough.
+        self._evaluator = ConsensusEvaluator()
+        self._panel_resolver = panel_resolver or PanelResolver(settings)
+        self._explicit_specs = explicit_specs
 
     # ------------------------------------------------------------------
     # Public entry points
@@ -121,8 +148,12 @@ class Orchestrator:
                 logger.info(f"Cache hit for dump_hash {source.dump_hash} - skipping analysis")
                 return cached
 
-        initial = self._initial_state(source)
-        final = await self._graph.ainvoke(initial)
+        # Phase 1: extract the brief directly (no longer a graph node).
+        brief = await self._extract_brief(source)
+        # Phases 2-3: resolve the panel and compile a fresh graph for this run.
+        _panel, graph, recursion_limit = await self._resolve_and_build(brief)
+        initial = self._initial_state(source, brief)
+        final = await graph.ainvoke(initial, config={"recursion_limit": recursion_limit})
         return self._extract_report(final)
 
     @property
@@ -139,12 +170,45 @@ class Orchestrator:
         Views (Rich CLI, TUI, GUI) should subscribe to :attr:`events` rather
         than consume this generator; the yielded stream exists for drivers
         that need the final report or a transport translation (SSE).
+
+        Because the data adapter and panel resolution are no longer graph nodes,
+        the :class:`~aegis_swr.core.events.EvidenceExtracted` and
+        :class:`~aegis_swr.core.events.PanelResolved` events are published
+        manually - right after the brief is extracted and right after the panel
+        is resolved - before entering the debate-only ``astream`` loop.
         """
-        initial = self._initial_state(source)
-        started = InvestigationStarted(incident_id=str(initial["incident_id"]), source=source)
+        incident_id = str(uuid.uuid4())
+        started = InvestigationStarted(incident_id=incident_id, source=source)
         self._bus.publish(started)
         yield started
-        async for chunk in self._graph.astream(initial, stream_mode="updates"):
+
+        # Phase 1: extract the brief directly, then announce it.
+        brief = await self._extract_brief(source)
+        evidence = EvidenceExtracted(brief=brief.model_dump(mode="json"))
+        self._bus.publish(evidence)
+        yield evidence
+
+        # Phases 2-3: resolve the panel, announce it, then compile the graph.
+        panel, graph, recursion_limit = await self._resolve_and_build(brief)
+        resolved = PanelResolved(
+            panel=[
+                PanelAgentDescriptor(
+                    node_name=self._node_name(agent),
+                    display_name=agent.display_name,
+                    role=agent.role,
+                )
+                for agent in panel
+            ]
+        )
+        self._bus.publish(resolved)
+        yield resolved
+
+        initial = self._initial_state(source, brief, incident_id=incident_id)
+        async for chunk in graph.astream(
+            initial,
+            stream_mode="updates",
+            config={"recursion_limit": recursion_limit},
+        ):
             for node_name, update in chunk.items():
                 for event in self._events_from_update(node_name, update):
                     self._bus.publish(event)
@@ -154,8 +218,6 @@ class Orchestrator:
     def _events_from_update(node_name: str, update: dict[str, Any]) -> list[DomainEvent]:
         """Translate one LangGraph node update into domain events"""
         events: list[DomainEvent] = []
-        if node_name == "data_adapter_node" and "incident_brief" in update:
-            events.append(EvidenceExtracted(brief=update["incident_brief"]))
         history: list[dict[str, Any]] = update.get("discussion_history", [])
         if history:
             turn = AgentTurn.model_validate(history[-1])
@@ -187,6 +249,18 @@ class Orchestrator:
         async for event in self.stream_events(source):
             if isinstance(event, EvidenceExtracted):
                 yield {"type": "data_adapter_complete", "data": event.brief}
+            elif isinstance(event, PanelResolved):
+                yield {
+                    "type": "panel_resolved",
+                    "data": [
+                        {
+                            "node_name": descriptor.node_name,
+                            "display_name": descriptor.display_name,
+                            "role": descriptor.role.value,
+                        }
+                        for descriptor in event.panel
+                    ],
+                }
             elif isinstance(event, AgentSpoke):
                 yield {
                     "type": "agent_turn",
@@ -210,39 +284,125 @@ class Orchestrator:
     ) -> RCAReport:
         """Resume a HITL-pending investigation with data supplied by the user"""
         raise NotImplementedError(
-            "continue_investigation requires Phase 6 storage backends. " "Implement after PostgresStore is available."
+            "continue_investigation requires Phase 6 storage backends. Implement after PostgresStore is available."
         )
 
     # ------------------------------------------------------------------
-    # Graph construction
+    # Panel resolution + graph construction (per run)
     # ------------------------------------------------------------------
 
-    def _build_graph(self) -> Any:
-        """Construct the LangGraph state machine for multi-agent investigation.
+    async def _extract_brief(self, source: IncidentSource) -> IncidentBrief:
+        """Run the data adapter directly to produce the incident brief.
 
-        Builds a directed acyclic graph with nodes for data extraction, four
-        specialized agents, and conditional routing. Routes converged cases to
-        output synthesis or max-round cases to HITL.
+        This was formerly the graph's first node; hoisting it out means the
+        resolved panel can be chosen *from* the brief (the AgenticManager needs
+        the fault class/tags to pick specialists) before any graph is built.
 
-        Returns:
-            A compiled LangGraph StateGraph ready for streaming or batch invocation.
+        :param source: The incident source (crash dump, logs, etc.).
+        :type source: IncidentSource
+        :return: The structured forensic brief for this incident.
+        :rtype: IncidentBrief
+        """
+        return await self._adapter.process(
+            source,
+            debug_backend=self._debug,
+            code_backend=self._code,
+            log_backend=self._log,
+        )
+
+    async def _resolve_and_build(
+        self,
+        brief: IncidentBrief,
+    ) -> tuple[list[BaseAgent], Any, int]:
+        """Resolve the panel for *brief* and compile a fresh graph for this run.
+
+        Resolves panel specs (explicit config/CLI wins, else auto-selection),
+        instantiates the live panel, derives the consensus weight map for the
+        brief's fault class, orders the panel (investigators by descending
+        priority, arbiter last), and compiles a :class:`StateGraph` around it.
+
+        :param brief: The incident brief driving auto-selection and the
+            fault-class weight lookup.
+        :type brief: IncidentBrief
+        :return: A tuple of (ordered panel, compiled graph, recursion limit).
+        :rtype: tuple[list[BaseAgent], Any, int]
+        """
+        brief_dict = brief.model_dump(mode="json")
+        specs = await self._panel_resolver.resolve(brief_dict, self._explicit_specs)
+        panel = resolve_panel(specs, self._ai, self._settings)
+        ordered = self._order_panel(panel)
+
+        fault_class = self._fault_class_from_brief(brief_dict)
+        weight_map = resolve_consensus_weights(panel, specs, fault_class, self._settings.agent_weights)
+
+        graph = self._build_graph(ordered, weight_map)
+        # LangGraph counts every node visit toward its default 25-step recursion
+        # limit; a large panel over many rounds can exceed it. Budget one step
+        # per panel agent per round plus a margin for the terminal nodes.
+        recursion_limit = (len(panel) + 2) * self._settings.core.max_debate_rounds + 5
+        return ordered, graph, recursion_limit
+
+    @staticmethod
+    def _order_panel(panel: list[BaseAgent]) -> list[BaseAgent]:
+        """Order *panel* for graph construction: investigators first, arbiter last.
+
+        Investigators (any non-arbiter role) are ordered by descending
+        :attr:`AgentSpec.priority`. Ties preserve the panel's incoming order
+        (Python's sort is stable), which keeps the default four-agent panel in
+        its historical ``os_kernel → code_analyst → log_historian`` sequence and
+        so preserves the pre-refactor discussion order and per-turn data flow.
+        The single arbiter (guaranteed by :func:`resolve_panel`) is always
+        scheduled last regardless of its own priority.
+
+        :param panel: The resolved, unordered panel.
+        :type panel: list[BaseAgent]
+        :return: Investigators in priority order followed by the arbiter.
+        :rtype: list[BaseAgent]
+        """
+        investigators = sorted(
+            (agent for agent in panel if agent.role is not AgentRole.ARBITER),
+            key=lambda agent: -agent.spec.priority,
+        )
+        arbiter = next(agent for agent in panel if agent.role is AgentRole.ARBITER)
+        return [*investigators, arbiter]
+
+    @staticmethod
+    def _node_name(agent: BaseAgent) -> str:
+        """Return the graph node name for *agent* (``"<agent_key>_node"``)."""
+        return f"{agent.agent_key}_node"
+
+    def _build_graph(self, ordered_panel: list[BaseAgent], weight_map: dict[str, float]) -> Any:
+        """Compile the LangGraph state machine for one resolved panel.
+
+        Builds one node per panel agent via :meth:`_make_agent_node`, chains the
+        investigators in the given order, edges the last investigator into the
+        arbiter, and wires the arbiter's conditional routing (converge → output
+        synthesis, exhaust rounds → HITL, else loop back to the first
+        investigator).
+
+        :param ordered_panel: Panel ordered by :meth:`_order_panel` (arbiter last).
+        :type ordered_panel: list[BaseAgent]
+        :param weight_map: Consensus weight map handed to the arbiter node.
+        :type weight_map: dict[str, float]
+        :return: A compiled LangGraph StateGraph ready for streaming/invocation.
+        :rtype: Any
         """
         builder: StateGraph = StateGraph(InvestigationState)
 
-        builder.add_node("data_adapter_node", self._data_adapter_node)
-        builder.add_node("os_kernel_node", self._os_kernel_node)
-        builder.add_node("code_analyst_node", self._code_analyst_node)
-        builder.add_node("log_historian_node", self._log_historian_node)
-        builder.add_node("skeptic_node", self._skeptic_node)
-        builder.add_node("output_synthesizer_node", self._output_synthesizer_node)
-        builder.add_node("hitl_node", self._hitl_node)
+        node_names = [self._node_name(agent) for agent in ordered_panel]
+        first_node = node_names[0]
 
-        builder.add_edge(START, "data_adapter_node")
-        builder.add_edge("data_adapter_node", "os_kernel_node")
-        builder.add_edge("os_kernel_node", "code_analyst_node")
-        builder.add_edge("code_analyst_node", "log_historian_node")
-        builder.add_edge("log_historian_node", "skeptic_node")
-        builder.add_conditional_edges("skeptic_node", self._route_after_skeptic)
+        for agent in ordered_panel:
+            builder.add_node(self._node_name(agent), self._make_agent_node(agent, weight_map))
+        builder.add_node("output_synthesizer_node", self._make_synthesizer_node(ordered_panel))
+        builder.add_node("hitl_node", self._make_hitl_node(ordered_panel))
+
+        builder.add_edge(START, first_node)
+        # Chain every consecutive node (investigators then arbiter, which is last).
+        for src, dst in zip(node_names, node_names[1:], strict=False):
+            builder.add_edge(src, dst)
+        # The arbiter (last node) gates convergence via conditional routing.
+        builder.add_conditional_edges(node_names[-1], self._make_router(first_node))
         builder.add_edge("output_synthesizer_node", END)
         builder.add_edge("hitl_node", END)
 
@@ -252,27 +412,114 @@ class Orchestrator:
     # Node implementations
     # ------------------------------------------------------------------
 
-    async def _data_adapter_node(self, state: InvestigationState) -> dict[str, Any]:
-        """Orchestrate forensic data extraction from all available sources.
+    async def _invoke_agent(self, agent: BaseAgent, state: InvestigationState) -> AgentTurn:
+        """Run *agent*, threading the log-historian's extra data dependencies.
 
-        Calls the DataAdapter to ingest and normalize the incident dump, logs,
-        and code via pluggable backends. Produces a structured brief containing
-        fault class, symbol resolution score, and extracted evidence.
+        Every agent's public contract is ``run(state)``; the Log Historian is the
+        sole exception - it also needs the prior-report history and the vector
+        store to correlate recurrences. This is a data-dependency difference (the
+        one legitimate per-agent-type special case), not an identity check on any
+        display name or reporting behaviour.
 
-        Args:
-            state: Current investigation state containing the incident source.
-
-        Returns:
-            Update dict with the 'incident_brief' key containing the forensic summary.
+        :param agent: The panel agent to invoke.
+        :type agent: BaseAgent
+        :param state: The current investigation state.
+        :type state: InvestigationState
+        :return: The completed turn.
+        :rtype: AgentTurn
         """
-        source = self._deserialize_source(state)
-        brief = await self._adapter.process(
-            source,
-            debug_backend=self._debug,
-            code_backend=self._code,
-            log_backend=self._log,
+        if isinstance(agent, LogHistorianAgent):
+            history = await self._load_history()
+            return await agent.run(state, vector_store=self._vector, history=history)
+        return await agent.run(state)
+
+    def _make_agent_node(self, agent: BaseAgent, weight_map: dict[str, float]) -> AgentNode:
+        """Build a LangGraph node closure for *agent*.
+
+        The returned async closure invokes the agent, folds its turn into the
+        shared state (history, per-agent score, token tracker), and then applies
+        role-specific updates:
+
+        - **Investigators** publish their turn as ``latest_turn_this_round`` (the
+          next investigator in the chain reads it) and, when the turn carries
+          hypotheses, promote the leading one to ``primary_hypothesis``.
+        - The **arbiter** computes weighted consensus, evaluates convergence, and
+          publishes its corrections as ``latest_arbiter_feedback`` (read by the
+          first investigator of the next round).
+
+        :param agent: The panel agent this node drives.
+        :type agent: BaseAgent
+        :param weight_map: Consensus weight map (only the arbiter node uses it).
+        :type weight_map: dict[str, float]
+        :return: An async node callable for :meth:`StateGraph.add_node`.
+        :rtype: AgentNode
+        """
+
+        async def _node(state: InvestigationState) -> dict[str, Any]:
+            turn = await self._invoke_agent(agent, state)
+            tracker, history, scores = self._fold_turn(state, turn, agent.agent_key)
+            update: dict[str, Any] = {
+                "discussion_history": history,
+                "current_round_scores": scores,
+                "token_tracker": tracker,
+            }
+            if agent.role is AgentRole.ARBITER:
+                update.update(self._arbiter_updates(state, turn, scores, weight_map))
+            else:
+                if turn.hypotheses:
+                    update["primary_hypothesis"] = turn.hypotheses[0].model_dump(mode="json")
+                update["latest_turn_this_round"] = turn.model_dump(mode="json")
+            return update
+
+        return _node
+
+    def _arbiter_updates(
+        self,
+        state: InvestigationState,
+        turn: AgentTurn,
+        scores: dict[str, float],
+        weight_map: dict[str, float],
+    ) -> dict[str, Any]:
+        """Compute the arbiter node's convergence/consensus state updates.
+
+        Mirrors the legacy Skeptic behaviour generically: the arbiter's turn
+        confirms when its confidence is MEDIUM or above; convergence additionally
+        requires the weighted consensus to meet the threshold on a stable
+        primary hypothesis. The round counter is advanced and the arbiter's
+        corrections carried forward for the next round's first investigator.
+
+        :param state: The current investigation state (pre-update).
+        :type state: InvestigationState
+        :param turn: The arbiter's just-completed turn.
+        :type turn: AgentTurn
+        :param scores: The current round's per-agent confidence scores.
+        :type scores: dict[str, float]
+        :param weight_map: The resolved consensus weight map for this run.
+        :type weight_map: dict[str, float]
+        :return: The arbiter-specific slice of the node's state update.
+        :rtype: dict[str, Any]
+        """
+        cs = self._evaluator.calculate(scores, weight_map)
+
+        # Convergence: arbiter confirmed (MEDIUM+) AND score meets threshold on a
+        # stable hypothesis.
+        arbiter_confirmed = turn.confidence_score >= 0.65
+        prev_key = state.get("previous_hypothesis_key")
+        primary = state.get("primary_hypothesis") or {}
+        current_key = str(primary.get("root_cause") or "")
+        same_hypothesis = prev_key is None or prev_key == current_key
+        converged = arbiter_confirmed and self._evaluator.is_converged(
+            cs, self._settings.core.consensus_threshold, same_hypothesis
         )
-        return {"incident_brief": brief.model_dump(mode="json")}
+
+        round_num = state.get("round_number", 1)
+        return {
+            "consensus_score": cs,
+            "is_converged": converged,
+            "round_number": round_num + 1,
+            "previous_hypothesis_key": current_key,
+            "latest_arbiter_feedback": list(turn.corrections),
+        }
 
     @staticmethod
     def _fold_turn(
@@ -301,171 +548,70 @@ class Orchestrator:
         scores[agent_key] = turn.confidence_score
         return tracker, history, scores
 
-    async def _os_kernel_node(self, state: InvestigationState) -> dict[str, Any]:
-        """Invoke the OS/Kernel Agent for system-level fault analysis.
+    def _make_synthesizer_node(self, panel: list[BaseAgent]) -> AgentNode:
+        """Build the output-synthesizer node closure for *panel*.
 
-        The OS Kernel Agent examines kernel context (interrupts, CPU state, memory
-        state) to form primary and alternative hypotheses. Its confidence score
-        is recorded for weighted consensus calculation.
+        The node builds the final RCA report when consensus is reached and
+        persists it to relational and vector stores (best-effort; failures are
+        logged but never fatal). The panel is closed over so :meth:`_build_report`
+        can key report synthesis off each turn's role/capability rather than any
+        display-name string.
 
-        Args:
-            state: Current investigation state with extracted evidence.
-
-        Returns:
-            Update dict containing agent turn, scores, and updated discussion history.
+        :param panel: The resolved panel for this run.
+        :type panel: list[BaseAgent]
+        :return: An async node callable for :meth:`StateGraph.add_node`.
+        :rtype: AgentNode
         """
-        turn = await self._os_agent.run(state)
-        tracker, history, scores = self._fold_turn(state, turn, "os_kernel")
-        primary = turn.hypotheses[0].model_dump(mode="json") if turn.hypotheses else None
-        update: dict[str, Any] = {
-            "discussion_history": history,
-            "current_round_scores": scores,
-            "token_tracker": tracker,
-        }
-        if primary:
-            update["primary_hypothesis"] = primary
-        return update
 
-    async def _code_analyst_node(self, state: InvestigationState) -> dict[str, Any]:
-        """Invoke the Code Analyst Agent for application-level fault diagnosis.
+        async def _node(state: InvestigationState) -> dict[str, Any]:
+            report = self._build_report(state, panel, hitl_pending=False)
+            if self._relational:
+                try:
+                    await self._relational.save_report(report)
+                except NotImplementedError:
+                    logger.warning("RelationalStore is a stub; report was not persisted.")
+                except RelationalStoreError as exc:  # pragma: no cover
+                    logger.warning(f"Could not save report to relational store: {exc}")
+            if self._vector:
+                try:
+                    await self._vector.upsert_incident(report)
+                except VectorStoreError as exc:  # pragma: no cover
+                    logger.warning(f"Could not upsert report to vector store: {exc}")
+            return {"result": json.loads(report.model_dump_json()), "hitl_pending": False}
 
-        The Code Analyst examines stack traces, register contents, and symbols to
-        diagnose application faults. Can extract probabilistic fixes from its
-        evidence annotations (prefixed with '__fix__:').
+        return _node
 
-        Args:
-            state: Current investigation state.
-
-        Returns:
-            Update dict with agent turn, confidence scores, and hypotheses.
-        """
-        turn = await self._code_agent.run(state)
-        tracker, history, scores = self._fold_turn(state, turn, "code_analyst")
-        primary = turn.hypotheses[0].model_dump(mode="json") if turn.hypotheses else None
-        update: dict[str, Any] = {
-            "discussion_history": history,
-            "current_round_scores": scores,
-            "token_tracker": tracker,
-        }
-        if primary:
-            update["primary_hypothesis"] = primary
-        return update
-
-    async def _log_historian_node(self, state: InvestigationState) -> dict[str, Any]:
-        """Invoke the Log Historian Agent for temporal and recurrence analysis.
-
-        The Log Historian compares the current incident against prior reports in
-        the vector store (loaded once and cached) to identify recurrence patterns,
-        escalation sequences, and trending behaviors.
-
-        Args:
-            state: Current investigation state.
-
-        Returns:
-            Update dict with agent turn and consensus scores.
-        """
-        history = await self._load_history()
-        turn = await self._historian.run(state, vector_store=self._vector, history=history)
-        tracker, history, scores = self._fold_turn(state, turn, "log_historian")
-        return {
-            "discussion_history": history,
-            "current_round_scores": scores,
-            "token_tracker": tracker,
-        }
-
-    async def _skeptic_node(self, state: InvestigationState) -> dict[str, Any]:
-        """Invoke the Skeptic Agent to challenge the emerging consensus.
-
-        The Skeptic critically examines all prior agent hypotheses and evidence,
-        raising alternative explanations and gaps. After the Skeptic's turn,
-        consensus is calculated, and convergence is evaluated: if the Skeptic
-        confirmed AND consensus meets the threshold AND hypothesis remained stable,
-        the investigation converges.
-
-        Args:
-            state: Current investigation state with all prior agent turns.
-
-        Returns:
-            Update dict with consensus score, convergence flag, and round tracking.
-        """
-        turn = await self._skeptic.run(state)
-        tracker, history, scores = self._fold_turn(state, turn, "skeptic")
-
-        # Calculate weighted consensus for this round.
-        brief = state.get("incident_brief") or {}
-        fault_str = brief.get("fault_class") or "unknown"
-        try:
-            fault_class = FaultClass(fault_str)
-        except ValueError:
-            fault_class = FaultClass.UNKNOWN
-        cs = self._evaluator.calculate(scores, fault_class)
-
-        # Determine convergence: Skeptic confirmed AND the score meets threshold.
-        skeptic_confirmed = turn.confidence_score >= 0.65  # MEDIUM or above
-        prev_key = state.get("previous_hypothesis_key")
-        primary = state.get("primary_hypothesis") or {}
-        current_key = str(primary.get("root_cause") or "")
-        same_hypothesis = prev_key is None or prev_key == current_key
-        converged = skeptic_confirmed and self._evaluator.is_converged(
-            cs, self._settings.core.consensus_threshold, same_hypothesis
-        )
-
-        round_num = state.get("round_number", 1)
-        return {
-            "discussion_history": history,
-            "current_round_scores": scores,
-            "consensus_score": cs,
-            "is_converged": converged,
-            "round_number": round_num + 1,
-            "previous_hypothesis_key": current_key,
-            "token_tracker": tracker,
-        }
-
-    async def _output_synthesizer_node(self, state: InvestigationState) -> dict[str, Any]:
-        """Build the final RCA report when consensus is reached.
-
-        Synthesises all agent turns, hypotheses, and scores into a structured
-        RCAReport. Persists the report to relational and vector stores for
-        future recurrence matching (best-effort; failures are logged but not fatal).
-
-        Args:
-            state: Converged investigation state with consensus above the threshold.
-
-        Returns:
-            Update dict with 'result' containing the final RCAReport and
-            'hitl_pending' set to False.
-        """
-        report = self._build_report(state, hitl_pending=False)
-        if self._relational:
-            try:
-                await self._relational.save_report(report)
-            except NotImplementedError:
-                logger.warning("RelationalStore is a stub; report was not persisted.")
-            except RelationalStoreError as exc:  # pragma: no cover
-                logger.warning(f"Could not save report to relational store: {exc}")
-        if self._vector:
-            try:
-                await self._vector.upsert_incident(report)
-            except VectorStoreError as exc:  # pragma: no cover
-                logger.warning(f"Could not upsert report to vector store: {exc}")
-        return {"result": json.loads(report.model_dump_json()), "hitl_pending": False}
-
-    async def _hitl_node(self, state: InvestigationState) -> dict[str, Any]:
-        """Build a Human-In-The-Loop report when max debate rounds are exhausted.
+    def _make_hitl_node(self, panel: list[BaseAgent]) -> AgentNode:
+        """Build the HITL node closure for *panel*.
 
         When the panel cannot converge within the configured debate limit, the
-        current state is packaged into an RCAReport with an embedded HITLRequest
-        prompting the user for additional context. The report is persisted to
-        relational storage for resumption in Phase 6.
+        node packages the current state into an RCAReport carrying a
+        :class:`~aegis_swr.core.schemas.HITLRequest` and persists it to relational
+        storage for later resumption. The panel is closed over for role-driven
+        report synthesis.
 
-        Args:
-            state: Investigation state after max rounds reached.
-
-        Returns:
-            Update dict with 'result' containing RCAReport and 'hitl_pending'
-            set to True, signaling a pause for user input.
+        :param panel: The resolved panel for this run.
+        :type panel: list[BaseAgent]
+        :return: An async node callable for :meth:`StateGraph.add_node`.
+        :rtype: AgentNode
         """
-        report = self._build_report(state, hitl_pending=True)
+
+        async def _node(state: InvestigationState) -> dict[str, Any]:
+            return await self._hitl_node(state, panel)
+
+        return _node
+
+    async def _hitl_node(self, state: InvestigationState, panel: list[BaseAgent]) -> dict[str, Any]:
+        """Build and persist a Human-In-The-Loop report at the debate limit.
+
+        :param state: Investigation state after max rounds reached.
+        :type state: InvestigationState
+        :param panel: The resolved panel, for role-driven report synthesis.
+        :type panel: list[BaseAgent]
+        :return: Update dict with ``result`` (the RCAReport) and ``hitl_pending``.
+        :rtype: dict[str, Any]
+        """
+        report = self._build_report(state, panel, hitl_pending=True)
         if self._relational:
             try:
                 await self._relational.save_report(report)
@@ -479,50 +625,64 @@ class Orchestrator:
     # Routing
     # ------------------------------------------------------------------
 
-    def _route_after_skeptic(self, state: InvestigationState) -> str:
-        """Determine the next node after the Skeptic has reported.
+    def _make_router(self, first_node: str) -> Callable[[InvestigationState], str]:
+        """Build the arbiter's conditional-routing function for this run.
 
-        The routing logic is:
-          - If converged (consensus ≥ threshold + Skeptic MEDIUM+ confidence):
-            synthesize and return the final report.
-          - Else if max_rounds for debate is reached: invoke HITL for user input.
-          - Else: loop back to OS Kernel Agent for the next debate round.
+        The routing logic (unchanged from the legacy Skeptic gate, generalized):
 
-        Args:
-            state: Current investigation state with a convergence flag set.
+        - If converged (consensus ≥ threshold and arbiter MEDIUM+ confidence on a
+          stable hypothesis): route to output synthesis.
+        - Else if the debate limit is reached: route to HITL for user input.
+        - Else: loop back to the first investigator for the next round.
 
-        Returns:
-            Node name: 'output_synthesizer_node', 'hitl_node', or 'os_kernel_node'.
+        :param first_node: Node name of the first investigator (the loop-back
+            target), bound at graph-build time from the ordered panel.
+        :type first_node: str
+        :return: A routing callable for :meth:`StateGraph.add_conditional_edges`.
+        :rtype: Callable[[InvestigationState], str]
         """
-        if state.get("is_converged"):
-            return "output_synthesizer_node"
-        # round_number has already been incremented by _skeptic_node.
-        rounds_completed = (state.get("round_number") or 2) - 1
-        max_rounds = self._settings.core.max_debate_rounds
-        if rounds_completed >= max_rounds:
-            return "hitl_node"
-        return "os_kernel_node"
+
+        def _route(state: InvestigationState) -> str:
+            if state.get("is_converged"):
+                return "output_synthesizer_node"
+            # round_number has already been incremented by the arbiter node.
+            rounds_completed = (state.get("round_number") or 2) - 1
+            if rounds_completed >= self._settings.core.max_debate_rounds:
+                return "hitl_node"
+            return first_node
+
+        return _route
 
     # ------------------------------------------------------------------
     # Report construction
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_report(state: InvestigationState, *, hitl_pending: bool) -> RCAReport:
+    def _build_report(
+        state: InvestigationState,
+        panel: list[BaseAgent],
+        *,
+        hitl_pending: bool,
+    ) -> RCAReport:
         """Synthesize investigation state into a complete RCA report.
 
-        Extracts the primary hypothesis, alternative hypotheses, Code Analyst
-        probabilistic fixes (annotated with '__fix__:' prefix), Skeptic challenges,
-        and consensus metrics. Builds an HITLRequest if the investigation is
-        inconclusive and awaiting user input.
+        Extracts the primary hypothesis, alternative hypotheses, the
+        fix-contributor's probabilistic fix (annotated with the ``__fix__:``
+        prefix), the arbiter's challenges, and consensus metrics. Which turns
+        supply challenges vs. fixes is decided by the *panel* each agent's role
+        (``ARBITER``) and capability flag (``contributes_fix``), keyed by
+        ``agent_key`` - never by any display-name string. Builds an HITLRequest
+        when the investigation is inconclusive and awaiting user input.
 
-        Args:
-            state: Final investigation state with all agent dialogue and scores.
-            hitl_pending: If True, includes a HITLRequest and sets the flag in
-                         the report. If False, produces a completed report.
-
-        Returns:
-            RCAReport with all synthesized findings, evidence, and metadata.
+        :param state: Final investigation state with all agent dialogue/scores.
+        :type state: InvestigationState
+        :param panel: The resolved panel, supplying the role/capability lookups.
+        :type panel: list[BaseAgent]
+        :param hitl_pending: When ``True`` include a HITLRequest and set the
+            report's flag; otherwise produce a completed report.
+        :type hitl_pending: bool
+        :return: RCAReport with all synthesized findings, evidence, and metadata.
+        :rtype: RCAReport
         """
         history_raw = state.get("discussion_history") or []
         history = [AgentTurn.model_validate(t) for t in history_raw]
@@ -536,16 +696,20 @@ class Orchestrator:
             confidence=cs,
         )
 
+        # Panel-derived, role/capability-driven synthesis (no name-string branch).
+        agent_roles = {agent.agent_key: agent.role for agent in panel}
+        agent_fix_flags = {agent.agent_key: agent.contributes_fix for agent in panel}
+
         # Extract all alternative hypotheses from the agent turns.
         alt_hypotheses: list[Hypothesis] = []
         skeptic_challenges: list[str] = []
         mitigation: list[str] = []
         probabilistic_fix: Optional[str] = None
         for turn in history:
-            if turn.agent == "Skeptic Agent":
+            if agent_roles.get(turn.agent_key) is AgentRole.ARBITER:
                 for h in turn.hypotheses:
                     skeptic_challenges.extend(h.evidence)
-            if turn.agent == "Code Analyst Agent":
+            if agent_fix_flags.get(turn.agent_key):
                 for h in turn.hypotheses[1:]:
                     alt_hypotheses.append(h)
                 # Extract fix from evidence annotation.
@@ -632,23 +796,37 @@ class Orchestrator:
         return self._history_cache
 
     @staticmethod
-    def _initial_state(source: IncidentSource) -> InvestigationState:
+    def _initial_state(
+        source: IncidentSource,
+        brief: IncidentBrief,
+        incident_id: Optional[str] = None,
+    ) -> InvestigationState:
         """Construct the initial state for a new investigation.
 
-        Generates a unique incident ID (UUID4) and seeds the state with empty
-        discussion history, zero consensus, and token tracking set to zero.
-        The incident source is serialized as JSON for transparent state passing.
+        Seeds the state with the already-extracted incident brief (formerly
+        produced by the data-adapter node), empty discussion history, zero
+        consensus, and the new panel-coordination fields (``latest_turn_this_round``
+        starts unset and ``latest_arbiter_feedback`` empty). The incident source
+        is serialized as JSON for transparent state passing.
 
-        Args:
-            source: Incident source (crash dump, log file reference, etc.).
-
-        Returns:
-            InvestigationState ready for graph execution.
+        :param source: Incident source (crash dump, log file reference, etc.).
+        :type source: IncidentSource
+        :param brief: The forensic brief extracted before graph execution.
+        :type brief: IncidentBrief
+        :param incident_id: Optional pre-generated incident ID; a UUID4 is
+            generated when omitted. (Streaming supplies the id used by the
+            InvestigationStarted event so both agree.)
+        :type incident_id: Optional[str]
+        :return: InvestigationState ready for graph execution.
+        :rtype: InvestigationState
         """
         return InvestigationState(
-            incident_id=str(uuid.uuid4()),
+            incident_id=incident_id or str(uuid.uuid4()),
+            incident_brief=brief.model_dump(mode="json"),
             source=json.loads(source.model_dump_json()),
             discussion_history=[],
+            latest_turn_this_round=None,
+            latest_arbiter_feedback=[],
             round_number=1,
             consensus_score=0.0,
             is_converged=False,
@@ -660,6 +838,22 @@ class Orchestrator:
             result=None,
             error=None,
         )
+
+    @staticmethod
+    def _fault_class_from_brief(brief: dict[str, Any]) -> FaultClass:
+        """Extract the brief's fault class, defaulting to ``UNKNOWN``.
+
+        :param brief: The serialized incident brief.
+        :type brief: dict[str, Any]
+        :return: The parsed :class:`FaultClass`, or :attr:`FaultClass.UNKNOWN`
+            when the value is missing or unrecognized.
+        :rtype: FaultClass
+        """
+        fault_str = brief.get("fault_class") or "unknown"
+        try:
+            return FaultClass(fault_str)
+        except ValueError:
+            return FaultClass.UNKNOWN
 
     @staticmethod
     def _deserialize_source(state: InvestigationState) -> IncidentSource:

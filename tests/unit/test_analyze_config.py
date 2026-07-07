@@ -108,14 +108,15 @@ def test_cli_options_have_backing_schema_keys():
     Conversely every field has a CLI flag *except* the explicit config-file-only
     set (connection details / evidence-persistence dir).
 
-    ``ai`` is intentionally excluded: it is a CLI-only override for
-    ``settings.backends.ai.provider`` and is not persisted as a flat analyze key.
+    ``ai`` and ``agent`` are intentionally excluded: they are CLI-only overrides
+    for ``settings.backends.ai.provider`` and ``settings.panel`` respectively, and
+    are not persisted as flat analyze keys.
     """
     from aegis_swr.cli.commands import analyze
 
     cli_params = set(inspect.signature(analyze).parameters)
     # Exclude meta flags and Settings-level overrides that bypass AnalyzeConfig.
-    cli_params -= {"ctx", "config_path", "save_config", "ai"}
+    cli_params -= {"ctx", "config_path", "save_config", "ai", "agent"}
     schema_keys = set(AnalyzeConfig.keys())
 
     # No CLI option may exist without a backing schema field.
@@ -504,9 +505,7 @@ def test_legacy_conflated_logging_section_is_migrated():
     """
     captured, sink_id = _capture_warnings()
     try:
-        cfg = AnalyzeConfig.from_dict(
-            {"logging": {"provider": "fluent", "service": "svc", "severity": "DEBUG"}}
-        )
+        cfg = AnalyzeConfig.from_dict({"logging": {"provider": "fluent", "service": "svc", "severity": "DEBUG"}})
     finally:
         logger.remove(sink_id)
 

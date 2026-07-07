@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 import json
-from typing import Optional
+from typing import Any, ClassVar, Optional
 
-from aegis_swr.agents.base import BaseAgent
+from aegis_swr.agents.base import AgentCategory, BaseAgent
 from aegis_swr.backends.base import VectorStore
 from aegis_swr.core.exceptions import VectorStoreError
 from aegis_swr.core.incident_similarity import analyze_history
-from aegis_swr.core.schemas import AgentTurn, InvestigationState, LogHistorianOutput, RCAReport
+from aegis_swr.core.schemas import (
+    AgentRole,
+    AgentTurn,
+    InvestigationState,
+    LogHistorianOutput,
+    RCAReport,
+)
 
 _SYSTEM_PROMPT = """\
 You are a production incident historian. You analyze temporal log patterns, \
@@ -32,6 +38,11 @@ Set confidence_adjustment between -0.2 and +0.2.\
 
 
 class LogHistorianAgent(BaseAgent):
+    agent_key: ClassVar[str] = "log_historian"
+    display_name: ClassVar[str] = "Log Historian Agent"
+    category: ClassVar[AgentCategory] = "base"
+    role: ClassVar[AgentRole] = AgentRole.INVESTIGATOR
+
     @property
     def system_prompt(self) -> str:
         return _SYSTEM_PROMPT
@@ -44,7 +55,6 @@ class LogHistorianAgent(BaseAgent):
     ) -> AgentTurn:
         round_num = state.get("round_number", 1)
         brief = state.get("incident_brief", {})
-        discussion = state.get("discussion_history", [])
 
         # Correlate the current incident's forensic signature against prior
         # reports by metadata (module, function, source line, exception code,
@@ -56,12 +66,8 @@ class LogHistorianAgent(BaseAgent):
 
         analysis = analyze_history(brief, reports, exclude_incident_id=state.get("incident_id"))
 
-        # Find the Code Analyst output for this round.
-        code_turn: dict[str, object] = {}
-        for hist_turn in reversed(discussion):
-            if hist_turn.get("agent") == "Code Analyst Agent" and hist_turn.get("turn_number") == round_num:
-                code_turn = hist_turn
-                break
+        # Read the immediately-preceding investigator turn as context.
+        code_turn: dict[str, Any] = state.get("latest_turn_this_round") or {}
 
         context: dict[str, object] = {
             "incident_brief": brief,
@@ -73,11 +79,9 @@ class LogHistorianAgent(BaseAgent):
         output = await self._ai.generate(self.system_prompt, messages, LogHistorianOutput)
         assert isinstance(output, LogHistorianOutput)
 
-        agent_turn = AgentTurn(
-            agent="Log Historian Agent",
+        agent_turn = self.make_turn(
             turn_number=round_num,
             message=output.history_note,
-            hypotheses=[],
             confidence_score=output.updated_confidence,
         )
         self._accumulate_tokens(state)

@@ -1,5 +1,6 @@
 """Verify that ABCs cannot be instantiated directly and that concrete
 subclasses satisfying all abstract methods can be instantiated"""
+
 from __future__ import annotations
 
 import pytest
@@ -125,6 +126,7 @@ def test_minimal_ai_backend_subclass():
         ) -> AsyncGenerator[str, None]:
             async def _gen() -> AsyncGenerator[str, None]:
                 yield "token"
+
             return _gen()
 
     backend = _DummyAI()
@@ -150,20 +152,23 @@ def test_minimal_base_agent_subclass():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by interfaces
     """
-    from aegis_swr.core.schemas import AgentTurn, InvestigationState
+    from typing import ClassVar
+
+    from aegis_swr.agents.base import AgentCategory
+    from aegis_swr.core.schemas import AgentRole, AgentTurn, InvestigationState
 
     class _DummyAgent(BaseAgent):
+        agent_key: ClassVar[str] = "dummy"
+        display_name: ClassVar[str] = "Dummy"
+        category: ClassVar[AgentCategory] = "base"
+        role: ClassVar[AgentRole] = AgentRole.INVESTIGATOR
+
         @property
         def system_prompt(self) -> str:
             return "dummy"
 
         async def run(self, state: InvestigationState) -> AgentTurn:
-            return AgentTurn(
-                agent="Dummy",
-                turn_number=1,
-                message="ok",
-                confidence_score=0.5,
-            )
+            return self.make_turn(turn_number=1, message="ok", confidence_score=0.5)
 
     agent = _DummyAgent(ai_backend=None, settings=None)  # type: ignore[arg-type]
     assert agent.system_prompt == "dummy"

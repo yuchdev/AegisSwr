@@ -1,60 +1,48 @@
 """Weighted consensus score calculator for the Multi-Agent System.
 
-The formula is CS = Σ(Wᵢ·Sᵢ) / Σ(Wᵢ) where Wᵢ is the domain authority weight
-of Agent i for the detected fault type, and Sᵢ is the confidence score from
-that agent in the current round.
+The consensus score is the weighted average ``CS = Σ(Wᵢ·Sᵢ) / Σ(Wᵢ)`` over an
+arbitrary set of agents, where ``Wᵢ`` is the caller-supplied consensus weight
+for agent *i* and ``Sᵢ`` is that agent's confidence score in the current round.
+
+Weight resolution - fault-class lookup and the weight-precedence merge - is the
+caller's responsibility (it lives in ``agents/panel.py``). This keeps the
+evaluator a pure, fully agent-count-agnostic utility with no knowledge of
+:class:`~aegis_swr.core.fault_codes.FaultClass`, the settings weight matrix, or
+any fixed set of agent keys.
 """
+
 from __future__ import annotations
-
-from aegis_swr.config.settings import AgentWeightsSettings
-from aegis_swr.core.fault_codes import FaultClass
-
-"""Tuple of canonical agent identifiers used to map scores and weights across the system."""
-_AGENT_KEYS = ("os_kernel", "code_analyst", "log_historian", "skeptic")
 
 
 class ConsensusEvaluator:
     """Evaluator for weighted consensus scores in multi-agent debate rounds.
 
-    Computes a normalized confidence score across agents using domain-specific
-    authority weights (e.g., higher weight for code analysis on SEGFAULT vs.
-    memory corruption). Also provides convergence and deadlock detection logic
-    to determine when debate should terminate.
+    Computes a normalized confidence score across an arbitrary panel of agents
+    from a caller-supplied weight map. Also provides convergence and deadlock
+    detection helpers to determine when debate should terminate.
     """
-
-    def __init__(self, weights: AgentWeightsSettings):
-        """Initialize the evaluator with agent weight configuration.
-
-        Args:
-            weights: AgentWeightsSettings instance that maps fault classes to
-                per-agent domain authority weights.
-        """
-        self._weights = weights
 
     def calculate(
         self,
         agent_scores: dict[str, float],
-        fault_class: FaultClass,
+        weight_map: dict[str, float],
     ) -> float:
-        """Return the weighted consensus score for *agent_scores* and *fault_class*.
+        """Return the weighted-average consensus score.
 
-        *agent_scores* maps the agent key (e.g. ``"os_kernel"``) to a confidence
-        score in [0.0, 1.0]. Missing agents are treated as contributing 0.0,
-        so a partial round still yields a usable score.
+        :param agent_scores: Mapping of agent key (e.g. ``"os_kernel"``) to a
+            confidence score in ``[0.0, 1.0]``. An agent present in
+            *weight_map* but absent here is treated as contributing ``0.0``, so
+            a partial round still yields a usable score.
+        :param weight_map: Mapping of agent key to consensus weight. The result
+            is normalized by the sum of these weights, so the map need not be
+            pre-normalized; only agents named here contribute.
+        :return: ``Σ(Wᵢ·Sᵢ) / Σ(Wᵢ)``, or ``0.0`` when the total weight is
+            zero.
         """
-        entry = self._weights.for_fault_class(fault_class.value)
-        weight_map = {
-            "os_kernel": entry.os_kernel,
-            "code_analyst": entry.code_analyst,
-            "log_historian": entry.log_historian,
-            "skeptic": entry.skeptic,
-        }
         total_weight = sum(weight_map.values())
         if total_weight == 0.0:
             return 0.0
-        weighted_sum = sum(
-            weight_map.get(k, 0.0) * agent_scores.get(k, 0.0) for k in _AGENT_KEYS
-        )
+        weighted_sum = sum(weight * agent_scores.get(key, 0.0) for key, weight in weight_map.items())
         return weighted_sum / total_weight
 
     @staticmethod
