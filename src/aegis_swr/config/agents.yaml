@@ -1,0 +1,61 @@
+# Aegis SWR - model routing configuration.
+#
+# Declares the model providers and the per-role agents that the router wires
+# together. All credentials are referenced via ${ENV_VAR} placeholders and are
+# resolved from the environment at load time - never hard-code secrets here.
+
+providers:
+  anthropic:
+    api_key: ${ANTHROPIC_API_KEY}
+    # base_url omitted - LiteLLM uses Anthropic's hardcoded endpoint.
+
+  deepseek:
+    api_key: ${DEEPSEEK_API_KEY}
+    base_url: https://api.deepseek.com/v1
+
+  self_hosted:
+    base_url: ${VLLM_BASE_URL}/v1
+    api_key: ${VLLM_API_KEY}      # may be empty string for unauthenticated
+
+agents:
+  hypothesis:
+    model: anthropic/claude-sonnet-4-6
+    role: primary_reasoning
+    fallback:
+      - deepseek/deepseek-chat
+    timeout_s: 30
+    retry:
+      attempts: 2
+      backoff_s: 1.5
+
+  adversarial:
+    model: deepseek/deepseek-chat
+    role: contradiction_finder
+    fallback:
+      - anthropic/claude-haiku-4-5-20251001
+    timeout_s: 20
+    retry:
+      attempts: 2
+      backoff_s: 1.0
+
+  # synthesis intentionally omits fallback/timeout_s/retry to prove the
+  # documented defaults (fallback=(), timeout_s=30.0, RetryPolicy(2, 1.0)) apply.
+  synthesis:
+    model: anthropic/claude-sonnet-4-6
+    role: verdict_compilation
+
+  fast_triage:
+    model: self_hosted/local-model
+    role: evidence_classifier
+    fallback:
+      - deepseek/deepseek-chat
+    timeout_s: 10
+    retry:
+      attempts: 3
+      backoff_s: 0.5
+
+  openclaude_agent:
+    provider: openclaude        # not routed through LiteLLM; see RouterConfig
+    model: ~                    # model is OpenClaude's concern, not Aegis SWR's
+    timeout_s: 120
+    enabled_when: OPENCLAUDE_GRPC_URL

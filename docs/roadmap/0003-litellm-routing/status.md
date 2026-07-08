@@ -7,8 +7,8 @@ Updated as each task lands.
 
 | Task | Name                    | Status        | Tests |
 |------|-------------------------|---------------|-------|
-| 01.0 | agents.yaml Schema      | ⬜ Not started | -     |
-| 02.0 | Router Foundation Types | ⬜ Not started | -     |
+| 01.0 | agents.yaml Schema      | ✅ Complete    | `tests/unit/router/test_config.py` |
+| 02.0 | Router Foundation Types | ✅ Complete (subtask 02 `events.py` deferred) | `tests/unit/router/{test_config,test_exceptions}.py` |
 | 03.0 | LiteLLM Client          | ⬜ Not started | -     |
 | 04.0 | Model Router            | ⬜ Not started | -     |
 | 05.0 | Test Suite              | ⬜ Not started | -     |
@@ -17,10 +17,26 @@ Updated as each task lands.
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
-**Current gate status:** decomposition complete; implementation not started. The
-milestone is fully decomposed into the task → subtask tree (see each task's
-`README.md`). No `aegis/router/` module exists yet; agents still import provider
-SDKs directly.
+**Current gate status:** the **configuration/foundation slice (Tasks 01.0 + 02.0)
+is implemented** as a dependency of Milestone 0004 — `src/aegis_swr/config/agents.yaml`
+(providers block + agent roles), `src/aegis_swr/router/{__init__,config,exceptions}.py`
+(`RouterConfig.from_yaml`, frozen config dataclasses, exception hierarchy), and
+`tests/unit/router/`. Deliberately **not** built: Task 02.0 subtask 02
+(`events.py`/`RouterEvent` — its only consumer is the unbuilt ModelRouter, and
+Milestone 0004's events subclass the live `DomainEvent` bus instead), and Tasks
+03.0–07.0 (LiteLLM client, ModelRouter, router tests, agent wiring, docs/CI) — none
+of which Milestone 0004 requires. The router package carries **no `litellm` /
+`anthropic` / `openai` / `deepseek` import** (isolation invariant, enforced by a test).
+`agents.yaml` is currently inert config: it is parsed by `RouterConfig.from_yaml` and
+tests, but nothing in the running app loads it yet (runtime config remains JSON via
+`~/.aegis-swr/config.json`); wiring it in is Task 06.0 (unbuilt, unneeded here).
+
+> **Why this partial slice.** Milestone 0004 (OpenClaude Integration) depends on 0003's
+> `agents.yaml` + `RouterConfig.from_yaml` + `enabled_when` config layer for its
+> `openclaude_agent` role. Rather than build all of 0003 (much of which duplicates the
+> already-existing `AISettings`/`backends.ai` provider selection), only the minimal
+> config/parsing slice 0004 actually needs was built. See
+> `docs/roadmap/0004-code-intelligence/status.md` (Task 01.0).
 
 ## Notes & decisions
 

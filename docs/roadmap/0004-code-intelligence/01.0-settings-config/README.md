@@ -1,7 +1,7 @@
 # Task 01.0 — OpenClaude Settings & Config
 
 **Parent milestone:** [Milestone 0004 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (all four subtasks; 02 & 03 unblocked by building the minimal Milestone 0003 config slice)
 
 ## Scope
 
@@ -58,14 +58,31 @@ on its internals or source layout. Consequences:
 
 | # | Document | Status | Blocks |
 |---|----------|--------|--------|
-| 01 | [`OpenClaudeSettings` Pydantic class](01-openclaude-settings.md) | ⬜ Not started | 03, 04, 03.0, 04.0, 05.0, 06.0 |
-| 02 | [`agents.yaml` `openclaude_agent` role](02-agents-yaml-role.md) | ⬜ Not started | 03 |
-| 03 | [`RouterConfig` `enabled_when` extension](03-router-config-enabled-when.md) | ⬜ Not started | - |
-| 04 | [Settings composition in top-level config](04-settings-composition.md) | ⬜ Not started | 06.0 |
+| 01 | [`OpenClaudeSettings` Pydantic class](01-openclaude-settings.md) | ✅ Complete | 03, 04, 03.0, 04.0, 05.0, 06.0 |
+| 02 | [`agents.yaml` `openclaude_agent` role](02-agents-yaml-role.md) | ✅ Complete | 03 |
+| 03 | [`RouterConfig` `enabled_when` extension](03-router-config-enabled-when.md) | ✅ Complete | - |
+| 04 | [Settings composition in top-level config](04-settings-composition.md) | ✅ Complete | 06.0 |
 
 Subtasks 01 and 02 have no interdependency and may proceed in parallel.
 Subtask 03 depends on subtask 02 (it parses the role that 02 adds). Subtask 04
 depends on subtask 01 (it composes the settings object 01 defines).
+
+> **Resolution note (2026-07-08).** Subtasks 02 and 03 were briefly deferred:
+> both target an `agents.yaml` role file and `RouterConfig.from_yaml()` /
+> `enabled_when` that Milestone 0003 (`0003-litellm-routing`) specifies but had
+> **never implemented in `src/`**. Rather than defer indefinitely, the **minimal
+> Milestone 0003 config slice** was built to unblock them — Tasks 0003/01.0
+> (`agents.yaml` schema) and 0003/02.0 (`src/aegis_swr/router/{config,exceptions}.py`:
+> `RouterConfig`, frozen config dataclasses, exception hierarchy). 0003's LiteLLM
+> client / ModelRouter / agent-wiring (Tasks 03.0–06.0) and its `events.py` were
+> **not** built (not needed by 0004; the router package carries no `litellm`
+> import). Subtask 02 then added the `openclaude_agent` stanza and subtask 03
+> extended `AgentConfig`/`from_yaml` with the optional `provider` + `enabled_when`
+> fields (a role omitting `enabled_when` parses unchanged; `openclaude_agent` is
+> dropped from the parsed config when `OPENCLAUDE_GRPC_URL` is unset, included with
+> `provider="openclaude"` when set). `agents.yaml` remains inert config (parsed by
+> `RouterConfig.from_yaml` + tests only) until Task 06.0 wires it. See
+> `0003-litellm-routing/status.md` and this milestone's `status.md`.
 
 ## Key constraints
 

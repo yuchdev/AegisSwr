@@ -1,0 +1,45 @@
+// src/aegis_swr/openclaude/grpc/proto/openclaude.proto
+//
+// Authoritative gRPC contract for the OpenClaude headless sidecar (C2).
+// Generated stubs (openclaude_pb2.py / openclaude_pb2_grpc.py) are committed
+// alongside this file and regenerated via `make proto-gen`.
+
+syntax = "proto3";
+
+package aegis.openclaude.v1;
+
+// Type of a single frame in the Query response stream.
+//
+// FRAME_TYPE_UNSPECIFIED is the mandatory proto3 zero-value; it must never be
+// emitted by a well-behaved server. The client treats a received
+// UNSPECIFIED frame as a protocol violation (terminal, mapped to a stream
+// error) rather than silently ignoring it.
+enum FrameType {
+  FRAME_TYPE_UNSPECIFIED = 0;
+  TEXT_CHUNK             = 1;  // Incremental response text.
+  TOOL_CALL             = 2;  // Tool invocation: `tool` set, args JSON in content.
+  TOOL_RESULT           = 3;  // Tool output.
+  PERMISSION_REQ        = 4;  // Requires confirmation before proceeding.
+  DONE                  = 5;  // Terminal frame; content = full response text.
+  ERROR                 = 6;  // Terminal error frame; content = error message.
+}
+
+// One frame of the server-streamed agent response.
+message AgentMessage {
+  FrameType type    = 1;  // Discriminates how `content` should be interpreted.
+  string    content = 2;  // Text chunk, tool-call args JSON, tool output, or error text.
+  string    tool    = 3;  // Optional: tool name for TOOL_CALL / TOOL_RESULT / PERMISSION_REQ.
+}
+
+// A single delegated code-navigation task.
+message PromptRequest {
+  string prompt = 1;  // The open-ended task string handed to OpenClaude's loop.
+  string run_id = 2;  // Aegis SWR run correlation id; echoed on emitted events.
+}
+
+// The OpenClaude delegation surface.
+service AgentService {
+  // Delegate one task; receive a stream of agent-message frames terminated by
+  // exactly one DONE or one ERROR frame.
+  rpc Query(PromptRequest) returns (stream AgentMessage);
+}

@@ -7,7 +7,7 @@ Updated as each task lands.
 
 | Task | Name                         | Status         | Tests |
 |------|------------------------------|----------------|-------|
-| 01.0 | OpenClaude Settings & Config | ⬜ Not started  | -     |
+| 01.0 | OpenClaude Settings & Config | ✅ Complete | `tests/unit/openclaude/test_config.py` (26), `tests/unit/router/` (24) |
 | 02.0 | gRPC Proto & Client          | ⬜ Not started  | -     |
 | 03.0 | Process Lifecycle Manager    | ⬜ Not started  | -     |
 | 04.0 | OpenClaudeTool Implementor   | ⬜ Not started  | -     |
@@ -158,17 +158,70 @@ tracks implementation, not spec-writing (all specs now exist)._
 
 ### Task 01.0 — OpenClaude Settings & Config
 
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (all four subtasks; 02 & 03 unblocked by building the minimal Milestone 0003 config slice)
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | [`OpenClaudeSettings` Pydantic class](01.0-settings-config/01-openclaude-settings.md) | ⬜   |
-| 02      | [`agents.yaml` `openclaude_agent` role](01.0-settings-config/02-agents-yaml-role.md) | ⬜   |
-| 03      | [`RouterConfig` `enabled_when` extension](01.0-settings-config/03-router-config-enabled-when.md) | ⬜   |
-| 04      | [Settings composition in top-level config](01.0-settings-config/04-settings-composition.md) | ⬜   |
+| 01      | [`OpenClaudeSettings` Pydantic class](01.0-settings-config/01-openclaude-settings.md) | ✅   |
+| 02      | [`agents.yaml` `openclaude_agent` role](01.0-settings-config/02-agents-yaml-role.md) | ✅   |
+| 03      | [`RouterConfig` `enabled_when` extension](01.0-settings-config/03-router-config-enabled-when.md) | ✅   |
+| 04      | [Settings composition in top-level config](01.0-settings-config/04-settings-composition.md) | ✅   |
 
-**Delivered:** —
-**Test coverage:** —
+**Delivered:** The OpenClaude configuration surface. `src/aegis_swr/openclaude/{__init__.py,config.py}`
+defines `OpenClaudeSettings` (Pydantic `BaseSettings`, `env_prefix="OPENCLAUDE_"`) with the 8 C1 fields
+plus a decided `use_tls: bool` (env `OPENCLAUDE_USE_TLS`) so Task 02.0 has an explicit TLS-channel signal
+(the C1 URL validator rejects scheme prefixes, so TLS could not be inferred from the URL). Validators reject
+scheme-prefixed / malformed `grpc_url`, unknown tool names, out-of-range `max_response_tokens`, and
+non-positive / mis-ordered timeouts, raising the forward-declared `OpenClaudeConfigError` (Task 05.0 will
+re-home it to `exceptions.py`). `src/aegis_swr/config/settings.py` composes `openclaude: OpenClaudeSettings`
+into the top-level `Settings` via `default_factory` (one field; no `grpc_url` branching — that stays in
+Task 06.0). `scripts/postinstall_openclaude.py` is a best-effort, never-raising npm helper.
+
+**Key implementation decisions / deviations (all confirmed with the user):**
+- **02 & 03 unblocked by a minimal Milestone 0003 slice.** Both target an `agents.yaml` +
+  `RouterConfig.from_yaml()` / `enabled_when` layer that Milestone 0003 specifies but had **never
+  implemented in `src/`**. After confirming (a dependency investigation across 0002/0003/0004) that this
+  was the *only* hard cross-milestone blocker and that 0002 needs nothing, the minimal 0003 config slice
+  was built: Tasks 0003/01.0 (`src/aegis_swr/config/agents.yaml`) + 0003/02.0
+  (`src/aegis_swr/router/{__init__,config,exceptions}.py` — `RouterConfig`, frozen config dataclasses,
+  exception hierarchy; `events.py` and Tasks 0003/03.0–07.0 deliberately NOT built — not needed by 0004,
+  and the router package carries no `litellm`/`anthropic`/`openai` import). Subtask 02 added the
+  `openclaude_agent` stanza; subtask 03 extended `AgentConfig`/`from_yaml` with optional `provider` +
+  `enabled_when` (roles omitting `enabled_when` parse unchanged; `openclaude_agent` is dropped when
+  `OPENCLAUDE_GRPC_URL` is unset, included with `provider="openclaude"` when set). `agents.yaml` stays
+  inert config (parsed only by `RouterConfig`/tests) until Task 06.0 wires it. See
+  `0003-litellm-routing/status.md`. Note this resolves the concrete, deeper form of the "package path
+  mismatch" gap noted above — the entire router subsystem, not just a path, was absent.
+- **Path translation.** `aegis/…` → `src/aegis_swr/…`; tests → `tests/unit/openclaude/` (the repo has only
+  `tests/unit/` + `tests/integration/`).
+- **No Poetry hook.** The project is hatchling + uv (no `[tool.poetry]`); the spec's `[tool.poetry.build]`
+  wiring would never fire, so it was omitted. `postinstall_openclaude.py` keeps `install_openclaude_cli()`
+  with a `__main__` guard (`uv run python scripts/postinstall_openclaude.py`) instead of a `build()` hook.
+- **Env-name aliases.** `max_response_tokens` / `connect_timeout_s` / `request_timeout_s` / `process_binary`
+  bind to the documented C1 env names (`OPENCLAUDE_MAX_TOKENS` / `_CONNECT_TIMEOUT` / `_REQUEST_TIMEOUT` /
+  `_BINARY`) via `validation_alias` + `populate_by_name=True` — without this they silently listened on
+  pydantic-derived names and swallowed operator config.
+- **CSV env parsing.** A custom `_CsvEnvSettingsSource` (+ a `mode="before"` validator) lets the `list[str]`
+  fields accept comma-separated env values; pydantic-settings v2 otherwise expects JSON.
+- **`scripts/replace_optional.py` is absent** from the repo (stale `CLAUDE.md` reference; the Stop hook does
+  not invoke it); the `Optional[T]` convention was enforced by grep instead.
+
+**Review:** feature-reviewer **LGTM**; security-auditor **PASS_WITH_FOLLOWUP** (no CRITICAL). Applied hardening:
+`grpc_url` regex `\Z`-anchored (rejects trailing-newline smuggling), postinstall also swallows `OSError`
+(honours its never-raise contract), and a warn-only `bash_allowlist` validator flags shells/interpreters/
+mutators (symmetric with `allowed_tools`).
+
+> **Security follow-up for Task 04.0 (tracked).** The C1 default `bash_allowlist` includes `find` and `cat`,
+> which are **not** truly read-only (`find -exec`/`-delete` = arbitrary exec/deletion; `cat` = read any file
+> incl. secrets). The default was kept as specified (status.md calls the allowlist "non-negotiable"), but the
+> read-only guarantee depends on Task 04.0's Bash-argument gate rejecting `find -exec`/`-delete` and
+> constraining `cat` targets. The warn-only validator here deliberately does **not** warn on `find`/`cat`
+> (they are spec defaults) — enforcement, not warning, is the fix, and it lives in 04.0.
+
+**Test coverage:** `src/aegis_swr/openclaude/config.py` 95.83% (26 tests,
+`tests/unit/openclaude/test_config.py`); `src/aegis_swr/router/config.py` 100% and the
+router package (24 tests, `tests/unit/router/`, built as the Milestone 0003 dependency
+slice for subtasks 02/03). Full unit suite: 551 passed, 88.26% total.
 
 ---
 

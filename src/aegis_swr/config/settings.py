@@ -13,6 +13,7 @@ The file also provides a small custom settings source that reads the
 missing or malformed JSON file is tolerated and simply ignored, leaving the
 model defaults intact.
 """
+
 from __future__ import annotations
 
 import json
@@ -23,6 +24,8 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+
+from aegis_swr.openclaude.config import OpenClaudeSettings
 
 """Canonical config directory - the single home of ``config.json`` (this
 module's runtime settings). It is the *same* path the CLI reads and writes, and
@@ -641,8 +644,9 @@ class Settings(BaseSettings):
     """Top-level application settings.
 
     This is the primary settings class consumers should instantiate. It
-    aggregates the core, backends, sandbox, api and runtime-panel sections and
-    wires in the custom JSON settings source so that ``config.json`` is read
+    aggregates the core, backends, sandbox, api, runtime-panel and openclaude
+    sections and wires in the custom JSON settings source so that
+    ``config.json`` is read
     automatically. The runtime ``panel`` request (the user's per-run choice) is
     loaded from ``config.json``.
 
@@ -684,6 +688,7 @@ class Settings(BaseSettings):
     sandbox: SandboxSettings = Field(default_factory=SandboxSettings)
     api: APISettings = Field(default_factory=APISettings)
     panel: PanelRuntimeSettings = Field(default_factory=PanelRuntimeSettings)
+    openclaude: OpenClaudeSettings = Field(default_factory=OpenClaudeSettings)
 
     def redacted_dump(self) -> dict[str, Any]:
         """Return the settings dict with secret values replaced by '***'"""
