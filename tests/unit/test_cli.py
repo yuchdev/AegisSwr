@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from unittest import mock
 
@@ -26,6 +27,18 @@ runner = typer.testing.CliRunner()
 
 _MOCK_RUN = "aegis_swr.core.orchestrator.Orchestrator.run"
 _MOCK_STREAM_EVENTS = "aegis_swr.core.orchestrator.Orchestrator.stream_events"
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape codes from *text*.
+
+    Python 3.13 changed terminal-detection behaviour that causes Rich to emit
+    colour codes even inside Typer's test runner.  Stripping them before
+    assertions keeps help-text checks version-agnostic.
+    """
+    return _ANSI_RE.sub("", text)
 
 
 def _report(with_hitl: bool = False) -> RCAReport:
@@ -91,19 +104,20 @@ def test_analyze_help():
     """
     result = runner.invoke(app, ["analyze", "--help"])
     assert result.exit_code == 0
-    assert "--dump" in result.output
-    assert "--config" in result.output
-    assert "--save-config" in result.output
-    assert "--engine" in result.output
-    assert "--ai" in result.output
-    assert "--store" in result.output
+    out = _strip_ansi(result.output)
+    assert "--dump" in out
+    assert "--config" in out
+    assert "--save-config" in out
+    assert "--engine" in out
+    assert "--ai" in out
+    assert "--store" in out
 
 
 def test_root_help_is_recursive():
     """Root --help expands every subcommand and all their CLI options."""
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    out = result.output
+    out = _strip_ansi(result.output)
     # Top-level command summary is still present.
     for command in ("analyze", "export", "server", "config"):
         assert command in out
@@ -151,8 +165,9 @@ def test_export_help():
     """
     result = runner.invoke(app, ["export", "--help"])
     assert result.exit_code == 0
-    assert "--store" in result.output
-    assert "--to-store" in result.output
+    out = _strip_ansi(result.output)
+    assert "--store" in out
+    assert "--to-store" in out
 
 
 def test_analyze_help_lists_backend_flags():
@@ -176,10 +191,11 @@ def test_analyze_help_lists_backend_flags():
     """
     result = runner.invoke(app, ["analyze", "--help"])
     assert result.exit_code == 0
-    assert "--code-provider" in result.output
-    assert "--repo" in result.output
-    assert "--log-provider" in result.output
-    assert "--log-service" in result.output
+    out = _strip_ansi(result.output)
+    assert "--code-provider" in out
+    assert "--repo" in out
+    assert "--log-provider" in out
+    assert "--log-service" in out
 
 
 # ---------------------------------------------------------------------------
