@@ -1,7 +1,7 @@
 # Task 03.0 — Process Lifecycle Manager
 
 **Parent milestone:** [Milestone 0004 — OpenClaude Integration](/docs/roadmap/0004-code-intelligence/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Scope
 
@@ -29,10 +29,10 @@ port is exposed via `grpc_url`.
 
 | # | Name | Status | Blocks |
 |---|------|--------|--------|
-| 01 | [External mode `__aenter__` / `__aexit__`](01-external-mode.md) | ⬜ Not started | 02, 03, 04 |
-| 02 | [Managed mode subprocess start/stop](02-managed-mode.md) | ⬜ Not started | 03, 04 |
-| 03 | [Port-0 free-port selection](03-port-selection.md) | ⬜ Not started | 04.0 |
-| 04 | [stderr forwarding to `logger`](04-stderr-forwarding.md) | ⬜ Not started | 04.0 |
+| 01 | [External mode `__aenter__` / `__aexit__`](01-external-mode.md) | ✅ Complete | 02, 03, 04 |
+| 02 | [Managed mode subprocess start/stop](02-managed-mode.md) | ✅ Complete | 03, 04 |
+| 03 | [Port-0 free-port selection](03-port-selection.md) | ✅ Complete | 04.0 |
+| 04 | [stderr forwarding to `logger`](04-stderr-forwarding.md) | ✅ Complete | 04.0 |
 
 ## Key constraints
 

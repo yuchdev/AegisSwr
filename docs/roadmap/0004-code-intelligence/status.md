@@ -8,8 +8,8 @@ Updated as each task lands.
 | Task | Name                         | Status         | Tests |
 |------|------------------------------|----------------|-------|
 | 01.0 | OpenClaude Settings & Config | ✅ Complete | `tests/unit/openclaude/test_config.py` (26), `tests/unit/router/` (24) |
-| 02.0 | gRPC Proto & Client          | ⬜ Not started  | -     |
-| 03.0 | Process Lifecycle Manager    | ⬜ Not started  | -     |
+| 02.0 | gRPC Proto & Client          | ✅ Complete     | `tests/unit/openclaude/grpc/test_client.py` (35) |
+| 03.0 | Process Lifecycle Manager    | ✅ Complete     | `tests/unit/openclaude/test_process.py` (51) |
 | 04.0 | OpenClaudeTool Implementor   | ⬜ Not started  | -     |
 | 05.0 | Event Types & Exceptions     | ⬜ Not started  | -     |
 | 06.0 | App Wiring & agents.yaml     | ⬜ Not started  | -     |
@@ -53,6 +53,13 @@ genuine architecture decisions, not typos):
   URLs. Neither a URL scheme nor a `use_tls`-style field currently exists to
   drive this — C1 needs an explicit TLS field, or the milestone should commit
   to insecure-only for now.
+  **[Resolved by Task 02.0, 2026-07-08]** Task 01.0 added the explicit
+  `OpenClaudeSettings.use_tls: bool` field (env `OPENCLAUDE_USE_TLS`, default
+  `False`); `OpenClaudeGrpcClient._ensure_channel()` selects
+  `grpc.aio.secure_channel` vs `insecure_channel` from that flag (no scheme
+  parsing of `grpc_url`). A loguru WARNING now fires when `use_tls=False` and
+  the host is non-loopback, flagging plaintext prompt transmission (per the
+  security review — MEDIUM, mitigated warn-not-reject).
 - **Permission-enforcement ownership conflict (C2 vs Task 04.0).** C2 places
   allowlist enforcement for `PERMISSION_REQ` frames in the gRPC client; Task
   04.0's subtasks (following its own README, which is authoritative per this
@@ -69,6 +76,15 @@ genuine architecture decisions, not typos):
   C7's external-mode allowlist probe has no dedicated subtask; plan.md's
   dependency graph is missing a 05.0 → 02.0 edge (`client.py` imports
   `OpenClaudeUnavailableError` from 05.0).
+  **[05.0 → 02.0 edge resolved by Task 02.0, 2026-07-08]** rather than block on
+  the unbuilt 05.0, `src/aegis_swr/openclaude/exceptions.py` was forward-declared
+  (base `OpenClaudeError` + `OpenClaudeUnavailableError`), mirroring how Task 01.0
+  forward-declared `OpenClaudeConfigError` in `config.py`. **Forward-contract
+  obligation on Task 05.0:** subtask 04 needed `retriable`/`status_code`, so the
+  ctor is a superset `(message, grpc_url=None, *, retriable=True, status_code=None)`
+  of 05.0's pinned `(message, grpc_url=None)`. When 05.0 lands
+  (`05.0-events-exceptions/02-exception-types.md`) it MUST preserve those keyword
+  fields and base off `OpenClaudeError`, or `client.py._translate_status()` breaks.
 
 See each task's numbered subtask files for where these are flagged inline.
 
@@ -227,33 +243,140 @@ slice for subtasks 02/03). Full unit suite: 551 passed, 88.26% total.
 
 ### Task 02.0 — gRPC Proto & Client
 
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | [`openclaude.proto` schema](02.0-grpc-proto-client/01-proto-schema.md) | ⬜   |
-| 02      | [`make proto-gen` target](02.0-grpc-proto-client/02-proto-gen-makefile.md) | ⬜   |
-| 03      | [`OpenClaudeGrpcClient` implementation](02.0-grpc-proto-client/03-grpc-client.md) | ⬜   |
-| 04      | [`health_check()` + timeout handling](02.0-grpc-proto-client/04-health-check-timeouts.md) | ⬜   |
+| 01      | [`openclaude.proto` schema](02.0-grpc-proto-client/01-proto-schema.md) | ✅   |
+| 02      | [`make proto-gen` target](02.0-grpc-proto-client/02-proto-gen-makefile.md) | ✅   |
+| 03      | [`OpenClaudeGrpcClient` implementation](02.0-grpc-proto-client/03-grpc-client.md) | ✅   |
+| 04      | [`health_check()` + timeout handling](02.0-grpc-proto-client/04-health-check-timeouts.md) | ✅   |
 
-**Delivered:** —
-**Test coverage:** —
+**Delivered:**
+- `src/aegis_swr/openclaude/grpc/proto/openclaude.proto` — the authoritative C2
+  wire contract (proto3, package `aegis.openclaude.v1`): `FrameType` enum,
+  `AgentMessage`, `PromptRequest`, single server-streaming `AgentService.Query`.
+- `Makefile` `proto-gen` target + committed generated stubs
+  (`openclaude_pb2.py`, `openclaude_pb2_grpc.py`). Stubs are generated with
+  `--proto_path=src` so cross-stub imports are **package-qualified**
+  (`from aegis_swr.openclaude.grpc.proto import openclaude_pb2`), avoiding the
+  flat-import trap with no hand-edits. `grpcio-tools==1.82.1` pinned exact
+  (dev-only) for byte-reproducible codegen; regeneration is idempotent.
+- `src/aegis_swr/openclaude/grpc/client.py` — `OpenClaudeGrpcClient` (the sole
+  C3 gRPC boundary), `AgentFrame` (frozen typed projection), `FrameKind` enum.
+  Lazy channel (insecure vs `secure_channel` via `settings.use_tls`),
+  `from_channel()` test seam, async-generator `query()` (stops after first
+  terminal `DONE`/`ERROR`), `health_check()` (double-bounded by
+  `asyncio.wait_for` + gRPC `timeout=`, **never raises**), `_translate_status`
+  (gRPC `UNAVAILABLE`/`DEADLINE_EXCEEDED` → retriable `OpenClaudeUnavailableError`;
+  other codes → non-retriable), idempotent `close()`, async-CM support.
+- `src/aegis_swr/openclaude/exceptions.py` — forward-declared `OpenClaudeError`
+  + `OpenClaudeUnavailableError` (see the 05.0 forward-contract obligation above).
+
+**Key decisions & gate outcomes:**
+- **C3 isolation holds** — `import grpc` / `openclaude_pb2*` confined to
+  `openclaude/grpc/` (grep-enforced; CI check formalised in Task 09.0).
+- **C9 log-safety** — no prompt/response/`run_id`-correlated payload in any log
+  sink or exception message; only lifecycle facts + gRPC status-code *names*.
+- **Distinct failure modes** — a gRPC *status error* → `OpenClaudeUnavailableError`
+  (transport); a terminal `ERROR` *frame* → yielded `AgentFrame` (logical), kept
+  separate so retry decisions aren't corrupted.
+- **`health_check()` is subtask 04's** — subtask 03 left a `NotImplementedError`
+  stub (honest present-but-unimplemented) rather than a silently-wrong `False`.
+- **/dep-audit: CLEAN** — grpcio/protobuf/grpcio-tools all Apache-2.0/BSD-3, no
+  active CVEs at resolved versions; floors hardened to `grpcio>=1.68.1`,
+  `protobuf>=7.0` to exclude known-vulnerable sub-ranges. Report in `docs/reviews/`.
+- **/pr-review: APPROVE** (2 rounds) — feature LGTM after fixing a `health_check`
+  "never-raises" contract gap (typed `except Exception` backstop + 2 tests);
+  security PASS after adding the non-loopback plaintext WARNING. Threat model:
+  `docs/security/2026-07-08-openclaude-grpc-client.md`.
+
+**Deferred / follow-ups (not blocking):**
+- Client-side response-size / `max_response_tokens` cap → **Task 04.0** (spec
+  assigns budget/token accounting there); a `grpc.max_receive_message_length`
+  channel-option hardening is a candidate at that time.
+- 05.0 must land `OpenClaudeUnavailableError` as a compatible superset (above).
+- LOW: `_is_loopback_host` treats any `127.*`-prefixed *hostname* (e.g.
+  `127.example.com`) as loopback, suppressing the plaintext warning; tighten to
+  require a numeric octet after `127.` (operator-supplied trusted config, contrived).
+
+**Test coverage:** `tests/unit/openclaude/grpc/test_client.py` — 35 tests
+(streaming, terminal-frame invariants, tool→None projection, protocol-violation
+handling, TLS selection, plaintext warning, `health_check` true/false matrix,
+retriable mapping, close idempotency, C9 log-safety). `client.py` at 99.33%.
+Full unit suite: **586 passed, 88.34% total** (≥85% gate).
 
 ---
 
 ### Task 03.0 — Process Lifecycle Manager
 
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | [External mode `__aenter__` / `__aexit__`](03.0-process-lifecycle/01-external-mode.md) | ⬜   |
-| 02      | [Managed mode subprocess start/stop](03.0-process-lifecycle/02-managed-mode.md) | ⬜   |
-| 03      | [Port-0 free-port selection](03.0-process-lifecycle/03-port-selection.md) | ⬜   |
-| 04      | [stderr forwarding to `logger`](03.0-process-lifecycle/04-stderr-forwarding.md) | ⬜   |
+| 01      | [External mode `__aenter__` / `__aexit__`](03.0-process-lifecycle/01-external-mode.md) | ✅   |
+| 02      | [Managed mode subprocess start/stop](03.0-process-lifecycle/02-managed-mode.md) | ✅   |
+| 03      | [Port-0 free-port selection](03.0-process-lifecycle/03-port-selection.md) | ✅   |
+| 04      | [stderr forwarding to `logger`](03.0-process-lifecycle/04-stderr-forwarding.md) | ✅   |
 
-**Delivered:** —
-**Test coverage:** —
+**Delivered:**
+- `src/aegis_swr/openclaude/process.py` — `OpenClaudeProcess`, the sole C6 process
+  lifecycle owner: an async context manager over `OpenClaudeSettings` + the
+  `EventBus`. **External mode** (`auto_start=False`, default) health-checks the
+  configured endpoint and emits `OpenClaudeConnected`/`OpenClaudeDisconnected`
+  without starting a process. **Managed mode** (`auto_start=True`) spawns the
+  sidecar via `asyncio.create_subprocess_exec` (never `Popen`/shell), waits for
+  the gRPC port with `asyncio.sleep` backoff, and terminates SIGTERM→grace→SIGKILL
+  on exit. `grpc_url` is readable only inside the `async with` block (else
+  `RuntimeError`). Port-`0` `grpc_url` resolves a concrete free port once at entry
+  (single source of truth: child bind flag == caller `grpc_url` == readiness
+  probe). Child `stderr` drains line-by-line to `logger.debug` under
+  `SensitiveFilter`; `stdout` is `DEVNULL`.
+- `src/aegis_swr/openclaude/events.py` — **forward-declared** `OpenClaudeConnected`
+  / `OpenClaudeDisconnected` (frozen dataclasses). See the 05.0 forward-contract
+  obligation below.
+
+**Key decisions & gate outcomes:**
+- **EventBus integration (forward decision for 05.0):** the events **subclass the
+  live `core.events.DomainEvent`** — NOT the plain-dataclass/`event_type`-string
+  shape 05.0's spec text describes (that shape targeted Milestone 0003's router
+  bus, which was never built). `EventBus.publish()` dispatches only `DomainEvent`
+  subclasses via `__mro__`, so a plain dataclass would be silently dropped. The
+  05.0 canonical field set (`run_id`, `grpc_url`, `mode`, `timestamp` /
+  `run_id`, `reason`, `timestamp`) and the `event_type` `ClassVar` are preserved.
+  **Task 05.0 obligation:** canonicalise `events.py` by keeping the `DomainEvent`
+  base + these field names (do not revert to the stale plain-dataclass shape).
+- **Always-terminate / no-orphan (C6):** every managed exit path — clean exit,
+  port-never-opens, a raising `OpenClaudeConnected` subscriber, and task
+  cancellation — cancels the stderr forwarder and terminates the sidecar before
+  the exception leaves `__aenter__` (guards catch `BaseException` to cover
+  `CancelledError`, then re-raise). `OpenClaudeConnected`/`Disconnected` are each
+  emitted exactly once (idempotency flag).
+- **C9 log-safety:** child stderr is treated as untrusted and forwarded only via
+  `logger.debug` (line as a bound arg, never folded into a template or exception);
+  no raw payload/stderr in any log or error body; events carry only ids/status
+  strings/timestamps.
+- **/security threat model** (`docs/security/2026-07-09-openclaude-managed-mode-spawn.md`):
+  argv is fail-closed (`_validate_argv_token`, `\A…\Z`-anchored, both `allowed_tools`
+  and `bash_allowlist`, joined single-token `--flag=csv`); loopback-only bind
+  enforced before spawn; binary from `settings.process_binary` only; explicit safe
+  `cwd`. Port-0 TOCTOU is documented + surfaced as `OpenClaudeUnavailableError`.
+- **/pr-review: APPROVE** — feature verdict resolved (a claimed blocking
+  `LimitOverrunError` gap was verified a false positive — `StreamReader.readline()`
+  re-raises over-long lines as `ValueError`, which is caught; added
+  `asyncio.LimitOverrunError` to the catch defensively anyway + a `kill()`
+  `OSError` guard). Security **ADVISORY** (no CRITICAL): fixed the `_ARGV_TOKEN_RE`
+  `$`→`\Z` trailing-newline gap; **deferred follow-up:** the sidecar currently
+  inherits the full parent environment (no scoped `env=`) — flagged for an
+  `app-architect`/`incident-analyst` note, out of Task 03.0 scope.
+- **Coverage:** full unit suite **637 passed**, total **88.69 %**; `process.py`
+  **96.03 %**, `events.py` **100 %**.
+
+**Test coverage:** `tests/unit/openclaude/test_process.py` (51 tests): external/managed
+entry-exit, exactly-once events, `grpc_url` guard, always-terminate on every failure
+path (incl. cancellation), SIGTERM→SIGKILL escalation + reap, port-0 single-source-of-truth,
+argv fail-closed (incl. trailing-newline), loopback-only, binary-path validation, stderr
+drain at DEBUG + per-line-error resilience, external-mode no-forwarder no-op.
 
 ---
 

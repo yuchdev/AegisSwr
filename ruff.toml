@@ -2,6 +2,9 @@ src = ["src"]
 line-length = 120
 target-version = "py312"
 exclude = ["samples"]
+# Generated protobuf/gRPC stubs are committed as-is (see `make proto-gen`);
+# generated code is not hand-maintained product code, so it is not linted.
+extend-exclude = ["*_pb2.py", "*_pb2_grpc.py"]
 
 [lint]
 select = [

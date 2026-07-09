@@ -24,6 +24,8 @@ dependencies = [
     "pyyaml>=6.0,<7",
     "bcrypt>=4.2,<5",
     "slowapi>=0.1,<0.2",
+    "grpcio>=1.68.1,<2",
+    "protobuf>=7.0,<8",
 ]
 
 [project.optional-dependencies]
@@ -46,6 +48,10 @@ dev = [
     "pytest-asyncio>=0.24,<0.25",
     "pytest-cov>=6.0,<7",
     "ruff>=0.8,<0.9",
+    # Pinned exact for byte-reproducible `make proto-gen` codegen across machines;
+    # compiled against the same `<2` major series as the runtime grpcio
+    # constraint (grpcio>=1.68.1,<2). Dev/test-only, never a runtime dep.
+    "grpcio-tools==1.82.1",
     # TODO: update after upstream fix
     "pathspec!=1.1.1",
     "types-pyyaml>=6.0,<7",
@@ -65,7 +71,14 @@ packages = ["src/aegis_swr"]
 # select/ignore: rules, first apply whitelist, then blacklist
 # Leaving both empty (the default) tests every rule.
 include = []
-exclude = ["tests/flake8_lint/samples/", "src/aegis_swr/core/events.py"]
+# client.py is exempted for the same reason as core/events.py: health_check() is
+# a resilience boundary (a readiness predicate the Task 03.0 lifecycle manager
+# polls) that must never propagate, requiring a typed `except Exception` backstop.
+exclude = [
+    "tests/flake8_lint/samples/",
+    "src/aegis_swr/core/events.py",
+    "src/aegis_swr/openclaude/grpc/client.py",
+]
 
 select = ["X001", "X002"]
 ignore = []
