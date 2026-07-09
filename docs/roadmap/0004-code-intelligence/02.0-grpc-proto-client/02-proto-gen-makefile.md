@@ -1,9 +1,17 @@
-# 02 - `make proto-gen` target
+# 02 - proto stub regeneration (originally `make proto-gen` target)
 
 **Parent task:** 02.0 gRPC Proto & Client
 **State:** ⬜ Not started
 **Depends on:** 01
 **Blocks:** 03 (client imports the generated stubs), 04.0 (downstream tasks build/test against committed stubs), 09.0 (downstream: CI drift check formalised there)
+
+> **Update — invocation mechanism changed:** this subtask was originally
+> specified as a `Makefile` `proto-gen` target. After delivery it was replaced
+> by `scripts/proto_gen.py`, invoked as `uv run python scripts/proto_gen.py`,
+> because `make` is not available on every developer system. What gets generated
+> and why (package-qualified `--proto_path=src` to avoid flat cross-imports)
+> is unchanged; only the invocation changed. The historical Makefile target is
+> preserved below as the original subtask record.
 
 ## Objective
 
@@ -52,7 +60,8 @@ proto-gen:  ## Regenerate committed OpenClaude gRPC stubs from openclaude.proto
   `--proto_path` and a package-qualified proto path rather than post-editing
   generated files.
 - **Determinism / drift check.** The generated output is a pure function of the
-  `.proto` plus the `grpcio-tools` version. CI re-runs `make proto-gen`, then
+  `.proto` plus the `grpcio-tools` version. CI re-runs
+  `uv run python scripts/proto_gen.py`, then
   `git diff --exit-code -- aegis/openclaude/grpc/proto/` and fails on any
   difference. Pin `grpcio-tools` to an exact version in the dev dependency group
   so regeneration is reproducible across machines; a version bump that changes
@@ -78,10 +87,11 @@ proto-gen:  ## Regenerate committed OpenClaude gRPC stubs from openclaude.proto
 
 ## Success criteria
 
-- [ ] `make proto-gen` exists, is `.PHONY`, and regenerates both
-      `openclaude_pb2.py` and `openclaude_pb2_grpc.py` into
-      `aegis/openclaude/grpc/proto/`.
-- [ ] Running `make proto-gen` on an unchanged `.proto` produces no `git diff`.
+- [ ] `scripts/proto_gen.py` exists and `uv run python scripts/proto_gen.py`
+      regenerates both `openclaude_pb2.py` and `openclaude_pb2_grpc.py` into
+      `src/aegis_swr/openclaude/grpc/proto/`.
+- [ ] Running `uv run python scripts/proto_gen.py` on an unchanged `.proto`
+      produces no `git diff`.
 - [ ] Generated stubs are committed and not git-ignored.
 - [ ] `grpcio-tools` is pinned in the dev dependency group and absent from
       runtime dependencies.

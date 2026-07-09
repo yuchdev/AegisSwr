@@ -3,7 +3,7 @@
 **Parent task:** 02.0 gRPC Proto & Client
 **State:** ⬜ Not started
 **Depends on:** none
-**Blocks:** 02 (proto-gen target regenerates from this file), 03 (client imports the generated stubs), 04.0 (downstream: Process Lifecycle), 04.0/05.0 event mapping
+**Blocks:** 02 (`scripts/proto_gen.py` regenerates stubs from this file), 03 (client imports the generated stubs), 04.0 (downstream: Process Lifecycle), 04.0/05.0 event mapping
 
 ## Objective
 
@@ -23,7 +23,7 @@ needed to exercise the Python side.
 //
 // Authoritative gRPC contract for the OpenClaude headless sidecar (C2).
 // Generated stubs (openclaude_pb2.py / openclaude_pb2_grpc.py) are committed
-// alongside this file and regenerated via `make proto-gen`.
+// alongside this file and regenerated via `uv run python scripts/proto_gen.py`.
 
 syntax = "proto3";
 
@@ -99,7 +99,7 @@ service AgentService {
 - Field numbers and enum values are append-only once merged; never reused or
   renumbered.
 - No imports of other `.proto` files - the contract is self-contained so
-  `make proto-gen` needs no include path beyond the proto directory.
+  `scripts/proto_gen.py` needs no include path beyond the proto directory.
 - This `.proto` is the only place the frame taxonomy is defined; C8 event
   classes and the client parser both derive their meaning from here.
 
@@ -113,5 +113,5 @@ service AgentService {
 - [ ] `PromptRequest` carries `prompt` (string) and `run_id` (string).
 - [ ] `AgentService` exposes exactly one RPC: server-streaming
       `Query(PromptRequest) returns (stream AgentMessage)`.
-- [ ] `make proto-gen` (subtask 02) compiles the file without error and
+- [ ] `uv run python scripts/proto_gen.py` (subtask 02) compiles the file without error and
       produces `openclaude_pb2.py` / `openclaude_pb2_grpc.py`.

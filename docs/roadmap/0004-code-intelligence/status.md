@@ -133,8 +133,8 @@ See each task's numbered subtask files for where these are flagged inline.
   env vars. Aegis SWR only needs `OPENCLAUDE_GRPC_URL` to locate the server.
 - **Proto schema committed.** Generated `_pb2.py` files are committed to the
   repo so contributors without `grpc_tools` installed can still build and test.
-  The `make proto-gen` target regenerates them; CI verifies the committed files
-  match by re-running generation and diffing.
+  `uv run python scripts/proto_gen.py` regenerates them; CI verifies the
+  committed files match by re-running generation and diffing.
 - **`enabled_when` in agents.yaml** is a minimal, non-breaking extension to
   `RouterConfig`. The field is ignored by the router itself (OpenClaude is not
   routed through LiteLLM); it exists only to suppress validation errors when
@@ -248,7 +248,7 @@ slice for subtasks 02/03). Full unit suite: 551 passed, 88.26% total.
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
 | 01      | [`openclaude.proto` schema](02.0-grpc-proto-client/01-proto-schema.md) | ✅   |
-| 02      | [`make proto-gen` target](02.0-grpc-proto-client/02-proto-gen-makefile.md) | ✅   |
+| 02      | [`proto_gen.py` script](02.0-grpc-proto-client/02-proto-gen-makefile.md) | ✅   |
 | 03      | [`OpenClaudeGrpcClient` implementation](02.0-grpc-proto-client/03-grpc-client.md) | ✅   |
 | 04      | [`health_check()` + timeout handling](02.0-grpc-proto-client/04-health-check-timeouts.md) | ✅   |
 
@@ -256,12 +256,13 @@ slice for subtasks 02/03). Full unit suite: 551 passed, 88.26% total.
 - `src/aegis_swr/openclaude/grpc/proto/openclaude.proto` — the authoritative C2
   wire contract (proto3, package `aegis.openclaude.v1`): `FrameType` enum,
   `AgentMessage`, `PromptRequest`, single server-streaming `AgentService.Query`.
-- `Makefile` `proto-gen` target + committed generated stubs
+- `scripts/proto_gen.py` + committed generated stubs
   (`openclaude_pb2.py`, `openclaude_pb2_grpc.py`). Stubs are generated with
   `--proto_path=src` so cross-stub imports are **package-qualified**
   (`from aegis_swr.openclaude.grpc.proto import openclaude_pb2`), avoiding the
   flat-import trap with no hand-edits. `grpcio-tools==1.82.1` pinned exact
   (dev-only) for byte-reproducible codegen; regeneration is idempotent.
+  Invoke via `uv run python scripts/proto_gen.py`.
 - `src/aegis_swr/openclaude/grpc/client.py` — `OpenClaudeGrpcClient` (the sole
   C3 gRPC boundary), `AgentFrame` (frozen typed projection), `FrameKind` enum.
   Lazy channel (insecure vs `secure_channel` via `settings.use_tls`),

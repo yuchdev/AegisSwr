@@ -8,9 +8,10 @@
 Author the gRPC contract and the only Python file permitted to import `grpc`.
 Create `aegis/openclaude/grpc/proto/openclaude.proto` defining the message-frame
 enum, the agent-message frame, a `PromptRequest` (prompt + run id), and an
-`AgentService` with a single server-streaming `Query` RPC (contract C2). Add a
-`Makefile` `proto-gen` target that regenerates `openclaude_pb2.py` and
-`openclaude_pb2_grpc.py` into the proto directory; the generated files are
+`AgentService` with a single server-streaming `Query` RPC (contract C2). Add
+`scripts/proto_gen.py` that regenerates `openclaude_pb2.py` and
+`openclaude_pb2_grpc.py` into the proto directory (invoke via
+`uv run python scripts/proto_gen.py`); the generated files are
 committed so contributors without `grpc_tools` can still build and test.
 
 Create `aegis/openclaude/grpc/client.py` — `OpenClaudeGrpcClient`. The channel
@@ -28,7 +29,7 @@ tests need no live process. `close()` shuts the channel down.
 | # | Name | Status | Blocks |
 |---|------|--------|--------|
 | 01 | [`openclaude.proto` schema](01-proto-schema.md) | ✅ Complete | 02, 03, 04.0 |
-| 02 | [`make proto-gen` target](02-proto-gen-makefile.md) | ✅ Complete | 03, 04.0, 09.0 |
+| 02 | [`proto_gen.py` script](02-proto-gen-makefile.md) | ✅ Complete | 03, 04.0, 09.0 |
 | 03 | [`OpenClaudeGrpcClient` implementation](03-grpc-client.md) | ✅ Complete | 04, 03.0, 04.0 |
 | 04 | [`health_check()` + timeout handling](04-health-check-timeouts.md) | ✅ Complete | 03.0, 04.0 |
 
@@ -36,7 +37,7 @@ tests need no live process. `close()` shuts the channel down.
 
 - `import grpc` (and the generated `_pb2` stubs) appear in **this file only**;
   enforced by the C3 boundary check.
-- Generated proto files are committed without extra typing-only exclusions; `make proto-gen` must reproduce identical output.
+- Generated proto files are committed without extra typing-only exclusions; `uv run python scripts/proto_gen.py` must reproduce identical output.
 - Channel/stub injectable via `from_channel`; unit tests drive a scripted frame
   sequence through a mock channel with no real OpenClaude process.
 - `health_check()` returns `False` on unreachable within `connect_timeout_s`;

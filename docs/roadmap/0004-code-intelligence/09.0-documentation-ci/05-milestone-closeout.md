@@ -43,7 +43,7 @@ is met; record the evidence (test/CI job/command) next to each:
 - [ ] All new public classes/functions have RST docstrings.
 - [ ] `ruff`, `replace_optional.py --check` all clean.
 - [ ] Coverage: ≥ 90% overall unit; 100% on `tool.py` — evidence: subtask 04 gates.
-- [ ] Proto schema committed; `make proto-gen` reproduces identical output.
+- [ ] Proto schema committed; `uv run python scripts/proto_gen.py` reproduces identical output.
 
 ### 2. Structural / docs gates
 

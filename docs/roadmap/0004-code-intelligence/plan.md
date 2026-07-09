@@ -454,7 +454,7 @@ docs/
     ├── openclaude-setup.md             ← NEW
     └── openclaude-config-reference.md  ← NEW
 
-Makefile                                ← updated: proto-gen target
+scripts/proto_gen.py                    ← NEW: proto stub regeneration script
 ```
 
 ---
@@ -482,4 +482,4 @@ Makefile                                ← updated: proto-gen target
 - [ ] All new public classes and functions have RST docstrings
 - [ ] `ruff`, `replace_optional.py --check` all clean
 - [ ] Coverage: ≥ 90% overall unit; 100% on `tool.py`
-- [ ] Proto schema is committed; `make proto-gen` reproduces identical output
+- [ ] Proto schema is committed; `uv run python scripts/proto_gen.py` reproduces identical output

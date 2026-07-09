@@ -2,7 +2,7 @@
 //
 // Authoritative gRPC contract for the OpenClaude headless sidecar (C2).
 // Generated stubs (openclaude_pb2.py / openclaude_pb2_grpc.py) are committed
-// alongside this file and regenerated via `make proto-gen`.
+// alongside this file and regenerated via `uv run python scripts/proto_gen.py`.
 
 syntax = "proto3";
 
