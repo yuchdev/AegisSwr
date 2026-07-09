@@ -74,10 +74,14 @@ include = []
 # client.py is exempted for the same reason as core/events.py: health_check() is
 # a resilience boundary (a readiness predicate the Task 03.0 lifecycle manager
 # polls) that must never propagate, requiring a typed `except Exception` backstop.
+# tool.py is exempted for the same reason: delegate() is a must-never-raise
+# resilience boundary that must return a typed CodeResult for every failure
+# (C9 - no exception escapes delegate()), requiring a defensive `except Exception`.
 exclude = [
     "tests/flake8_lint/samples/",
     "src/aegis_swr/core/events.py",
     "src/aegis_swr/openclaude/grpc/client.py",
+    "src/aegis_swr/openclaude/tool.py",
 ]
 
 select = ["X001", "X002"]

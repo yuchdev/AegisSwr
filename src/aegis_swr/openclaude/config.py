@@ -2,8 +2,10 @@
 
 This module hosts :class:`OpenClaudeSettings`, a Pydantic ``BaseSettings``
 subclass whose fields are sourced entirely from environment variables
-(milestone contract C1), plus the temporary :class:`OpenClaudeConfigError`
-forward declaration (canonicalised in Task 05.0).
+(milestone contract C1). :class:`OpenClaudeConfigError` is re-exported from
+``aegis_swr.openclaude.exceptions`` (its canonical home as of Task 05.0) so
+existing imports of ``aegis_swr.openclaude.config.OpenClaudeConfigError``
+continue to resolve to the same object.
 """
 
 from __future__ import annotations
@@ -20,6 +22,8 @@ from pydantic_settings import (
     PydanticBaseSettingsSource,
     SettingsConfigDict,
 )
+
+from aegis_swr.openclaude.exceptions import OpenClaudeConfigError
 
 _CSV_LIST_FIELDS: frozenset[str] = frozenset({"allowed_tools", "bash_allowlist"})
 
@@ -101,22 +105,6 @@ class _CsvEnvSettingsSource(EnvSettingsSource):
         if field_name in _CSV_LIST_FIELDS and isinstance(value, str):
             return _split_csv(value)
         return super().prepare_field_value(field_name, field, value, value_is_complex)
-
-
-class OpenClaudeConfigError(ValueError):
-    """Raised when :class:`OpenClaudeSettings` receives an invalid value.
-
-    Formally moved to ``aegis_swr/openclaude/exceptions.py`` in Task 05.0.
-    This alias is kept here so Task 01.0 can raise without depending on 05.0.
-
-    :param field: Name of the offending field.
-    :param reason: Human-readable explanation of the violation.
-    """
-
-    def __init__(self, field: str, reason: str) -> None:
-        self.field = field
-        self.reason = reason
-        super().__init__(f"OpenClaudeSettings.{field}: {reason}")
 
 
 class OpenClaudeSettings(BaseSettings):

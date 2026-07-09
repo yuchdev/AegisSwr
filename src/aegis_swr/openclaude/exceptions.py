@@ -1,9 +1,16 @@
 """Domain exceptions for the OpenClaude integration.
 
-This module hosts the minimal exception hierarchy the gRPC client (Task 02.0)
-needs before Task 05.0 canonicalises the full set. The definitions here are
-deliberately plain subclasses with no exotic constructor signature, so the
-richer 05.0 hierarchy can extend them without breaking imports.
+This module is the canonical home for the three exception types the OpenClaude
+module raises: :class:`OpenClaudeUnavailableError` (unreachable backend / gRPC
+``UNAVAILABLE``/``DEADLINE_EXCEEDED``), :class:`PermissionDeniedError` (a
+non-allowlisted ``PERMISSION_REQ``), and :class:`OpenClaudeConfigError` (invalid
+settings). They form three independent hierarchies - none subclasses another -
+so callers catch precisely the failure they mean.
+
+This is a leaf module: it imports nothing from ``aegis_swr.openclaude`` (or
+``grpc``/``litellm``/``pydantic``), so ``config.py``, ``process.py``,
+``grpc/client.py``, and ``tool.py`` can all import from it without a cycle. No
+exception message ever formats dump/log/stack/response text (C9).
 """
 
 from __future__ import annotations
@@ -11,27 +18,22 @@ from __future__ import annotations
 from typing import Optional
 
 
-class OpenClaudeError(Exception):
-    """Base class for all OpenClaude integration errors.
+class OpenClaudeUnavailableError(Exception):
+    """Raised when the OpenClaude gRPC backend cannot be reached.
 
-    Task 05.0 owns the canonical hierarchy; this forward declaration exists so
-    Task 02.0's gRPC client can raise a stable, import-compatible base type.
-    """
+    Raised by ``process.py`` when a health check fails or a managed subprocess
+    never opens its port (C6), and by ``grpc/client.py`` on a channel-level
+    ``UNAVAILABLE`` or ``DEADLINE_EXCEEDED`` status (C2). Signals that
+    code-intelligence capability is unusable for this run; per C4 the caller
+    reports the capability as unavailable rather than falling back - there is no
+    other code backend.
 
-
-class OpenClaudeUnavailableError(OpenClaudeError):
-    """Raised when the OpenClaude sidecar is unreachable or the stream fails.
-
-    Signals a transport-level failure (channel ``UNAVAILABLE``, deadline
-    exceeded, or a stream that ended without a terminal frame).
-
-    The constructor is a forward-safe superset of the canonical Task 05.0
-    signature ``(message, grpc_url=None)``: it keeps ``message`` positional and
-    ``grpc_url`` as the first optional positional (so 05.0's call sites remain
-    source-compatible), while adding the keyword-only ``retriable`` and
-    ``status_code`` fields Task 02.0 subtask 04 needs to classify a gRPC status
-    error. ``status_code`` carries only the gRPC status code name - never any
-    response payload text (C9).
+    The constructor is a superset of the spec's narrower ``(message,
+    grpc_url=None)`` signature: it keeps ``message`` positional and ``grpc_url``
+    as the first optional positional (source-compatible with the spec), while
+    adding the keyword-only ``retriable`` and ``status_code`` fields that
+    ``grpc/client.py`` uses to classify a gRPC status error. ``status_code``
+    carries only the gRPC status code name - never any response payload (C9).
 
     :param message: Human-readable, payload-free description of the failure.
     :param grpc_url: Host[:port] that could not be reached, for diagnostics;
@@ -58,3 +60,61 @@ class OpenClaudeUnavailableError(OpenClaudeError):
         self.retriable = retriable
         self.status_code = status_code
         super().__init__(message)
+
+
+class PermissionDeniedError(Exception):
+    """Raised on a ``PERMISSION_REQ`` frame for a non-allowlisted command.
+
+    OpenClaude runs non-interactively (C2). A permission request for a tool or
+    ``Bash`` binary outside ``settings.allowed_tools`` /
+    ``settings.bash_allowlist`` is denied by ``tool.py`` (via the gRPC client),
+    which raises this error, emits :class:`OpenClaudePermissionDenied`, and halts
+    the invocation. It is **non-retriable by definition** (C7): retrying cannot
+    change an allowlist decision. Only the offending binary name is captured -
+    never the full command line - so no incident payload leaks (C9).
+
+    :param tool: Claude Code tool that issued the request, e.g. ``"Bash"``.
+    :param denied_binary: Binary name requested but not allowlisted.
+    :ivar retriable: Always ``False``; present so retry logic can branch on it
+        uniformly with retriable failure types.
+    :ivar tool: The requesting tool name.
+    :ivar denied_binary: The denied binary name.
+    """
+
+    retriable: bool = False
+
+    def __init__(self, tool: str, denied_binary: str) -> None:
+        self.tool = tool
+        self.denied_binary = denied_binary
+        super().__init__(
+            f"OpenClaude requested non-allowlisted command '{denied_binary}' via tool '{tool}'; denied (non-retriable)."
+        )
+
+
+class OpenClaudeConfigError(ValueError):
+    """Raised when :class:`OpenClaudeSettings` receives an invalid value.
+
+    This is the **canonical** definition. Task 01.0 forward-declared an
+    identical class in ``config.py`` (same base, same ``field``/``reason``
+    signature, same formatted message) so it could raise before this module
+    existed; this task moves the definition here and updates ``config.py`` to
+    import and re-export it, so downstream imports of
+    ``aegis_swr.openclaude.config.OpenClaudeConfigError`` continue to resolve
+    unchanged.
+
+    Distinct from the router's ``ConfigValidationError`` (Milestone 0003,
+    ``aegis_swr/router/exceptions.py``): a different exception in a different
+    module for a different failure domain (router ``agents.yaml`` validation vs
+    OpenClaude environment settings). The two are never interchangeable and
+    neither subclasses the other.
+
+    :param field: Name of the offending settings field.
+    :param reason: Human-readable, payload-free explanation of the violation.
+    :ivar field: The offending field name.
+    :ivar reason: The violation explanation.
+    """
+
+    def __init__(self, field: str, reason: str) -> None:
+        self.field = field
+        self.reason = reason
+        super().__init__(f"OpenClaudeSettings.{field}: {reason}")

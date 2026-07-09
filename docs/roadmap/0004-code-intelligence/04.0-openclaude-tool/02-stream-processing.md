@@ -1,4 +1,4 @@
-# 02 - Stream processing + content accumulation
+# 02 - Stream processing and content accumulation
 
 **Parent task:** 04.0 OpenClaudeTool Implementor
 **State:** ⬜ Not started

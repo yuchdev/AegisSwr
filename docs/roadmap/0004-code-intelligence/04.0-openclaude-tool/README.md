@@ -32,9 +32,9 @@ carries tool-call and stream-frame counts for observability.
 
 | # | Name | Blocks | Status |
 |---|------|--------|--------|
-| 01 | [Tool skeleton + input schema](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/01-tool-skeleton.md) | 02, 03, 04 | ⬜ Not started |
-| 02 | [Stream processing + content accumulation](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/02-stream-processing.md) | 03, 04 | ⬜ Not started |
-| 03 | [Permission request handling + allowlist](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/03-permission-allowlist.md) | 04 | ⬜ Not started |
+| 01 | [Tool skeleton + input schema](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/01-tool-skeleton.md) | 02, 03, 04 | ✅ Complete |
+| 02 | [Stream processing + content accumulation](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/02-stream-processing.md) | 03, 04 | ✅ Complete |
+| 03 | [Permission request handling + allowlist](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/03-permission-allowlist.md) | 04 | ✅ Complete |
 | 04 | [Budget pre-check + truncation](/docs/roadmap/0004-code-intelligence/04.0-openclaude-tool/04-budget-truncation.md) | 06.0, 07.0 | ⬜ Not started |
 
 ## Key constraints

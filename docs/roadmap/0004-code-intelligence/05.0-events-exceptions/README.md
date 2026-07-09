@@ -26,9 +26,9 @@ written alongside task 02.0 since tasks 03.0 and 04.0 depend on these types.
 
 | # | Name | Status | Blocks |
 |---|------|--------|--------|
-| 01 | [Seven event dataclasses](01-event-dataclasses.md) | ⬜ Not started | 03, 03.0, 04.0 |
-| 02 | [Three exception types](02-exception-types.md) | ⬜ Not started | 03.0, 04.0 |
-| 03 | [EventBus registry update](03-eventbus-registration.md) | ⬜ Not started | - |
+| 01 | [Seven event dataclasses](01-event-dataclasses.md) | ✅ Complete | 03, 03.0, 04.0 |
+| 02 | [Three exception types](02-exception-types.md) | ✅ Complete | 03.0, 04.0 |
+| 03 | [EventBus registry update](03-eventbus-registration.md) | ✅ Complete | - |
 
 ## Key constraints
 
