@@ -4,6 +4,9 @@ on:
   push:
     branches: ["master"]
   pull_request:
+  schedule:
+    # Nightly run so the gated OpenClaude integration job is schedule-eligible.
+    - cron: "0 3 * * *"
 
 jobs:
   lint:
@@ -32,3 +35,100 @@ jobs:
       - uses: astral-sh/setup-uv@v4
       - run: uv sync
       - run: uv run pytest tests/unit/ -v --cov=aegis_swr --cov-report=term-missing
+
+  openclaude-isolation:
+    name: "Lint: OpenClaude module isolation (C3)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Reject aegis_swr.openclaude imports in core/views/code_intel"
+        run: |
+          # C3: aegis_swr.openclaude must never be imported by the isolated
+          # modules. Import-statement-anchored so a docstring mention is ignored.
+          hits=$(grep -rElE \
+            "^[[:space:]]*(import[[:space:]]+aegis_swr\.openclaude|from[[:space:]]+aegis_swr\.openclaude)" \
+            src/aegis_swr/core/ src/aegis_swr/views/ src/aegis_swr/code_intel/ 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            echo "ERROR: aegis_swr.openclaude imported in an isolated module (C3):"
+            echo "$hits"
+            exit 1
+          fi
+          echo "OK: no aegis_swr.openclaude imports in core/views/code_intel."
+      - name: "Reject grpc/_pb2 imports outside grpc/client.py"
+        run: |
+          # C3: the grpc library and generated *_pb2 stubs may only be imported
+          # by openclaude/grpc/client.py. The pattern requires an import/from
+          # prefix and matches the grpc *library* (not our .grpc.client wrapper)
+          # or any *_pb2 module; generated proto stubs are excluded.
+          hits=$(grep -rElE \
+            "^[[:space:]]*(import[[:space:]]+grpc([^[:alnum:]_]|$)|from[[:space:]]+grpc([^[:alnum:]_]|$)|(import|from)[[:space:]].*_pb2)" \
+            src/aegis_swr/ 2>/dev/null \
+            | grep -v "src/aegis_swr/openclaude/grpc/client.py" \
+            | grep -v "src/aegis_swr/openclaude/grpc/proto/" || true)
+          if [ -n "$hits" ]; then
+            echo "ERROR: grpc/_pb2 imported outside openclaude/grpc/client.py (C3):"
+            echo "$hits"
+            exit 1
+          fi
+          echo "OK: grpc/_pb2 imported only by openclaude/grpc/client.py."
+      - name: "Negative-fixture self-test: a real violation must fail the guard"
+        run: |
+          # Prove the guard turns red on an actual violation, then clean up, so
+          # the check is a tested property rather than dead prose.
+          probe="src/aegis_swr/core/_ci_isolation_probe.py"
+          printf 'import grpc\n' > "$probe"
+          hits=$(grep -rElE \
+            "^[[:space:]]*(import[[:space:]]+grpc([^[:alnum:]_]|$)|from[[:space:]]+grpc([^[:alnum:]_]|$)|(import|from)[[:space:]].*_pb2)" \
+            src/aegis_swr/ 2>/dev/null \
+            | grep -v "src/aegis_swr/openclaude/grpc/client.py" \
+            | grep -v "src/aegis_swr/openclaude/grpc/proto/" || true)
+          rm -f "$probe"
+          if [ -z "$hits" ]; then
+            echo "ERROR: isolation guard did NOT detect a deliberate 'import grpc' in core/."
+            exit 1
+          fi
+          echo "OK: guard correctly flagged the deliberate violation ($hits)."
+
+  openclaude-unit-coverage:
+    name: "OpenClaude: unit + coverage gate (>=90%, 100% branch on tool.py)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - name: "Unit tests + overall coverage gate (>=90% on openclaude + code_intel)"
+        env:
+          # Prove the unit suite needs no external deps / server / binary.
+          OPENCLAUDE_GRPC_URL: ""
+          OPENCLAUDE_INTEGRATION: ""
+        run: >
+          uv run pytest tests/unit/openclaude tests/unit/code_intel tests/unit/test_cli_code_intel.py
+          -o addopts=""
+          --cov=src/aegis_swr/openclaude --cov=src/aegis_swr/code_intel
+          --cov-report=term-missing --cov-fail-under=90
+      - name: "100% branch coverage on tool.py (separate, stricter gate)"
+        run: >
+          uv run pytest tests/unit/openclaude/test_tool.py
+          -o addopts=""
+          --cov=aegis_swr.openclaude.tool --cov-branch
+          --cov-report=term-missing --cov-fail-under=100
+
+  openclaude-integration:
+    name: "OpenClaude: integration (gated on OPENCLAUDE_INTEGRATION)"
+    # Skipped on PRs; runs on master pushes and the nightly schedule. The suite
+    # itself self-skips (module-level guards) when the signal/binary are absent,
+    # so it reports skipped, never failed.
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/master' || github.event_name == 'schedule')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - name: "Integration tests (self-skip when signal/binary absent)"
+        env:
+          OPENCLAUDE_INTEGRATION: "1"
+          OPENCLAUDE_GRPC_URL: ${{ secrets.OPENCLAUDE_GRPC_URL }}
+          OPENCLAUDE_BINARY: ${{ secrets.OPENCLAUDE_BINARY }}
+        run: uv run pytest tests/integration/openclaude/ -o addopts="" -v --tb=short

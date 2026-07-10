@@ -2,7 +2,7 @@
 
 Exercise both :class:`CodeAgent` paths with zero real processes or gRPC
 channels: the no-backend unavailable branch (C4) and the delegation branch
-against an async-mock :class:`CodeBackend`.
+against an async-mock :class:`CodeIntelBackend`.
 """
 
 from __future__ import annotations

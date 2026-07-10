@@ -260,3 +260,28 @@ def test_specific_subscription_does_not_cross_deliver() -> None:
     bus.publish(OpenClaudeToolCall(run_id="r1", tool="Grep", arg_count=1))
 
     assert connected == []
+
+
+# ---------------------------------------------------------------------------
+# mock_event_bus fixture round-trip (07.0/01 spec validation)
+# ---------------------------------------------------------------------------
+
+
+def test_mock_event_bus_captures_events_in_order(mock_event_bus: EventBus) -> None:
+    """``mock_event_bus.captured`` collects every published event in emission order.
+
+    Proves the shared conftest fixture is wired correctly: a real
+    :class:`EventBus` with a ``DomainEvent`` subscriber that appends to
+    ``bus.captured``.  The round-trip assertion mirrors the one in
+    :func:`test_roundtrip_via_domain_event_subscription` but exercises the
+    fixture rather than a locally constructed bus.
+    """
+    e1 = OpenClaudeConnected(run_id="r1", grpc_url="127.0.0.1:50051", mode="managed")
+    e2 = OpenClaudeDisconnected(run_id="r1", reason="context_exit")
+
+    mock_event_bus.publish(e1)
+    mock_event_bus.publish(e2)
+
+    assert mock_event_bus.captured == [e1, e2]  # type: ignore[attr-defined]
+    assert mock_event_bus.captured[0].event_type == "openclaude.connected"  # type: ignore[attr-defined]
+    assert mock_event_bus.captured[1].event_type == "openclaude.disconnected"  # type: ignore[attr-defined]

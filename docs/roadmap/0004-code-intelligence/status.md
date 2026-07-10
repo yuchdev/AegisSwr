@@ -12,22 +12,32 @@ Updated as each task lands.
 | 03.0 | Process Lifecycle Manager    | ✅ Complete     | `tests/unit/openclaude/test_process.py` (51) |
 | 04.0 | OpenClaudeTool Implementor   | ✅ Complete     | `tests/unit/openclaude/test_tool.py` (63, 100% branch), `tests/unit/code_intel/` (20) |
 | 05.0 | Event Types & Exceptions     | ✅ Complete     | `tests/unit/openclaude/test_events.py` (67), `test_exceptions.py` (13), `test_package_api.py` (14) |
-| 06.0 | App Wiring & agents.yaml     | 🔶 In progress (needs review)  | `tests/unit/test_app.py` (8, 100% branch on `app.py`) |
-| 07.0 | Test Suite — Unit            | 🔶 In progress (needs review)  | `tests/unit/openclaude/` (269), `tests/unit/code_intel/` (20), `tests/unit/test_app.py` (8); `tool.py` 100% branch |
-| 08.0 | Test Suite — Integration     | 🔶 In progress (needs review)  | `tests/integration/openclaude/` (9 live tests, skipped without binary + `OPENCLAUDE_INTEGRATION`) |
-| 09.0 | Documentation & CI           | 🔶 In progress (needs review)  | CI: `openclaude-isolation`, `openclaude-unit-coverage`, `openclaude-integration` jobs |
+| 06.0 | App Wiring & agents.yaml     | ✅ Complete | `openclaude/composition.py` (build_code_agent); `aegis code-intel check` CLI subcommand |
+| 07.0 | Test Suite — Unit            | ✅ Complete | `tests/unit/openclaude/` (269), `tests/unit/code_intel/` (20), `tests/unit/test_app.py` (8); `tool.py` 100% branch |
+| 08.0 | Test Suite — Integration     | ✅ Complete | `tests/integration/openclaude/` (10 live tests, skipped without binary + `OPENCLAUDE_INTEGRATION`) |
+| 09.0 | Documentation & CI           | ✅ Complete | CI: `openclaude-isolation`, `openclaude-unit-coverage`, `openclaude-integration` jobs |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
 **Current gate status:** **milestone complete — all nine tasks (01.0–09.0) ✅.**
 `src/aegis_swr/openclaude/` (config, tool, process, events, exceptions,
-grpc/client + committed proto stubs) and `src/aegis_swr/code_intel/` (backend,
-agent, budget) are implemented and tested; `src/aegis_swr/app.py` holds the
-composition root where the `OPENCLAUDE_GRPC_URL` branch lives; `agents.yaml`
-carries the finalised `openclaude_agent` role. Full unit suite green (824 passed,
-89.19% total; `tool.py` 100% branch), integration suite skips cleanly without a
-sidecar, and CI enforces module isolation plus the OpenClaude coverage gates.
-Enabling code intelligence requires only setting `OPENCLAUDE_GRPC_URL`.
+grpc/client + committed proto stubs, composition.py) and
+`src/aegis_swr/code_intel/` (backend, agent, budget) are implemented and tested.
+`src/aegis_swr/openclaude/composition.py` holds `build_code_agent`, the sole
+place the `OPENCLAUDE_GRPC_URL` branch (C4) lives; the orphan `app.py` was
+deleted in the post-review remediation (see [ADR 0003](/docs/adr/0003-code-intel-composition-root.md)).
+`agents.yaml` carries the finalised `openclaude_agent` role. Full unit suite green
+(full unit suite green — 824 passed pre-remediation at 89.19% total;
+`tool.py` 100% branch); integration suite skips cleanly without a sidecar; CI
+enforces module isolation plus the OpenClaude coverage gates. Enabling code
+intelligence requires only setting `OPENCLAUDE_GRPC_URL`.
+
+**Note on `check_doc_links.py`:** the Task 09.0 "Delivered" section below
+originally claimed zero link problems. In fact, the two OpenClaude docs were
+placed in `docs/specs/` while every inbound link (root `README.md`,
+`docs/README.md`, cross-links within the docs themselves) pointed at `docs/`.
+This was corrected in the docs remediation pass: both files were moved to `docs/`
+via `git mv`, resolving all OpenClaude-related dangling links.
 
 _History (decomposition-pass state, retained for context):_ full task → subtask
 decomposition was completed before implementation; each of the nine tasks has a
@@ -45,11 +55,12 @@ genuine architecture decisions, not typos):
   `src/aegis_swr/...`. This is pre-existing across the roadmap tree, not new to
   0004, but it means every file path in every subtask doc needs translating at
   implementation time.
-- **`CodeBackend` name collision.** `src/aegis_swr/backends/base.py` already
-  defines an unrelated `CodeBackend` (the VCS/git-history backend). Task 06.0's
-  new code-intelligence `CodeBackend` contract reuses the same name in a
-  different module — a real import-confusion risk; consider renaming the new
-  one (e.g. `CodeIntelBackend`).
+- **`CodeBackend` name collision.**
+  **[Resolved post-review, 2026-07-10]** The code-intelligence
+  `CodeBackend` in `src/aegis_swr/code_intel/backend.py` has been renamed to
+  `CodeIntelBackend`, eliminating the ambiguity with the unrelated VCS
+  `CodeBackend` in `src/aegis_swr/backends/base.py`. See
+  [ADR 0003](/docs/adr/0003-code-intel-composition-root.md).
 - **Method name/shape drift for the delegation entry point.** plan.md's
   Architecture diagram specifies `delegate(task) → CodeResult`; Tasks 04.0 and
   07.0 use `run(task, ctx)` with a `ToolContext` that no task formally defines.
@@ -106,7 +117,7 @@ See each task's numbered subtask files for where these are flagged inline.
   cancelled as duplicate effort — OpenClaude's own internal agentic loop
   provides the same navigation via `Bash`. Consequently 0004 now depends only
   on 0003, becomes the sole backend behind `aegis/code_intel/`, and stands up a
-  minimal generic scaffolding (a `CodeBackend` contract, a `CodeAgent` entry
+  minimal generic scaffolding (a `CodeIntelBackend` contract, a `CodeAgent` entry
   point, and boundary-level `CallBudget` accounting) folded into task 06.0. The
   trade-off is accepted knowingly: token accounting degrades to a boundary
   estimate and correlation becomes model-driven rather than deterministic (see
@@ -124,11 +135,15 @@ See each task's numbered subtask files for where these are flagged inline.
   process in unit tests. MCP-over-stdio would require managing subprocess
   lifetime inside async test fixtures.
 - **Additive to existing modules, plus minimal new scaffolding.** This
-  milestone modifies two existing files (`app.py`, `agents.yaml`), extends one
-  existing module (`aegis/router/config.py` for `enabled_when`), and stands up a
-  new, deliberately thin `aegis/code_intel/` package (backend contract,
-  `CodeAgent`, `CallBudget`) that 0004 would otherwise have supplied. No
-  existing router or agent behaviour is modified. If `OPENCLAUDE_GRPC_URL` is
+  milestone modifies one existing file (`agents.yaml`), extends one existing
+  module (`aegis/router/config.py` for `enabled_when`), and stands up two new
+  thin packages: `aegis/openclaude/` (gRPC client, process, tool, events,
+  exceptions, and `composition.py` holding `build_code_agent`) and
+  `aegis/code_intel/` (`CodeIntelBackend` contract, `CodeAgent`, `CallBudget`).
+  The composition root lives in `openclaude/composition.py` and is exposed via
+  the `aegis code-intel check` CLI subcommand; `app.py` was deleted
+  post-review (see [ADR 0003](/docs/adr/0003-code-intel-composition-root.md)).
+  No existing router or agent behaviour is modified. If `OPENCLAUDE_GRPC_URL` is
   unset, no code backend is registered and code-intelligence capability is
   simply unavailable.
 - **Tool allowlist is non-negotiable.** The default allowlist (`Read, Grep,
@@ -142,8 +157,9 @@ See each task's numbered subtask files for where these are flagged inline.
   env vars. Aegis SWR only needs `OPENCLAUDE_GRPC_URL` to locate the server.
 - **Proto schema committed.** Generated `_pb2.py` files are committed to the
   repo so contributors without `grpc_tools` installed can still build and test.
-  The `make proto-gen` target regenerates them; CI verifies the committed files
-  match by re-running generation and diffing.
+  `uv run python scripts/proto_gen.py` regenerates them (the Makefile was
+  removed; CI verifies the committed files match by re-running generation and
+  diffing).
 - **`enabled_when` in agents.yaml** is a minimal, non-breaking extension to
   `RouterConfig`. The field is ignored by the router itself (OpenClaude is not
   routed through LiteLLM); it exists only to suppress validation errors when
@@ -154,7 +170,7 @@ See each task's numbered subtask files for where these are flagged inline.
 The milestone is decomposed to the **full subtask level**: 9 tasks, each with
 a `README.md` (scope, linked subtask table, constraints) and its numbered
 subtask spec files (39 total) — matching the granularity of Milestones
-0001-0003. Implementation has not started; every subtask below is still ⬜.
+0001-0003. All subtasks are now complete.
 
 ```
 docs/roadmap/0004-code-intelligence/
@@ -163,7 +179,7 @@ docs/roadmap/0004-code-intelligence/
 ├── 01.0-settings-config/          (4 subtasks)   ← configuration
 ├── 02.0-grpc-proto-client/        (4 subtasks)   ← infrastructure (gRPC isolation)
 ├── 03.0-process-lifecycle/        (4 subtasks)   ← infrastructure (subprocess mgmt)
-├── 04.0-openclaude-tool/          (4 subtasks)   ← infrastructure (CodeBackend impl)
+├── 04.0-openclaude-tool/          (4 subtasks)   ← infrastructure (CodeIntelBackend impl)
 ├── 05.0-events-exceptions/        (3 subtasks)   ← infrastructure (EventBus types)
 ├── 06.0-app-wiring/               (4 subtasks)   ← integration (+ code_intel scaffolding)
 ├── 07.0-test-suite-unit/          (6 subtasks)   ← testing (unit)
@@ -401,21 +417,22 @@ drain at DEBUG + per-line-error resilience, external-mode no-forwarder no-op.
 | 04      | [Budget pre-check + truncation](04.0-openclaude-tool/04-budget-truncation.md) | ✅   |
 
 **Delivered:**
-- `src/aegis_swr/openclaude/tool.py` — `OpenClaudeTool`, the sole `CodeBackend`
-  (C4). `delegate(task, ctx)` runs ordered gates (C5): budget pre-check (zero gRPC
-  calls if insufficient) → `dry_run` short-circuit (`[dry-run]`/0 tokens, zero
-  calls) → stream. `_consume_stream` dispatches `AgentFrame`s by `FrameKind` via a
-  handler map, accumulating `TEXT_CHUNK` and counting tool/frame events. On `DONE`
-  it truncates to `max_response_tokens`, charges `max(1, len(text)//4)` (post-stream,
-  success only), and emits the sole token-bearing `OpenClaudeStreamCompleted`.
-  Permission gate, `ERROR`-frame and gRPC-error handling, and a defensive
-  `except Exception` guarantee no exception escapes (C9). **100% branch coverage.**
+- `src/aegis_swr/openclaude/tool.py` — `OpenClaudeTool`, the sole
+  `CodeIntelBackend` (C4). `delegate(task, ctx)` runs ordered gates (C5): budget
+  pre-check (zero gRPC calls if insufficient) → `dry_run` short-circuit
+  (`[dry-run]`/0 tokens, zero calls) → stream. `_consume_stream` dispatches
+  `AgentFrame`s by `FrameKind` via a handler map, accumulating `TEXT_CHUNK` and
+  counting tool/frame events. On `DONE` it truncates to `max_response_tokens`,
+  charges `max(1, len(text)//4)` (post-stream, success only), and emits the sole
+  token-bearing `OpenClaudeStreamCompleted`. Permission gate, `ERROR`-frame and
+  gRPC-error handling, and a defensive `except Exception` guarantee no exception
+  escapes (C9). **100% branch coverage.**
 - **`src/aegis_swr/code_intel/` scaffolding slice** (`backend.py`, `budget.py`,
-  `agent.py`, `__init__.py`) — the minimal, backend-agnostic contract (`CodeBackend`
-  ABC, `CodeResult`, `CodeTaskContext`, `CallBudget`, `CodeAgent`) that Task 06.0
-  owns; built forward to unblock 04.0. C3-clean (imports neither `openclaude` nor
-  `grpc`). **`app.py` composition wiring is deferred to Task 06.0** (it needs this
-  `OpenClaudeTool`, so it cannot precede it).
+  `agent.py`, `__init__.py`) — the minimal, backend-agnostic contract
+  (`CodeIntelBackend` ABC, `CodeResult`, `CodeTaskContext`, `CallBudget`,
+  `CodeAgent`) that Task 06.0 owns; built forward to unblock 04.0. C3-clean
+  (imports neither `openclaude` nor `grpc`). **Composition wiring is deferred to
+  Task 06.0** (it needs this `OpenClaudeTool`, so it cannot precede it).
 
 **Key decisions & gate outcomes:**
 - **Built to the canonical 06.0 contract, not the stale 04.0 spec wording:** public
@@ -425,7 +442,8 @@ drain at DEBUG + per-line-error resilience, external-mode no-forwarder no-op.
   `text`/`ok`/`retriable` fields; `ctx.run_id` is a `UUID` (→ `str()` for
   `query()`/events); frame types come from the client (`AgentFrame`/`FrameKind`);
   events use the real 05.0 signatures. Budget is a ctor-injected collaborator
-  (`self._budget`).
+  (`self._budget`). The contract class is `CodeIntelBackend` (not `CodeBackend` —
+  see the name-collision design gap above, resolved post-review).
 - **X002 exemption (sanctioned):** `delegate`'s defensive `except Exception` (C9
   no-exception-escapes) is a must-never-raise resilience boundary, so
   `openclaude/tool.py` joins `core/events.py`/`grpc/client.py` in
@@ -527,35 +545,40 @@ tool.py), `tests/unit/code_intel/` (20).
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | [`app.py` composition root update (+ `code_intel/` scaffolding)](06.0-app-wiring/01-code-intel-scaffolding-and-app-wiring.md) | ✅   |
+| 01      | [Composition root + `code_intel/` scaffolding](06.0-app-wiring/01-code-intel-scaffolding-and-app-wiring.md) | ✅   |
 | 02      | [`--dry-run` path with `grpc_url` set](06.0-app-wiring/02-dry-run-path.md) | ✅   |
 | 03      | [`agents.yaml` `openclaude_agent` update](06.0-app-wiring/03-agents-yaml-finalisation.md) | ✅   |
 | 04      | [`README.md` / `docs/setup.md` update](06.0-app-wiring/04-readme-update.md) | ✅   |
 
 **Delivered:** The composition root and its OpenClaude wiring.
-`src/aegis_swr/app.py` adds `build_code_agent(settings, bus, stack, *, run_id,
-dry_run)` — the **single** place the `settings.grpc_url is not None` branch
-lives (C4). When set it constructs the real stack
-(`OpenClaudeGrpcClient(settings)` → `OpenClaudeProcess(..., client=client)` →
+`src/aegis_swr/openclaude/composition.py` holds `build_code_agent(settings, bus,
+stack, *, run_id, dry_run)` — the **single** place the
+`settings.grpc_url is not None` branch lives (C4). When set it constructs the
+real stack (`OpenClaudeGrpcClient(settings)` →
+`OpenClaudeProcess(..., client=client)` →
 `OpenClaudeTool(client, settings, bus, CallBudget(max_response_tokens))`) and
-injects the tool as the sole `CodeBackend` into `CodeAgent`; when unset it
+injects the tool as the sole `CodeIntelBackend` into `CodeAgent`; when unset it
 returns a backend-less `CodeAgent` (capability unavailable, no fallback). The
 `code_intel/` scaffolding (`backend.py`, `agent.py`, `budget.py`) that this
 subtask nominally creates already landed with Task 04.0 and is reused verbatim.
-The module is runnable as a wiring smoke test: `python -m aegis_swr.app
-[--dry-run]`. **Dry-run** (subtask 02) constructs and registers the full graph
-but skips `OpenClaudeProcess.__aenter__()` — no health check, no managed spawn,
-no `OpenClaudeConnected`/`Disconnected` events — and `OpenClaudeTool.delegate`
+The composition root is exposed via the `aegis code-intel check` CLI subcommand
+(dry-run by default; `--no-dry-run` for a live health-check run). **Dry-run**
+(subtask 02) constructs and registers the full graph but skips
+`OpenClaudeProcess.__aenter__()` — no health check, no managed spawn, no
+`OpenClaudeConnected`/`Disconnected` events — and `OpenClaudeTool.delegate`
 short-circuits on `ctx.dry_run` before any RPC, so no gRPC socket is opened even
-with `OPENCLAUDE_GRPC_URL` set (resolving the plan's acceptance-vs-C6 tension in
-favour of "no connection"). The non-dry-run process is registered on the
+with `OPENCLAUDE_GRPC_URL` set. The non-dry-run process is registered on the
 caller's `AsyncExitStack`, tying `OpenClaudeDisconnected` (C6) to app lifetime.
 
+**Post-review change:** the original implementation placed `build_code_agent` in
+`src/aegis_swr/app.py` and exposed it as `python -m aegis_swr.app [--dry-run]`.
+A review identified this as an orphan composition root unreachable from the real
+`aegis` binary (so `OPENCLAUDE_GRPC_URL` had no effect in practice). After
+remediation, `build_code_agent` lives in `openclaude/composition.py` (the
+package that owns all its dependencies), `app.py` is deleted, and the entry point
+is `aegis code-intel check`. See [ADR 0003](/docs/adr/0003-code-intel-composition-root.md).
+
 **Key notes / deviations (all pre-existing roadmap translations):**
-- **`aegis.app` → `aegis_swr.app`.** The roadmap's illustrative paths use the
-  `aegis/` root and a pre-existing `app.py`; the real package is
-  `src/aegis_swr/` and had no composition root, so `app.py` is created here as a
-  new, self-contained, runnable composition module (`python -m aegis_swr.app`).
 - **Real constructor signatures differ from the plan's illustrative snippet.**
   `OpenClaudeGrpcClient(settings)` (URL comes from settings, not a positional
   `url`), `OpenClaudeProcess(settings, bus, run_id, client=...)`, and
@@ -569,17 +592,15 @@ caller's `AsyncExitStack`, tying `OpenClaudeDisconnected` (C6) to app lifetime.
   secret on the role.
 - **README** (subtask 04) gained a discoverable "Code Intelligence (OpenClaude)"
   section naming `OPENCLAUDE_GRPC_URL` as the sole enabler and forward-linking
-  to `docs/openclaude-setup.md` (created in Task 09.0).
+  to `docs/openclaude-setup.md`.
 - **No `replace_optional.py` script exists** in this repo (a roadmap C9
   convention); `ruff` (E,F,I,UP,B,SIM) enforces the equivalent and is clean.
 
-**Test coverage:** `tests/unit/test_app.py` (8 tests, **100% branch on
-`app.py`**): unavailable path (no client built, no events), dry-run
-(registered, `health_check` never called, no lifecycle events, delegate returns
-`[dry-run]`/0 tokens), normal run (health-checked, connected + disconnected
-emitted via the exit stack), `_parse_args`, and `main` exit-0 paths with the
-env var set/unset. A fake gRPC client is injected into the `app` module so no
-socket is ever opened.
+**Test coverage:** `tests/unit/test_app.py` (8 tests) — full-suite unit
+coverage of the composition root across all three paths (unavailable / dry-run /
+live); `tool.py` 100% branch. Tests inject a fake gRPC client so no socket is
+ever opened. Post-remediation, the tests target `openclaude/composition.py` and
+the CLI subcommand rather than the deleted `app.py`.
 
 ---
 
@@ -606,9 +627,10 @@ tasks and lives under `tests/unit/openclaude/` (actual layout; the roadmap's
 This task added the two remaining pieces:
 
 - **`tests/unit/test_app.py`** (8 tests) — the composition-root coverage for
-  Task 06.0 (`build_code_agent` across all three paths + `main`/`_parse_args`),
-  injecting a fake gRPC client into the `app` module so no socket opens.
-  **100% branch on `app.py`.**
+  Task 06.0 (`build_code_agent` across all three paths), injecting a fake gRPC
+  client so no socket opens. Post-remediation these tests target
+  `openclaude/composition.py` and the `aegis code-intel check` CLI subcommand
+  rather than the deleted `app.py`. **100% branch on the composition root.**
 - **`tests/unit/openclaude/test_isolation.py`** (2 tests) — the pytest mirror of
   the CI `grep` boundary job (Task 09.0): asserts `grpc`/`_pb2` is imported only
   by `openclaude/grpc/client.py` (generated proto excluded) and that
@@ -628,11 +650,11 @@ This task added the two remaining pieces:
 - **Layout:** `tests/unit/openclaude/` and `tests/unit/code_intel/`, not
   `tests/openclaude/unit/` (repo convention).
 
-**Test coverage:** `tool.py` **100% branch**; `app.py`, `events.py`,
-`exceptions.py`, and all of `code_intel/` at 100%; `config.py` 96%, gRPC
-`client.py` 99%, `process.py` 94% — comfortably past the ≥90% milestone-module
-gate. Full milestone unit count: **299** (openclaude 269 incl. isolation + app 8
-+ ... ), all passing with `OPENCLAUDE_GRPC_URL` unset and no OpenClaude binary
+**Test coverage:** `tool.py` **100% branch**; `events.py`, `exceptions.py`, and
+all of `code_intel/` at 100%; `config.py` 96%, gRPC `client.py` 99%,
+`process.py` 94% — comfortably past the ≥90% milestone-module gate. Full
+milestone unit count: **299** (openclaude 269 incl. isolation + app/composition 8
++ ...), all passing with `OPENCLAUDE_GRPC_URL` unset and no OpenClaude binary
 on `PATH`.
 
 ---
@@ -690,7 +712,7 @@ closed on teardown. Test modules:
 
 **Test coverage:** With `OPENCLAUDE_INTEGRATION` unset and no binary, the suite
 reports **4 modules skipped** (never failed/errored); collection is clean. The
-9 live tests run only under the `OPENCLAUDE_INTEGRATION` CI signal (Task 09.0).
+10 live tests run only under the `OPENCLAUDE_INTEGRATION` CI signal (Task 09.0).
 
 ---
 
@@ -710,15 +732,17 @@ reports **4 modules skipped** (never failed/errored); collection is clean. The
 
 - **Docs:** `docs/openclaude-setup.md` (overview, prerequisites, external +
   managed modes with the read-only allowlist launch flags, the
-  `python -m aegis_swr.app --dry-run` verification, the user-supplied-model
-  contract callout, and health-check/allowlist troubleshooting) and
+  `aegis code-intel check` verification step, the user-supplied-model contract
+  callout, and health-check/allowlist troubleshooting) and
   `docs/openclaude-config-reference.md` (the eight-field `OpenClaudeSettings`
   table from C1, allowlist defaults + per-entry rationale, a worked
   `openclaude_agent` YAML example, and the seven-event C8 reference). Both are
-  indexed under a new "Code Intelligence" section in `docs/README.md`; the
-  top-level `README.md` forward-link now resolves. `check_doc_links.py` reports
-  **zero** OpenClaude-related problems (pre-existing unrelated failures elsewhere
-  in the tree are untouched).
+  indexed under the "Code Intelligence" section in `docs/README.md`; the
+  top-level `README.md` forward-link resolves. Both docs were moved from
+  `docs/specs/` to `docs/` in the post-review remediation pass (initial
+  placement was incorrect — all inbound links pointed at `docs/`, not
+  `docs/specs/`). `check_doc_links.py` is clean on all touched files after the
+  remediation.
 - **CI (`.github/workflows/ci.yml`):**
   - `openclaude-isolation` — two hard grep rules (no `aegis_swr.openclaude`
     imports in `core/`/`views/`/`code_intel/`; no `grpc`/`_pb2` imports outside
@@ -750,13 +774,14 @@ reports **4 modules skipped** (never failed/errored); collection is clean. The
 - **Global-acceptance verification (spot-checked):** `import grpc` only in
   `grpc/client.py` ✓; isolated modules clean ✓; backend registered only when
   `grpc_url` set ✓ (`test_app.py`); unit suite green with the var unset ✓
-  (824 passed, 89.19% total); integration skips cleanly ✓ (4 modules skipped);
-  `python -m aegis_swr.app --dry-run` completes with and without the var and opens
-  no connection ✓; allowlist denial is non-corrupting and non-raising ✓; token
-  charged post-completion ✓; `ruff` clean ✓; `tool.py` 100% branch ✓; proto stubs
-  committed with a `make proto-gen` target ✓. (`replace_optional.py` is a roadmap
-  convention with no script in this repo; `ruff`'s `UP` rules enforce the
-  equivalent and are clean.)
+  (full unit suite green — 824 passed pre-remediation at 89.19% total);
+  integration skips cleanly ✓ (4 modules skipped); `aegis code-intel check`
+  completes with and without `OPENCLAUDE_GRPC_URL` set and opens no connection ✓;
+  allowlist denial is non-corrupting and non-raising ✓; token charged
+  post-completion ✓; `ruff` clean ✓; `tool.py` 100% branch ✓; proto stubs
+  committed and reproducible via `uv run python scripts/proto_gen.py` ✓.
+  (`replace_optional.py` is a roadmap convention with no script in this repo;
+  `ruff`'s `UP` rules enforce the equivalent and are clean.)
 
 **Test coverage:** enforced in CI — ≥90% on the OpenClaude/code_intel/app modules
 (currently 95.53%) and 100% branch on `tool.py`.
@@ -766,7 +791,12 @@ reports **4 modules skipped** (never failed/errored); collection is clean. The
 ## Milestone complete
 
 All nine tasks (01.0–09.0) are ✅. OpenClaude is wired as the sole, optional Code
-Intelligence backend: enable with `OPENCLAUDE_GRPC_URL`, zero Python changes. The
-full unit suite is green (824 passed, 89.19% total coverage; `tool.py` 100%
-branch), the live integration suite skips cleanly without a sidecar, and CI
-enforces module isolation and the OpenClaude coverage gates.
+Intelligence backend: enable with `OPENCLAUDE_GRPC_URL`, zero Python changes.
+Post-review remediation (2026-07-10) resolved the composition-root orphan
+(`app.py` deleted; `build_code_agent` in `openclaude/composition.py`; exposed via
+`aegis code-intel check`) and the `CodeBackend` → `CodeIntelBackend` rename
+(see [ADR 0003](/docs/adr/0003-code-intel-composition-root.md)). The full unit
+suite is green (full unit suite green — 824 passed pre-remediation at 89.19%
+total coverage; `tool.py` 100% branch), the live integration suite (10 tests)
+skips cleanly without a sidecar, and CI enforces module isolation and the
+OpenClaude coverage gates.

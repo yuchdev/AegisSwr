@@ -7,13 +7,13 @@ Exports the public contract only. Contains **zero** imports of
 from __future__ import annotations
 
 from aegis_swr.code_intel.agent import CodeAgent
-from aegis_swr.code_intel.backend import CodeBackend, CodeResult, CodeTaskContext
+from aegis_swr.code_intel.backend import CodeIntelBackend, CodeResult, CodeTaskContext
 from aegis_swr.code_intel.budget import CallBudget
 
 __all__ = [
     "CallBudget",
     "CodeAgent",
-    "CodeBackend",
+    "CodeIntelBackend",
     "CodeResult",
     "CodeTaskContext",
 ]

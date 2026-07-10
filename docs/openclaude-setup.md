@@ -72,10 +72,11 @@ health-checks it.
    export OPENCLAUDE_GRPC_URL=localhost:50051
    ```
 
-3. **Verify** the wiring without opening a connection:
+3. **Verify** the wiring without opening a connection (`--dry-run` is the
+   default):
 
    ```bash
-   python -m aegis_swr.app --dry-run
+   aegis code-intel check
    ```
 
    Expected output (the backend is registered, but **no** gRPC connection is
@@ -89,6 +90,13 @@ health-checks it.
 
    ```
    Code intelligence unavailable (OPENCLAUDE_GRPC_URL unset).
+   ```
+
+   To exercise the live path (health-check + real gRPC handshake), pass
+   `--no-dry-run`:
+
+   ```bash
+   aegis code-intel check --no-dry-run
    ```
 
 ## 4. Managed mode (`auto_start=true`)

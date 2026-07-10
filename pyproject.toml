@@ -108,6 +108,10 @@ parallel = true
 omit = [
     "*/site-packages/*",
     "*/distutils/*",
+    # Generated gRPC stubs are committed code, not hand-written; exclude from
+    # coverage (mirrors ruff's `extend-exclude` for `*_pb2.py`). Keeps the
+    # scoped OpenClaude coverage gate honest rather than penalising codegen.
+    "*/openclaude/grpc/proto/*",
 ]
 
 [tool.coverage.report]

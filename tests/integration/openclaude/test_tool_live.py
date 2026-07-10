@@ -1,4 +1,4 @@
-"""Live full-delegation integration tests through the sole ``CodeBackend`` (Task 08.0).
+"""Live full-delegation integration tests through the sole ``CodeIntelBackend`` (Task 08.0).
 
 Proves the delegation path against a live model: :meth:`OpenClaudeTool.delegate`
 returns a non-empty result, exactly one :class:`OpenClaudeStreamCompleted` carries
@@ -15,6 +15,7 @@ binary is absent.
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 from aegis_swr.code_intel.backend import CodeTaskContext
 from aegis_swr.code_intel.budget import CallBudget
@@ -27,7 +28,18 @@ from tests.integration.openclaude.conftest import require_managed_openclaude
 
 require_managed_openclaude()  # module-level: one skip line when binary/signal absent
 
-_TASK = "Locate compute_checksum and describe which module it is defined in."
+
+def _task(stub_project: Path) -> str:
+    """Build the navigation task string with the stub project's absolute path.
+
+    The sidecar runs under ``_SAFE_CWD`` (not ``stub_project``), so every
+    navigation task must reference stub files by their **absolute path** so
+    the sidecar can locate them without relying on a particular cwd.
+    """
+    return (
+        f"Read the file at {stub_project / 'app.py'} and describe which module "
+        "compute_checksum is defined in, including its return type."
+    )
 
 
 class _Recorder:
@@ -52,16 +64,20 @@ def _live_ctx() -> CodeTaskContext:
     return CodeTaskContext(run_id=uuid.uuid4(), dry_run=False)
 
 
-async def test_delegate_returns_non_empty_result(live_grpc_client: OpenClaudeGrpcClient) -> None:
+async def test_delegate_returns_non_empty_result(
+    live_grpc_client: OpenClaudeGrpcClient,
+    stub_project: Path,
+) -> None:
     """A live delegate over a real navigation task returns non-empty result text."""
     tool = _build_tool(live_grpc_client, EventBus())
-    result = await tool.delegate(_TASK, _live_ctx())
+    result = await tool.delegate(_task(stub_project), _live_ctx())
     assert result.available is True
     assert result.content.strip()
 
 
 async def test_stream_completed_carries_positive_token_estimate(
     live_grpc_client: OpenClaudeGrpcClient,
+    stub_project: Path,
 ) -> None:
     """Exactly one ``OpenClaudeStreamCompleted`` is emitted with ``token_estimate > 0`` (C5)."""
     bus = EventBus()
@@ -69,20 +85,23 @@ async def test_stream_completed_carries_positive_token_estimate(
     bus.subscribe(DomainEvent, recorder)
     tool = _build_tool(live_grpc_client, bus)
 
-    await tool.delegate(_TASK, _live_ctx())
+    await tool.delegate(_task(stub_project), _live_ctx())
 
     completed = recorder.of(OpenClaudeStreamCompleted)
     assert len(completed) == 1
     assert completed[0].token_estimate > 0
 
 
-async def test_at_least_one_tool_call_emitted(live_grpc_client: OpenClaudeGrpcClient) -> None:
+async def test_at_least_one_tool_call_emitted(
+    live_grpc_client: OpenClaudeGrpcClient,
+    stub_project: Path,
+) -> None:
     """>=1 ``OpenClaudeToolCall`` proves real navigation, not an answer from priors."""
     bus = EventBus()
     recorder = _Recorder()
     bus.subscribe(DomainEvent, recorder)
     tool = _build_tool(live_grpc_client, bus)
 
-    await tool.delegate(_TASK, _live_ctx())
+    await tool.delegate(_task(stub_project), _live_ctx())
 
     assert recorder.of(OpenClaudeToolCall), "expected at least one OpenClaudeToolCall event"

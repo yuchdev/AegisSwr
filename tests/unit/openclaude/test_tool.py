@@ -3,7 +3,7 @@
 Scenario: subtask 04.0/01 locks the tool's construction and its
 protocol-conformant surface. These tests pin the canonical contract - the tool
 constructs from four mock collaborators with no I/O, is an instantiable
-:class:`CodeBackend`, advertises ``name``/``description`` as class attributes,
+:class:`CodeIntelBackend`, advertises ``name``/``description`` as class attributes,
 and exposes the six canonical method signatures - so subtasks 02-04 fill the
 bodies without changing the surface.
 Boundaries: unit - no gRPC channel, no process, no budget mutation.
@@ -22,7 +22,7 @@ from uuid import uuid4
 import pytest
 from loguru import logger
 
-from aegis_swr.code_intel.backend import CodeBackend, CodeResult, CodeTaskContext
+from aegis_swr.code_intel.backend import CodeIntelBackend, CodeResult, CodeTaskContext
 from aegis_swr.code_intel.budget import CallBudget
 from aegis_swr.core.events import EventBus
 from aegis_swr.openclaude.config import OpenClaudeSettings
@@ -115,11 +115,11 @@ def test_constructs_with_four_collaborators_and_no_io(
 
 
 def test_is_instantiable_codebackend(tool: OpenClaudeTool) -> None:
-    """The tool is a concrete :class:`CodeBackend` accepted where one is expected."""
-    assert isinstance(tool, CodeBackend)
+    """The tool is a concrete :class:`CodeIntelBackend` accepted where one is expected."""
+    assert isinstance(tool, CodeIntelBackend)
 
-    def accepts_backend(backend: CodeBackend) -> CodeBackend:
-        """Identity function typed to accept a :class:`CodeBackend`."""
+    def accepts_backend(backend: CodeIntelBackend) -> CodeIntelBackend:
+        """Identity function typed to accept a :class:`CodeIntelBackend`."""
         return backend
 
     assert accepts_backend(tool) is tool
@@ -180,7 +180,7 @@ def test_failure_and_success_keyword_only_markers() -> None:
 
 
 def test_delegate_and_consume_stream_are_coroutines() -> None:
-    """``delegate``/``_consume_stream`` are async, per the :class:`CodeBackend` contract."""
+    """``delegate``/``_consume_stream`` are async, per the :class:`CodeIntelBackend` contract."""
     assert inspect.iscoroutinefunction(OpenClaudeTool.delegate)
     assert inspect.iscoroutinefunction(OpenClaudeTool._consume_stream)
 

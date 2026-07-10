@@ -14,6 +14,7 @@ binary is absent.
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 from aegis_swr.openclaude.grpc.client import FrameKind, OpenClaudeGrpcClient
 from tests.integration.openclaude.conftest import require_managed_openclaude
@@ -21,10 +22,20 @@ from tests.integration.openclaude.conftest import require_managed_openclaude
 require_managed_openclaude()  # module-level: one skip line when binary/signal absent
 
 
-async def test_query_yields_text_chunk_then_done(live_grpc_client: OpenClaudeGrpcClient) -> None:
-    """A real query returns a non-empty terminal ``DONE`` preceded by >=1 ``TEXT_CHUNK``."""
+async def test_query_yields_text_chunk_then_done(
+    live_grpc_client: OpenClaudeGrpcClient,
+    stub_project: Path,
+) -> None:
+    """A real query returns a non-empty terminal ``DONE`` preceded by >=1 ``TEXT_CHUNK``.
+
+    The prompt references ``stub_project / "app.py"`` by its **absolute path**
+    because the sidecar's cwd is ``_SAFE_CWD`` (``tempfile.gettempdir()``), not
+    ``stub_project``.  Without the absolute path the sidecar would be unable to
+    locate the file.
+    """
     run_id = str(uuid.uuid4())
-    prompt = "Find the function named compute_checksum and report the file it lives in."
+    app_py = stub_project / "app.py"
+    prompt = f"Read the file at {app_py} and report the name and return type of the function named compute_checksum."
     frames = [frame async for frame in live_grpc_client.query(prompt, run_id)]
 
     text_chunks = [f for f in frames if f.frame_type is FrameKind.TEXT_CHUNK]

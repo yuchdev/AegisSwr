@@ -111,7 +111,7 @@ def managed_settings() -> OpenClaudeSettings:
 
 
 @pytest_asyncio.fixture(scope="module")
-async def live_openclaude_process() -> AsyncIterator[OpenClaudeProcess]:
+async def live_openclaude_process(stub_project: Path) -> AsyncIterator[OpenClaudeProcess]:
     """A real managed-mode :class:`OpenClaudeProcess`, torn down unconditionally.
 
     Module-scoped because starting a real Node.js sidecar and warming a model is
@@ -119,6 +119,23 @@ async def live_openclaude_process() -> AsyncIterator[OpenClaudeProcess]:
     drives ``__aexit__`` even on test failure, upholding the "no surviving
     process" guarantee. Lifecycle tests that must observe start/stop construct
     their own process instead of using this fixture.
+
+    **Working-directory note.** The sidecar process always runs under
+    ``_SAFE_CWD`` (``tempfile.gettempdir()`` — a fixed, attacker-neutral
+    directory defined in ``aegis_swr.openclaude.process``). It does **not**
+    run from ``stub_project``. Navigation tasks must therefore reference stub
+    files by their *absolute* path in the task prompt so the sidecar can
+    locate them without assuming a particular cwd.
+
+    The ``stub_project`` dependency is declared here only to guarantee the
+    stub tree is created and lives on disk for the full duration of this
+    module's test run.
+
+    # NOTE: rooting the sidecar at the stub project (i.e. passing ``cwd``
+    # to ``OpenClaudeProcess``) is the proper long-term fix, but that
+    # requires a ``cwd`` seam on :class:`OpenClaudeProcess.__init__` in
+    # ``src/aegis_swr/openclaude/process.py``.  Until that seam is added,
+    # callers must embed the absolute stub path in their task prompts.
     """
     process = OpenClaudeProcess(managed_settings(), EventBus(), run_id=str(uuid.uuid4()))
     await process.__aenter__()

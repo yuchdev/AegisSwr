@@ -10,8 +10,8 @@ before CI catches it. Two independent rules:
   are excluded).
 * ``aegis_swr.openclaude`` must never be imported by the isolated modules
   ``core/``, ``views/`` (the UI layer), or ``code_intel/`` — the concrete
-  backend is injected at the ``app.py`` composition root, never imported by the
-  scaffolding.
+  backend is injected by the ``openclaude/composition.py`` factory, never
+  imported by the scaffolding.
 
 Scanning is import-statement-aware (it matches ``import``/``from`` lines only),
 so a bare mention of ``grpc`` in a docstring does not trip the guard — matching

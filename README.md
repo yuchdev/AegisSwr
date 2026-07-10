@@ -159,7 +159,7 @@ forensic allowlist):
 #    set CLAUDE_CODE_USE_OPENAI / OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_API_KEY,
 #    launch it headless with a read-only tool allowlist, then:
 export OPENCLAUDE_GRPC_URL=localhost:50051
-python -m aegis_swr.app --dry-run   # smoke-test the wiring without connecting
+aegis code-intel check   # smoke-test the wiring without connecting (dry-run by default)
 ```
 
 > Aegis SWR does **not** manage OpenClaude's model or provider — you do, via

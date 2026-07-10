@@ -29,7 +29,7 @@ tool or process code.
 
 Notes:
 
-- **`grpc_url = None`** means no `CodeBackend` is registered and the
+- **`grpc_url = None`** means no `CodeIntelBackend` is registered and the
   code-intelligence capability reports as unavailable (C4). Setting it is the
   single switch that enables OpenClaude — with no Python changes.
 - **`max_response_tokens`** is the hard cap on streamed response length;

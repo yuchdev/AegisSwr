@@ -13,6 +13,8 @@ Mermaid diagrams live in `adr/assets/`.
 | Document | Status | Description |
 |---|---|---|
 | [0001-new-ui-rich-based-design.md](adr/0001-new-ui-rich-based-design.md) | Implemented | WarRoomView three-pane terminal UI: Evidence Stream (left), Forensic Agents (right-top), Investigation Process (right-bottom). Animation, event→widget mapping, post-conclusion transition, Rich API inventory. |
+| [0002-agent-weight-as-property.md](adr/0002-agent-weight-as-property.md) | Accepted | Consensus weight declared as a `ClassVar` on each agent class, not in an external config file; eliminates double-roster maintenance and enables per-agent defaults with a two-tier override. |
+| [0003-code-intel-composition-root.md](adr/0003-code-intel-composition-root.md) | Accepted | Code-intelligence composition root moved to `openclaude/composition.py` and exposed via `aegis code-intel check`; `CodeBackend` renamed to `CodeIntelBackend`; orphan `app.py` deleted. |
 | [template.md](adr/template.md) | - | Blank MADR template; use `/adr-write <title>` to scaffold a new record. |
 
 ---
@@ -141,5 +143,5 @@ Design notes and text mockups.
 
 | Document | Description |
 |---|---|
-| [ui-investigation-process.txt](ui/ui-investigation-process.txt) | ASCII mockup of the Evidence Stream and Forensic Agents panels (debug output sample). |
-| [ui-root-cause-analysis.txt](ui/ui-root-cause-analysis.txt) | Plain-text RCA report example produced by the agents (RCA template / sample output). |
+| `ui/ui-investigation-process.txt` | ASCII mockup of the Evidence Stream and Forensic Agents panels (debug output sample). |
+| `ui/ui-root-cause-analysis.txt` | Plain-text RCA report example produced by the agents (RCA template / sample output). |
