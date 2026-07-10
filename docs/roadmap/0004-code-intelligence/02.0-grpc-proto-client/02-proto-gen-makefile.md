@@ -1,17 +1,9 @@
-# 02 - proto stub regeneration (originally `make proto-gen` target)
+# 02 - `make proto-gen` target
 
 **Parent task:** 02.0 gRPC Proto & Client
 **State:** ⬜ Not started
 **Depends on:** 01
 **Blocks:** 03 (client imports the generated stubs), 04.0 (downstream tasks build/test against committed stubs), 09.0 (downstream: CI drift check formalised there)
-
-> **Update — invocation mechanism changed:** this subtask was originally
-> specified as a `Makefile` `proto-gen` target. After delivery it was replaced
-> by `scripts/proto_gen.py`, invoked as `uv run python scripts/proto_gen.py`,
-> because `make` is not available on every developer system. What gets generated
-> and why (package-qualified `--proto_path=src` to avoid flat cross-imports)
-> is unchanged; only the invocation changed. The historical Makefile target is
-> preserved below as the original subtask record.
 
 ## Objective
 

@@ -97,6 +97,9 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src", "."]
 addopts = "--cov=src/aegis_swr --cov-report=html --cov-report=term-missing --cov-fail-under=85"
+markers = [
+    "integration: OpenClaude live-process tests; skipped unless OPENCLAUDE_INTEGRATION is set and the openclaude binary is present",
+]
 
 [tool.coverage.run]
 source = ["src/aegis_swr"]

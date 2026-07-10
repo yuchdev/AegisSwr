@@ -56,6 +56,10 @@ agents:
 
   openclaude_agent:
     provider: openclaude        # not routed through LiteLLM; see RouterConfig
-    model: ~                    # model is OpenClaude's concern, not Aegis SWR's
-    timeout_s: 120
-    enabled_when: OPENCLAUDE_GRPC_URL
+    # Model selection is entirely OpenClaude's / the operator's concern, set via
+    # OpenClaude's own env vars (CLAUDE_CODE_USE_OPENAI, OPENAI_BASE_URL,
+    # OPENAI_MODEL, OPENAI_API_KEY). Aegis SWR never resolves a model for this
+    # role - see the milestone's "User-supplied model contract".
+    model: ~                    # YAML null - Aegis SWR resolves no LiteLLM model
+    timeout_s: 120              # matches OpenClaudeSettings.request_timeout_s default (C1)
+    enabled_when: OPENCLAUDE_GRPC_URL   # role inactive when the var is unset

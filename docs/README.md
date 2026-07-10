@@ -81,6 +81,15 @@ User-facing reference for every CLI option and configuration field, derived from
 
 ---
 
+## Code Intelligence (`openclaude-*.md`)
+
+| Document | Description |
+|---|---|
+| [openclaude-setup.md](openclaude-setup.md) | Operator install/setup guide for the OpenClaude gRPC sidecar: external vs managed mode, allowlist launch flags, the user-supplied model contract, and troubleshooting. |
+| [openclaude-config-reference.md](openclaude-config-reference.md) | Full `OpenClaudeSettings` field table, allowlist defaults + rationale, the `openclaude_agent` role example, and the OpenClaude event reference. |
+
+---
+
 ## QA & Test Coverage (`test/`)
 
 | Document | Description |
