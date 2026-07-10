@@ -130,4 +130,15 @@ jobs:
           OPENCLAUDE_INTEGRATION: "1"
           OPENCLAUDE_GRPC_URL: ${{ secrets.OPENCLAUDE_GRPC_URL }}
           OPENCLAUDE_BINARY: ${{ secrets.OPENCLAUDE_BINARY }}
-        run: uv run pytest tests/integration/openclaude/ -o addopts="" -v --tb=short
+        run: |
+          # When the sidecar secret/binary are absent every module self-skips at
+          # collection, so pytest exits 5 (EXIT_NOTESTSCOLLECTED). That is the
+          # intended "skipped, not failed" outcome — treat exit 5 as success and
+          # let every other non-zero code fail the job.
+          uv run pytest tests/integration/openclaude/ -o addopts="" -v --tb=short
+          code=$?
+          if [ "$code" -eq 5 ]; then
+            echo "All integration modules self-skipped (no signal/binary present) - OK."
+            exit 0
+          fi
+          exit "$code"
