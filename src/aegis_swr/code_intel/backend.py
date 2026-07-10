@@ -1,13 +1,21 @@
 """Backend-agnostic Code Intelligence contract.
 
-Defines the abstract :class:`CodeBackend` (a single free-text delegation
+Defines the abstract :class:`CodeIntelBackend` (a single free-text delegation
 surface) and the immutable :class:`CodeResult` it returns. This module is
 deliberately minimal — there is no multi-tool selection loop on the Aegis SWR
 side (Milestone 0004 supersedes the bespoke tool-per-capability design).
 
+The name is deliberately **not** ``CodeBackend``: that name already belongs to
+the unrelated VCS/git-history backend in
+:mod:`aegis_swr.backends.base`, which the :class:`~aegis_swr.core.orchestrator.Orchestrator`
+consumes for commit-window correlation. This contract is the code-*navigation*
+surface OpenClaude implements; keeping the names distinct removes the
+import-confusion hazard flagged during milestone decomposition.
+
 Isolation (C3): this module imports **neither** ``aegis_swr.openclaude``
 **nor** ``grpc``. A concrete backend is injected via constructor at the
-``app.py`` composition root; the scaffolding never imports its implementation.
+:mod:`aegis_swr.openclaude.composition` factory; the scaffolding never imports
+its implementation.
 """
 
 from __future__ import annotations
@@ -26,8 +34,8 @@ class CodeTaskContext:
         emission the backend makes.
     :ivar dry_run: When ``True``, the backend must short-circuit every external
         call (no gRPC connection) and return a zero-token ``[dry-run]`` result
-        (C5). The ``app.py`` composition path still constructs and registers the
-        backend so it is exercised; only the outbound call is suppressed.
+        (C5). The composition path still constructs and registers the backend so
+        it is exercised; only the outbound call is suppressed.
     """
 
     run_id: UUID
@@ -60,13 +68,14 @@ class CodeResult:
     metadata: Mapping[str, object] = field(default_factory=dict)
 
 
-class CodeBackend(ABC):
+class CodeIntelBackend(ABC):
     """Abstract single-surface code-intelligence backend.
 
     A backend accepts one open-ended natural-language task string and returns a
     single :class:`CodeResult`. There is exactly one concrete implementation in
     this milestone — ``aegis_swr.openclaude.tool.OpenClaudeTool`` — injected at
-    ``app.py``; this contract never imports it (C3).
+    the :mod:`aegis_swr.openclaude.composition` factory; this contract never
+    imports it (C3).
     """
 
     @property

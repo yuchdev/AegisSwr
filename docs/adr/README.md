@@ -9,6 +9,8 @@ are in `assets/`.
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
 | [0001](0001-new-ui-rich-based-design.md) | New Terminal UI Design (WarRoomView) | Implemented | 2025 |
+| [0002](0002-agent-weight-as-property.md) | Consensus weight as a `ClassVar` agent property | Accepted | 2026-07-08 |
+| [0003](0003-code-intel-composition-root.md) | Code intelligence composition root and `CodeIntelBackend` rename | Accepted | 2026-07-10 |
 
 ## Template
 

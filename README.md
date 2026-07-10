@@ -135,6 +135,41 @@ grpcurl -plaintext \
    your launch flags don't match `OPENCLAUDE_ALLOWED_TOOLS` /
    `OPENCLAUDE_BASH_ALLOWLIST` (see [C7](docs/roadmap/0004-code-intelligence/plan.md#c7--permission-and-tool-allowlist-enforcement)).
 
+## Code Intelligence (OpenClaude)
+
+Aegis SWR can delegate open-ended, multi-file code-navigation tasks to
+[OpenClaude](https://github.com/Gitlawb/openclaude) running as a headless gRPC
+sidecar pointed at any OpenAI-compatible backend (including a self-hosted vLLM
+instance). This capability is **optional** and **off by default**.
+
+**Enable it with a single environment variable** — no Python changes:
+
+```bash
+export OPENCLAUDE_GRPC_URL=localhost:50051
+```
+
+When `OPENCLAUDE_GRPC_URL` is unset, code intelligence is simply unavailable and
+the rest of the pipeline is unaffected.
+
+**Recommended external-mode launch** (OpenClaude already running, read-only
+forensic allowlist):
+
+```bash
+# 1. Start OpenClaude yourself (its model/provider is your concern):
+#    set CLAUDE_CODE_USE_OPENAI / OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_API_KEY,
+#    launch it headless with a read-only tool allowlist, then:
+export OPENCLAUDE_GRPC_URL=localhost:50051
+aegis code-intel check   # smoke-test the wiring without connecting (dry-run by default)
+```
+
+> Aegis SWR does **not** manage OpenClaude's model or provider — you do, via
+> OpenClaude's own environment variables. Aegis SWR only needs
+> `OPENCLAUDE_GRPC_URL` to find the running server.
+
+See **[docs/openclaude-setup.md](/docs/openclaude-setup.md)** for the full setup
+guide (managed vs external mode, the tool/Bash allowlists, and the complete
+environment-variable reference).
+
 ## 💻 Examples
 
 ### Variant A: Baseline

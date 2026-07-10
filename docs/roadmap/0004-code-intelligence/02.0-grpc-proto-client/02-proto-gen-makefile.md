@@ -1,54 +1,35 @@
-# 02 - proto stub regeneration (originally `make proto-gen` target)
+# 02 - `scripts/proto_gen.py` (proto regeneration)
 
 **Parent task:** 02.0 gRPC Proto & Client
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01
 **Blocks:** 03 (client imports the generated stubs), 04.0 (downstream tasks build/test against committed stubs), 09.0 (downstream: CI drift check formalised there)
 
-> **Update — invocation mechanism changed:** this subtask was originally
-> specified as a `Makefile` `proto-gen` target. After delivery it was replaced
-> by `scripts/proto_gen.py`, invoked as `uv run python scripts/proto_gen.py`,
-> because `make` is not available on every developer system. What gets generated
-> and why (package-qualified `--proto_path=src` to avoid flat cross-imports)
-> is unchanged; only the invocation changed. The historical Makefile target is
-> preserved below as the original subtask record.
-
 ## Objective
 
-Add a `Makefile` target `proto-gen` that regenerates the Python gRPC stubs
+Proto regeneration is delivered via `scripts/proto_gen.py` (not a `Makefile` target).
+Running `uv run python scripts/proto_gen.py` regenerates the Python gRPC stubs
 (`openclaude_pb2.py`, `openclaude_pb2_grpc.py`) from `openclaude.proto` into the
 same proto directory. The generated files are **committed to the repo** so that
 contributors and CI runners without `grpc_tools` installed can still build,
 type-check, and run the test suite. Because the stubs are committed, they can
 drift from the schema; CI must guarantee they do not (the drift check itself is
-formally added in Task 09.0 - this subtask only produces the generator target
+formally added in Task 09.0 - this subtask only produces the generator script
 and records the CI expectation).
 
-## Makefile target
+## Invocation
 
-```makefile
-# ── OpenClaude gRPC stubs ─────────────────────────────────────────────────────
-# Regenerate committed gRPC stubs from the authoritative proto schema.
-# The generated *_pb2.py / *_pb2_grpc.py files are committed (see C9); run this
-# whenever openclaude.proto changes and commit the result.
-
-OPENCLAUDE_PROTO_DIR := aegis/openclaude/grpc/proto
-OPENCLAUDE_PROTO     := $(OPENCLAUDE_PROTO_DIR)/openclaude.proto
-
-.PHONY: proto-gen
-proto-gen:  ## Regenerate committed OpenClaude gRPC stubs from openclaude.proto
-	python -m grpc_tools.protoc \
-		--proto_path=$(OPENCLAUDE_PROTO_DIR) \
-		--python_out=$(OPENCLAUDE_PROTO_DIR) \
-		--grpc_python_out=$(OPENCLAUDE_PROTO_DIR) \
-		$(OPENCLAUDE_PROTO)
-	@echo "Regenerated stubs in $(OPENCLAUDE_PROTO_DIR); commit the result."
+```sh
+uv run python scripts/proto_gen.py
 ```
+
+This regenerates both `openclaude_pb2.py` and `openclaude_pb2_grpc.py` into
+`src/aegis_swr/openclaude/grpc/proto/`.
 
 ## Implementation notes
 
-- **Invocation.** `python -m grpc_tools.protoc` (not a bare `protoc`) so the
-  toolchain is the pinned `grpcio-tools` Python package rather than a
+- **Invocation.** `uv run python scripts/proto_gen.py` (uses `python -m grpc_tools.protoc`
+  internally) so the toolchain is the pinned `grpcio-tools` Python package rather than a
   system-installed compiler; `grpcio-tools` is a dev-only dependency, not a
   runtime dependency (contributors without it still get the committed stubs).
 - **Output layout.** `--proto_path`, `--python_out`, and `--grpc_python_out` all

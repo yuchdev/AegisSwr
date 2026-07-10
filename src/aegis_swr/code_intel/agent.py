@@ -1,8 +1,8 @@
 """Code Intelligence entry point.
 
 :class:`CodeAgent` is the single object the rest of Aegis SWR calls to delegate
-a code-navigation task. It holds an *optional* :class:`CodeBackend`: when no
-backend is registered (``OPENCLAUDE_GRPC_URL`` unset), the capability is
+a code-navigation task. It holds an *optional* :class:`CodeIntelBackend`: when
+no backend is registered (``OPENCLAUDE_GRPC_URL`` unset), the capability is
 reported as unavailable without raising (C4).
 """
 
@@ -13,17 +13,17 @@ from uuid import UUID
 
 from loguru import logger
 
-from aegis_swr.code_intel.backend import CodeBackend, CodeResult, CodeTaskContext
+from aegis_swr.code_intel.backend import CodeIntelBackend, CodeResult, CodeTaskContext
 
 
 class CodeAgent:
     """Delegates a code task to the registered backend, if any.
 
-    :ivar _backend: The sole registered :class:`CodeBackend`, or ``None`` when
-        code intelligence is unavailable in this deployment.
+    :ivar _backend: The sole registered :class:`CodeIntelBackend`, or ``None``
+        when code intelligence is unavailable in this deployment.
     """
 
-    def __init__(self, backend: Optional[CodeBackend] = None) -> None:
+    def __init__(self, backend: Optional[CodeIntelBackend] = None) -> None:
         """Construct the agent.
 
         :param backend: The code backend to delegate to, or ``None`` to run in

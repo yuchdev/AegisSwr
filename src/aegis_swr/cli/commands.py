@@ -108,6 +108,8 @@ config_app = typer.Typer(help="Manage runtime settings in ~/.aegis-swr/config.js
 app.add_typer(config_app, name="config")
 agents_app = typer.Typer(help="Inspect the registered forensic agents.")
 app.add_typer(agents_app, name="agents")
+code_intel_app = typer.Typer(help="Inspect and verify the optional OpenClaude code-intelligence wiring.")
+app.add_typer(code_intel_app, name="code-intel")
 
 
 # ---------------------------------------------------------------------------
@@ -827,3 +829,66 @@ def agents_list():
         default_priority = AgentSpec(agent_key=key).priority
         table.add_row(key, cls.category, cls.role.value, str(default_priority), cls.display_name)
     console.print(table)
+
+
+# ---------------------------------------------------------------------------
+# aegis code-intel check
+# ---------------------------------------------------------------------------
+
+
+@code_intel_app.command("check")
+def code_intel_check(
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run/--no-dry-run",
+            help="Exercise the wiring only: build and register the backend without "
+            "entering the OpenClaude process (no health check, no managed spawn) "
+            "or opening any gRPC connection.",
+        ),
+    ] = True,
+):
+    """Verify the optional OpenClaude code-intelligence wiring.
+
+    This is the operator-facing smoke test for the composition factory
+    (:func:`aegis_swr.openclaude.composition.build_code_agent`). It replaces the
+    former standalone ``python -m aegis_swr.app`` entry point, folding that
+    capability into the ``aegis`` CLI so there is a single composition surface.
+
+    With ``OPENCLAUDE_GRPC_URL`` unset it reports the capability as unavailable
+    and exits ``0``. With it set, ``--dry-run`` (the default) builds and
+    registers the full OpenClaude object graph **without** entering the process
+    or opening any gRPC connection (contract C6 / the dry-run acceptance
+    criteria); pass ``--no-dry-run`` to additionally health-check (external mode)
+    or start (managed mode) the sidecar and tear it down again.
+    """
+    from contextlib import AsyncExitStack
+    from uuid import uuid4
+
+    from aegis_swr.config.settings import Settings
+    from aegis_swr.core.events import EventBus
+    from aegis_swr.openclaude.composition import build_code_agent
+
+    settings = Settings()
+    bus = EventBus()
+
+    async def _run() -> bool:
+        async with AsyncExitStack() as stack:
+            agent = await build_code_agent(
+                settings.openclaude,
+                bus,
+                stack,
+                run_id=str(uuid4()),
+                dry_run=dry_run,
+            )
+            return agent.available
+
+    available = asyncio.run(_run())
+    if available:
+        # Parentheses, not brackets: rich would parse a ``[...]`` suffix as markup.
+        suffix = " (dry-run: process not started)" if dry_run else ""
+        console.print(f"[green]Code intelligence backend registered (OpenClaude){suffix}.[/green]")
+    else:
+        console.print(
+            "[yellow]Code intelligence unavailable[/yellow] (OPENCLAUDE_GRPC_URL unset; no backend registered)."
+        )

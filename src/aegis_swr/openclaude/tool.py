@@ -1,7 +1,7 @@
-"""The sole :class:`CodeBackend`: the OpenClaude code-navigation tool.
+"""The sole :class:`CodeIntelBackend`: the OpenClaude code-navigation tool.
 
 This module hosts :class:`OpenClaudeTool`, the single concrete
-:class:`~aegis_swr.code_intel.backend.CodeBackend` in Milestone 0004. It
+:class:`~aegis_swr.code_intel.backend.CodeIntelBackend` in Milestone 0004. It
 delegates an open-ended, multi-file code-navigation task to the OpenClaude
 sidecar over gRPC and returns one :class:`~aegis_swr.code_intel.backend.CodeResult`.
 
@@ -26,7 +26,7 @@ import os
 from collections.abc import Awaitable, Callable
 from typing import ClassVar, Final, Optional, Union
 
-from aegis_swr.code_intel.backend import CodeBackend, CodeResult, CodeTaskContext
+from aegis_swr.code_intel.backend import CodeIntelBackend, CodeResult, CodeTaskContext
 from aegis_swr.code_intel.budget import CallBudget
 from aegis_swr.core.events import EventBus
 from aegis_swr.openclaude.config import OpenClaudeSettings
@@ -77,8 +77,8 @@ _DONE: Final[_Done] = _Done()
 _HandlerResult = Optional[Union[CodeResult, _Done]]
 
 
-class OpenClaudeTool(CodeBackend):
-    """The sole :class:`CodeBackend`: delegate an open-ended code-navigation
+class OpenClaudeTool(CodeIntelBackend):
+    """The sole :class:`CodeIntelBackend`: delegate an open-ended code-navigation
     task to the OpenClaude sidecar over gRPC and return a single text result.
 
     There is no multi-tool selection on the Aegis SWR side (C4). The class owns
@@ -88,8 +88,8 @@ class OpenClaudeTool(CodeBackend):
     (C9).
 
     The class-level ``description`` attribute concretely satisfies the abstract
-    ``description`` property declared on :class:`CodeBackend`, so the tool is an
-    instantiable backend accepted anywhere a :class:`CodeBackend` is expected.
+    ``description`` property declared on :class:`CodeIntelBackend`, so the tool is an
+    instantiable backend accepted anywhere a :class:`CodeIntelBackend` is expected.
 
     **Read-only enforcement is not owned by this gate.** The authoritative
     read-only boundary is the OpenClaude sidecar's own launch-flag allowlist
@@ -106,7 +106,7 @@ class OpenClaudeTool(CodeBackend):
 
     :cvar name: Stable backend identifier used by ``CodeAgent`` registration.
     :cvar description: Human-readable capability advertised to the agent layer;
-        overrides the abstract :class:`CodeBackend` property.
+        overrides the abstract :class:`CodeIntelBackend` property.
     :ivar _client: gRPC stream adapter (task 02.0); the only path to OpenClaude.
     :ivar _settings: Immutable configuration, including the allowlists (C1).
     :ivar _bus: EventBus for per-frame observability emissions (C8).
@@ -145,7 +145,7 @@ class OpenClaudeTool(CodeBackend):
     async def delegate(self, task: str, ctx: CodeTaskContext) -> CodeResult:
         """Delegate *task* to OpenClaude and return a single text result.
 
-        Public :class:`CodeBackend` entry point. Behaviour is layered across
+        Public :class:`CodeIntelBackend` entry point. Behaviour is layered across
         subtasks 02-04: stream iteration and content accumulation (02),
         permission and tool-event handling (03), and budget pre-check /
         dry-run / truncation / terminal-frame handling (04). Orchestration -

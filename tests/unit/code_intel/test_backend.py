@@ -2,7 +2,7 @@
 
 Cover the immutable :class:`CodeResult`/:class:`CodeTaskContext` value objects
 (fields, defaults, frozen + slots invariants), the abstract nature of
-:class:`CodeBackend`, and the C3 isolation guarantee that importing the
+:class:`CodeIntelBackend`, and the C3 isolation guarantee that importing the
 ``code_intel`` package pulls in neither ``grpc`` nor ``aegis_swr.openclaude``.
 """
 
@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from aegis_swr.code_intel.backend import CodeBackend, CodeResult, CodeTaskContext
+from aegis_swr.code_intel.backend import CodeIntelBackend, CodeResult, CodeTaskContext
 
 
 def test_code_task_context_fields_and_default() -> None:
@@ -79,16 +79,16 @@ def test_code_result_is_frozen_and_slotted() -> None:
 
 
 def test_code_backend_cannot_be_instantiated() -> None:
-    """``CodeBackend`` is abstract and cannot be constructed directly."""
+    """``CodeIntelBackend`` is abstract and cannot be constructed directly."""
     with pytest.raises(TypeError):
-        CodeBackend()  # type: ignore[abstract]
+        CodeIntelBackend()  # type: ignore[abstract]
 
 
 @pytest.mark.asyncio
 async def test_concrete_backend_subclass_works() -> None:
     """A trivial concrete subclass implementing the contract is usable."""
 
-    class _StubBackend(CodeBackend):
+    class _StubBackend(CodeIntelBackend):
         @property
         def description(self) -> str:
             return "stub backend"
