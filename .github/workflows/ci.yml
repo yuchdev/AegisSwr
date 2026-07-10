@@ -135,10 +135,9 @@ jobs:
           # collection, so pytest exits 5 (EXIT_NOTESTSCOLLECTED). That is the
           # intended "skipped, not failed" outcome — treat exit 5 as success and
           # let every other non-zero code fail the job.
-          uv run pytest tests/integration/openclaude/ -o addopts="" -v --tb=short
-          code=$?
-          if [ "$code" -eq 5 ]; then
+          uv run pytest tests/integration/openclaude/ -o addopts="" -v --tb=short || code=$?
+          if [ "${code:-0}" -eq 5 ]; then
             echo "All integration modules self-skipped (no signal/binary present) - OK."
             exit 0
           fi
-          exit "$code"
+          exit "${code:-0}"
