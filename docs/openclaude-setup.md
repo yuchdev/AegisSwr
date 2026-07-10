@@ -25,9 +25,9 @@ pipeline is unaffected.
 
 - **Node.js + npm** on the host. Install the OpenClaude CLI globally:
 
-  ```bash
-  npm install -g @gitlawb/openclaude@latest
-  ```
+```bash
+npm install -g @gitlawb/openclaude@latest
+```
 
   OpenClaude is treated as an opaque, versioned black-box service reached over
   gRPC; nothing in this repository vendors or builds it.
