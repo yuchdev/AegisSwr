@@ -58,6 +58,22 @@ def test_grpc_url_host_port_ok() -> None:
     assert settings.grpc_url == "localhost:50051"
 
 
+def test_grpc_url_empty_string_is_unset() -> None:
+    """An empty / whitespace grpc_url coerces to None, not a validation error.
+
+    An unset CI secret expands to ``""`` (``OPENCLAUDE_GRPC_URL: ${{ secrets.X }}``);
+    that must mean "not configured", never crash settings construction.
+    """
+    assert OpenClaudeSettings(grpc_url="").grpc_url is None
+    assert OpenClaudeSettings(grpc_url="   ").grpc_url is None
+
+
+def test_grpc_url_empty_env_is_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An empty ``OPENCLAUDE_GRPC_URL`` env var coerces to None (CI-secret case)."""
+    monkeypatch.setenv("OPENCLAUDE_GRPC_URL", "")
+    assert OpenClaudeSettings().grpc_url is None
+
+
 def test_grpc_url_invalid_chars_rejected() -> None:
     """A host containing illegal characters is rejected."""
     with pytest.raises(OpenClaudeConfigError):

@@ -186,9 +186,18 @@ class OpenClaudeSettings(BaseSettings):
     @field_validator("grpc_url")
     @classmethod
     def _validate_grpc_url(cls, v: Optional[str]) -> Optional[str]:
-        """Reject scheme-prefixed URLs; only bare host[:port] is accepted."""
+        """Reject scheme-prefixed URLs; only bare host[:port] is accepted.
+
+        An empty or whitespace-only value is treated as *unset* (``None``), not
+        as a malformed URL: an unset environment variable or CI secret expands
+        to ``""`` (e.g. ``OPENCLAUDE_GRPC_URL: ${{ secrets.MISSING }}``), which
+        must mean "code intelligence not configured" rather than crash settings
+        construction at import time.
+        """
         if v is None:
             return v
+        if not v.strip():
+            return None
 
         if v.startswith(("http://", "https://")):
             raise OpenClaudeConfigError(
