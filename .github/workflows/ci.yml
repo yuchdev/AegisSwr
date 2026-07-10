@@ -99,7 +99,6 @@ jobs:
       - name: "Unit tests + overall coverage gate (>=90% on openclaude + code_intel)"
         env:
           # Prove the unit suite needs no external deps / server / binary.
-          OPENCLAUDE_GRPC_URL: ""
           OPENCLAUDE_INTEGRATION: ""
         run: >
           uv run pytest tests/unit/openclaude tests/unit/code_intel tests/unit/test_cli_code_intel.py

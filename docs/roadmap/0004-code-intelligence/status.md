@@ -13,7 +13,7 @@ Updated as each task lands.
 | 04.0 | OpenClaudeTool Implementor   | ✅ Complete     | `tests/unit/openclaude/test_tool.py` (63, 100% branch), `tests/unit/code_intel/` (20) |
 | 05.0 | Event Types & Exceptions     | ✅ Complete     | `tests/unit/openclaude/test_events.py` (67), `test_exceptions.py` (13), `test_package_api.py` (14) |
 | 06.0 | App Wiring & agents.yaml     | ✅ Complete | `openclaude/composition.py` (build_code_agent); `aegis code-intel check` CLI subcommand |
-| 07.0 | Test Suite — Unit            | ✅ Complete | `tests/unit/openclaude/` (269), `tests/unit/code_intel/` (20), `tests/unit/test_app.py` (8); `tool.py` 100% branch |
+| 07.0 | Test Suite — Unit            | ✅ Complete | `tests/unit/openclaude/` (269), `tests/unit/code_intel/` (20), `tests/unit/openclaude/test_composition.py`, `tests/unit/test_cli_code_intel.py` (8); `tool.py` 100% branch |
 | 08.0 | Test Suite — Integration     | ✅ Complete | `tests/integration/openclaude/` (10 live tests, skipped without binary + `OPENCLAUDE_INTEGRATION`) |
 | 09.0 | Documentation & CI           | ✅ Complete | CI: `openclaude-isolation`, `openclaude-unit-coverage`, `openclaude-integration` jobs |
 
@@ -27,7 +27,7 @@ grpc/client + committed proto stubs, composition.py) and
 place the `OPENCLAUDE_GRPC_URL` branch (C4) lives; the orphan `app.py` was
 deleted in the post-review remediation (see [ADR 0003](/docs/adr/0003-code-intel-composition-root.md)).
 `agents.yaml` carries the finalised `openclaude_agent` role. Full unit suite green
-(full unit suite green — 824 passed pre-remediation at 89.19% total;
+(824 passed pre-remediation at 89.19% total;
 `tool.py` 100% branch); integration suite skips cleanly without a sidecar; CI
 enforces module isolation plus the OpenClaude coverage gates. Enabling code
 intelligence requires only setting `OPENCLAUDE_GRPC_URL`.
@@ -639,14 +639,9 @@ This task added the two remaining pieces:
   mirrors the Milestone 0003 `litellm` isolation test.
 
 **Key notes / deviations:**
-- **No shared `conftest.py` was added.** The subtask-01 fixture sketch predates
-  the shipped code: it references a `ToolContext` (actual: `CodeTaskContext`) and
-  a single-arg `bus.subscribe(lambda e: ...)` (the real `EventBus.subscribe`
-  takes `(event_type, handler)`). The already-shipped test files use equivalent
-  inline injection seams (`_MockClient`, capturing `DomainEvent` subscribers,
-  direct `OpenClaudeSettings(...)` construction) and all pass, so a redundant
-  conftest that contradicts the real APIs was intentionally not introduced. The
-  injection-not-monkeypatch and no-`grpc`-import-in-tests intents are honoured.
+- **A shared `conftest.py` was added** at `tests/unit/openclaude/conftest.py` providing
+  shared unit fixtures: mock gRPC client, capturing `EventBus`, settings, contexts, and
+  budgets. The injection-not-monkeypatch and no-`grpc`-import-in-tests intents are honoured.
 - **Layout:** `tests/unit/openclaude/` and `tests/unit/code_intel/`, not
   `tests/openclaude/unit/` (repo convention).
 

@@ -14,7 +14,7 @@ import-confusion hazard flagged during milestone decomposition.
 
 Isolation (C3): this module imports **neither** ``aegis_swr.openclaude``
 **nor** ``grpc``. A concrete backend is injected via constructor at the
-:mod:`aegis_swr.code_intel.composition` factory; the scaffolding never imports
+:mod:`aegis_swr.openclaude.composition` factory; the scaffolding never imports
 its implementation.
 """
 
@@ -74,7 +74,7 @@ class CodeIntelBackend(ABC):
     A backend accepts one open-ended natural-language task string and returns a
     single :class:`CodeResult`. There is exactly one concrete implementation in
     this milestone — ``aegis_swr.openclaude.tool.OpenClaudeTool`` — injected at
-    the :mod:`aegis_swr.code_intel.composition` factory; this contract never
+    the :mod:`aegis_swr.openclaude.composition` factory; this contract never
     imports it (C3).
     """
 

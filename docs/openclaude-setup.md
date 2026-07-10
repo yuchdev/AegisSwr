@@ -83,7 +83,7 @@ health-checks it.
    attempted):
 
    ```
-   Code intelligence backend registered (OpenClaude) [dry-run: process not started].
+   Code intelligence backend registered (OpenClaude) (dry-run: process not started).
    ```
 
    With `OPENCLAUDE_GRPC_URL` unset the same command reports:
