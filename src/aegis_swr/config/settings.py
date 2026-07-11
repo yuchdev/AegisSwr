@@ -573,6 +573,7 @@ class PanelRuntimeSettings(BaseSettings):
 
     mode: PanelMode = "auto"
     explicit: list[Any] = Field(default_factory=list)
+    enabled_synthesis: list[str] = Field(default_factory=lambda: ["remediation_planner"])
 
     @field_validator("explicit", mode="before")
     @classmethod

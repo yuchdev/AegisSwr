@@ -8,7 +8,7 @@ the debate's consensus score is computed - is an **intrinsic property of the
 agent class**, not an external configuration file. Weight is declared alongside
 the agent's other self-describing `ClassVar` descriptors (`agent_key`,
 `display_name`, `category`, `role`, `contributes_fix`) on
-[`BaseAgent`](../../src/aegis_swr/agents/base.py):
+[`BaseAgent`](../../src/aegis_swr/agents/base/base.py):
 
 ```python
 class BaseAgent(ABC):
@@ -43,6 +43,34 @@ log_historian > skeptic` preserves the previous relative authority ordering.
 The weights need **not** sum to any particular total in general - the consensus
 math normalises by the summed weights of whatever panel is live (see below), so
 adding an agent does not require rebalancing the others.
+
+---
+
+## Forensic specialists and the synthesis tier (Milestone 0002)
+
+Four forensic specialists join the debate panel **only for the fault classes they
+are authoritative for** (fault-aware auto-selection, keyed off each agent's
+`authoritative_fault_classes` `ClassVar`). Because the consensus math normalizes
+over the live panel, their `default_weight` values are intrinsic and are not
+rebalanced against the base four.
+
+| Agent | Key | `default_weight` | Authoritative fault classes |
+|---|---|---|---|
+| **Memory Forensics** | `memory_forensics` | `0.25` | `memory_access_violation`, `null_pointer_dereference`, `use_after_free` |
+| **Concurrency Analyst** | `concurrency_analyst` | `0.30` | `deadlock`, `use_after_free`, `assertion_failure` |
+| **Exploitability Analyst** | `exploitability` | `0.20` | `memory_access_violation`, `use_after_free`, `stack_overflow` |
+| **Resource Exhaustion** | `resource_exhaustion` | `0.30` | `resource_exhaustion`, `stack_overflow`, `deadlock` |
+
+The default panel (no fault class, or a fault class no specialist claims -
+`integer_divide_by_zero`, `unhandled_exception`, `unknown`) is the legacy
+four-agent chain, byte-identical to Milestone 0001.
+
+The single **synthesis-tier** agent, **Remediation Planner** (`remediation_planner`,
+`category = "synthesis"`, `default_weight = 0.0`), is **not a debate voter**. It
+is filtered out of `create_agent_panel` by category and runs once after
+convergence to attach a `RemediationPlan` to the confirmed `RCAReport`. It is
+gated by `panel.enabled_synthesis` (default `["remediation_planner"]`) and is
+skipped entirely on the HITL path.
 
 ---
 

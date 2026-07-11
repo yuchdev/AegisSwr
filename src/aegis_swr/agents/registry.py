@@ -10,11 +10,19 @@ built on top of this module.
 
 from __future__ import annotations
 
-from aegis_swr.agents.base import AgentSpec, BaseAgent
-from aegis_swr.agents.code_analyst import CodeAnalystAgent
-from aegis_swr.agents.log_historian import LogHistorianAgent
-from aegis_swr.agents.os_kernel import OSKernelAgent
-from aegis_swr.agents.skeptic import SkepticAgent
+from aegis_swr.agents.base import (
+    AgentSpec,
+    BaseAgent,
+    CodeAnalystAgent,
+    LogHistorianAgent,
+    OSKernelAgent,
+    SkepticAgent,
+)
+from aegis_swr.agents.forensic.concurrency_analyst import ConcurrencyAnalystAgent
+from aegis_swr.agents.forensic.exploitability_analyst import ExploitabilityAnalystAgent
+from aegis_swr.agents.forensic.memory_forensics import MemoryForensicsAgent
+from aegis_swr.agents.forensic.resource_analyst import ResourceExhaustionAgent
+from aegis_swr.agents.synthesis.remediation_planner import RemediationPlannerAgent
 from aegis_swr.backends.base import AIAPIBackend
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.exceptions import AegisSWRError
@@ -39,6 +47,14 @@ AGENT_REGISTRY: dict[str, type[BaseAgent]] = {
     CodeAnalystAgent.agent_key: CodeAnalystAgent,
     LogHistorianAgent.agent_key: LogHistorianAgent,
     SkepticAgent.agent_key: SkepticAgent,
+    # Forensic specialists (fault-gated auto-selection; Tasks 03.0-06.0).
+    MemoryForensicsAgent.agent_key: MemoryForensicsAgent,
+    ConcurrencyAnalystAgent.agent_key: ConcurrencyAnalystAgent,
+    ExploitabilityAnalystAgent.agent_key: ExploitabilityAnalystAgent,
+    ResourceExhaustionAgent.agent_key: ResourceExhaustionAgent,
+    # Synthesis tier (registered for discoverability; filtered out of debate
+    # panels by category == "synthesis"; runs once post-convergence).
+    RemediationPlannerAgent.agent_key: RemediationPlannerAgent,
 }
 
 

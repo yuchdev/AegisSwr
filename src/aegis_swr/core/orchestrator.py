@@ -24,9 +24,9 @@ from typing import Any, Optional
 from langgraph.graph import END, START, StateGraph
 from loguru import logger
 
-from aegis_swr.agents.base import AgentSpec, BaseAgent
-from aegis_swr.agents.log_historian import LogHistorianAgent
+from aegis_swr.agents.base import AgentSpec, BaseAgent, LogHistorianAgent
 from aegis_swr.agents.panel import resolve_consensus_weights, resolve_panel
+from aegis_swr.agents.synthesis.remediation_planner import RemediationPlannerAgent
 from aegis_swr.backends.base import (
     AIAPIBackend,
     CodeBackend,
@@ -563,6 +563,10 @@ class Orchestrator:
 
         async def _node(state: InvestigationState) -> dict[str, Any]:
             report = self._build_report(state, panel, hitl_pending=False)
+            # Incident-analyst safety rule: never auto-remediate without
+            # AEGIS_PROD_CONFIRMED=1. This node only ATTACHES an advisory plan to
+            # the report - it never dispatches any step to an execution engine.
+            report = await self._synthesize_remediation(report)
             if self._relational:
                 try:
                     await self._relational.save_report(report)
@@ -578,6 +582,40 @@ class Orchestrator:
             return {"result": json.loads(report.model_dump_json()), "hitl_pending": False}
 
         return _node
+
+    async def _synthesize_remediation(self, report: RCAReport) -> RCAReport:
+        """Attach a :class:`RemediationPlan` to *report* when synthesis is enabled.
+
+        Runs the synthesis-tier :class:`RemediationPlannerAgent` once on a
+        confirmed report. Soft-failure boundary: any exception from the planner
+        is logged (without payload) and the original report is returned with
+        ``remediation_plan`` left ``None`` - a synthesis error must never block
+        delivery of the confirmed RCA. Only invoked from the convergence path;
+        the HITL path never calls this method.
+
+        :param report: The confirmed RCA report.
+        :type report: RCAReport
+        :return: The report, with ``remediation_plan`` attached on success.
+        :rtype: RCAReport
+        """
+        if "remediation_planner" not in self._settings.panel.enabled_synthesis:
+            return report
+
+        planner = RemediationPlannerAgent(self._ai, self._settings)
+        try:
+            turn, plan = await planner.run_synthesis(report)
+        except Exception as exc:  # soft failure: never block RCA delivery
+            logger.warning(
+                "Remediation synthesis failed for incident {}: {}",
+                report.incident_id,
+                type(exc).__name__,
+            )
+            return report
+
+        if plan.requires_human_approval:
+            logger.warning("Remediation plan requires human approval for incident {}", report.incident_id)
+        self._bus.publish(AgentSpoke(node="remediation_planner_node", turn=turn))
+        return report.model_copy(update={"remediation_plan": plan})
 
     def _make_hitl_node(self, panel: list[BaseAgent]) -> AgentNode:
         """Build the HITL node closure for *panel*.
@@ -836,7 +874,6 @@ class Orchestrator:
             result=None,
             error=None,
         )
-
 
     @staticmethod
     def _deserialize_source(state: InvestigationState) -> IncidentSource:

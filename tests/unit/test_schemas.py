@@ -12,14 +12,20 @@ from aegis_swr.core.fault_codes import (
 )
 from aegis_swr.core.schemas import (
     AgentTurn,
+    ConcurrencyAnalystOutput,
     ConfidenceLevel,
     DebugExtractionResult,
+    ExploitabilityOutput,
     HITLRequest,
     Hypothesis,
     IncidentMode,
     IncidentSource,
     InvestigationState,
+    MemoryForensicsOutput,
     RCAReport,
+    RemediationPlan,
+    RemediationStep,
+    ResourceExhaustionOutput,
     SkepticVerdict,
     StackFrame,
 )
@@ -502,6 +508,321 @@ def test_map_linux_signal(signal: int, expected: FaultClass):
         - Recent changes in code paths exercised by schemas
     """
     assert map_linux_signal(signal) == expected
+
+
+# ---------------------------------------------------------------------------
+# MemoryForensicsOutput
+# ---------------------------------------------------------------------------
+
+
+def test_memory_forensics_output_minimal():
+    """[Unit] schemas: minimal MemoryForensicsOutput uses empty/None defaults."""
+    out = MemoryForensicsOutput(
+        hypotheses=[Hypothesis(root_cause="heap overflow", confidence=0.8)],
+        confidence_score=0.8,
+    )
+    assert out.corruption_signatures == []
+    assert out.suspected_allocation_site is None
+    assert out.heap_state is None
+
+
+def test_memory_forensics_output_full():
+    """[Unit] schemas: a fully-populated MemoryForensicsOutput round-trips."""
+    out = MemoryForensicsOutput(
+        hypotheses=[Hypothesis(root_cause="use-after-free", confidence=0.9)],
+        confidence_score=0.9,
+        corruption_signatures=["0xBAADF00D at 0x7ffd3a20", "0xFEEEFEEE"],
+        suspected_allocation_site="operator new[] in MyBuffer.cpp:42",
+        heap_state="heap header overwritten; HEAP_ENTRY size field corrupted",
+    )
+    restored = MemoryForensicsOutput.model_validate(json.loads(out.model_dump_json()))
+    assert restored.confidence_score == 0.9
+    assert restored.corruption_signatures == ["0xBAADF00D at 0x7ffd3a20", "0xFEEEFEEE"]
+    assert restored.suspected_allocation_site == "operator new[] in MyBuffer.cpp:42"
+    assert restored.heap_state == "heap header overwritten; HEAP_ENTRY size field corrupted"
+
+
+def test_memory_forensics_output_hypotheses_list():
+    """[Unit] schemas: each hypothesis is a valid Hypothesis with confidence in range."""
+    out = MemoryForensicsOutput(
+        hypotheses=[
+            Hypothesis(root_cause="double free", confidence=0.7),
+            Hypothesis(root_cause="buffer overrun", confidence=0.55),
+        ],
+        confidence_score=0.7,
+    )
+    assert all(isinstance(h, Hypothesis) for h in out.hypotheses)
+    assert all(0.0 <= h.confidence <= 1.0 for h in out.hypotheses)
+
+
+@pytest.mark.parametrize("bad_score", [-0.1, 1.1])
+def test_memory_forensics_output_rejects_invalid_confidence(bad_score):
+    """[Unit] schemas: confidence_score outside [0.0, 1.0] raises ValidationError."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        MemoryForensicsOutput(hypotheses=[], confidence_score=bad_score)
+
+
+# ---------------------------------------------------------------------------
+# ConcurrencyAnalystOutput
+# ---------------------------------------------------------------------------
+
+
+def test_concurrency_analyst_output_minimal():
+    """[Unit] schemas: minimal ConcurrencyAnalystOutput uses empty/None defaults."""
+    out = ConcurrencyAnalystOutput(hypotheses=[], confidence_score=0.5)
+    assert out.wait_chain == []
+    assert out.lock_order_inversions == []
+    assert out.suspected_race is None
+
+
+def test_concurrency_analyst_output_full():
+    """[Unit] schemas: a fully-populated ConcurrencyAnalystOutput round-trips."""
+    out = ConcurrencyAnalystOutput(
+        hypotheses=[Hypothesis(root_cause="AB-BA deadlock", confidence=0.8)],
+        confidence_score=0.8,
+        wait_chain=["Thread-12 (holds A, waits B)", "Thread-7 (holds B, waits A)"],
+        lock_order_inversions=["MutexA before MutexB in foo.cpp:1, reversed in bar.cpp:2"],
+        suspected_race="TOCTOU on shared counter",
+    )
+    restored = ConcurrencyAnalystOutput.model_validate(json.loads(out.model_dump_json()))
+    assert restored.wait_chain == out.wait_chain
+    assert restored.lock_order_inversions == out.lock_order_inversions
+    assert restored.suspected_race == "TOCTOU on shared counter"
+
+
+def test_concurrency_analyst_output_missing_confidence_raises():
+    """[Unit] schemas: omitting confidence_score raises ValidationError."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ConcurrencyAnalystOutput(hypotheses=[])
+
+
+def test_concurrency_analyst_output_optional_race_none():
+    """[Unit] schemas: suspected_race=None serializes as JSON null."""
+    out = ConcurrencyAnalystOutput(hypotheses=[], confidence_score=0.4)
+    assert json.loads(out.model_dump_json())["suspected_race"] is None
+
+
+# ---------------------------------------------------------------------------
+# ExploitabilityOutput
+# ---------------------------------------------------------------------------
+
+
+def test_exploitability_output_minimal():
+    """[Unit] schemas: minimal ExploitabilityOutput uses empty/None defaults."""
+    out = ExploitabilityOutput(
+        hypotheses=[], confidence_score=0.5, exploitable=False, severity="none"
+    )
+    assert out.attacker_control is None
+    assert out.mitigations_present == []
+
+
+def test_exploitability_output_full():
+    """[Unit] schemas: a fully-populated ExploitabilityOutput round-trips."""
+    out = ExploitabilityOutput(
+        hypotheses=[Hypothesis(root_cause="controlled write primitive", confidence=0.9)],
+        confidence_score=0.9,
+        exploitable=True,
+        severity="high",
+        attacker_control="faulting address derived from user-controlled buffer offset",
+        mitigations_present=["ASLR", "DEP", "stack_canary"],
+    )
+    restored = ExploitabilityOutput.model_validate(json.loads(out.model_dump_json()))
+    assert restored.exploitable is True
+    assert restored.severity == "high"
+    assert restored.attacker_control == out.attacker_control
+    assert restored.mitigations_present == ["ASLR", "DEP", "stack_canary"]
+
+
+def test_exploitability_output_hypotheses_valid():
+    """[Unit] schemas: each hypothesis is a valid Hypothesis with confidence in range."""
+    out = ExploitabilityOutput(
+        hypotheses=[
+            Hypothesis(root_cause="vtable hijack", confidence=0.7),
+            Hypothesis(root_cause="SEH overwrite", confidence=0.5),
+        ],
+        confidence_score=0.7,
+        exploitable=True,
+        severity="medium",
+    )
+    assert all(isinstance(h, Hypothesis) for h in out.hypotheses)
+    assert all(0.0 <= h.confidence <= 1.0 for h in out.hypotheses)
+
+
+def test_exploitability_output_exploitable_bool():
+    """[Unit] schemas: both exploitable verdicts construct and serialize cleanly."""
+    not_exp = ExploitabilityOutput(
+        hypotheses=[], confidence_score=0.3, exploitable=False, severity="none"
+    )
+    exp = ExploitabilityOutput(
+        hypotheses=[], confidence_score=0.95, exploitable=True, severity="high"
+    )
+    assert json.loads(not_exp.model_dump_json())["exploitable"] is False
+    assert json.loads(exp.model_dump_json())["exploitable"] is True
+
+
+# ---------------------------------------------------------------------------
+# ResourceExhaustionOutput
+# ---------------------------------------------------------------------------
+
+
+def test_resource_exhaustion_output_minimal():
+    """[Unit] schemas: minimal ResourceExhaustionOutput uses empty/None defaults."""
+    out = ResourceExhaustionOutput(hypotheses=[], confidence_score=0.5)
+    assert out.exhausted_resource is None
+    assert out.leak_indicators == []
+    assert out.growth_trend is None
+
+
+def test_resource_exhaustion_output_full():
+    """[Unit] schemas: a fully-populated ResourceExhaustionOutput round-trips."""
+    out = ResourceExhaustionOutput(
+        hypotheses=[Hypothesis(root_cause="fd leak in accept loop", confidence=0.8)],
+        confidence_score=0.8,
+        exhausted_resource="file descriptors (ulimit 1024)",
+        leak_indicators=["too many open files: errno 24", "handle count: 62100"],
+        growth_trend="fd count grows ~5/s, linear since 02:00 UTC",
+    )
+    restored = ResourceExhaustionOutput.model_validate(json.loads(out.model_dump_json()))
+    assert restored.exhausted_resource == out.exhausted_resource
+    assert restored.leak_indicators == out.leak_indicators
+    assert restored.growth_trend == out.growth_trend
+
+
+def test_resource_exhaustion_output_hypotheses_list():
+    """[Unit] schemas: each hypothesis is a valid Hypothesis with confidence in range."""
+    out = ResourceExhaustionOutput(
+        hypotheses=[
+            Hypothesis(root_cause="handle leak", confidence=0.7),
+            Hypothesis(root_cause="thread pool starvation", confidence=0.6),
+        ],
+        confidence_score=0.7,
+    )
+    assert all(isinstance(h, Hypothesis) for h in out.hypotheses)
+    assert all(0.0 <= h.confidence <= 1.0 for h in out.hypotheses)
+
+
+@pytest.mark.parametrize("bad_score", [-0.1, 1.1])
+def test_resource_exhaustion_output_rejects_invalid_confidence(bad_score):
+    """[Unit] schemas: confidence_score outside [0.0, 1.0] raises ValidationError."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ResourceExhaustionOutput(hypotheses=[], confidence_score=bad_score)
+
+
+# ---------------------------------------------------------------------------
+# RemediationStep / RemediationPlan / RCAReport.remediation_plan
+# ---------------------------------------------------------------------------
+
+
+def _step(order: int = 1, **kw) -> RemediationStep:
+    base = {"order": order, "action": "restart svc", "idempotent": True, "rollback": "stop svc"}
+    base.update(kw)
+    return RemediationStep(**base)
+
+
+def _plan(**kw) -> RemediationPlan:
+    base = {
+        "steps": [_step()],
+        "summary": "restart the service",
+        "confidence": 0.9,
+        "requires_human_approval": False,
+    }
+    base.update(kw)
+    return RemediationPlan(**base)
+
+
+def _minimal_report(**kw) -> RCAReport:
+    from aegis_swr.core.schemas import ConfidenceLevel
+
+    base = {
+        "mode": IncidentMode.LOG_FORENSICS,
+        "root_cause": "fd leak",
+        "confidence_score": 0.9,
+        "confidence_level": ConfidenceLevel.HIGH,
+        "primary_hypothesis": Hypothesis(root_cause="fd leak", confidence=0.9),
+        "consensus_rounds": 1,
+    }
+    base.update(kw)
+    return RCAReport(**base)
+
+
+def test_remediation_step_requires_rollback():
+    """[Unit] schemas: an empty rollback string is rejected."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        _step(rollback="")
+
+
+def test_remediation_step_defaults():
+    """[Unit] schemas: verification/risk default to None; approval defaults False."""
+    step = _step()
+    assert step.verification is None
+    assert step.risk is None
+    assert step.requires_human_approval is False
+
+
+def test_remediation_step_rejects_readonly_rollback_when_not_idempotent():
+    """[Unit] schemas: a non-idempotent step cannot use the read-only sentinel."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        _step(idempotent=False, rollback="read-only: no state change")
+
+
+def test_remediation_plan_rejects_empty_steps():
+    """[Unit] schemas: a plan with no steps is rejected."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        RemediationPlan(steps=[], summary="x", confidence=0.9, requires_human_approval=False)
+
+
+def test_remediation_plan_rejects_non_contiguous_order():
+    """[Unit] schemas: step order must be a contiguous 1-based sequence."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        RemediationPlan(
+            steps=[_step(order=1), _step(order=3)],
+            summary="x",
+            confidence=0.9,
+            requires_human_approval=False,
+        )
+    ok = RemediationPlan(
+        steps=[_step(order=1), _step(order=2), _step(order=3)],
+        summary="x",
+        confidence=0.9,
+        requires_human_approval=False,
+    )
+    assert [s.order for s in ok.steps] == [1, 2, 3]
+
+
+def test_remediation_plan_requires_human_approval_on_low_confidence():
+    """[Unit] schemas: confidence < 0.70 forces requires_human_approval=True."""
+    plan = _plan(confidence=0.60, requires_human_approval=False)
+    assert plan.requires_human_approval is True
+
+
+def test_rca_report_remediation_plan_optional():
+    """[Unit] schemas: RCAReport without a plan serializes with remediation_plan None."""
+    report = _minimal_report()
+    assert report.remediation_plan is None
+    assert json.loads(report.model_dump_json())["remediation_plan"] is None
+
+
+def test_rca_report_with_remediation_plan_roundtrips():
+    """[Unit] schemas: a report carrying a plan survives a JSON round-trip."""
+    report = _minimal_report(remediation_plan=_plan())
+    restored = RCAReport.model_validate_json(report.model_dump_json())
+    assert restored.remediation_plan is not None
+    assert restored.remediation_plan.steps[0].rollback == "stop svc"
+    assert restored.remediation_plan.steps[0].order == 1
 
 
 @pytest.mark.parametrize(

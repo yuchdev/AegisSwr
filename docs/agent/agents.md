@@ -5,9 +5,24 @@ responsibility, the model it uses, which tools it has access to, and exactly
 when to delegate to it. For practical examples see `tutorial.md`.
 
 These agents are **not** the same as the Aegis SWR **product**, described in `docs/specs/agentic_fleet_design.md`. 
-The product contains its own analytical agents inside `src/aegis_swr/agents/` 
-(`os_kernel`, `code_analyst`, `log_historian`, `skeptic`) that run inside the Aegis pipeline at runtime 
-to produce incident reports. 
+The product contains its own analytical agents inside `src/aegis_swr/agents/` that run inside the Aegis
+pipeline at runtime to produce incident reports. As of Milestone 0002 the product roster is:
+
+| `agent_key`           | Class                        | Category  | Tier          | One-line role |
+|-----------------------|------------------------------|-----------|---------------|---------------|
+| `os_kernel`           | `OSKernelAgent`              | base      | debate        | OS/kernel environment context; injects arbiter corrections each round |
+| `code_analyst`        | `CodeAnalystAgent`           | base      | debate        | Code logic and probabilistic fix encoding |
+| `log_historian`       | `LogHistorianAgent`          | base      | debate        | Historical pattern correlation via VectorStore |
+| `skeptic`             | `SkepticAgent`               | base      | debate (last) | Programmatic + LLM validation; produces corrections for the next round |
+| `memory_forensics`    | `MemoryForensicsAgent`       | forensic  | debate        | Heap corruption, use-after-free, allocator tells, fill-pattern signatures |
+| `concurrency_analyst` | `ConcurrencyAnalystAgent`    | forensic  | debate        | Deadlocks, lock-ordering inversions, races, thread wait-chains |
+| `exploitability`      | `ExploitabilityAnalystAgent` | forensic  | debate        | Exploit/vuln assessment; attacker-control reach, mitigation state |
+| `resource_exhaustion` | `ResourceExhaustionAgent`    | forensic  | debate        | Handle/fd/memory leaks, OOM, connection-pool exhaustion |
+| `remediation_planner` | `RemediationPlannerAgent`    | synthesis | post-debate   | Ordered, rollback-covered remediation playbook from the confirmed RCA |
+
+Forensic specialists join the debate panel only for the fault classes they are authoritative for
+(fault-aware auto-selection); the four base agents always participate. `remediation_planner` is a
+post-debate synthesis agent, never a weighted voter.
 
 The agents described here are **dev-time** assistants that help engineers build and maintain the codebase. 
 Never conflate them!

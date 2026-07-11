@@ -34,10 +34,21 @@ The design is grounded in the real repository, not a generic template:
   `EventBus` (`core/events.py`).
 - **Modes** (`IncidentMode`): `crash_dump`, `log_forensics`, `live_process`,
   `telemetry_anomaly`.
-- **Consensus**: `core/consensus.py` blends the product agents' hypotheses,
-  weighted by each agent's own declared `default_weight` class property.
+- **Consensus**: `core/consensus.py` blends the active debate panel's hypotheses,
+  weighted by each agent's own declared `default_weight` class property, and
+  normalized over the live panel. The panel is data-driven: the default panel is
+  the four base agents (`os_kernel`, `code_analyst`, `log_historian`, `skeptic`);
+  specialist forensic agents (`memory_forensics`, `concurrency_analyst`,
+  `exploitability`, `resource_exhaustion`) join for the fault classes where they
+  carry authority. `remediation_planner` is a post-debate synthesis agent and is
+  not a weighted voter.
+- **Agent panel**: the ordered list of debate agents assembled per incident from
+  `AGENT_REGISTRY` by fault-aware auto-selection (`AgenticManagerStrategy` +
+  `resolve_panel`), keyed off each agent's `authoritative_fault_classes`; the
+  arbiter (`skeptic`) is always last. Synthesis agents (`remediation_planner`)
+  are never part of the panel.
 - **Key schemas** (`core/schemas.py`): `Hypothesis`, `SkepticVerdict`,
-  `RCAReport`, `ConfidenceLevel`, `HITLRequest`, per-agent outputs.
+  `RCAReport`, `ConfidenceLevel`, `HITLRequest`, `RemediationPlan`, per-agent outputs.
 
 ---
 

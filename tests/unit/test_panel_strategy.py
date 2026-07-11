@@ -11,7 +11,6 @@ from __future__ import annotations
 import pytest
 
 from aegis_swr.agents.base import AgentSpec
-from aegis_swr.agents.registry import AGENT_REGISTRY
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.panel_strategy import (
     AgenticManagerStrategy,
@@ -46,12 +45,17 @@ async def test_explicit_strategy_returns_its_specs_untouched():
 
 
 @pytest.mark.asyncio
-async def test_agentic_manager_proposes_the_full_registered_roster(settings: Settings):
-    """[Unit] agentic: the candidate pool is every registered agent, in registry order."""
+async def test_agentic_manager_proposes_base_agents_plus_matching_specialists(settings: Settings):
+    """[Unit] agentic: base agents always, plus specialists authoritative for the fault."""
     strategy = AgenticManagerStrategy(settings)
-    result = await strategy.select({"fault_class": "memory_access_violation"})
-    assert [s.agent_key for s in result] == list(AGENT_REGISTRY)
-    assert all(s.priority == 3 for s in result)
+    keys = [s.agent_key for s in await strategy.select({"fault_class": "memory_access_violation"})]
+    # Base agents always present.
+    for base in ("os_kernel", "code_analyst", "log_historian", "skeptic"):
+        assert base in keys
+    # memory_forensics is authoritative for MAV; concurrency_analyst is not.
+    assert "memory_forensics" in keys
+    assert "concurrency_analyst" not in keys
+    assert all(s.priority == 3 for s in await strategy.select({"fault_class": "memory_access_violation"}))
 
 
 @pytest.mark.asyncio
@@ -64,12 +68,25 @@ async def test_agentic_manager_honors_a_custom_registry(settings: Settings):
 
 
 @pytest.mark.asyncio
-async def test_agentic_manager_ignores_the_brief(settings: Settings):
-    """[Unit] agentic: selection is roster-driven and independent of the brief contents."""
+async def test_agentic_manager_is_fault_aware(settings: Settings):
+    """[Unit] agentic: forensic specialists are gated by the brief's fault class.
+
+    Each specialist joins only for a fault class it is authoritative for; a fault
+    class with no specialist (and an absent fault) both fall back to exactly the
+    base agents (0001 back-compat).
+    """
     strategy = AgenticManagerStrategy(settings)
-    from_full_brief = await strategy.select({"fault_class": "deadlock"})
-    from_empty_brief = await strategy.select({})
-    assert [s.agent_key for s in from_full_brief] == [s.agent_key for s in from_empty_brief] == list(AGENT_REGISTRY)
+    for_memory = [s.agent_key for s in await strategy.select({"fault_class": "memory_access_violation"})]
+    for_deadlock = [s.agent_key for s in await strategy.select({"fault_class": "deadlock"})]
+    for_divzero = [s.agent_key for s in await strategy.select({"fault_class": "integer_divide_by_zero"})]
+    for_empty = [s.agent_key for s in await strategy.select({})]
+
+    assert "memory_forensics" in for_memory and "concurrency_analyst" not in for_memory
+    assert "concurrency_analyst" in for_deadlock and "memory_forensics" not in for_deadlock
+    # A fault class no specialist claims (and no fault at all) yields the base four.
+    base_four = ["os_kernel", "code_analyst", "log_historian", "skeptic"]
+    assert for_divzero == base_four
+    assert for_empty == base_four
 
 
 # ---------------------------------------------------------------------------
@@ -88,15 +105,24 @@ async def test_resolver_delegates_to_explicit_when_specs_present(settings: Setti
 
 @pytest.mark.asyncio
 async def test_resolver_uses_auto_when_specs_absent(settings: Settings):
-    """[Unit] resolver: None explicit specs route to the registry-driven auto manager."""
+    """[Unit] resolver: None explicit specs route to the fault-aware auto manager."""
     resolver = PanelResolver(settings)
     result = await resolver.resolve({"fault_class": "memory_access_violation"}, explicit_specs=None)
-    assert [s.agent_key for s in result] == list(AGENT_REGISTRY)
+    keys = [s.agent_key for s in result]
+    for base in ("os_kernel", "code_analyst", "log_historian", "skeptic"):
+        assert base in keys
+    assert "memory_forensics" in keys
 
 
 @pytest.mark.asyncio
 async def test_resolver_treats_empty_explicit_list_as_auto(settings: Settings):
-    """[Unit] resolver: an empty explicit list falls through to auto selection."""
+    """[Unit] resolver: an empty explicit list falls through to (fault-aware) auto selection."""
     resolver = PanelResolver(settings)
-    result = await resolver.resolve({"fault_class": "deadlock"}, explicit_specs=[])
-    assert [s.agent_key for s in result] == list(AGENT_REGISTRY)
+    result = await resolver.resolve({"fault_class": "integer_divide_by_zero"}, explicit_specs=[])
+    # integer_divide_by_zero matches no forensic specialist, so auto yields the base four.
+    assert [s.agent_key for s in result] == [
+        "os_kernel",
+        "code_analyst",
+        "log_historian",
+        "skeptic",
+    ]

@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 from typing import Any, Optional
 
-from aegis_swr.agents.code_analyst import CodeAnalystAgent
-from aegis_swr.agents.log_historian import LogHistorianAgent
-from aegis_swr.agents.os_kernel import OSKernelAgent
-from aegis_swr.agents.skeptic import SkepticAgent
+from aegis_swr.agents.base import (
+    CodeAnalystAgent,
+    LogHistorianAgent,
+    OSKernelAgent,
+    SkepticAgent,
+)
 from aegis_swr.backends.base import VectorStore
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.exceptions import VectorStoreError

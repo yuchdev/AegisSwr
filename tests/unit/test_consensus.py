@@ -7,10 +7,14 @@ import pytest
 from aegis_swr.agents.registry import AGENT_REGISTRY
 from aegis_swr.core.consensus import ConsensusEvaluator
 
-#: Default consensus weight map built from each registered agent's own declared
-#: ``default_weight`` (weight is now an intrinsic property of the agent, not a
-#: per-fault-class matrix). The four built-in agents are authored to sum to 1.0.
-_DEFAULT_WEIGHTS: dict[str, float] = {key: cls.default_weight for key, cls in AGENT_REGISTRY.items()}
+#: Default consensus weight map built from each registered *base* agent's own
+#: declared ``default_weight`` (weight is now an intrinsic property of the agent,
+#: not a per-fault-class matrix). The four built-in base agents are authored to
+#: sum to 1.0; forensic specialists are fault-gated and excluded from the default
+#: (back-compat) panel.
+_DEFAULT_WEIGHTS: dict[str, float] = {
+    key: cls.default_weight for key, cls in AGENT_REGISTRY.items() if cls.category == "base"
+}
 
 
 @pytest.fixture
