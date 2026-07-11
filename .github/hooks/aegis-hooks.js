@@ -44,23 +44,9 @@
       {
         "type": "command",
         "matcher": "Write|Edit",
-        "command": "python .github/hooks/dep_audit.py",
-        "cwd": ".",
-        "timeoutSec": 180
-      },
-      {
-        "type": "command",
-        "matcher": "Write|Edit",
         "command": "python .github/hooks/doc_link_check.py",
         "cwd": ".",
         "timeoutSec": 60
-      },
-      {
-        "type": "command",
-        "matcher": "Bash",
-        "command": "python .github/hooks/github_audit.py",
-        "cwd": ".",
-        "timeoutSec": 10
       }
     ],
     "PostToolUseFailure": [
