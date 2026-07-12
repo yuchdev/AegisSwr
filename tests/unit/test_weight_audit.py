@@ -122,5 +122,5 @@ async def test_consensus_weights_normalize_to_one(fault: FaultClass, settings: S
     weight_map = resolve_consensus_weights(panel, specs)
 
     assert all(w > 0.0 for w in weight_map.values())
-    scores = {key: 1.0 for key in weight_map}
+    scores = dict.fromkeys(weight_map, 1.0)
     assert ConsensusEvaluator().calculate(scores, weight_map) == pytest.approx(1.0)
