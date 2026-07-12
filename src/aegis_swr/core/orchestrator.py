@@ -51,7 +51,7 @@ from aegis_swr.core.events import (
     PanelAgentDescriptor,
     PanelResolved,
 )
-from aegis_swr.core.exceptions import RelationalStoreError, VectorStoreError
+from aegis_swr.core.exceptions import AegisSWRError, RelationalStoreError, VectorStoreError
 from aegis_swr.core.panel_strategy import PanelResolver
 from aegis_swr.core.schemas import (
     AgentRole,
@@ -587,11 +587,11 @@ class Orchestrator:
         """Attach a :class:`RemediationPlan` to *report* when synthesis is enabled.
 
         Runs the synthesis-tier :class:`RemediationPlannerAgent` once on a
-        confirmed report. Soft-failure boundary: any exception from the planner
-        is logged (without payload) and the original report is returned with
-        ``remediation_plan`` left ``None`` - a synthesis error must never block
-        delivery of the confirmed RCA. Only invoked from the convergence path;
-        the HITL path never calls this method.
+        confirmed report. Soft-failure boundary: project-level planner/AI
+        exceptions are logged (without payload) and the original report is
+        returned with ``remediation_plan`` left ``None`` - a synthesis error
+        must never block delivery of the confirmed RCA. Only invoked from the
+        convergence path; the HITL path never calls this method.
 
         :param report: The confirmed RCA report.
         :type report: RCAReport
@@ -604,7 +604,7 @@ class Orchestrator:
         planner = RemediationPlannerAgent(self._ai, self._settings)
         try:
             turn, plan = await planner.run_synthesis(report)
-        except Exception as exc:  # soft failure: never block RCA delivery
+        except AegisSWRError as exc:  # soft failure: never block RCA delivery
             logger.warning(
                 "Remediation synthesis failed for incident {}: {}",
                 report.incident_id,
