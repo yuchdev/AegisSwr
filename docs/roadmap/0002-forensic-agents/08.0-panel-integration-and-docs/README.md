@@ -1,7 +1,7 @@
 # Task 08.0 - Panel Integration, Docs & Hardening
 
 **Parent milestone:** [Milestone 0002 - Forensic Agents](/docs/roadmap/0002-forensic-agents/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ---
 
@@ -31,11 +31,18 @@ configuration file, a documentation update, or a test assertion.
 
 | # | Document | Status | Blocks |
 |---|----------|--------|--------|
-| 01 | [Default panels & weight audit](01-default-panels-and-weight-audit.md) | ⬜ Not started | 02, 04 |
-| 02 | [Config & examples](02-config-and-examples.md) | ⬜ Not started | 04 |
-| 03 | [Docs](03-docs.md) | ⬜ Not started | 05 |
-| 04 | [Hardening gates](04-hardening-gates.md) | ⬜ Not started | 05 |
-| 05 | [Milestone closeout](05-milestone-closeout.md) | ⬜ Not started | - |
+| 01 | [Default panels & weight audit](01-default-panels-and-weight-audit.md) | ✅ Complete | 02, 04 |
+| 02 | [Config & examples](02-config-and-examples.md) | ✅ Complete (adapted) | 04 |
+| 03 | [Docs](03-docs.md) | ✅ Complete | 05 |
+| 04 | [Hardening gates](04-hardening-gates.md) | ✅ Complete | 05 |
+| 05 | [Milestone closeout](05-milestone-closeout.md) | ✅ Complete | - |
+
+> **Reconciliation (2026-07-10):** subtask 01's config-file weight matrix and
+> subtask 02's `agents.example.json` / `config.yaml` do not apply to the ratified
+> superset (weights intrinsic, panels code-driven; ADR 0002). The weight audit
+> (`tests/unit/test_weight_audit.py`) verifies the authority matrix against the
+> live code, which is the faithful equivalent. See
+> [status.md](/docs/roadmap/0002-forensic-agents/status.md) Task 08.0.
 
 Subtasks 02 and 03 both depend on 01 and may proceed in parallel with each
 other once 01 is complete. Subtask 04 depends on 01, 02, 03, and all of Tasks

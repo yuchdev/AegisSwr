@@ -28,6 +28,7 @@ from typing import Any, Optional
 from aegis_swr.agents.base import AgentSpec
 from aegis_swr.agents.registry import AGENT_REGISTRY
 from aegis_swr.config.settings import Settings
+from aegis_swr.core.fault_codes import FaultClass
 
 
 class PanelSelectionStrategy(ABC):
@@ -82,20 +83,35 @@ class ExplicitPanelStrategy(PanelSelectionStrategy):
 
 
 class AgenticManagerStrategy(PanelSelectionStrategy):
-    """Heuristic auto-selection of a panel from the registered agent roster.
+    """Fault-aware auto-selection of a panel from the registered agent roster.
 
-    Proposes one default-priority :class:`AgentSpec` per key in the agent
-    registry, in registry order. The registry is the single source of truth for
-    which agents exist, so there is no separate ops-curated candidate-pool file
-    to keep in sync - adding an agent to the registry automatically makes it a
-    candidate here.
+    Proposes one default-priority :class:`AgentSpec` per *eligible* registered
+    agent, in registry order. Eligibility depends on the agent's category and
+    the incident's fault class:
+
+    - **Generalist (``base``) agents** - always proposed, so the default panel
+      is byte-identical to Milestone 0001 for any incident (this is what keeps
+      the back-compat gate: with only base agents registered, or on an incident
+      whose fault class matches no specialist, exactly the four base agents are
+      returned).
+    - **Forensic specialists** - proposed only when the incident's
+      :class:`~aegis_swr.core.fault_codes.FaultClass` is in the agent's
+      :attr:`~aegis_swr.agents.base.BaseAgent.authoritative_fault_classes`, so a
+      specialist joins the debate only for incidents in its domain.
+    - **Synthesis-tier agents** - never proposed here; they run once after the
+      debate converges, not as weighted debate voters.
+
+    The registry is the single source of truth for which agents exist, so adding
+    a specialist to the registry (with its authoritative fault classes declared)
+    automatically makes it a fault-gated candidate here - no separate ops-curated
+    panel file to keep in sync.
 
     This heuristic intentionally implements the same
     :class:`PanelSelectionStrategy` interface an LLM-backed manager would, so a
     smarter selector can be swapped in later with no change to callers.
 
-    :ivar _settings: Application settings, retained for a future
-        brief-aware/LLM-backed manager.
+    :ivar _settings: Application settings, retained for a future LLM-backed
+        manager.
     :ivar _registry: The agent registry supplying the candidate roster.
     """
 
@@ -117,17 +133,63 @@ class AgenticManagerStrategy(PanelSelectionStrategy):
         self._registry = registry if registry is not None else AGENT_REGISTRY
 
     async def select(self, incident_brief: dict[str, Any]) -> list[AgentSpec]:
-        """Select one default-priority spec per registered agent.
+        """Select one default-priority spec per *eligible* registered agent.
 
-        :param incident_brief: The serialized incident brief. Currently unused
-            by this heuristic (the full roster is always proposed); retained so
-            a brief-aware selector can be swapped in without a signature change.
+        Base agents are always selected; forensic specialists are selected only
+        when the brief's fault class is one they are authoritative for; synthesis
+        agents are never selected. Selection preserves registry order.
+
+        :param incident_brief: The serialized incident brief; its
+            ``"fault_class"`` field gates forensic-specialist inclusion.
         :type incident_brief: dict[str, Any]
-        :return: One default-priority spec per registered agent key, in registry
-            order.
+        :return: One default-priority spec per eligible agent, in registry order.
         :rtype: list[AgentSpec]
         """
-        return [AgentSpec(agent_key=key) for key in self._registry]
+        fault = self._fault_class_of(incident_brief)
+        return [AgentSpec(agent_key=key) for key, cls in self._registry.items() if self._is_candidate(cls, fault)]
+
+    @staticmethod
+    def _fault_class_of(incident_brief: dict[str, Any]) -> Optional[FaultClass]:
+        """Extract the brief's :class:`FaultClass`, tolerating strings and ``None``.
+
+        :param incident_brief: The serialized incident brief.
+        :type incident_brief: dict[str, Any]
+        :return: The parsed fault class, or ``None`` when absent/unrecognized.
+        :rtype: Optional[FaultClass]
+        """
+        raw = incident_brief.get("fault_class")
+        if raw is None:
+            return None
+        if isinstance(raw, FaultClass):
+            return raw
+        try:
+            return FaultClass(str(raw))
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _is_candidate(agent_cls: Any, fault: Optional[FaultClass]) -> bool:
+        """Return whether *agent_cls* should join the auto-selected panel.
+
+        Non-forensic agents (base generalists, and any registry test-double
+        lacking a ``category``) are always candidates; a synthesis agent is never
+        a debate candidate; a forensic specialist is a candidate only when
+        *fault* is one of its authoritative fault classes.
+
+        :param agent_cls: The registered agent class (or test-double) to judge.
+        :type agent_cls: Any
+        :param fault: The incident's fault class, or ``None``.
+        :type fault: Optional[FaultClass]
+        :return: ``True`` when the agent should be proposed for the panel.
+        :rtype: bool
+        """
+        category = getattr(agent_cls, "category", "base")
+        if category == "synthesis":
+            return False
+        if category == "forensic":
+            authoritative = getattr(agent_cls, "authoritative_fault_classes", frozenset())
+            return fault is not None and fault in authoritative
+        return True
 
 
 class PanelResolver:

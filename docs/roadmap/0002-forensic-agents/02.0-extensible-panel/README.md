@@ -1,7 +1,8 @@
 # Task 02.0 - Extensible Panel (Registry / Consensus / Orchestration)
 
 **Parent milestone:** [Milestone 0002 - Forensic Agents](/docs/roadmap/0002-forensic-agents/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (implemented as ratified superset — see
+[status.md](/docs/roadmap/0002-forensic-agents/status.md))
 
 ## Scope
 
@@ -26,12 +27,20 @@ See the authoritative contracts C2–C5 in the
 
 | # | Document | Status | Blocks |
 |---|----------|--------|--------|
-| 01 | [Generalize `BaseAgent`](01-generalize-base-agent.md) | ⬜ Not started | 03, 04 |
-| 02 | [Data-driven consensus weights](02-consensus-weight-map.md) | ⬜ Not started | 04 |
-| 03 | [Agent registry & panel factory](03-registry-and-panel-factory.md) | ⬜ Not started | 04 |
-| 04 | [Dynamic orchestrator panel](04-orchestrator-dynamic-panel.md) | ⬜ Not started | 06 |
-| 05 | [Config model & examples](05-config-model.md) | ⬜ Not started | 06 |
-| 06 | [Tests](06-tests.md) | ⬜ Not started | - |
+| 01 | [Generalize `BaseAgent`](01-generalize-base-agent.md) | ✅ Complete | 03, 04 |
+| 02 | [Data-driven consensus weights](02-consensus-weight-map.md) | ✅ Complete (superset) | 04 |
+| 03 | [Agent registry & panel factory](03-registry-and-panel-factory.md) | ✅ Complete (superset) | 04 |
+| 04 | [Dynamic orchestrator panel](04-orchestrator-dynamic-panel.md) | ✅ Complete (superset) | 06 |
+| 05 | [Config model & examples](05-config-model.md) | ✅ Complete (superset) | 06 |
+| 06 | [Tests](06-tests.md) | ✅ Complete | - |
+
+> **Implemented as a ratified superset** (the "Dynamic Agent Roster" redesign),
+> not the literal decomposition above: `create_agent_panel(fault_class)` +
+> `AgentWeightEntry.weights` + `AgentPanelSettings` were superseded by
+> `resolve_panel`/`resolve_consensus_weights`, intrinsic per-agent
+> `default_weight`, `PanelResolver`/strategies, and a per-run fresh graph.
+> Verified against contracts C2-C5 by a code-review agent. See
+> [status.md](/docs/roadmap/0002-forensic-agents/status.md).
 
 Subtasks 01, 02, 03 are largely independent and may proceed in parallel; 04
 depends on all three; 05 can land alongside 03; 06 gates the task.

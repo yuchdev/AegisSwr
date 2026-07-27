@@ -564,4 +564,11 @@ def test_weight_is_declared_by_each_agent():
 
     weights = {key: cls.default_weight for key, cls in AGENT_REGISTRY.items()}
     assert all(isinstance(w, float) for w in weights.values())
-    assert sum(weights.values()) == pytest.approx(1.0)
+    # The four built-in base agents (the default back-compat panel) sum to 1.0;
+    # fault-gated forensic specialists are excluded from that invariant.
+    base_weights = {
+        key: cls.default_weight
+        for key, cls in AGENT_REGISTRY.items()
+        if cls.category == "base"
+    }
+    assert sum(base_weights.values()) == pytest.approx(1.0)

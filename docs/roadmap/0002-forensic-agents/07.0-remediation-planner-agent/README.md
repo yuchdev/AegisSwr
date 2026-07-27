@@ -1,7 +1,7 @@
 # Task 07.0 - Remediation Planner Agent
 
 **Parent milestone:** [Milestone 0002 - Forensic Agents](/docs/roadmap/0002-forensic-agents/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 **Depends on:** Task 02.0 (Extensible Panel - registry, `AgentPanelSettings`, dynamic orchestrator)
 **Blocks:** Task 08.0 (Panel Integration, Docs & Hardening)
 
@@ -32,11 +32,16 @@ Class: `RemediationPlannerAgent`
 
 | # | Document | Status | Blocks |
 |---|----------|--------|--------|
-| 01 | [RemediationPlan / RemediationStep schema](01-remediation-schema.md) | ⬜ Not started | 02, 03 |
-| 02 | [Agent implementation](02-agent-implementation.md) | ⬜ Not started | 03 |
-| 03 | [Synthesis-tier wiring](03-synthesis-wiring.md) | ⬜ Not started | 05 |
-| 04 | [/playbook-validate alignment](04-playbook-validate-alignment.md) | ⬜ Not started | 05 |
-| 05 | [Tests](05-tests.md) | ⬜ Not started | - |
+| 01 | [RemediationPlan / RemediationStep schema](01-remediation-schema.md) | ✅ Complete | 02, 03 |
+| 02 | [Agent implementation](02-agent-implementation.md) | ✅ Complete | 03 |
+| 03 | [Synthesis-tier wiring](03-synthesis-wiring.md) | ✅ Complete (adapted) | 05 |
+| 04 | [/playbook-validate alignment](04-playbook-validate-alignment.md) | ✅ Complete | 05 |
+| 05 | [Tests](05-tests.md) | ✅ Complete | - |
+
+> **Reconciliation (2026-07-10):** `AgentPanelSettings.enabled_synthesis` became
+> `Settings.panel.enabled_synthesis` (`PanelRuntimeSettings`); the synthesis
+> logic lives in the testable `Orchestrator._synthesize_remediation` method
+> called from the (closure-based) output-synthesizer node.
 
 Subtasks 01 → 02 → 03 are strictly sequential. Subtask 04 may proceed in
 parallel with 03 once 01 is done. Subtask 05 depends on 01–04.

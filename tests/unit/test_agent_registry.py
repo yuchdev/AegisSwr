@@ -14,10 +14,20 @@ from typing import ClassVar
 import pytest
 
 from aegis_swr.agents import registry
-from aegis_swr.agents.base import AgentSpec, BaseAgent
-from aegis_swr.agents.code_analyst import CodeAnalystAgent
-from aegis_swr.agents.log_historian import LogHistorianAgent
-from aegis_swr.agents.os_kernel import OSKernelAgent
+from aegis_swr.agents.base import (
+    AgentSpec,
+    BaseAgent,
+    CodeAnalystAgent,
+    LogHistorianAgent,
+    OSKernelAgent,
+    SkepticAgent,
+)
+from aegis_swr.agents.forensic import (
+    ConcurrencyAnalystAgent,
+    ExploitabilityAnalystAgent,
+    MemoryForensicsAgent,
+    ResourceExhaustionAgent,
+)
 from aegis_swr.agents.panel import (
     PanelResolutionError,
     resolve_consensus_weights,
@@ -28,7 +38,7 @@ from aegis_swr.agents.registry import (
     UnknownAgentError,
     create_agent,
 )
-from aegis_swr.agents.skeptic import SkepticAgent
+from aegis_swr.agents.synthesis import RemediationPlannerAgent
 from aegis_swr.backends.base import AIAPIBackend
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.schemas import AgentRole, AgentTurn, InvestigationState
@@ -68,13 +78,35 @@ class _SecondArbiter(BaseAgent):
 
 
 def test_registry_maps_every_agent_key_to_its_class():
-    """[Unit] registry: the four concrete agents register under their keys."""
+    """[Unit] registry: the concrete agents register under their canonical keys."""
     assert AGENT_REGISTRY == {
         "os_kernel": OSKernelAgent,
         "code_analyst": CodeAnalystAgent,
         "log_historian": LogHistorianAgent,
         "skeptic": SkepticAgent,
+        "memory_forensics": MemoryForensicsAgent,
+        "concurrency_analyst": ConcurrencyAnalystAgent,
+        "exploitability": ExploitabilityAnalystAgent,
+        "resource_exhaustion": ResourceExhaustionAgent,
+        "remediation_planner": RemediationPlannerAgent,
     }
+
+
+def test_memory_forensics_registered():
+    """[Unit] registry: memory_forensics maps to MemoryForensicsAgent."""
+    assert AGENT_REGISTRY["memory_forensics"] is MemoryForensicsAgent
+
+
+def test_memory_forensics_resolves_into_panel(ai_backend, settings):
+    """[Unit] panel: a spec list including memory_forensics resolves it into the panel."""
+    specs = [
+        AgentSpec(agent_key="os_kernel"),
+        AgentSpec(agent_key="memory_forensics"),
+        AgentSpec(agent_key="skeptic"),
+    ]
+    panel = resolve_panel(specs, ai_backend, settings)
+    assert any(isinstance(a, MemoryForensicsAgent) for a in panel)
+    assert [a.agent_key for a in panel] == ["os_kernel", "memory_forensics", "skeptic"]
 
 
 def test_create_agent_instantiates_registered_class(ai_backend, settings):

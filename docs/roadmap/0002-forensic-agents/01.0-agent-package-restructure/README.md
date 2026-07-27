@@ -1,7 +1,7 @@
 # Task 01.0 - Agent Package Restructure
 
 **Parent milestone:** [Milestone 0002 - Forensic Agents](/docs/roadmap/0002-forensic-agents/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Scope
 
@@ -20,10 +20,10 @@ working via re-export shims, and the full test suite must stay green throughout.
 
 | # | Document | Status | Blocks |
 |---|----------|--------|--------|
-| 01 | [Move base agents into `agents/base/`](01-move-base-agents.md) | ⬜ Not started | 02, 03 |
-| 02 | [Update consumers & back-compat shims](02-consumers-and-shims.md) | ⬜ Not started | 04 |
-| 03 | [Scaffold `forensic/` & `synthesis/` packages](03-scaffold-categories.md) | ⬜ Not started | 04 |
-| 04 | [Regression gate](04-regression-gate.md) | ⬜ Not started | - |
+| 01 | [Move base agents into `agents/base/`](01-move-base-agents.md) | ✅ Complete | 02, 03 |
+| 02 | [Update consumers & back-compat shims](02-consumers-and-shims.md) | ✅ Complete | 04 |
+| 03 | [Scaffold `forensic/` & `synthesis/` packages](03-scaffold-categories.md) | ✅ Complete | 04 |
+| 04 | [Regression gate](04-regression-gate.md) | ✅ Complete | - |
 
 ## Key constraints
 

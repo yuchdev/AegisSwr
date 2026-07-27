@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any, Optional, TypedDict
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from aegis_swr.core.fault_codes import FaultClass
 
@@ -493,6 +493,144 @@ class CodeAnalystOutput(BaseModel):
     fix_language: Optional[str] = None
 
 
+class MemoryForensicsOutput(BaseModel):
+    """
+    Structured output of the Memory Forensics debate specialist.
+
+    Mirrors the :class:`OSKernelOutput` shape (a list of :class:`Hypothesis`
+    plus a ``confidence_score``) and extends it with three memory-safety-specific
+    fields that carry the specialist's heap-corruption findings.
+
+    :ivar hypotheses: Hypotheses about the memory-safety root cause.
+    :type hypotheses: list[Hypothesis]
+    :ivar confidence_score: Certainty in the analysis, in ``[0.0, 1.0]``.
+    :type confidence_score: float
+    :ivar corruption_signatures: Fill-pattern sentinel values and other
+        allocator-metadata tells found in the incident (e.g.
+        ``"0xBAADF00D"``). Populated by the agent's deterministic pre-check
+        before the LLM call and merged with any the model surfaces.
+    :type corruption_signatures: list[str]
+    :ivar suspected_allocation_site: Function or code location suspected to be
+        the allocation origin (e.g. ``'operator new[] in MyBuffer.cpp:42'``),
+        or ``None`` when not traceable.
+    :type suspected_allocation_site: Optional[str]
+    :ivar heap_state: Free-text summary of the heap/allocator state derived from
+        metadata (e.g. ``"heap header overwritten; HEAP_ENTRY size corrupted"``),
+        or ``None``.
+    :type heap_state: Optional[str]
+    """
+
+    hypotheses: list[Hypothesis] = Field(default_factory=list)
+    confidence_score: float = Field(ge=0.0, le=1.0)
+    corruption_signatures: list[str] = Field(default_factory=list)
+    suspected_allocation_site: Optional[str] = None
+    heap_state: Optional[str] = None
+
+
+class ConcurrencyAnalystOutput(BaseModel):
+    """
+    Structured output of the Concurrency Analyst debate specialist.
+
+    Mirrors the :class:`OSKernelOutput` shape (a list of :class:`Hypothesis`
+    plus a ``confidence_score``) and extends it with three concurrency-domain
+    fields describing the detected deadlock/race evidence.
+
+    :ivar hypotheses: Hypotheses about the concurrency root cause.
+    :type hypotheses: list[Hypothesis]
+    :ivar confidence_score: Certainty in the analysis, in ``[0.0, 1.0]``.
+    :type confidence_score: float
+    :ivar wait_chain: Ordered sequence of thread/lock identifiers forming the
+        detected wait chain (e.g. ``"Thread-12 (holds lock A, waits B)"``). May
+        be pre-populated by the agent's deterministic pre-check before the LLM
+        call.
+    :type wait_chain: list[str]
+    :ivar lock_order_inversions: Human-readable descriptions of observed
+        lock-acquisition order inversions (e.g. ``"MutexA before MutexB in
+        foo.cpp:142, reversed in bar.cpp:88"``).
+    :type lock_order_inversions: list[str]
+    :ivar suspected_race: Free-text description of the suspected race condition
+        or TOCTOU window, or ``None`` when no race is suspected.
+    :type suspected_race: Optional[str]
+    """
+
+    hypotheses: list[Hypothesis] = Field(default_factory=list)
+    confidence_score: float = Field(ge=0.0, le=1.0)
+    wait_chain: list[str] = Field(default_factory=list)
+    lock_order_inversions: list[str] = Field(default_factory=list)
+    suspected_race: Optional[str] = None
+
+
+class ExploitabilityOutput(BaseModel):
+    """
+    Structured output of the Exploitability Analyst security specialist.
+
+    Mirrors the :class:`OSKernelOutput` shape (a list of :class:`Hypothesis`
+    plus a ``confidence_score``) and extends it with security-triage fields.
+    The verdict is an analyst assessment for human review, **not** an
+    authorization to auto-remediate.
+
+    :ivar hypotheses: Hypotheses about the exploitability of the crash.
+    :type hypotheses: list[Hypothesis]
+    :ivar confidence_score: Certainty in the assessment, in ``[0.0, 1.0]``.
+    :type confidence_score: float
+    :ivar exploitable: Whether the crash is assessed to be exploitable. Populated
+        jointly by the deterministic pre-check and the LLM assessment.
+    :type exploitable: bool
+    :ivar severity: Triage severity, one of ``"high"``, ``"medium"``, ``"low"``,
+        ``"none"`` (a plain string, kept forward-compatible with new classes).
+    :type severity: str
+    :ivar attacker_control: Analyst **prose** describing how and to what degree
+        attacker-controlled data influences the fault - never raw payload text
+        copied verbatim. ``None`` when not assessed.
+    :type attacker_control: Optional[str]
+    :ivar mitigations_present: Mitigations observed active in the faulting binary
+        (e.g. ``["ASLR", "DEP", "stack_canary", "CFG"]``). Empty when none were
+        detected or reported.
+    :type mitigations_present: list[str]
+    """
+
+    hypotheses: list[Hypothesis] = Field(default_factory=list)
+    confidence_score: float = Field(ge=0.0, le=1.0)
+    exploitable: bool
+    severity: str
+    attacker_control: Optional[str] = None
+    mitigations_present: list[str] = Field(default_factory=list)
+
+
+class ResourceExhaustionOutput(BaseModel):
+    """
+    Structured output of the Resource Exhaustion debate specialist.
+
+    Mirrors the :class:`OSKernelOutput` shape (a list of :class:`Hypothesis`
+    plus a ``confidence_score``) and extends it with three fields describing the
+    exhausted resource and the leak evidence.
+
+    :ivar hypotheses: Hypotheses about the resource-exhaustion root cause.
+    :type hypotheses: list[Hypothesis]
+    :ivar confidence_score: Certainty in the analysis, in ``[0.0, 1.0]``.
+    :type confidence_score: float
+    :ivar exhausted_resource: The specific resource that was exhausted (e.g.
+        ``"Win32 handle table (limit 65535)"``, ``"file descriptors (ulimit
+        1024)"``), or ``None`` when not resolved.
+    :type exhausted_resource: Optional[str]
+    :ivar leak_indicators: Textual signals of resource pressure found in the
+        incident (e.g. ``"too many open files"``, ``"handle count: 62100"``).
+        Pre-populated by the agent's deterministic pre-check before the LLM call
+        and merged with any the model adds.
+    :type leak_indicators: list[str]
+    :ivar growth_trend: Free-text description of the observed growth pattern
+        (e.g. ``"handle count grows ~400/min, linear since 02:00 UTC"``), or
+        ``None`` when no temporal evidence exists.
+    :type growth_trend: Optional[str]
+    """
+
+    hypotheses: list[Hypothesis] = Field(default_factory=list)
+    confidence_score: float = Field(ge=0.0, le=1.0)
+    exhausted_resource: Optional[str] = None
+    leak_indicators: list[str] = Field(default_factory=list)
+    growth_trend: Optional[str] = None
+
+
 class PatternMatch(BaseModel):
     """
     Represents a pattern match resulting from a similarity search.
@@ -661,6 +799,96 @@ class UIContext(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Remediation plan (synthesis-tier output)
+# ---------------------------------------------------------------------------
+_READONLY_ROLLBACK = "read-only: no state change"
+
+
+class RemediationStep(BaseModel):
+    """
+    One ordered, idempotent, rollback-covered step in a remediation playbook.
+
+    Field names are chosen to map cleanly onto the ``/playbook-validate`` skill's
+    per-step required set (see
+    :func:`aegis_swr.agents.synthesis.remediation_planner.remediation_plan_to_playbook_dict`).
+
+    :ivar order: 1-based execution position; plan-level ordering must be a
+        contiguous ``1..N`` sequence.
+    :type order: int
+    :ivar action: Human-readable imperative description of the action to take.
+    :type action: str
+    :ivar idempotent: ``True`` when re-running the step produces no additional
+        side-effects.
+    :type idempotent: bool
+    :ivar rollback: Reversal instruction; may not be empty. For genuinely
+        read-only steps use the literal ``"read-only: no state change"`` (only
+        valid when ``idempotent`` is ``True``).
+    :type rollback: str
+    :ivar verification: Command or observable that confirms the step succeeded.
+    :type verification: Optional[str]
+    :ivar risk: Free-text risk note (e.g. "restarts service, ~30 s downtime").
+    :type risk: Optional[str]
+    :ivar requires_human_approval: ``True`` for any production-affecting action;
+        checked against ``AEGIS_PROD_CONFIRMED`` at execution time.
+    :type requires_human_approval: bool
+    """
+
+    order: int
+    action: str
+    idempotent: bool
+    rollback: str = Field(min_length=1)
+    verification: Optional[str] = None
+    risk: Optional[str] = None
+    requires_human_approval: bool = False
+
+    @model_validator(mode="after")
+    def _reject_readonly_rollback_when_not_idempotent(self) -> RemediationStep:
+        """A non-idempotent (state-changing) step cannot use the read-only sentinel."""
+        if not self.idempotent and self.rollback == _READONLY_ROLLBACK:
+            raise ValueError(
+                "A non-idempotent step must supply a real rollback action, "
+                f"not the read-only sentinel {_READONLY_ROLLBACK!r}."
+            )
+        return self
+
+
+class RemediationPlan(BaseModel):
+    """
+    An ordered remediation playbook produced by the synthesis tier.
+
+    :ivar steps: Ordered steps; the validator asserts a non-empty, contiguous
+        1-based ``order`` sequence.
+    :type steps: list[RemediationStep]
+    :ivar summary: One-paragraph plain-English description of the approach.
+    :type summary: str
+    :ivar confidence: Synthesizer confidence that the plan addresses the
+        confirmed root cause, in ``[0.0, 1.0]``.
+    :type confidence: float
+    :ivar requires_human_approval: ``True`` if any step requires approval or
+        ``confidence`` is below ``0.70``; the orchestrator treats ``True`` as
+        advisory-only.
+    :type requires_human_approval: bool
+    """
+
+    steps: list[RemediationStep]
+    summary: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    requires_human_approval: bool
+
+    @model_validator(mode="after")
+    def _validate_ordering_and_approval(self) -> RemediationPlan:
+        """Enforce non-empty contiguous ordering and low-confidence approval gating."""
+        if not self.steps:
+            raise ValueError("A RemediationPlan must contain at least one step.")
+        orders = sorted(step.order for step in self.steps)
+        if orders != list(range(1, len(orders) + 1)):
+            raise ValueError(f"RemediationStep.order values must be a contiguous 1-based sequence; got {orders}.")
+        if self.confidence < 0.70 or any(step.requires_human_approval for step in self.steps):
+            self.requires_human_approval = True
+        return self
+
+
+# ---------------------------------------------------------------------------
 # Final report
 # ---------------------------------------------------------------------------
 class RCAReport(BaseModel):
@@ -751,6 +979,7 @@ class RCAReport(BaseModel):
     fix_validation_result: Optional[str] = None
     validation_detail: Optional[ValidationResult] = None
     hitl_request: Optional[HITLRequest] = None
+    remediation_plan: Optional[RemediationPlan] = None
 
     total_input_tokens: int = 0
     total_output_tokens: int = 0

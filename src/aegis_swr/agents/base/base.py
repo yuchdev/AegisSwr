@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from aegis_swr.backends.base import AIAPIBackend
 from aegis_swr.config.settings import Settings
+from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.schemas import AgentRole, AgentTurn, Hypothesis, InvestigationState
 
 # Broad taxonomy bucket an agent belongs to. Declared as a module-level alias
@@ -74,6 +75,16 @@ class BaseAgent(ABC):
         :attr:`AgentSpec.weight` override takes precedence when set. The
         evaluator normalizes by the summed weights of the live panel, so the
         declared values need not sum to any particular total.
+    :cvar authoritative_fault_classes: The set of
+        :class:`~aegis_swr.core.fault_codes.FaultClass` values for which this
+        agent is a decisive voter and should be auto-selected into the debate
+        panel. Generalist (``base``-category) agents leave this empty and are
+        always selected regardless of the fault; forensic specialists declare
+        the fault classes they are authoritative for so
+        :class:`~aegis_swr.core.panel_strategy.AgenticManagerStrategy` only adds
+        them to incidents in their domain. An empty set therefore means "no
+        fault-based auto-selection" - relied upon by base agents (always in) and
+        honored for forensic agents (never auto-added on their own).
     """
 
     agent_key: ClassVar[str]
@@ -82,6 +93,7 @@ class BaseAgent(ABC):
     role: ClassVar[AgentRole]
     contributes_fix: ClassVar[bool] = False
     default_weight: ClassVar[float]
+    authoritative_fault_classes: ClassVar[frozenset[FaultClass]] = frozenset()
 
     def __init__(
         self,

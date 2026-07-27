@@ -7,11 +7,14 @@ from unittest import mock
 
 import pytest
 
-from aegis_swr.agents.base import AgentSpec, BaseAgent
-from aegis_swr.agents.code_analyst import CodeAnalystAgent
-from aegis_swr.agents.log_historian import LogHistorianAgent
-from aegis_swr.agents.os_kernel import OSKernelAgent
-from aegis_swr.agents.skeptic import SkepticAgent
+from aegis_swr.agents.base import (
+    AgentSpec,
+    BaseAgent,
+    CodeAnalystAgent,
+    LogHistorianAgent,
+    OSKernelAgent,
+    SkepticAgent,
+)
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.orchestrator import Orchestrator

@@ -1,7 +1,7 @@
 # Task 06.0 - Resource Exhaustion Agent
 
 **Parent task:** Milestone 0002 Forensic Agents ([plan.md](/docs/roadmap/0002-forensic-agents/plan.md))
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Scope
 
@@ -31,11 +31,16 @@ mirroring the approach used by `LogHistorianAgent`.
 
 | # | Document | Status | Blocks |
 |---|----------|--------|--------|
-| 01 | [Output schema](01-output-schema.md) | ⬜ Not started | 03 |
-| 02 | [Consensus weight integration](02-consensus-weights.md) | ⬜ Not started | 05 |
-| 03 | [Agent implementation](03-agent-implementation.md) | ⬜ Not started | 04, 05 |
-| 04 | [Registry & panel wiring](04-registry-and-panel-wiring.md) | ⬜ Not started | 05 |
-| 05 | [Tests](05-tests.md) | ⬜ Not started | - |
+| 01 | [Output schema](01-output-schema.md) | ✅ Complete | 03 |
+| 02 | [Consensus weight integration](02-consensus-weights.md) | ✅ Complete (adapted) | 05 |
+| 03 | [Agent implementation](03-agent-implementation.md) | ✅ Complete | 04, 05 |
+| 04 | [Registry & panel wiring](04-registry-and-panel-wiring.md) | ✅ Complete (adapted) | 05 |
+| 05 | [Tests](05-tests.md) | ✅ Complete | - |
+
+> **Reconciliation (2026-07-10):** subtasks 02 & 04 (per-fault weight matrix +
+> config files) do not apply to the superset. Realized as intrinsic
+> `default_weight = 0.30` + `authoritative_fault_classes`
+> (RESOURCE_EXHAUSTION, STACK_OVERFLOW, DEADLOCK) with fault-aware auto-selection.
 
 Subtasks 01 and 02 are independent of each other and may proceed in parallel.
 Subtask 03 depends on 01; subtask 04 depends on 03; subtask 05 depends on all
