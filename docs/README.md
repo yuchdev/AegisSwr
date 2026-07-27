@@ -101,6 +101,19 @@ User-facing reference for every CLI option and configuration field, derived from
 
 ---
 
+## Manual QA Scenarios (`qa/`)
+
+Detailed, step-by-step walkthroughs of Aegis SWR processing a specific
+incident end-to-end - every backend, every pipeline stage, every agent turn.
+See [qa/README.md](qa/README.md) for the naming convention and required
+sections.
+
+| Document | Description |
+|---|---|
+| [0001-audacity4-corrupted-vst3-plugin-startup-crash.md](qa/0001-audacity4-corrupted-vst3-plugin-startup-crash.md) | Full walkthrough: a truncated VST3 plugin crashes Audacity 4 on startup; traces the dump/log/screenshot/code intake through the Data Adapter, the four-agent debate to consensus, the final RCA report, and a suggested patch. |
+
+---
+
 ## Reviews (`reviews/`)
 
 Outputs from `background-reviewer`: dependency audits, secret scans, performance
