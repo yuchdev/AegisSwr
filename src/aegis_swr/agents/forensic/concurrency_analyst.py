@@ -109,9 +109,15 @@ class ConcurrencyAnalystAgent(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Return the concurrency-analyst investigator system prompt for this agent."""
         return _SYSTEM_PROMPT
 
     async def run(self, state: InvestigationState) -> AgentTurn:
+        """Analyse concurrency/deadlock signals and return the agent's turn.
+
+        :param state: the current investigation state (brief, arbiter feedback).
+        :return: the concurrency-analyst agent's :class:`AgentTurn`.
+        """
         round_num = state.get("round_number", 1)
         brief = state.get("incident_brief", {})
 

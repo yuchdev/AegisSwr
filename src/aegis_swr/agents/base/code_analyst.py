@@ -28,6 +28,8 @@ Include a probabilistic_fix (unified diff) when you have high confidence in the 
 
 
 class CodeAnalystAgent(BaseAgent):
+    """Investigator agent that reasons about source-level causes and a candidate fix."""
+
     agent_key: ClassVar[str] = "code_analyst"
     display_name: ClassVar[str] = "Code Analyst Agent"
     category: ClassVar[AgentCategory] = "base"
@@ -37,9 +39,15 @@ class CodeAnalystAgent(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Return the code-analyst investigator system prompt for this agent."""
         return _SYSTEM_PROMPT
 
     async def run(self, state: InvestigationState) -> AgentTurn:
+        """Analyse the incident from a source-code angle and return the agent's turn.
+
+        :param state: the current investigation state (brief, preceding turn).
+        :return: the code-analyst agent's :class:`AgentTurn`.
+        """
         round_num = state.get("round_number", 1)
         brief = state.get("incident_brief", {})
 

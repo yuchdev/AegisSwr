@@ -27,6 +27,8 @@ Set confidence_score to a value between 0.0 and 1.0 reflecting your certainty.\
 
 
 class OSKernelAgent(BaseAgent):
+    """Investigator agent that reasons about OS/kernel-level crash causes."""
+
     agent_key: ClassVar[str] = "os_kernel"
     display_name: ClassVar[str] = "OS Kernel Agent"
     category: ClassVar[AgentCategory] = "base"
@@ -35,9 +37,15 @@ class OSKernelAgent(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Return the OS-kernel investigator system prompt for this agent."""
         return _SYSTEM_PROMPT
 
     async def run(self, state: InvestigationState) -> AgentTurn:
+        """Analyse the incident from an OS/kernel angle and return the agent's turn.
+
+        :param state: the current investigation state (brief, arbiter feedback).
+        :return: the OS-kernel agent's :class:`AgentTurn`.
+        """
         round_num = state.get("round_number", 1)
         brief = state.get("incident_brief", {})
 

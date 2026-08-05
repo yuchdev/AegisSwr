@@ -84,6 +84,7 @@ class ResourceExhaustionAgent(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Return the resource-analyst investigator system prompt for this agent."""
         return _SYSTEM_PROMPT
 
     @staticmethod
@@ -123,6 +124,14 @@ class ResourceExhaustionAgent(BaseAgent):
             return []
 
     async def run(self, state: InvestigationState) -> AgentTurn:
+        """Analyse resource-exhaustion signals and return the agent's turn.
+
+        Runs a deterministic leak-indicator pre-check before the LLM call and merges
+        its findings into the result.
+
+        :param state: the current investigation state (brief, arbiter feedback).
+        :return: the resource-analyst agent's :class:`AgentTurn`.
+        """
         round_num = state.get("round_number", 1)
         brief = state.get("incident_brief", {})
 

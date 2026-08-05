@@ -75,9 +75,11 @@ class RemediationPlannerAgent(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Return the remediation-planner synthesis system prompt for this agent."""
         return _SYSTEM_PROMPT
 
     async def run(self, state: InvestigationState) -> AgentTurn:
+        """Reject the investigator entry point; this synthesis agent uses ``run_synthesis``."""
         raise NotImplementedError("RemediationPlannerAgent is synthesis-tier; call run_synthesis()")
 
     async def run_synthesis(self, report: RCAReport) -> tuple[AgentTurn, RemediationPlan]:

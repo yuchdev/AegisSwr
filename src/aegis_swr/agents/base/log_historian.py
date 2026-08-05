@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any, ClassVar, Optional
 
+from loguru import logger
+
 from aegis_swr.agents.base import AgentCategory, BaseAgent
 from aegis_swr.backends.base import VectorStore
 from aegis_swr.core.exceptions import VectorStoreError
@@ -38,6 +40,17 @@ Set confidence_adjustment between -0.2 and +0.2.\
 
 
 class LogHistorianAgent(BaseAgent):
+    """Agent that determines whether an incident is a recurrence by comparing
+    the current incident's forensic signature against historical reports and
+    optional semantic vector-search candidates.
+
+    The agent produces a LogHistorianOutput object that adjusts the overall
+    incident confidence based on recurrence evidence.
+
+    :raises: None — failures in optional vector-store enrichment are handled
+             internally and do not propagate.
+    """
+
     agent_key: ClassVar[str] = "log_historian"
     display_name: ClassVar[str] = "Log Historian Agent"
     category: ClassVar[AgentCategory] = "base"
@@ -46,6 +59,7 @@ class LogHistorianAgent(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Return the log-historian investigator system prompt for this agent."""
         return _SYSTEM_PROMPT
 
     async def run(
@@ -54,6 +68,21 @@ class LogHistorianAgent(BaseAgent):
         vector_store: Optional[VectorStore] = None,
         history: Optional[list[RCAReport]] = None,
     ) -> AgentTurn:
+        """Run the LogHistorianAgent for one round.
+
+        Correlates the provided incident brief with historical reports and an
+        optional VectorStore to determine recurrence and suggest a confidence
+        adjustment.
+
+        :param state: Current investigation state (contains incident_id,
+                      round_number, incident_brief, and latest_turn_this_round).
+        :param vector_store: Optional vector store used for semantic similarity
+                             searches.
+        :param history: Optional list of prior RCAReport objects to compare
+                        against.
+        :returns: An AgentTurn summarising the historian's finding and updated
+                  confidence score.
+        """
         round_num = state.get("round_number", 1)
         brief = state.get("incident_brief", {})
 
@@ -110,5 +139,6 @@ class LogHistorianAgent(BaseAgent):
                 faulting_module=faulting_module or None,
                 top_k=5,
             )
-        except VectorStoreError:
+        except VectorStoreError as exc:
+            logger.debug("LogHistorian: vector-store similarity search failed; returning empty candidates: {}", exc)
             return []

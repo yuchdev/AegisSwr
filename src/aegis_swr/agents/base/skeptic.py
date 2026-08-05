@@ -39,6 +39,8 @@ def _module_in_frames(module: str, frames: list[dict[str, object]]) -> bool:
 
 
 class SkepticAgent(BaseAgent):
+    """Adversarial arbiter that challenges the primary hypothesis to a verdict."""
+
     agent_key: ClassVar[str] = "skeptic"
     display_name: ClassVar[str] = "Skeptic Agent"
     category: ClassVar[AgentCategory] = "base"
@@ -47,9 +49,19 @@ class SkepticAgent(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Return the adversarial-moderator system prompt for this agent."""
         return _SYSTEM_PROMPT
 
     async def run(self, state: InvestigationState) -> AgentTurn:
+        """Challenge the primary hypothesis and return the skeptic's turn.
+
+        Runs a programmatic pre-check that the faulting module appears in the top
+        frames before falling back to an LLM verification of the exception code and
+        overlooked evidence.
+
+        :param state: the current investigation state (brief, history, hypothesis).
+        :return: the skeptic's :class:`AgentTurn` carrying its verdict.
+        """
         round_num = state.get("round_number", 1)
         brief = state.get("incident_brief", {})
         history = state.get("discussion_history", [])
@@ -100,6 +112,7 @@ class SkepticAgent(BaseAgent):
         primary_hyp: Optional[dict[str, object]],
         round_num: int,
     ) -> AgentTurn:
+        """Build the skeptic's turn from a *verdict* and the primary hypothesis."""
         primary_root = str((primary_hyp or {}).get("root_cause") or "")
         message = (
             f"Confirmed ({verdict.confidence.value}): {primary_root}"

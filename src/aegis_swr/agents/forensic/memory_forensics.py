@@ -69,6 +69,7 @@ class MemoryForensicsAgent(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Return the memory-forensics investigator system prompt for this agent."""
         return _SYSTEM_PROMPT
 
     @staticmethod
@@ -96,6 +97,14 @@ class MemoryForensicsAgent(BaseAgent):
         return list(seen)
 
     async def run(self, state: InvestigationState) -> AgentTurn:
+        """Analyse memory-corruption signatures and return the agent's turn.
+
+        Runs a deterministic fill-pattern pre-check before the LLM call and merges
+        its findings into the result.
+
+        :param state: the current investigation state (brief, arbiter feedback).
+        :return: the memory-forensics agent's :class:`AgentTurn`.
+        """
         round_num = state.get("round_number", 1)
         brief = state.get("incident_brief", {})
 

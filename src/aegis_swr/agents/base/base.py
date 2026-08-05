@@ -101,6 +101,12 @@ class BaseAgent(ABC):
         settings: Settings,
         spec: Optional[AgentSpec] = None,
     ):
+        """Wire the agent with its AI backend, settings, and optional spec override.
+
+        :param ai_backend: the AI backend used to generate this agent's turns.
+        :param settings: the global settings the agent reads its knobs from.
+        :param spec: an optional per-run spec overriding priority/weight defaults.
+        """
         self._ai = ai_backend
         self._settings = settings
         # Exposed publicly (not ``self._spec``): later phases - panel/consensus
