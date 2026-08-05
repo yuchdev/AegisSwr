@@ -57,10 +57,12 @@ class SQLiteStore(RelationalStore):
     """SQLite-backed report store; no external services required"""
 
     def __init__(self, settings: StorageSettings):
+        """Resolve the database path from settings and create the schema."""
         self._db_path = Path(settings.db_path).expanduser()
         self._init_db()
 
     def _init_db(self):
+        """Create the reports table and dump-hash index if they do not exist."""
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(str(self._db_path), timeout=30) as conn:
             conn.execute(_CREATE)
@@ -68,6 +70,7 @@ class SQLiteStore(RelationalStore):
         logger.debug(f"SQLiteStore: initialised DB at {self._db_path}")
 
     def _connect(self) -> sqlite3.Connection:
+        """Open a new SQLite connection to the backing database file."""
         return sqlite3.connect(str(self._db_path), timeout=30)
 
     # ------------------------------------------------------------------
@@ -75,9 +78,11 @@ class SQLiteStore(RelationalStore):
     # ------------------------------------------------------------------
 
     async def save_report(self, report: RCAReport):
+        """Upsert *report* off the event loop thread."""
         await asyncio.to_thread(self._sync_save, report)
 
     def _sync_save(self, report: RCAReport):
+        """Serialise *report* to a row and upsert it into the reports table."""
         try:
             row = (
                 str(report.incident_id),
@@ -93,9 +98,11 @@ class SQLiteStore(RelationalStore):
         logger.debug(f"SQLiteStore: saved report {report.incident_id}")
 
     async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
+        """Load the report for *incident_id* off the event loop thread."""
         return await asyncio.to_thread(self._sync_get, str(incident_id))
 
     def _sync_get(self, incident_id: str) -> Optional[RCAReport]:
+        """Query and validate the report row for *incident_id*, or ``None``."""
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT report_json FROM reports WHERE incident_id = ?",
@@ -106,9 +113,11 @@ class SQLiteStore(RelationalStore):
         return RCAReport.model_validate_json(row[0])
 
     async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
+        """Look up a cached report by *dump_hash* off the event loop thread."""
         return await asyncio.to_thread(self._sync_find_by_hash, dump_hash)
 
     def _sync_find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
+        """Query and validate the report row matching *dump_hash*, or ``None``."""
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT report_json FROM reports WHERE dump_hash = ?",
@@ -123,6 +132,7 @@ class SQLiteStore(RelationalStore):
         incident_id: UUID,
         response: dict[str, object],
     ):
+        """Merge a HITL *response* into the stored report off the event loop thread."""
         await asyncio.to_thread(self._sync_update_hitl, str(incident_id), response)
 
     def _sync_update_hitl(
@@ -130,6 +140,7 @@ class SQLiteStore(RelationalStore):
         incident_id: str,
         response: dict[str, object],
     ):
+        """Read the report row, set its ``hitl_request``, and update the row."""
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT report_json FROM reports WHERE incident_id = ?",
@@ -145,9 +156,11 @@ class SQLiteStore(RelationalStore):
             )
 
     async def load_recent(self, limit: int = 100) -> list[RCAReport]:
+        """Load the most recent reports (up to *limit*) off the event loop thread."""
         return await asyncio.to_thread(self._sync_load_recent, limit)
 
     def _sync_load_recent(self, limit: int) -> list[RCAReport]:
+        """Query reports newest-first (up to *limit*) and validate each row."""
         sql = "SELECT report_json FROM reports ORDER BY created_at DESC"
         if limit > 0:
             sql += f" LIMIT {limit}"
