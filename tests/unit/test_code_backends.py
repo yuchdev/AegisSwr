@@ -28,6 +28,7 @@ _GIT_CMD = "aegis_swr.backends.code.git_adapter.subprocess.run"
 
 
 def _completed(stdout: str = "", returncode: int = 0, stderr: str = "") -> mock.Mock:
+    """Build a mock completed-process with the given stdout, stderr, and return code."""
     proc = mock.Mock()
     proc.stdout = stdout
     proc.stderr = stderr
@@ -36,6 +37,7 @@ def _completed(stdout: str = "", returncode: int = 0, stderr: str = "") -> mock.
 
 
 def _git_log_fixture() -> str:
+    """Return sample record-separated ``git log --name-only`` output text."""
     return (
         f"{_RS}abc123{_FS}Alice <a@x.com>{_FS}2026-05-30T13:00:00+00:00{_FS}Fix timeout\n"
         "db_writer.py\n"
@@ -46,6 +48,7 @@ def _git_log_fixture() -> str:
 
 
 def _blame_porcelain_fixture() -> str:
+    """Return sample ``git blame --line-porcelain`` output text."""
     sha = "a" * 40
     return (
         f"{sha} 1 1 1\n"
@@ -128,18 +131,20 @@ def test_parse_blame_porcelain():
 
 @pytest.fixture
 def git_repo(tmp_path: Path) -> Path:
+    """Create a minimal ``.git`` working tree under *tmp_path* and return it."""
     (tmp_path / ".git").mkdir()
     return tmp_path
 
 
 @pytest.fixture
 def git_adapter() -> GitCodeAdapter:
+    """Provide a :class:`GitCodeAdapter` configured for the git provider."""
     return GitCodeAdapter(CodeBackendSettings(enabled=True, provider="git"))
 
 
 def test_git_get_commits_before_parses_records(git_adapter: GitCodeAdapter, git_repo: Path):
     """
-    [Mock] code backends: verifies git get commits before parses records.
+    [Unit] code backends: verifies git get commits before parses records.
 
     Scenario:
         Given test inputs and fixtures for git get commits before parses records
@@ -164,7 +169,7 @@ def test_git_get_commits_before_parses_records(git_adapter: GitCodeAdapter, git_
 
 def test_git_blame_parses_porcelain(git_adapter: GitCodeAdapter, git_repo: Path):
     """
-    [Mock] code backends: verifies git blame parses porcelain.
+    [Unit] code backends: verifies git blame parses porcelain.
 
     Scenario:
         Given test inputs and fixtures for git blame parses porcelain
@@ -212,7 +217,7 @@ def test_git_missing_repo_raises(git_adapter: GitCodeAdapter, tmp_path: Path):
 
 def test_git_missing_binary_raises(git_adapter: GitCodeAdapter, git_repo: Path):
     """
-    [Mock] code backends: verifies git missing binary raises.
+    [Unit] code backends: verifies git missing binary raises.
 
     Scenario:
         Given test inputs and fixtures for git missing binary raises
@@ -239,7 +244,7 @@ def test_git_missing_binary_raises(git_adapter: GitCodeAdapter, git_repo: Path):
 
 def test_git_nonzero_exit_raises(git_adapter: GitCodeAdapter, git_repo: Path):
     """
-    [Mock] code backends: verifies git nonzero exit raises.
+    [Unit] code backends: verifies git nonzero exit raises.
 
     Scenario:
         Given test inputs and fixtures for git nonzero exit raises
@@ -294,10 +299,12 @@ def test_git_path_traversal_blocked(git_adapter: GitCodeAdapter, git_repo: Path)
 
 @pytest.fixture
 def fs_adapter() -> FilesystemCodeAdapter:
+    """Provide a :class:`FilesystemCodeAdapter` configured for the filesystem provider."""
     return FilesystemCodeAdapter(CodeBackendSettings(enabled=True, provider="filesystem"))
 
 
 def _touch(path: Path, when: datetime, content: str = "x\n"):
+    """Write *content* to *path* and set its mtime to *when*."""
     path.write_text(content, encoding="utf-8")
     ts = when.timestamp()
     os.utime(path, (ts, ts))

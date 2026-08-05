@@ -3,6 +3,7 @@
 The script lives outside the package, so it is loaded by file path rather than
 imported as a module.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -15,6 +16,7 @@ _SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "check_doc_links.py"
 
 
 def _load() -> Any:
+    """Import the ``check_doc_links`` script module from its file path."""
     spec = importlib.util.spec_from_file_location("check_doc_links", _SCRIPT)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -82,7 +84,7 @@ def test_duplicate_headings_get_suffixed_anchors(tmp_path: Path) -> None:
 
 def test_valid_links_pass(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """
-    [Mock] check doc links: verifies valid links pass.
+    [Unit] check doc links: verifies valid links pass.
 
     Scenario:
         Given test inputs and fixtures for valid links pass
@@ -103,21 +105,15 @@ def test_valid_links_pass(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
     (tmp_path / "target.md").write_text("# Real Heading\n", encoding="utf-8")
     src = tmp_path / "src.md"
     src.write_text(
-        "# Top\n\n"
-        "[rel](target.md)\n"
-        "[abs](/target.md)\n"
-        "[anchor](target.md#real-heading)\n"
-        "[inpage](#top)\n",
+        "# Top\n\n" "[rel](target.md)\n" "[abs](/target.md)\n" "[anchor](target.md#real-heading)\n" "[inpage](#top)\n",
         encoding="utf-8",
     )
     assert cdl.check_file(src) == []
 
 
-def test_dangling_file_and_missing_anchor_fail(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_dangling_file_and_missing_anchor_fail(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """
-    [Mock] check doc links: verifies dangling file and missing anchor fail.
+    [Unit] check doc links: verifies dangling file and missing anchor fail.
 
     Scenario:
         Given test inputs and fixtures for dangling file and missing anchor fail
@@ -138,10 +134,7 @@ def test_dangling_file_and_missing_anchor_fail(
     (tmp_path / "target.md").write_text("# Only Heading\n", encoding="utf-8")
     src = tmp_path / "src.md"
     src.write_text(
-        "# Top\n\n"
-        "[gone](nope.md)\n"
-        "[bad-anchor](target.md#does-not-exist)\n"
-        "[bad-inpage](#missing)\n",
+        "# Top\n\n" "[gone](nope.md)\n" "[bad-anchor](target.md#does-not-exist)\n" "[bad-inpage](#missing)\n",
         encoding="utf-8",
     )
     problems = cdl.check_file(src)
@@ -151,11 +144,9 @@ def test_dangling_file_and_missing_anchor_fail(
     assert any("missing" in p for p in problems)
 
 
-def test_skips_urls_templates_and_code(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_skips_urls_templates_and_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """
-    [Mock] check doc links: verifies skips urls templates and code.
+    [Unit] check doc links: verifies skips urls templates and code.
 
     Scenario:
         Given test inputs and fixtures for skips urls templates and code

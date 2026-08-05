@@ -177,7 +177,7 @@ def test_log_dir_redacts_secrets_in_file(tmp_path: Path):
 def test_missing_log_dir_does_not_break_stderr_logging(tmp_path: Path, monkeypatch):
     # If the log directory can't be created, stderr logging must still work.
     """
-    [Mock] logging: verifies missing log dir does not break stderr logging.
+    [Unit] logging: verifies missing log dir does not break stderr logging.
 
     Scenario:
         Given test inputs and fixtures for missing log dir does not break stderr logging
@@ -197,6 +197,7 @@ def test_missing_log_dir_does_not_break_stderr_logging(tmp_path: Path, monkeypat
     import aegis_swr.cli.aegis_logging as mod
 
     def _boom(*_a, **_k):
+        """Raise ``OSError`` to simulate a permission failure on directory creation."""
         raise OSError("no permission")
 
     monkeypatch.setattr(mod.Path, "mkdir", _boom)
@@ -371,24 +372,26 @@ def test_redact_re_covers_bearer_and_legacy_forms(
     must_keep: Optional[str],
     tmp_path: Path,
 ):
-    """_REDACT_RE must redact Authorization: Bearer, bare Bearer, and the legacy
-    AWS_BEARER_TOKEN_BEDROCK=value form, and must leave benign prose untouched."""
+    """[Unit] logging: the redaction regex masks bearer tokens and spares prose.
+
+    Scenario: parametrized inputs covering ``Authorization: Bearer``, bare
+    ``Bearer``, the legacy ``AWS_BEARER_TOKEN_BEDROCK=value`` form, and benign text.
+
+    Boundaries: exercises the ``_REDACT_RE`` pattern directly.
+
+    On failure, first check: each secret form must be redacted while benign prose is
+    left untouched.
+    """
     from aegis_swr.cli.aegis_logging import _REDACT_RE
 
     result = _REDACT_RE.sub("[REDACTED]", input_text)
 
     if must_redact is not None:
-        assert must_redact not in result, (
-            f"Secret {must_redact!r} survived redaction in {result!r}"
-        )
-        assert "[REDACTED]" in result, (
-            f"Expected [REDACTED] marker in result {result!r}"
-        )
+        assert must_redact not in result, f"Secret {must_redact!r} survived redaction in {result!r}"
+        assert "[REDACTED]" in result, f"Expected [REDACTED] marker in result {result!r}"
 
     if must_keep is not None:
-        assert result == input_text, (
-            f"Benign prose was mutated: original={input_text!r}, result={result!r}"
-        )
+        assert result == input_text, f"Benign prose was mutated: original={input_text!r}, result={result!r}"
 
 
 def test_file_sink_is_delayed_until_first_record(tmp_path: Path):

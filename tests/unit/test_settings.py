@@ -226,7 +226,7 @@ def test_resolved_model_bedrock_returns_profile_id():
 
 def test_bedrock_env_override(monkeypatch: pytest.MonkeyPatch):
     """
-    [Mock] settings: verifies bedrock env override.
+    [Unit] settings: verifies bedrock env override.
 
     Scenario:
         Given test inputs and fixtures for bedrock env override
