@@ -138,6 +138,11 @@ def _truncate(text: str, width: int) -> str:
 
 
 def _conf_color(score: float) -> str:
+    """Map a confidence *score* to a traffic-light Rich colour name.
+
+    :param score: confidence in the range ``[0, 1]``.
+    :return: ``green`` at >=0.80, ``yellow`` at >=0.50, otherwise ``red``.
+    """
     return "green" if score >= 0.80 else "yellow" if score >= 0.50 else "red"
 
 
@@ -246,6 +251,11 @@ class _StreamLog:
     """
 
     def __init__(self, *, max_lines: int, reveal_interval: float):
+        """Initialise an empty capped buffer with a reveal cadence.
+
+        :param max_lines: maximum retained lines before the oldest are dropped.
+        :param reveal_interval: seconds between surfacing one buffered line.
+        """
         self._lines: list[_EvidenceLine] = []
         self._max_lines = max_lines
         self._reveal_interval = reveal_interval
@@ -264,6 +274,11 @@ class _StreamLog:
         self._last_reveal = now
 
     def append(self, text: RenderableType, *, level: EvidenceLevel = "INFO"):
+        """Append *text* tagged at *level*, trimming the oldest on overflow.
+
+        :param text: the renderable line to record.
+        :param level: verbosity tag controlling when the line is shown.
+        """
         self._lines.append(_EvidenceLine(level=level, text=text))
         overflow = len(self._lines) - self._max_lines
         if overflow > 0:
@@ -277,6 +292,11 @@ class _StreamLog:
         self._revealed = len(self._lines)
 
     def _advance(self, now: float, *, finished: bool):
+        """Advance the reveal pointer by the lines due since the last tick.
+
+        :param now: current monotonic timestamp.
+        :param finished: when True, reveal every buffered line at once.
+        """
         total = len(self._lines)
         if finished:
             self._revealed = total
@@ -333,6 +353,14 @@ class WarRoomView:
         level: str = "INFO",
         process_level: Optional[str] = None,
     ):
+        """Initialise the war-room view state and verbosity channels.
+
+        :param console: Rich console to render into; a default is built when omitted.
+        :param auto_refresh: whether the backing ``Live`` refreshes on its own timer.
+        :param level: Evidence Stream (left pane) verbosity level.
+        :param process_level: Investigation Process (right pane) verbosity; defaults
+            to *level* when not supplied.
+        """
         self._console = console or make_console()
         self._auto_refresh = auto_refresh
         # Evidence Stream (left pane) verbosity.
@@ -388,6 +416,7 @@ class WarRoomView:
         ]
 
         def _detach():
+            """Unsubscribe every handler and stop the Live war-room block."""
             for unsubscribe in unsubscribers:
                 unsubscribe()
             self._stop_live()
@@ -397,6 +426,7 @@ class WarRoomView:
     # -- event handlers -----------------------------------------------------
 
     def _on_started(self, event: DomainEvent):
+        """Reset per-run state, label the incident, and start the Live war-room block."""
         assert isinstance(event, InvestigationStarted)
         source = event.source
         self._source = source
@@ -438,6 +468,7 @@ class WarRoomView:
         self._live.start()
 
     def _on_evidence(self, event: DomainEvent):
+        """Stamp the extracted fault fields (and TRACE detail) into the Evidence Stream."""
         assert isinstance(event, EvidenceExtracted)
         brief = event.brief
 
@@ -570,6 +601,7 @@ class WarRoomView:
                 self._add_evidence(_subdetail(Text(detail, style="grey62")), level="TRACE")
 
     def _on_agent(self, event: DomainEvent):
+        """Record an agent's turn, log its finding, and wake the next agent."""
         assert isinstance(event, AgentSpoke)
         turn = event.turn
 
@@ -615,6 +647,7 @@ class WarRoomView:
         self._refresh()
 
     def _on_consensus(self, event: DomainEvent):
+        """Log the weighted consensus for the round and reset agents to standby."""
         assert isinstance(event, ConsensusEvaluated)
         score = event.score
         level = ConfidenceLevel.from_score(score)
@@ -634,6 +667,7 @@ class WarRoomView:
         self._refresh()
 
     def _on_completed(self, event: DomainEvent):
+        """Mark the final round converged, finish all agents, and freeze the view."""
         if self._consensus_history:
             self._consensus_history[-1]["converged"] = True
         for state in self._agents.values():
@@ -642,6 +676,7 @@ class WarRoomView:
         self._finalize()
 
     def _on_hitl(self, event: DomainEvent):
+        """Record non-convergence, note the escalation, and freeze the view."""
         if self._consensus_history:
             self._consensus_history[-1]["converged"] = False
         self._stamp_process("⚠  human input required", style="bold red")
@@ -651,23 +686,29 @@ class WarRoomView:
 
     @property
     def _elapsed(self) -> float:
+        """Seconds since the run started, or ``0.0`` before it begins."""
         return time.monotonic() - self._start if self._start else 0.0
 
     def _plain(self, text: str) -> Text:
+        """Wrap *text* in an unstyled Rich :class:`Text`."""
         return Text(text)
 
     def _add_evidence(self, line: RenderableType, *, level: EvidenceLevel = "INFO"):
+        """Append *line* to the Evidence Stream buffer at *level*."""
         self._evidence_log.append(line, level=level)
 
     def _add_process(self, line: RenderableType, *, level: EvidenceLevel = "INFO"):
+        """Append *line* to the Investigation Process buffer at *level*."""
         self._process_log.append(line, level=level)
 
     def _stamp(self, message: str, *, style: str = "", level: EvidenceLevel = "INFO"):
+        """Append a timestamped, styled *message* to the Evidence Stream."""
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(message, style=style)
         self._add_evidence(line, level=level)
 
     def _stamp_process(self, message: str, *, style: str = "", level: EvidenceLevel = "INFO"):
+        """Append a timestamped, styled *message* to the Investigation Process log."""
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(message, style=style)
         self._add_process(line, level=level)
@@ -680,12 +721,14 @@ class WarRoomView:
         *,
         level: EvidenceLevel = "INFO",
     ):
+        """Append a timestamped ``label  value`` evidence line at *level*."""
         line = Text(f"{_fmt_stamp(self._elapsed)}  ")
         line.append(f"{label:<13}", style="dim")
         line.append(value, style=value_style)
         self._add_evidence(line, level=level)
 
     def _wake(self, name: str):
+        """Set agent *name* to analyzing, update the status line, and advance a stage."""
         state = self._agents.get(name)
         if state is not None and state.status != "DONE":
             state.status = "ANALYZING"
@@ -693,9 +736,11 @@ class WarRoomView:
         self._advance()
 
     def _advance(self):
+        """Advance the investigation-process stage counter by one, capped at the total."""
         self._stage = min(self._stage + 1, self._stage_total)
 
     def _finalize(self):
+        """Freeze the run: fill the stage bar, reveal all buffers, and stop the Live."""
         self._finished = True
         self._stage = self._stage_total
         # The Live block is about to freeze: surface any still-buffered lines
@@ -718,9 +763,11 @@ class WarRoomView:
     # -- rendering ----------------------------------------------------------
 
     def __rich__(self) -> Layout:
+        """Render the current view state as a Rich :class:`Layout` (Live protocol)."""
         return self._build_layout()
 
     def _build_layout(self) -> Layout:
+        """Assemble the header plus the three body panes into a root layout."""
         root = Layout()
         root.split_column(
             Layout(self._render_header(), name="header", size=1),
@@ -737,6 +784,7 @@ class WarRoomView:
         return root
 
     def _render_header(self) -> Text:
+        """Render the single-row header (title, incident, mode, clock, round)."""
         header = Text(no_wrap=True, overflow="ellipsis")
         header.append("  AEGIS SWR ", style="bold cyan")
         header.append(" Synthetic War Room   ", style="cyan")
@@ -785,6 +833,7 @@ class WarRoomView:
         return inner_w, inner_h
 
     def _render_evidence(self) -> Panel:
+        """Render the Evidence Stream panel as a bottom-anchored scrolling tail."""
         inner_w, inner_h = self._evidence_inner()
         revealed = self._evidence_log.visible(
             now=time.monotonic(),
@@ -805,6 +854,7 @@ class WarRoomView:
         return Panel(body, title=title, border_style="grey37")
 
     def _render_agents(self) -> Panel:
+        """Render the Forensic Agents panel: one status block per resolved agent."""
         compact = self._console.height < 36
         finding_width = max(10, self._console.width // 2 - 6)
         elapsed = self._elapsed
@@ -849,6 +899,7 @@ class WarRoomView:
         return inner_w, inner_h
 
     def _render_process(self) -> Panel:
+        """Render the Investigation Process panel: activity, stage bar, and conversation."""
         elapsed = self._elapsed
         sections: list[RenderableType] = []
 
@@ -897,10 +948,12 @@ class WarRoomView:
         )
 
     def _refresh(self):
+        """Trigger a Live re-render if the war-room block is active."""
         if self._live is not None:
             self._live.refresh()
 
     def _stop_live(self):
+        """Stop and clear the Live war-room block if it is running."""
         if self._live is not None:
             self._live.stop()
             self._live = None
@@ -986,6 +1039,10 @@ class RichView:
     """
 
     def __init__(self, console: Optional[Console] = None):
+        """Initialise the fallback trail view state.
+
+        :param console: Rich console to render into; a default is built when omitted.
+        """
         self._console = console or make_console()
         self._trail: list[RenderableType] = []
         self._live: Optional[Live] = None
@@ -1017,6 +1074,7 @@ class RichView:
         ]
 
         def _detach():
+            """Unsubscribe every handler and stop the Live trail block."""
             for unsubscribe in unsubscribers:
                 unsubscribe()
             self._stop_live()
@@ -1026,6 +1084,7 @@ class RichView:
     # -- event handlers -----------------------------------------------------
 
     def _on_started(self, event: DomainEvent):
+        """Print the incident header, reset state, and start the Live trail block."""
         assert isinstance(event, InvestigationStarted)
         source = event.source
         target = (
@@ -1068,6 +1127,7 @@ class RichView:
         self._live.start()
 
     def _on_evidence(self, event: DomainEvent):
+        """Append a one-line evidence-extracted summary to the trail."""
         assert isinstance(event, EvidenceExtracted)
         brief = event.brief
         elapsed = time.monotonic() - self._stage_started
@@ -1115,6 +1175,7 @@ class RichView:
         self._refresh()
 
     def _on_agent(self, event: DomainEvent):
+        """Append the agent's trail line and summary, adding a round rule as needed."""
         assert isinstance(event, AgentSpoke)
         turn = event.turn
         elapsed = time.monotonic() - self._stage_started
@@ -1133,6 +1194,7 @@ class RichView:
         self._refresh()
 
     def _on_consensus(self, event: DomainEvent):
+        """Append a weighted-consensus line with its confidence bar to the trail."""
         assert isinstance(event, ConsensusEvaluated)
         score = event.score
         level = ConfidenceLevel.from_score(score).value.upper()
@@ -1147,6 +1209,7 @@ class RichView:
         self._refresh()
 
     def _on_finished(self, event: DomainEvent):
+        """Complete the progress bar and stop the Live trail block on run end."""
         if self._progress is not None and self._task_id is not None:
             self._progress.update(self._task_id, completed=self._stages_total)
         self._progress = None
@@ -1156,11 +1219,13 @@ class RichView:
     # -- rendering ------------------------------------------------------------
 
     def _set_status(self, message: str):
+        """Update the progress description, advance one stage, and reset the stage clock."""
         if self._progress is not None and self._task_id is not None:
             self._progress.update(self._task_id, description=message, advance=1)
         self._stage_started = time.monotonic()
 
     def _render(self) -> Group:
+        """Render the trail plus the active progress bar as a Rich :class:`Group`."""
         items: list[RenderableType] = list(self._trail)
         if self._progress is not None:
             items.append(Text())
@@ -1168,10 +1233,12 @@ class RichView:
         return Group(*items)
 
     def _refresh(self):
+        """Push a freshly rendered trail into the Live block if it is active."""
         if self._live is not None:
             self._live.update(self._render())
 
     def _stop_live(self):
+        """Stop and clear the Live trail block if it is running."""
         if self._live is not None:
             self._live.stop()
             self._live = None
