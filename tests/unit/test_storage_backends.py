@@ -33,6 +33,7 @@ from aegis_swr.core.schemas import (
 
 
 def _report(dump_hash: Optional[str] = None) -> RCAReport:
+    """Build a canned :class:`RCAReport`, defaulting to a random dump hash."""
     return RCAReport(
         mode=IncidentMode.CRASH_DUMP,
         dump_hash=dump_hash or f"sha256:{uuid4().hex}",
@@ -46,6 +47,7 @@ def _report(dump_hash: Optional[str] = None) -> RCAReport:
 
 
 def _hitl_payload() -> dict[str, object]:
+    """Build a JSON-mode HITL request payload for update-response tests."""
     return HITLRequest(
         question="What is the DB pool size?",
         context_summary="Split decision at 0.4 cs.",
@@ -59,6 +61,7 @@ def _hitl_payload() -> dict[str, object]:
 
 @pytest.fixture
 def fs_settings(tmp_path: Path) -> StorageSettings:
+    """Provide filesystem-provider storage settings rooted under *tmp_path*."""
     return StorageSettings(
         provider="filesystem",
         reports_dir=str(tmp_path / "reports"),
@@ -68,6 +71,7 @@ def fs_settings(tmp_path: Path) -> StorageSettings:
 
 @pytest.fixture
 def fs_store(fs_settings: StorageSettings) -> FilesystemStore:
+    """Provide a :class:`FilesystemStore` backed by the temp settings."""
     return FilesystemStore(fs_settings)
 
 
@@ -276,6 +280,7 @@ async def test_filesystem_path_traversal_blocked(fs_store: FilesystemStore):
 
 @pytest.fixture
 def sq_store(tmp_path: Path) -> SQLiteStore:
+    """Provide a :class:`SQLiteStore` backed by a temp database file."""
     return SQLiteStore(
         StorageSettings(
             provider="sqlite",
@@ -442,6 +447,7 @@ async def test_sqlite_update_hitl_response(sq_store: SQLiteStore):
 
 @pytest.fixture
 def s3_store() -> S3Store:
+    """Provide an :class:`S3Store` wired to a mocked boto3 client."""
     with mock.patch("boto3.client") as mock_client_cls:
         mock_client_cls.return_value = mock.MagicMock()
         store = S3Store(
@@ -455,10 +461,12 @@ def s3_store() -> S3Store:
 
 
 def _s3_get_object_response(body: bytes) -> dict[str, Any]:
+    """Build a fake S3 ``get_object`` response whose body reads *body*."""
     return {"Body": mock.Mock(read=mock.Mock(return_value=body))}
 
 
 def _s3_no_such_key() -> ClientError:
+    """Build a boto ``NoSuchKey`` ClientError for missing-object simulations."""
     return ClientError(
         {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
         "GetObject",
@@ -467,7 +475,7 @@ def _s3_no_such_key() -> ClientError:
 
 async def test_s3_save_get_roundtrip(s3_store: S3Store):
     """
-    [Mock] storage backends: verifies s3 save get roundtrip.
+    [Unit] storage backends: verifies s3 save get roundtrip.
 
     Scenario:
         Given test inputs and fixtures for s3 save get roundtrip
@@ -491,9 +499,11 @@ async def test_s3_save_get_roundtrip(s3_store: S3Store):
     stored_json: dict[str, bytes] = {}
 
     def _put(Bucket: str, Key: str, Body: bytes, **_: Any):  # noqa: N803
+        """Record the stored object body keyed by its S3 key."""
         stored_json[Key] = Body
 
     def _get(Bucket: str, Key: str, **_: Any) -> dict[str, Any]:  # noqa: N803
+        """Return the stored object body, or raise ``NoSuchKey`` if absent."""
         if Key not in stored_json:
             raise _s3_no_such_key()
         return {"Body": mock.Mock(read=mock.Mock(return_value=stored_json[Key]))}
@@ -509,7 +519,7 @@ async def test_s3_save_get_roundtrip(s3_store: S3Store):
 
 async def test_s3_find_by_hash(s3_store: S3Store):
     """
-    [Mock] storage backends: verifies s3 find by hash.
+    [Unit] storage backends: verifies s3 find by hash.
 
     Scenario:
         Given test inputs and fixtures for s3 find by hash
@@ -531,9 +541,11 @@ async def test_s3_find_by_hash(s3_store: S3Store):
     stored: dict[str, bytes] = {}
 
     def _put(Bucket: str, Key: str, Body: bytes, **_: Any):  # noqa: N803
+        """Record the stored object body keyed by its S3 key."""
         stored[Key] = Body
 
     def _get(Bucket: str, Key: str, **_: Any) -> dict[str, Any]:  # noqa: N803
+        """Return the stored object body, or raise ``NoSuchKey`` if absent."""
         if Key not in stored:
             raise _s3_no_such_key()
         return {"Body": mock.Mock(read=mock.Mock(return_value=stored[Key]))}
@@ -573,7 +585,7 @@ async def test_s3_find_by_hash_unknown(s3_store: S3Store):
 
 async def test_s3_upload_raw_get_raw(s3_store: S3Store):
     """
-    [Mock] storage backends: verifies s3 upload raw get raw.
+    [Unit] storage backends: verifies s3 upload raw get raw.
 
     Scenario:
         Given test inputs and fixtures for s3 upload raw get raw
@@ -595,9 +607,11 @@ async def test_s3_upload_raw_get_raw(s3_store: S3Store):
     stored: dict[str, bytes] = {}
 
     def _put(Bucket: str, Key: str, Body: bytes, **_: Any):  # noqa: N803
+        """Record the stored object body keyed by its S3 key."""
         stored[Key] = Body
 
     def _get(Bucket: str, Key: str, **_: Any) -> dict[str, Any]:  # noqa: N803
+        """Return the stored raw object body for *Key*."""
         return {"Body": mock.Mock(read=mock.Mock(return_value=stored[Key]))}
 
     s3_store._client.put_object.side_effect = _put
@@ -616,6 +630,7 @@ async def test_s3_upload_raw_get_raw(s3_store: S3Store):
 
 @pytest.fixture
 def pg_store() -> PostgresStore:
+    """Provide a :class:`PostgresStore` stub for the not-implemented tests."""
     return PostgresStore(StorageSettings(provider="postgres"))
 
 
@@ -774,7 +789,7 @@ def test_factory_sqlite(tmp_path: Path):
 
 def test_factory_s3():
     """
-    [Mock] storage backends: verifies factory s3.
+    [Unit] storage backends: verifies factory s3.
 
     Scenario:
         Given test inputs and fixtures for factory s3
