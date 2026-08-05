@@ -6,6 +6,8 @@ import sys
 from functools import lru_cache
 from typing import Optional
 
+from loguru import logger
+
 from aegis_swr.backends.base import DebugBackend
 from aegis_swr.backends.debug.cdb_worker import CdbBackend
 from aegis_swr.backends.debug.gdb_worker import GdbBackend
@@ -42,7 +44,8 @@ def _windbg_js_available() -> bool:
         )
         combined = (result.stdout or "") + (result.stderr or "")
         return "JsProvider" in combined
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError) as exc:
+        logger.debug("_windbg_js_available: probe failed; assuming JsProvider unavailable: {}", exc)
         return False
 
 

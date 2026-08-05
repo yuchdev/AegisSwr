@@ -35,6 +35,11 @@ _FRAME_RE = re.compile(
 
 
 def parse_lldb_frames(raw: str) -> list[StackFrame]:
+    """Parse ``lldb bt`` output into :class:`StackFrame` objects.
+
+    :param raw: combined lldb backtrace text.
+    :return: the parsed stack frames in order.
+    """
     frames: list[StackFrame] = []
     for match in _FRAME_RE.finditer(raw):
         number, address, module, function, source_file, source_line = match.groups()
@@ -52,6 +57,8 @@ def parse_lldb_frames(raw: str) -> list[StackFrame]:
 
 
 class LldbBackend(_BaseDebugBackend):
+    """Debug backend that extracts crash data from Mach-O cores via ``lldb --batch``."""
+
     SUPPORTED_FORMATS: ClassVar[list[DumpFormat]] = [
         DumpFormat.APPLE_CRASHREPORT,
         DumpFormat.WINDOWS_MINIDUMP,
@@ -63,6 +70,7 @@ class LldbBackend(_BaseDebugBackend):
         source: IncidentSource,
         symbol_path: list[str],
     ) -> list[str]:
+        """Build the ``lldb --batch`` argv that loads the core and prints a backtrace."""
         return [
             "lldb",
             "--batch",
@@ -77,12 +85,11 @@ class LldbBackend(_BaseDebugBackend):
         ]
 
     def _parse(self, raw: str, source: IncidentSource) -> DebugExtractionResult:
+        """Map the Mach stop reason and parsed frames into a structured result."""
         reason_match = _STOP_REASON_RE.search(raw)
         reason = reason_match.group(1) if reason_match else ""
         fault_class = (
-            map_macos_exception(_EXCEPTION_CODES[reason])
-            if reason in _EXCEPTION_CODES
-            else FaultClass.UNKNOWN
+            map_macos_exception(_EXCEPTION_CODES[reason]) if reason in _EXCEPTION_CODES else FaultClass.UNKNOWN
         )
 
         frames = parse_lldb_frames(raw)

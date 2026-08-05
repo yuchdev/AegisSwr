@@ -11,6 +11,8 @@ import re
 from datetime import datetime
 from typing import ClassVar, Optional
 
+from loguru import logger
+
 from aegis_swr.backends.debug.base import _BaseDebugBackend, normalize_address
 from aegis_swr.backends.debug.symbol_path import resolve_symbol_path
 from aegis_swr.core.fault_codes import map_windows_ntstatus
@@ -51,6 +53,7 @@ _HEXLIKE_RE = re.compile(r"^(?:0x)?[0-9a-fA-F`]+$")
 
 
 def _looks_like_address(token: str) -> bool:
+    """Return True when *token* looks like a hex debugger address column."""
     return bool(_HEXLIKE_RE.match(token)) and any(c in "0123456789abcdefABCDEF" for c in token)
 
 
@@ -133,10 +136,13 @@ def parse_cdb_frames(raw: str) -> list[StackFrame]:
 
 
 class CdbBackend(_BaseDebugBackend):
+    """Debug backend that extracts crash data from Windows minidumps via ``cdb.exe``."""
+
     SUPPORTED_FORMATS: ClassVar[list[DumpFormat]] = [DumpFormat.WINDOWS_MINIDUMP]
     SUPPORTED_PLATFORMS: ClassVar[list[str]] = ["Windows"]
 
     def _symbol_path_string(self, symbol_paths: list[str]) -> str:
+        """Build the CDB symbol-path string from the cache, server, and extra paths."""
         cache = resolve_symbol_path(self._settings.symbol_cache)
         server = self._settings.symbol_server_url or _DEFAULT_SYMBOL_SERVER
         parts = [f"srv*{cache}*{server}", *symbol_paths]
@@ -147,6 +153,7 @@ class CdbBackend(_BaseDebugBackend):
         source: IncidentSource,
         symbol_path: list[str],
     ) -> list[str]:
+        """Build the ``cdb.exe`` argv that reloads symbols and runs ``!analyze -v``."""
         return [
             "cdb.exe",
             "-z",
@@ -158,6 +165,7 @@ class CdbBackend(_BaseDebugBackend):
         ]
 
     def _parse(self, raw: str, source: IncidentSource) -> DebugExtractionResult:
+        """Map the NTSTATUS code, fault address, and frames into a structured result."""
         exception_code = _extract_exception_code(raw)
         fault_class = map_windows_ntstatus(exception_code)
 
@@ -191,10 +199,12 @@ class CdbBackend(_BaseDebugBackend):
 
     @staticmethod
     def _parse_timestamp(raw: str) -> Optional[datetime]:
+        """Parse the CDB ``Debug session time`` into a datetime, or ``None``."""
         match = _TIMESTAMP_RE.search(raw)
         if not match:
             return None
         try:
             return datetime.strptime(match.group(1).strip(), "%a %b %d %H:%M:%S.%f %Y")
         except ValueError:
+            logger.debug("CdbBackend._parse_timestamp: unrecognised timestamp format; using None")
             return None

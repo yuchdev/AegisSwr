@@ -33,6 +33,11 @@ _FRAME_RE = re.compile(
 
 
 def parse_gdb_frames(raw: str) -> list[StackFrame]:
+    """Parse ``gdb bt`` output into :class:`StackFrame` objects.
+
+    :param raw: combined gdb backtrace text.
+    :return: the parsed stack frames in order, with unresolved names dropped.
+    """
     frames: list[StackFrame] = []
     for line in raw.splitlines():
         match = _FRAME_RE.match(line.strip())
@@ -54,6 +59,8 @@ def parse_gdb_frames(raw: str) -> list[StackFrame]:
 
 
 class GdbBackend(_BaseDebugBackend):
+    """Debug backend that extracts crash data from ELF cores via ``gdb --batch``."""
+
     SUPPORTED_FORMATS: ClassVar[list[DumpFormat]] = [
         DumpFormat.LINUX_CORE,
         DumpFormat.WINDOWS_MINIDUMP,
@@ -65,6 +72,7 @@ class GdbBackend(_BaseDebugBackend):
         source: IncidentSource,
         symbol_path: list[str],
     ) -> list[str]:
+        """Build the ``gdb --batch`` argv that loads the core and prints a backtrace."""
         return [
             "gdb",
             "--batch",
@@ -80,12 +88,11 @@ class GdbBackend(_BaseDebugBackend):
         ]
 
     def _parse(self, raw: str, source: IncidentSource) -> DebugExtractionResult:
+        """Map the POSIX signal and parsed frames into a structured result."""
         signal_match = _SIGNAL_RE.search(raw)
         signal_name = signal_match.group(1) if signal_match else ""
         fault_class = (
-            map_linux_signal(_SIGNAL_NUMBERS[signal_name])
-            if signal_name in _SIGNAL_NUMBERS
-            else FaultClass.UNKNOWN
+            map_linux_signal(_SIGNAL_NUMBERS[signal_name]) if signal_name in _SIGNAL_NUMBERS else FaultClass.UNKNOWN
         )
 
         frames = parse_gdb_frames(raw)

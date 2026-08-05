@@ -55,7 +55,10 @@ def _make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]:
     """
 
     class _Handler(BaseHTTPRequestHandler):
+        """HTTP handler that enqueues each POST body into the bridge queue."""
+
         def do_POST(self):
+            """Read the POST body, enqueue it, and reply ``200 OK`` (or 500 on error)."""
             try:
                 length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(length).decode("utf-8")
@@ -70,6 +73,7 @@ def _make_handler(data_queue: queue.Queue[str]) -> type[BaseHTTPRequestHandler]:
                 self.end_headers()
 
         def log_message(self, *args: object):
+            """Suppress the default noisy HTTP access log lines."""
             pass  # suppress noisy HTTP access log lines
 
     return _Handler
@@ -83,12 +87,14 @@ class _CallbackBridge:
     """
 
     def __init__(self, callback_timeout: int):
+        """Initialise the bridge with a payload-wait *callback_timeout* in seconds."""
         self._timeout = callback_timeout
         self._queue: queue.Queue[str] = queue.Queue()
         self._server: Optional[HTTPServer] = None
         self.port: int = 0
 
     def __enter__(self) -> _CallbackBridge:
+        """Bind an ephemeral loopback HTTP server, serve it in a thread, and return self."""
         handler_cls = _make_handler(self._queue)
         self._server = HTTPServer(("127.0.0.1", 0), handler_cls)
         self.port = self._server.server_address[1]
@@ -98,6 +104,7 @@ class _CallbackBridge:
         return self
 
     def __exit__(self, *_: object):
+        """Shut down and close the HTTP server on context exit."""
         if self._server is not None:
             self._server.shutdown()
             self._server.server_close()
@@ -123,6 +130,7 @@ class _CallbackBridge:
 
 
 def _unlink_safe(path: str):
+    """Delete the temp file at *path*, logging a warning if removal fails."""
     try:
         os.unlink(path)
     except OSError:
@@ -148,6 +156,16 @@ class WinDbgJSBackend(_BaseDebugBackend):
         source: IncidentSource,
         symbol_path: list[str],
     ) -> DebugExtractionResult:
+        """Run the JS diagnostic script under WinDbg and parse its JSON callback.
+
+        Overrides the base template method: binds the callback bridge, injects the
+        script params, runs ``cdb.exe`` with the temp script, and waits for the
+        JSON payload posted back over the loopback bridge.
+
+        :param source: the incident source carrying the dump to analyse.
+        :param symbol_path: symbol search paths passed to the debugger.
+        :return: the structured extraction result parsed from the JS callback.
+        """
         self._validate(source)
         js_content = self._prepare_js_template()  # raises early if asset missing
 
@@ -182,6 +200,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         source: IncidentSource,
         symbol_path: list[str],
     ) -> list[str]:
+        """Satisfy the ABC contract by delegating to ``_js_command`` with a placeholder."""
         # This method satisfies the ABC contract and is used when the base
         # template method (which we override) would call it. In practice
         # extract() always calls _js_command() directly with a concrete path.
@@ -192,6 +211,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
     # ------------------------------------------------------------------
 
     def _asset_path(self) -> Path:
+        """Return the on-disk path to the bundled WinDbg JS diagnostic asset."""
         return Path(__file__).parent / "assets" / _JS_ASSET_NAME
 
     def _prepare_js_template(self) -> str:
@@ -213,6 +233,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         )
 
     def _symbol_path_string(self, symbol_paths: list[str]) -> str:
+        """Build the CDB symbol-path string from the cache, server, and extra paths."""
         cache = resolve_symbol_path(self._settings.symbol_cache)
         server = self._settings.symbol_server_url or _DEFAULT_SYMBOL_SERVER
         parts = [f"srv*{cache}*{server}", *symbol_paths]
@@ -224,6 +245,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         symbol_path: list[str],
         tmp_js_path: str,
     ) -> list[str]:
+        """Build the ``cdb.exe`` argv that loads and runs the JS script at *tmp_js_path*."""
         return [
             "cdb.exe",
             "-z",
@@ -235,6 +257,7 @@ class WinDbgJSBackend(_BaseDebugBackend):
         ]
 
     def _parse(self, raw_json: str, source: IncidentSource) -> DebugExtractionResult:
+        """Parse the JS callback JSON into a structured extraction result."""
         try:
             data = json.loads(raw_json)
         except json.JSONDecodeError as exc:

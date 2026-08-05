@@ -22,7 +22,10 @@ from aegis_swr.core.schemas import DebugExtractionResult, IncidentSource, StackF
 
 
 class _BaseDebugBackend(DebugBackend):
+    """Provider-neutral base implementing the debug extraction template method."""
+
     def __init__(self, settings: DebugSettings):
+        """Store the debug *settings* (timeout, symbol paths) for later use."""
         self._settings = settings
 
     # -- template method ---------------------------------------------------
@@ -32,6 +35,12 @@ class _BaseDebugBackend(DebugBackend):
         source: IncidentSource,
         symbol_path: list[str],
     ) -> DebugExtractionResult:
+        """Validate, build the debugger command, run it, and parse the output.
+
+        :param source: the incident source carrying the dump to analyse.
+        :param symbol_path: symbol search paths passed to the debugger.
+        :return: the structured extraction result for the concrete backend.
+        """
         self._validate(source)
         command = self._build_command_sequence(source, symbol_path)
         raw = self._run(command)
@@ -40,6 +49,7 @@ class _BaseDebugBackend(DebugBackend):
     # -- shared helpers ----------------------------------------------------
 
     def _validate(self, source: IncidentSource):
+        """Ensure *source* has an existing dump in a format this backend supports."""
         if not source.dump_path:
             raise DebugExtractionError("IncidentSource has no dump_path")
         if not Path(source.dump_path).exists():
@@ -49,6 +59,13 @@ class _BaseDebugBackend(DebugBackend):
             raise DebugExtractionError(f"{type(self).__name__} does not support {fmt.value}")
 
     def _run(self, command: list[str]) -> str:
+        """Run the debugger *command* with a timeout, returning combined output.
+
+        :param command: the debugger argv to execute.
+        :return: concatenated stdout and stderr text.
+        :raises PlatformNotSupportedError: if the debugger binary is missing.
+        :raises DebugExtractionError: if the debugger times out.
+        """
         try:
             result = subprocess.run(
                 command,
@@ -60,9 +77,7 @@ class _BaseDebugBackend(DebugBackend):
         except FileNotFoundError as exc:
             raise PlatformNotSupportedError(f"Debugger binary not found: {command[0]!r}") from exc
         except subprocess.TimeoutExpired as exc:
-            raise DebugExtractionError(
-                f"Debugger timed out after {self._settings.timeout_seconds}s"
-            ) from exc
+            raise DebugExtractionError(f"Debugger timed out after {self._settings.timeout_seconds}s") from exc
         combined = (result.stdout or "") + (result.stderr or "")
         if not combined.strip():
             logger.warning(f"{command[0]} produced no output")
@@ -70,6 +85,7 @@ class _BaseDebugBackend(DebugBackend):
 
     @staticmethod
     def _symbol_score(frames: list[StackFrame]) -> float:
+        """Return the fraction of *frames* with a resolved function name."""
         if not frames:
             return 0.0
         resolved = sum(1 for f in frames if f.function)
@@ -77,6 +93,7 @@ class _BaseDebugBackend(DebugBackend):
 
     @staticmethod
     def _excerpt(raw: str) -> str:
+        """Apply the noise filter to *raw* debugger output for a stored excerpt."""
         return apply_noise_filter(raw)
 
     # -- provider hooks ----------------------------------------------------
