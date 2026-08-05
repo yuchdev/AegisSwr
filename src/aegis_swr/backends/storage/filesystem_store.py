@@ -150,6 +150,7 @@ class FilesystemStore(RelationalStore, ObjectStore):
     """JSON-file and binary-file storage; implements both ABCs"""
 
     def __init__(self, settings: StorageSettings):
+        """Resolve the reports, objects, and hash-index directories from settings."""
         self._reports_dir = Path(settings.reports_dir).expanduser()
         self._objects_dir = Path(settings.objects_dir).expanduser()
         self._hash_index_dir = self._reports_dir / "_hash_index"
@@ -159,9 +160,11 @@ class FilesystemStore(RelationalStore, ObjectStore):
     # ------------------------------------------------------------------
 
     async def save_report(self, report: RCAReport):
+        """Persist *report* (JSON, Markdown, hash index) off the event loop thread."""
         await asyncio.to_thread(self._sync_save_report, report)
 
     def _sync_save_report(self, report: RCAReport):
+        """Write the report JSON and Markdown files and its dump-hash index."""
         try:
             self._reports_dir.mkdir(parents=True, exist_ok=True)
             path = _safe_path(self._reports_dir, f"{report.incident_id}.json")
@@ -178,25 +181,31 @@ class FilesystemStore(RelationalStore, ObjectStore):
         logger.debug(f"FilesystemStore: saved report {report.incident_id}")
 
     async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
+        """Load the report for *incident_id* off the event loop thread."""
         return await asyncio.to_thread(self._sync_get_report, incident_id)
 
     def _sync_get_report(self, incident_id: UUID) -> Optional[RCAReport]:
+        """Read and validate the report JSON for *incident_id*, or ``None`` if missing."""
         try:
             path = _safe_path(self._reports_dir, f"{incident_id}.json")
             return RCAReport.model_validate_json(path.read_text(encoding="utf-8"))
         except FileNotFoundError:
+            logger.debug("FilesystemStore._sync_get_report: report {} not found", incident_id)
             return None
 
     async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
+        """Look up a cached report by *dump_hash* off the event loop thread."""
         return await asyncio.to_thread(self._sync_find_by_hash, dump_hash)
 
     def _sync_find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
+        """Resolve the hash index file to an incident id, then load that report."""
         try:
             safe_hash = dump_hash.replace(":", "_")
             idx_path = _safe_path(self._hash_index_dir, safe_hash)
             incident_id_str = idx_path.read_text(encoding="utf-8").strip()
             return self._sync_get_report(UUID(incident_id_str))
-        except (FileNotFoundError, ValueError):
+        except (FileNotFoundError, ValueError) as exc:
+            logger.debug("FilesystemStore._sync_find_by_hash: hash index lookup failed: {}", exc)
             return None
 
     async def update_hitl_response(
@@ -204,6 +213,7 @@ class FilesystemStore(RelationalStore, ObjectStore):
         incident_id: UUID,
         response: dict[str, object],
     ):
+        """Merge a HITL *response* into the stored report off the event loop thread."""
         await asyncio.to_thread(self._sync_update_hitl, incident_id, response)
 
     def _sync_update_hitl(
@@ -211,6 +221,7 @@ class FilesystemStore(RelationalStore, ObjectStore):
         incident_id: UUID,
         response: dict[str, object],
     ):
+        """Read the report JSON, set its ``hitl_request``, and write it back."""
         path = _safe_path(self._reports_dir, f"{incident_id}.json")
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -220,9 +231,11 @@ class FilesystemStore(RelationalStore, ObjectStore):
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     async def load_recent(self, limit: int = 100) -> list[RCAReport]:
+        """Load the most recent reports (up to *limit*) off the event loop thread."""
         return await asyncio.to_thread(self._sync_load_recent, limit)
 
     def _sync_load_recent(self, limit: int) -> list[RCAReport]:
+        """Read every report JSON, sort newest-first, and return up to *limit*."""
         if not self._reports_dir.is_dir():
             return []
         reports: list[RCAReport] = []
@@ -247,18 +260,28 @@ class FilesystemStore(RelationalStore, ObjectStore):
         filename: str,
         data: bytes,
     ) -> str:
+        """Upload raw artifact *data* under the incident off the event loop thread.
+
+        :param incident_id: the incident the artifact belongs to.
+        :param filename: the artifact file name within the incident namespace.
+        :param data: the raw bytes to store.
+        :return: the ``{incident_id}/{filename}`` object key for later retrieval.
+        """
         return await asyncio.to_thread(self._sync_upload_raw, incident_id, filename, data)
 
     def _sync_upload_raw(self, incident_id: UUID, filename: str, data: bytes) -> str:
+        """Write raw *data* to the per-incident objects directory, returning its key."""
         dest = _safe_path(self._objects_dir, str(incident_id), filename)
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
         return f"{incident_id}/{filename}"
 
     async def get_raw(self, object_key: str) -> bytes:
+        """Fetch the raw artifact bytes for *object_key* off the event loop thread."""
         return await asyncio.to_thread(self._sync_get_raw, object_key)
 
     def _sync_get_raw(self, object_key: str) -> bytes:
+        """Read the artifact bytes for *object_key*, raising if the file is missing."""
         parts = object_key.split("/", 1)
         try:
             path = _safe_path(self._objects_dir, *parts)
