@@ -481,10 +481,10 @@ def test_map_windows_ntstatus(code: str, expected: FaultClass):
 @pytest.mark.parametrize(
     "signal,expected",
     [
-        (11, FaultClass.MEMORY_ACCESS_VIOLATION),   # SIGSEGV
-        (7, FaultClass.MEMORY_ACCESS_VIOLATION),    # SIGBUS
-        (8, FaultClass.INTEGER_DIVIDE_BY_ZERO),     # SIGFPE
-        (6, FaultClass.ASSERTION_FAILURE),          # SIGABRT
+        (11, FaultClass.MEMORY_ACCESS_VIOLATION),  # SIGSEGV
+        (7, FaultClass.MEMORY_ACCESS_VIOLATION),  # SIGBUS
+        (8, FaultClass.INTEGER_DIVIDE_BY_ZERO),  # SIGFPE
+        (6, FaultClass.ASSERTION_FAILURE),  # SIGABRT
         (99, FaultClass.UNKNOWN),
     ],
 )
@@ -516,7 +516,14 @@ def test_map_linux_signal(signal: int, expected: FaultClass):
 
 
 def test_memory_forensics_output_minimal():
-    """[Unit] schemas: minimal MemoryForensicsOutput uses empty/None defaults."""
+    """[Unit] schemas: minimal MemoryForensicsOutput uses empty/None defaults.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: minimal MemoryForensicsOutput uses empty/None defaults.
+    """
     out = MemoryForensicsOutput(
         hypotheses=[Hypothesis(root_cause="heap overflow", confidence=0.8)],
         confidence_score=0.8,
@@ -527,7 +534,14 @@ def test_memory_forensics_output_minimal():
 
 
 def test_memory_forensics_output_full():
-    """[Unit] schemas: a fully-populated MemoryForensicsOutput round-trips."""
+    """[Unit] schemas: a fully-populated MemoryForensicsOutput round-trips.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: a fully-populated MemoryForensicsOutput round-trips.
+    """
     out = MemoryForensicsOutput(
         hypotheses=[Hypothesis(root_cause="use-after-free", confidence=0.9)],
         confidence_score=0.9,
@@ -543,7 +557,14 @@ def test_memory_forensics_output_full():
 
 
 def test_memory_forensics_output_hypotheses_list():
-    """[Unit] schemas: each hypothesis is a valid Hypothesis with confidence in range."""
+    """[Unit] schemas: each hypothesis is a valid Hypothesis with confidence in range.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: each hypothesis is a valid Hypothesis with confidence in range.
+    """
     out = MemoryForensicsOutput(
         hypotheses=[
             Hypothesis(root_cause="double free", confidence=0.7),
@@ -557,7 +578,14 @@ def test_memory_forensics_output_hypotheses_list():
 
 @pytest.mark.parametrize("bad_score", [-0.1, 1.1])
 def test_memory_forensics_output_rejects_invalid_confidence(bad_score):
-    """[Unit] schemas: confidence_score outside [0.0, 1.0] raises ValidationError."""
+    """[Unit] schemas: confidence_score outside [0.0, 1.0] raises ValidationError.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: confidence_score outside [0.0, 1.0] raises ValidationError.
+    """
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
@@ -570,7 +598,14 @@ def test_memory_forensics_output_rejects_invalid_confidence(bad_score):
 
 
 def test_concurrency_analyst_output_minimal():
-    """[Unit] schemas: minimal ConcurrencyAnalystOutput uses empty/None defaults."""
+    """[Unit] schemas: minimal ConcurrencyAnalystOutput uses empty/None defaults.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: minimal ConcurrencyAnalystOutput uses empty/None defaults.
+    """
     out = ConcurrencyAnalystOutput(hypotheses=[], confidence_score=0.5)
     assert out.wait_chain == []
     assert out.lock_order_inversions == []
@@ -578,7 +613,14 @@ def test_concurrency_analyst_output_minimal():
 
 
 def test_concurrency_analyst_output_full():
-    """[Unit] schemas: a fully-populated ConcurrencyAnalystOutput round-trips."""
+    """[Unit] schemas: a fully-populated ConcurrencyAnalystOutput round-trips.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: a fully-populated ConcurrencyAnalystOutput round-trips.
+    """
     out = ConcurrencyAnalystOutput(
         hypotheses=[Hypothesis(root_cause="AB-BA deadlock", confidence=0.8)],
         confidence_score=0.8,
@@ -593,7 +635,14 @@ def test_concurrency_analyst_output_full():
 
 
 def test_concurrency_analyst_output_missing_confidence_raises():
-    """[Unit] schemas: omitting confidence_score raises ValidationError."""
+    """[Unit] schemas: omitting confidence_score raises ValidationError.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: omitting confidence_score raises ValidationError.
+    """
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
@@ -601,7 +650,14 @@ def test_concurrency_analyst_output_missing_confidence_raises():
 
 
 def test_concurrency_analyst_output_optional_race_none():
-    """[Unit] schemas: suspected_race=None serializes as JSON null."""
+    """[Unit] schemas: suspected_race=None serializes as JSON null.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: suspected_race=None serializes as JSON null.
+    """
     out = ConcurrencyAnalystOutput(hypotheses=[], confidence_score=0.4)
     assert json.loads(out.model_dump_json())["suspected_race"] is None
 
@@ -612,16 +668,28 @@ def test_concurrency_analyst_output_optional_race_none():
 
 
 def test_exploitability_output_minimal():
-    """[Unit] schemas: minimal ExploitabilityOutput uses empty/None defaults."""
-    out = ExploitabilityOutput(
-        hypotheses=[], confidence_score=0.5, exploitable=False, severity="none"
-    )
+    """[Unit] schemas: minimal ExploitabilityOutput uses empty/None defaults.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: minimal ExploitabilityOutput uses empty/None defaults.
+    """
+    out = ExploitabilityOutput(hypotheses=[], confidence_score=0.5, exploitable=False, severity="none")
     assert out.attacker_control is None
     assert out.mitigations_present == []
 
 
 def test_exploitability_output_full():
-    """[Unit] schemas: a fully-populated ExploitabilityOutput round-trips."""
+    """[Unit] schemas: a fully-populated ExploitabilityOutput round-trips.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: a fully-populated ExploitabilityOutput round-trips.
+    """
     out = ExploitabilityOutput(
         hypotheses=[Hypothesis(root_cause="controlled write primitive", confidence=0.9)],
         confidence_score=0.9,
@@ -638,7 +706,14 @@ def test_exploitability_output_full():
 
 
 def test_exploitability_output_hypotheses_valid():
-    """[Unit] schemas: each hypothesis is a valid Hypothesis with confidence in range."""
+    """[Unit] schemas: each hypothesis is a valid Hypothesis with confidence in range.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: each hypothesis is a valid Hypothesis with confidence in range.
+    """
     out = ExploitabilityOutput(
         hypotheses=[
             Hypothesis(root_cause="vtable hijack", confidence=0.7),
@@ -653,13 +728,16 @@ def test_exploitability_output_hypotheses_valid():
 
 
 def test_exploitability_output_exploitable_bool():
-    """[Unit] schemas: both exploitable verdicts construct and serialize cleanly."""
-    not_exp = ExploitabilityOutput(
-        hypotheses=[], confidence_score=0.3, exploitable=False, severity="none"
-    )
-    exp = ExploitabilityOutput(
-        hypotheses=[], confidence_score=0.95, exploitable=True, severity="high"
-    )
+    """[Unit] schemas: both exploitable verdicts construct and serialize cleanly.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: both exploitable verdicts construct and serialize cleanly.
+    """
+    not_exp = ExploitabilityOutput(hypotheses=[], confidence_score=0.3, exploitable=False, severity="none")
+    exp = ExploitabilityOutput(hypotheses=[], confidence_score=0.95, exploitable=True, severity="high")
     assert json.loads(not_exp.model_dump_json())["exploitable"] is False
     assert json.loads(exp.model_dump_json())["exploitable"] is True
 
@@ -670,7 +748,14 @@ def test_exploitability_output_exploitable_bool():
 
 
 def test_resource_exhaustion_output_minimal():
-    """[Unit] schemas: minimal ResourceExhaustionOutput uses empty/None defaults."""
+    """[Unit] schemas: minimal ResourceExhaustionOutput uses empty/None defaults.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: minimal ResourceExhaustionOutput uses empty/None defaults.
+    """
     out = ResourceExhaustionOutput(hypotheses=[], confidence_score=0.5)
     assert out.exhausted_resource is None
     assert out.leak_indicators == []
@@ -678,7 +763,14 @@ def test_resource_exhaustion_output_minimal():
 
 
 def test_resource_exhaustion_output_full():
-    """[Unit] schemas: a fully-populated ResourceExhaustionOutput round-trips."""
+    """[Unit] schemas: a fully-populated ResourceExhaustionOutput round-trips.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: a fully-populated ResourceExhaustionOutput round-trips.
+    """
     out = ResourceExhaustionOutput(
         hypotheses=[Hypothesis(root_cause="fd leak in accept loop", confidence=0.8)],
         confidence_score=0.8,
@@ -693,7 +785,14 @@ def test_resource_exhaustion_output_full():
 
 
 def test_resource_exhaustion_output_hypotheses_list():
-    """[Unit] schemas: each hypothesis is a valid Hypothesis with confidence in range."""
+    """[Unit] schemas: each hypothesis is a valid Hypothesis with confidence in range.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: each hypothesis is a valid Hypothesis with confidence in range.
+    """
     out = ResourceExhaustionOutput(
         hypotheses=[
             Hypothesis(root_cause="handle leak", confidence=0.7),
@@ -707,7 +806,14 @@ def test_resource_exhaustion_output_hypotheses_list():
 
 @pytest.mark.parametrize("bad_score", [-0.1, 1.1])
 def test_resource_exhaustion_output_rejects_invalid_confidence(bad_score):
-    """[Unit] schemas: confidence_score outside [0.0, 1.0] raises ValidationError."""
+    """[Unit] schemas: confidence_score outside [0.0, 1.0] raises ValidationError.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: confidence_score outside [0.0, 1.0] raises ValidationError.
+    """
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
@@ -720,12 +826,14 @@ def test_resource_exhaustion_output_rejects_invalid_confidence(bad_score):
 
 
 def _step(order: int = 1, **kw) -> RemediationStep:
+    """Build a canned idempotent :class:`RemediationStep`, overriding fields via *kw*."""
     base = {"order": order, "action": "restart svc", "idempotent": True, "rollback": "stop svc"}
     base.update(kw)
     return RemediationStep(**base)
 
 
 def _plan(**kw) -> RemediationPlan:
+    """Build a canned single-step :class:`RemediationPlan`, overriding fields via *kw*."""
     base = {
         "steps": [_step()],
         "summary": "restart the service",
@@ -737,6 +845,7 @@ def _plan(**kw) -> RemediationPlan:
 
 
 def _minimal_report(**kw) -> RCAReport:
+    """Build a minimal :class:`RCAReport`, overriding fields via *kw*."""
     from aegis_swr.core.schemas import ConfidenceLevel
 
     base = {
@@ -752,7 +861,14 @@ def _minimal_report(**kw) -> RCAReport:
 
 
 def test_remediation_step_requires_rollback():
-    """[Unit] schemas: an empty rollback string is rejected."""
+    """[Unit] schemas: an empty rollback string is rejected.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: an empty rollback string is rejected.
+    """
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
@@ -760,7 +876,14 @@ def test_remediation_step_requires_rollback():
 
 
 def test_remediation_step_defaults():
-    """[Unit] schemas: verification/risk default to None; approval defaults False."""
+    """[Unit] schemas: verification/risk default to None; approval defaults False.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: verification/risk default to None; approval defaults False.
+    """
     step = _step()
     assert step.verification is None
     assert step.risk is None
@@ -768,7 +891,14 @@ def test_remediation_step_defaults():
 
 
 def test_remediation_step_rejects_readonly_rollback_when_not_idempotent():
-    """[Unit] schemas: a non-idempotent step cannot use the read-only sentinel."""
+    """[Unit] schemas: a non-idempotent step cannot use the read-only sentinel.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: a non-idempotent step cannot use the read-only sentinel.
+    """
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
@@ -776,7 +906,14 @@ def test_remediation_step_rejects_readonly_rollback_when_not_idempotent():
 
 
 def test_remediation_plan_rejects_empty_steps():
-    """[Unit] schemas: a plan with no steps is rejected."""
+    """[Unit] schemas: a plan with no steps is rejected.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: a plan with no steps is rejected.
+    """
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
@@ -784,7 +921,14 @@ def test_remediation_plan_rejects_empty_steps():
 
 
 def test_remediation_plan_rejects_non_contiguous_order():
-    """[Unit] schemas: step order must be a contiguous 1-based sequence."""
+    """[Unit] schemas: step order must be a contiguous 1-based sequence.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: step order must be a contiguous 1-based sequence.
+    """
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
@@ -804,20 +948,41 @@ def test_remediation_plan_rejects_non_contiguous_order():
 
 
 def test_remediation_plan_requires_human_approval_on_low_confidence():
-    """[Unit] schemas: confidence < 0.70 forces requires_human_approval=True."""
+    """[Unit] schemas: confidence < 0.70 forces requires_human_approval=True.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: confidence < 0.70 forces requires_human_approval=True.
+    """
     plan = _plan(confidence=0.60, requires_human_approval=False)
     assert plan.requires_human_approval is True
 
 
 def test_rca_report_remediation_plan_optional():
-    """[Unit] schemas: RCAReport without a plan serializes with remediation_plan None."""
+    """[Unit] schemas: RCAReport without a plan serializes with remediation_plan None.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: rCAReport without a plan serializes with remediation_plan None.
+    """
     report = _minimal_report()
     assert report.remediation_plan is None
     assert json.loads(report.model_dump_json())["remediation_plan"] is None
 
 
 def test_rca_report_with_remediation_plan_roundtrips():
-    """[Unit] schemas: a report carrying a plan survives a JSON round-trip."""
+    """[Unit] schemas: a report carrying a plan survives a JSON round-trip.
+
+    Scenario: the schema is constructed and validated as described in the summary.
+
+    Boundaries: exercises the Pydantic model definition only.
+
+    On failure, first check: a report carrying a plan survives a JSON round-trip.
+    """
     report = _minimal_report(remediation_plan=_plan())
     restored = RCAReport.model_validate_json(report.model_dump_json())
     assert restored.remediation_plan is not None
@@ -828,9 +993,9 @@ def test_rca_report_with_remediation_plan_roundtrips():
 @pytest.mark.parametrize(
     "code,expected",
     [
-        (1, FaultClass.MEMORY_ACCESS_VIOLATION),    # EXC_BAD_ACCESS
-        (3, FaultClass.INTEGER_DIVIDE_BY_ZERO),     # EXC_ARITHMETIC
-        (6, FaultClass.ASSERTION_FAILURE),          # EXC_BREAKPOINT
+        (1, FaultClass.MEMORY_ACCESS_VIOLATION),  # EXC_BAD_ACCESS
+        (3, FaultClass.INTEGER_DIVIDE_BY_ZERO),  # EXC_ARITHMETIC
+        (6, FaultClass.ASSERTION_FAILURE),  # EXC_BREAKPOINT
         (99, FaultClass.UNKNOWN),
     ],
 )
