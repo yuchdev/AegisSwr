@@ -41,12 +41,15 @@ class _FakeStreamCall:
     """Async iterator over a scripted frame sequence (mimics a gRPC stream call)."""
 
     def __init__(self, frames: list[SimpleNamespace]) -> None:
+        """Store an iterator over the scripted *frames*."""
         self._it = iter(frames)
 
     def __aiter__(self) -> _FakeStreamCall:
+        """Return self as the async iterator."""
         return self
 
     async def __anext__(self) -> SimpleNamespace:
+        """Yield the next scripted frame or raise ``StopAsyncIteration`` at the end."""
         try:
             return next(self._it)
         except StopIteration as exc:
@@ -57,10 +60,12 @@ class _FakeMultiCallable:
     """Callable returned by ``channel.unary_stream``; yields a scripted call."""
 
     def __init__(self, frames: list[SimpleNamespace]) -> None:
+        """Store the scripted *frames* and initialise the recorded timeout."""
         self._frames = frames
         self.timeout: Optional[float] = None
 
     def __call__(self, request: object, timeout: Optional[float] = None) -> _FakeStreamCall:
+        """Record the per-call *timeout* and return a scripted stream call."""
         self.timeout = timeout
         return _FakeStreamCall(self._frames)
 
@@ -69,13 +74,16 @@ class _FakeChannel:
     """Minimal async gRPC channel double supporting ``unary_stream`` and ``close``."""
 
     def __init__(self, frames: Optional[list[SimpleNamespace]] = None) -> None:
+        """Store the scripted *frames* and initialise the close counter."""
         self._frames = frames or []
         self.close_calls = 0
 
     def unary_stream(self, *args: object, **kwargs: object) -> _FakeMultiCallable:
+        """Return a multicallable that yields the scripted frames."""
         return _FakeMultiCallable(self._frames)
 
     async def close(self, grace: Optional[float] = None) -> None:
+        """Record a channel close call."""
         self.close_calls += 1
 
 
@@ -92,12 +100,15 @@ class _RaisingStreamCall:
     """Async iterator whose first ``__anext__`` raises a gRPC status error."""
 
     def __init__(self, error: grpc.aio.AioRpcError) -> None:
+        """Store the *error* to raise on first iteration."""
         self._error = error
 
     def __aiter__(self) -> _RaisingStreamCall:
+        """Return self as the async iterator."""
         return self
 
     async def __anext__(self) -> SimpleNamespace:
+        """Raise the stored gRPC status error immediately."""
         raise self._error
 
 
@@ -105,16 +116,21 @@ class _RaisingChannel:
     """Channel double whose stream fails immediately with a gRPC status error."""
 
     def __init__(self, error: grpc.aio.AioRpcError) -> None:
+        """Store the *error* raised by the stream and initialise the close counter."""
         self._error = error
         self.close_calls = 0
 
     def unary_stream(self, *args: object, **kwargs: object) -> object:
+        """Return a callable that produces an immediately-raising stream call."""
+
         def _call(request: object, timeout: Optional[float] = None) -> _RaisingStreamCall:
+            """Return a stream call that raises the stored gRPC error."""
             return _RaisingStreamCall(self._error)
 
         return _call
 
     async def close(self, grace: Optional[float] = None) -> None:
+        """Record a channel close call."""
         self.close_calls += 1
 
 
@@ -122,9 +138,11 @@ class _SlowStreamCall:
     """Async iterator that never yields, forcing an ``asyncio.wait_for`` timeout."""
 
     def __aiter__(self) -> _SlowStreamCall:
+        """Return self as the async iterator."""
         return self
 
     async def __anext__(self) -> SimpleNamespace:
+        """Sleep effectively forever so the caller's ``wait_for`` times out."""
         await asyncio.sleep(3600)
         raise StopAsyncIteration
 
@@ -133,15 +151,20 @@ class _SlowChannel:
     """Channel double whose stream hangs indefinitely."""
 
     def __init__(self) -> None:
+        """Initialise the close counter."""
         self.close_calls = 0
 
     def unary_stream(self, *args: object, **kwargs: object) -> object:
+        """Return a callable that produces a never-yielding stream call."""
+
         def _call(request: object, timeout: Optional[float] = None) -> _SlowStreamCall:
+            """Return a stream call that never yields."""
             return _SlowStreamCall()
 
         return _call
 
     async def close(self, grace: Optional[float] = None) -> None:
+        """Record a channel close call."""
         self.close_calls += 1
 
 
@@ -149,9 +172,11 @@ class _RuntimeErrorStreamCall:
     """Async iterator whose first ``__anext__`` raises a non-gRPC exception."""
 
     def __aiter__(self) -> _RuntimeErrorStreamCall:
+        """Return self as the async iterator."""
         return self
 
     async def __anext__(self) -> SimpleNamespace:
+        """Raise a non-gRPC ``RuntimeError`` immediately."""
         raise RuntimeError("unexpected stream failure")
 
 
@@ -159,15 +184,20 @@ class _RuntimeErrorChannel:
     """Channel double whose stream fails with an unexpected (non-gRPC) error."""
 
     def __init__(self) -> None:
+        """Initialise the close counter."""
         self.close_calls = 0
 
     def unary_stream(self, *args: object, **kwargs: object) -> object:
+        """Return a callable that produces a stream call raising a non-gRPC error."""
+
         def _call(request: object, timeout: Optional[float] = None) -> _RuntimeErrorStreamCall:
+            """Return a stream call that raises ``RuntimeError``."""
             return _RuntimeErrorStreamCall()
 
         return _call
 
     async def close(self, grace: Optional[float] = None) -> None:
+        """Record a channel close call."""
         self.close_calls += 1
 
 
@@ -198,7 +228,15 @@ async def _drain(client: OpenClaudeGrpcClient) -> list[AgentFrame]:
 
 
 async def test_multi_frame_stream_ends_in_done() -> None:
-    """A text stream terminated by DONE yields every frame in order."""
+    """[Unit] client: a text stream ending in DONE yields every frame in order.
+
+    Scenario: two text chunks followed by a DONE frame are drained via ``query``.
+
+    Boundaries: uses a fake channel and scripted frames; no live gRPC stream.
+
+    On failure, first check: the frame-type sequence must be TEXT_CHUNK,
+    TEXT_CHUNK, DONE and the final content must be the accumulated text.
+    """
     channel = _FakeChannel(
         [
             _msg(_TEXT_CHUNK, content="hello "),
@@ -219,7 +257,16 @@ async def test_multi_frame_stream_ends_in_done() -> None:
 
 
 async def test_stream_ends_in_error_frame() -> None:
-    """A stream terminated by an ERROR frame yields it as the final frame."""
+    """[Unit] client: a stream ending in an ERROR frame yields it last.
+
+    Scenario: a text chunk followed by an ERROR frame is drained via ``query``.
+
+    Boundaries: an ERROR *frame* is a normal terminal, distinct from a gRPC
+    status error.
+
+    On failure, first check: the final frame must be an ERROR carrying its
+    content.
+    """
     channel = _FakeChannel(
         [
             _msg(_TEXT_CHUNK, content="partial"),
@@ -235,7 +282,15 @@ async def test_stream_ends_in_error_frame() -> None:
 
 
 async def test_query_stops_after_first_terminal_frame() -> None:
-    """Frames after the first terminal DONE are not yielded."""
+    """[Unit] client: frames after the first terminal DONE are not yielded.
+
+    Scenario: a DONE frame is followed by a stray text chunk in the script.
+
+    Boundaries: proves the query loop stops on the first terminal frame.
+
+    On failure, first check: exactly one frame (the DONE) must be yielded and the
+    trailing chunk must be dropped.
+    """
     channel = _FakeChannel(
         [
             _msg(_DONE, content="done"),
@@ -251,7 +306,15 @@ async def test_query_stops_after_first_terminal_frame() -> None:
 
 
 async def test_empty_tool_string_projects_to_none() -> None:
-    """An empty proto ``tool`` string becomes ``None`` on the frame."""
+    """[Unit] client: an empty proto ``tool`` string projects to ``None``.
+
+    Scenario: a TOOL_CALL frame carries an empty ``tool`` string, followed by DONE.
+
+    Boundaries: exercises the proto-to-domain field projection only.
+
+    On failure, first check: the tool-call frame's ``tool`` attribute must be
+    ``None``, not an empty string.
+    """
     channel = _FakeChannel(
         [
             _msg(_TOOL_CALL, content="{}", tool=""),
@@ -267,7 +330,14 @@ async def test_empty_tool_string_projects_to_none() -> None:
 
 
 async def test_populated_tool_string_preserved() -> None:
-    """A non-empty proto ``tool`` string is preserved on the frame."""
+    """[Unit] client: a non-empty proto ``tool`` string is preserved.
+
+    Scenario: a TOOL_CALL frame carries ``tool="Read"``, followed by DONE.
+
+    Boundaries: exercises the proto-to-domain field projection only.
+
+    On failure, first check: the tool-call frame's ``tool`` must equal ``Read``.
+    """
     channel = _FakeChannel(
         [
             _msg(_TOOL_CALL, content="{}", tool="Read"),
@@ -282,7 +352,14 @@ async def test_populated_tool_string_preserved() -> None:
 
 
 async def test_unspecified_frame_type_is_terminal_error() -> None:
-    """A FRAME_TYPE_UNSPECIFIED frame raises rather than being dropped."""
+    """[Unit] client: a FRAME_TYPE_UNSPECIFIED frame raises rather than dropping.
+
+    Scenario: a single unspecified-type frame is drained via ``query``.
+
+    Boundaries: proves protocol violations are treated as transport failures.
+
+    On failure, first check: draining must raise ``OpenClaudeUnavailableError``.
+    """
     channel = _FakeChannel([_msg(_UNSPECIFIED, content="junk")])
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -291,7 +368,14 @@ async def test_unspecified_frame_type_is_terminal_error() -> None:
 
 
 async def test_stream_without_terminal_frame_raises() -> None:
-    """A stream that ends without DONE/ERROR is a transport failure."""
+    """[Unit] client: a stream ending without DONE/ERROR is a transport failure.
+
+    Scenario: a lone text chunk with no terminal frame is drained via ``query``.
+
+    Boundaries: proves an incomplete stream is not silently accepted.
+
+    On failure, first check: draining must raise ``OpenClaudeUnavailableError``.
+    """
     channel = _FakeChannel([_msg(_TEXT_CHUNK, content="only")])
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -300,7 +384,14 @@ async def test_stream_without_terminal_frame_raises() -> None:
 
 
 async def test_close_idempotent_and_closes_channel() -> None:
-    """close() shuts the channel once and is safe to call twice."""
+    """[Unit] client: ``close()`` shuts the channel once and is safe to repeat.
+
+    Scenario: ``close`` is called twice on a client bound to a fake channel.
+
+    Boundaries: exercises close idempotency only.
+
+    On failure, first check: the channel's close count must be exactly one.
+    """
     channel = _FakeChannel([_msg(_DONE, content="")])
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -311,7 +402,15 @@ async def test_close_idempotent_and_closes_channel() -> None:
 
 
 async def test_close_safe_when_channel_never_opened() -> None:
-    """close() is a no-op when no channel was ever created."""
+    """[Unit] client: ``close()`` is a no-op when no channel was created.
+
+    Scenario: ``close`` is called on a cold client constructed from settings.
+
+    Boundaries: proves the lazy-channel guard tolerates close before open.
+
+    On failure, first check: the call must not raise and ``_channel`` must stay
+    ``None``.
+    """
     client = OpenClaudeGrpcClient(_settings())
 
     await client.close()  # must not raise
@@ -320,7 +419,15 @@ async def test_close_safe_when_channel_never_opened() -> None:
 
 
 def test_init_does_not_open_channel() -> None:
-    """Constructing from settings creates neither channel nor stub."""
+    """[Unit] client: constructing from settings creates neither channel nor stub.
+
+    Scenario: a client is built from settings with no injected channel.
+
+    Boundaries: proves construction is side-effect free (lazy channel creation).
+
+    On failure, first check: both ``_channel`` and ``_stub`` must be ``None`` right
+    after construction.
+    """
     client = OpenClaudeGrpcClient(_settings())
 
     assert client._channel is None
@@ -328,7 +435,15 @@ def test_init_does_not_open_channel() -> None:
 
 
 def test_from_channel_bypasses_lazy_creation() -> None:
-    """from_channel binds the injected channel and builds the stub eagerly."""
+    """[Unit] client: ``from_channel`` binds the channel and builds the stub eagerly.
+
+    Scenario: a client is built via ``from_channel`` with a fake channel.
+
+    Boundaries: proves the injection path bypasses lazy creation.
+
+    On failure, first check: ``_channel`` must be the injected channel and
+    ``_stub`` must be non-``None``.
+    """
     channel = _FakeChannel()
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -339,7 +454,16 @@ def test_from_channel_bypasses_lazy_creation() -> None:
 def test_ensure_channel_uses_insecure_when_tls_disabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """_ensure_channel selects an insecure channel when use_tls is False."""
+    """[Unit] client: ``_ensure_channel`` picks insecure when ``use_tls`` is False.
+
+    Scenario: both channel constructors are mocked and ``_ensure_channel`` runs
+    with ``use_tls=False``.
+
+    Boundaries: exercises the TLS branch selection only.
+
+    On failure, first check: the insecure constructor must be called once and the
+    secure one never.
+    """
     insecure = MagicMock(return_value=_FakeChannel())
     secure = MagicMock(return_value=_FakeChannel())
     monkeypatch.setattr(client_mod.grpc.aio, "insecure_channel", insecure)
@@ -355,7 +479,16 @@ def test_ensure_channel_uses_insecure_when_tls_disabled(
 def test_ensure_channel_uses_secure_when_tls_enabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """_ensure_channel selects a secure channel when use_tls is True."""
+    """[Unit] client: ``_ensure_channel`` picks secure when ``use_tls`` is True.
+
+    Scenario: both channel constructors are mocked and ``_ensure_channel`` runs
+    with ``use_tls=True``.
+
+    Boundaries: exercises the TLS branch selection only.
+
+    On failure, first check: the secure constructor must be called once and the
+    insecure one never.
+    """
     insecure = MagicMock(return_value=_FakeChannel())
     secure = MagicMock(return_value=_FakeChannel())
     monkeypatch.setattr(client_mod.grpc.aio, "insecure_channel", insecure)
@@ -369,7 +502,16 @@ def test_ensure_channel_uses_secure_when_tls_enabled(
 
 
 def test_ensure_channel_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Repeated _ensure_channel calls reuse the same channel and stub."""
+    """[Unit] client: repeated ``_ensure_channel`` calls reuse channel and stub.
+
+    Scenario: the insecure constructor is mocked and ``_ensure_channel`` is called
+    twice.
+
+    Boundaries: exercises channel caching only.
+
+    On failure, first check: both calls must return the same object and the
+    constructor must run once.
+    """
     insecure = MagicMock(return_value=_FakeChannel())
     monkeypatch.setattr(client_mod.grpc.aio, "insecure_channel", insecure)
 
@@ -382,7 +524,15 @@ def test_ensure_channel_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 async def test_context_manager_closes_channel() -> None:
-    """The async context manager closes the channel on exit."""
+    """[Unit] client: the async context manager closes the channel on exit.
+
+    Scenario: a client is used as an ``async with`` context and then inspected.
+
+    Boundaries: exercises the ``__aexit__`` close path only.
+
+    On failure, first check: the channel's close count must be exactly one after
+    the context exits.
+    """
     channel = _FakeChannel([_msg(_DONE, content="")])
 
     async with OpenClaudeGrpcClient.from_channel(channel, _settings()) as client:
@@ -395,7 +545,14 @@ async def test_context_manager_closes_channel() -> None:
 
 
 async def test_health_check_true_on_terminal_done() -> None:
-    """health_check() returns True when the probe stream ends in DONE."""
+    """[Unit] client: ``health_check`` returns True when the probe ends in DONE.
+
+    Scenario: a probe stream yields a text chunk then a DONE frame.
+
+    Boundaries: exercises the health probe's success path.
+
+    On failure, first check: ``health_check`` must return ``True``.
+    """
     channel = _FakeChannel([_msg(_TEXT_CHUNK, content="pong"), _msg(_DONE, content="pong")])
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -403,7 +560,14 @@ async def test_health_check_true_on_terminal_done() -> None:
 
 
 async def test_health_check_false_on_unavailable() -> None:
-    """health_check() returns False (never raises) on UNAVAILABLE."""
+    """[Unit] client: ``health_check`` returns False (never raises) on UNAVAILABLE.
+
+    Scenario: the probe stream raises a gRPC UNAVAILABLE status error.
+
+    Boundaries: proves transient status errors are swallowed into a False verdict.
+
+    On failure, first check: ``health_check`` must return ``False`` and not raise.
+    """
     channel = _RaisingChannel(_rpc_error(grpc.StatusCode.UNAVAILABLE))
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -411,7 +575,14 @@ async def test_health_check_false_on_unavailable() -> None:
 
 
 async def test_health_check_false_on_deadline_exceeded() -> None:
-    """health_check() returns False (never raises) on DEADLINE_EXCEEDED."""
+    """[Unit] client: ``health_check`` returns False on DEADLINE_EXCEEDED.
+
+    Scenario: the probe stream raises a gRPC DEADLINE_EXCEEDED status error.
+
+    Boundaries: proves deadline errors are swallowed into a False verdict.
+
+    On failure, first check: ``health_check`` must return ``False`` and not raise.
+    """
     channel = _RaisingChannel(_rpc_error(grpc.StatusCode.DEADLINE_EXCEEDED))
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -419,7 +590,15 @@ async def test_health_check_false_on_deadline_exceeded() -> None:
 
 
 async def test_health_check_false_on_timeout() -> None:
-    """A stream that never answers within connect_timeout_s yields False."""
+    """[Unit] client: a probe that never answers within the deadline yields False.
+
+    Scenario: a slow channel never yields; the connect timeout is shrunk to 0.05s.
+
+    Boundaries: exercises the ``wait_for`` timeout path of the health probe.
+
+    On failure, first check: ``health_check`` must return ``False`` after the
+    shortened deadline elapses.
+    """
     client = OpenClaudeGrpcClient.from_channel(_SlowChannel(), _settings())
     # Shrink the connect deadline so the wait_for cancellation is near-instant.
     object.__setattr__(client._settings, "connect_timeout_s", 0.05)
@@ -428,7 +607,14 @@ async def test_health_check_false_on_timeout() -> None:
 
 
 async def test_health_check_false_on_terminal_error_frame() -> None:
-    """A terminal ERROR frame during a probe yields False, not True."""
+    """[Unit] client: a terminal ERROR frame during a probe yields False.
+
+    Scenario: the probe stream ends in an ERROR frame rather than DONE.
+
+    Boundaries: proves an ERROR terminal is treated as an unhealthy verdict.
+
+    On failure, first check: ``health_check`` must return ``False``, not ``True``.
+    """
     channel = _FakeChannel([_msg(_ERROR, content="boom")])
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -436,7 +622,15 @@ async def test_health_check_false_on_terminal_error_frame() -> None:
 
 
 async def test_health_check_false_on_unspecified_frame() -> None:
-    """A protocol-violating unspecified frame during a probe yields False."""
+    """[Unit] client: a protocol-violating unspecified frame during a probe yields False.
+
+    Scenario: the probe stream yields a single unspecified-type frame.
+
+    Boundaries: proves a protocol violation during a probe is a False verdict, not
+    a raise.
+
+    On failure, first check: ``health_check`` must return ``False``.
+    """
     channel = _FakeChannel([_msg(_UNSPECIFIED, content="junk")])
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -444,7 +638,14 @@ async def test_health_check_false_on_unspecified_frame() -> None:
 
 
 async def test_health_check_false_on_stream_without_terminal_frame() -> None:
-    """A probe stream that ends without DONE/ERROR yields False."""
+    """[Unit] client: a probe stream ending without DONE/ERROR yields False.
+
+    Scenario: the probe stream yields only a partial text chunk.
+
+    Boundaries: proves an incomplete probe stream is an unhealthy verdict.
+
+    On failure, first check: ``health_check`` must return ``False``.
+    """
     channel = _FakeChannel([_msg(_TEXT_CHUNK, content="partial")])
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -456,7 +657,15 @@ async def test_health_check_false_on_stream_without_terminal_frame() -> None:
     [grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED],
 )
 async def test_query_raises_retriable_on_transient_status(code: grpc.StatusCode) -> None:
-    """query() maps UNAVAILABLE / DEADLINE_EXCEEDED to a retriable domain error."""
+    """[Unit] client: ``query`` maps transient status to a retriable domain error.
+
+    Scenario: the stream raises UNAVAILABLE or DEADLINE_EXCEEDED while draining.
+
+    Boundaries: exercises the gRPC-status-to-domain-error translation.
+
+    On failure, first check: the raised ``OpenClaudeUnavailableError`` must have
+    ``retriable is True`` and carry the status code name.
+    """
     channel = _RaisingChannel(_rpc_error(code))
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -468,7 +677,15 @@ async def test_query_raises_retriable_on_transient_status(code: grpc.StatusCode)
 
 
 async def test_query_raises_non_retriable_on_other_status() -> None:
-    """A non-transient status (PERMISSION_DENIED) maps to a non-retriable error."""
+    """[Unit] client: a non-transient status maps to a non-retriable domain error.
+
+    Scenario: the stream raises PERMISSION_DENIED while draining.
+
+    Boundaries: exercises the non-transient branch of status translation.
+
+    On failure, first check: the raised error must have ``retriable is False`` and
+    carry the PERMISSION_DENIED status name.
+    """
     channel = _RaisingChannel(_rpc_error(grpc.StatusCode.PERMISSION_DENIED))
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -480,7 +697,16 @@ async def test_query_raises_non_retriable_on_other_status() -> None:
 
 
 async def test_terminal_error_frame_is_yielded_not_raised() -> None:
-    """Regression: an ERROR *frame* is surfaced as an AgentFrame, not raised."""
+    """[Unit] client: an ERROR *frame* is surfaced as an AgentFrame, not raised.
+
+    Scenario: a text chunk followed by an ERROR frame is drained via ``query``.
+
+    Boundaries: regression guard distinguishing an ERROR frame from a gRPC status
+    error.
+
+    On failure, first check: the final frame must be an ERROR ``AgentFrame``
+    instance, and draining must not raise.
+    """
     channel = _FakeChannel([_msg(_TEXT_CHUNK, content="partial"), _msg(_ERROR, content="boom")])
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -491,7 +717,15 @@ async def test_terminal_error_frame_is_yielded_not_raised() -> None:
 
 
 def test_request_deadline_uses_request_timeout_s() -> None:
-    """_request_deadline() returns settings.request_timeout_s verbatim."""
+    """[Unit] client: ``_request_deadline`` returns ``request_timeout_s`` verbatim.
+
+    Scenario: a client is built with distinct connect and request timeouts.
+
+    Boundaries: exercises the deadline accessor only.
+
+    On failure, first check: ``_request_deadline`` must equal the settings'
+    ``request_timeout_s`` (42), not the connect timeout.
+    """
     settings = _settings(connect_timeout_s=10, request_timeout_s=42)
     client = OpenClaudeGrpcClient(settings)
 
@@ -499,7 +733,14 @@ def test_request_deadline_uses_request_timeout_s() -> None:
 
 
 async def test_query_passes_request_deadline_to_rpc() -> None:
-    """query() hands the per-request deadline to the streaming RPC's timeout."""
+    """[Unit] client: ``query`` passes the per-request deadline to the RPC timeout.
+
+    Scenario: a client with ``request_timeout_s=77`` drains a DONE-only stream.
+
+    Boundaries: proves the request deadline reaches the streaming RPC's timeout.
+
+    On failure, first check: the stub's recorded ``Query.timeout`` must equal 77.
+    """
     settings = _settings(connect_timeout_s=10, request_timeout_s=77)
     channel = _FakeChannel([_msg(_DONE, content="")])
     client = OpenClaudeGrpcClient.from_channel(channel, settings)
@@ -511,7 +752,17 @@ async def test_query_passes_request_deadline_to_rpc() -> None:
 
 
 async def test_health_check_logs_no_probe_or_response_text() -> None:
-    """No probe prompt or response text reaches any DEBUG log sink (C9)."""
+    """[Unit] client: no probe prompt or response text reaches a DEBUG sink.
+
+    Scenario: a UNAVAILABLE probe runs with a DEBUG log sink attached; the
+    captured records are scanned.
+
+    Boundaries: enforces constraint C9 - only the status code name may appear, not
+    the probe prompt or response payload.
+
+    On failure, first check: the records must exclude the probe prompt and
+    ``pong`` and include only the ``UNAVAILABLE`` status name.
+    """
     channel = _RaisingChannel(_rpc_error(grpc.StatusCode.UNAVAILABLE))
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -529,7 +780,15 @@ async def test_health_check_logs_no_probe_or_response_text() -> None:
 
 
 async def test_health_check_false_on_unexpected_probe_exception() -> None:
-    """health_check() swallows an unexpected probe error and returns False."""
+    """[Unit] client: ``health_check`` swallows an unexpected probe error.
+
+    Scenario: the probe stream raises a non-gRPC ``RuntimeError``.
+
+    Boundaries: proves even unexpected errors do not escape ``health_check``.
+
+    On failure, first check: ``health_check`` must return ``False`` without
+    propagating the ``RuntimeError``.
+    """
     channel = _RuntimeErrorChannel()
     client = OpenClaudeGrpcClient.from_channel(channel, _settings())
 
@@ -540,9 +799,19 @@ async def test_health_check_false_on_unexpected_probe_exception() -> None:
 async def test_health_check_false_when_cold_channel_creation_raises(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A cold client whose _ensure_channel() raises yields False, never raises."""
+    """[Unit] client: a cold client whose channel creation raises yields False.
+
+    Scenario: the insecure channel constructor is patched to raise; a cold client
+    runs ``health_check``.
+
+    Boundaries: proves failures during lazy channel creation are swallowed.
+
+    On failure, first check: ``health_check`` must return ``False`` and not
+    propagate the channel-creation error.
+    """
 
     def _boom(*args: object, **kwargs: object) -> object:
+        """Raise to simulate a failing cold channel creation."""
         raise RuntimeError("channel creation failed")
 
     monkeypatch.setattr(client_mod.grpc.aio, "insecure_channel", _boom)
@@ -555,7 +824,16 @@ async def test_health_check_false_when_cold_channel_creation_raises(
 def test_ensure_channel_warns_on_plaintext_to_remote_host(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A non-loopback insecure endpoint emits a cleartext WARNING (no payload)."""
+    """[Unit] client: a non-loopback insecure endpoint emits a cleartext WARNING.
+
+    Scenario: an insecure client bound to a remote host runs ``_ensure_channel``
+    with a WARNING sink attached.
+
+    Boundaries: enforces the cleartext-warning policy without leaking payload.
+
+    On failure, first check: the warning must name the endpoint and mention
+    ``cleartext`` while excluding the probe prompt and any ``prompt=`` payload.
+    """
     monkeypatch.setattr(client_mod.grpc.aio, "insecure_channel", MagicMock(return_value=_FakeChannel()))
 
     client = OpenClaudeGrpcClient(_settings(grpc_url="remote.example.com:50051", use_tls=False))
@@ -579,7 +857,15 @@ def test_ensure_channel_no_plaintext_warning_for_loopback(
     host: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A loopback insecure endpoint does not emit the cleartext WARNING."""
+    """[Unit] client: a loopback insecure endpoint emits no cleartext WARNING.
+
+    Scenario: an insecure client bound to a loopback host runs ``_ensure_channel``
+    with a WARNING sink attached.
+
+    Boundaries: proves the cleartext warning is suppressed for loopback targets.
+
+    On failure, first check: no captured record may mention ``cleartext``.
+    """
     monkeypatch.setattr(client_mod.grpc.aio, "insecure_channel", MagicMock(return_value=_FakeChannel()))
 
     client = OpenClaudeGrpcClient(_settings(grpc_url=host, use_tls=False))
