@@ -25,6 +25,7 @@ loguru's ``SensitiveFilter``; they are therefore clamped to WARNING in
 :mod:`aegis_swr.cli.aegis_logging` (``NOISY_LIBRARY_LOGGERS``) so that request
 bodies and headers are never emitted regardless of the operator log level.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -75,6 +76,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
     """
 
     def __init__(self, settings: BedrockSettings):
+        """Build the bedrock-runtime client wired for the configured auth mode."""
         super().__init__(settings)
         # Typed as Any so the module is not coupled to botocore's generated
         # client type stubs.
@@ -139,6 +141,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         """
 
         def _inject_auth_header(request: Any, **_: Any) -> None:
+            """Set the bearer ``Authorization`` header on the outgoing request."""
             request.headers["Authorization"] = f"Bearer {raw_token}"
 
         client.meta.events.register("before-send.bedrock-runtime.*", _inject_auth_header)
@@ -152,10 +155,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         The shared base passes ``{"role": ..., "content": <str>}``; Converse
         expects ``content`` to be a list of typed blocks (``[{"text": ...}]``).
         """
-        return [
-            {"role": m["role"], "content": [{"text": str(m["content"])}]}
-            for m in messages
-        ]
+        return [{"role": m["role"], "content": [{"text": str(m["content"])}]} for m in messages]
 
     def _thinking_enabled(self, output_schema: Optional[type[BaseModel]]) -> bool:
         """Thinking is only valid for free-form output on a supporting model.
@@ -165,10 +165,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         """
         if output_schema is not None:
             return False
-        return (
-            self._settings.thinking_budget_tokens >= _THINKING_BUDGET_MIN
-            and _thinking_supported(self.model_name)
-        )
+        return self._settings.thinking_budget_tokens >= _THINKING_BUDGET_MIN and _thinking_supported(self.model_name)
 
     def _build_request(
         self,
@@ -176,6 +173,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]],
     ) -> dict[str, Any]:
+        """Assemble the Converse request, adding thinking or a forced tool as needed."""
         thinking = self._thinking_enabled(output_schema)
 
         inference_config: dict[str, Any] = {"maxTokens": self._settings.max_tokens}
@@ -216,6 +214,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
 
     @staticmethod
     def _usage(response: dict[str, Any]) -> dict[str, int]:
+        """Extract input/output token counts from a Converse *response*."""
         usage = response.get("usage", {}) or {}
         return {
             "input_tokens": int(usage.get("inputTokens", 0)),
@@ -227,22 +226,21 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         response: dict[str, Any],
         output_schema: Optional[type[BaseModel]],
     ) -> str | dict[str, Any]:
-        content_blocks = (
-            response.get("output", {}).get("message", {}).get("content", []) or []
-        )
+        """Extract the tool payload or concatenated text from a Converse response.
+
+        Reasoning-content blocks are ignored so internal chain-of-thought never
+        leaks into the returned text.
+        """
+        content_blocks = response.get("output", {}).get("message", {}).get("content", []) or []
 
         if output_schema is not None:
             for block in content_blocks:
                 if "toolUse" in block:
                     return dict(block["toolUse"].get("input", {}))
-            raise AIOutputValidationError(
-                f"{self.model_name} returned no toolUse block for structured output"
-            )
+            raise AIOutputValidationError(f"{self.model_name} returned no toolUse block for structured output")
 
         # Free-form text: concatenate text blocks, ignoring reasoning blocks.
-        return "".join(
-            block["text"] for block in content_blocks if "text" in block
-        )
+        return "".join(block["text"] for block in content_blocks if "text" in block)
 
     # -- provider hooks ----------------------------------------------------
 
@@ -252,20 +250,22 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]],
     ) -> tuple[str | dict[str, Any], dict[str, int]]:
+        """Issue one Converse round-trip off the event loop, returning payload+usage.
+
+        :raises AIBackendError: on any boto client or transport error, surfacing only
+            the error code (never the message, which may contain secrets).
+        """
         request = self._build_request(system_prompt, messages, output_schema)
         try:
             response = await asyncio.to_thread(self._client.converse, **request)
         except botocore.exceptions.ClientError as exc:
             code = exc.response.get("Error", {}).get("Code", "Unknown")
             logger.error("Bedrock converse ClientError: code={}", code)
-            raise AIBackendError(
-                f"Bedrock converse failed for {self.model_name} ({code})"
-            ) from exc
+            raise AIBackendError(f"Bedrock converse failed for {self.model_name} ({code})") from exc
         except botocore.exceptions.BotoCoreError as exc:
             logger.error("Bedrock converse transport error: {}", type(exc).__name__)
             raise AIBackendError(
-                f"Bedrock converse transport error for {self.model_name}: "
-                f"{type(exc).__name__}"
+                f"Bedrock converse transport error for {self.model_name}: " f"{type(exc).__name__}"
             ) from exc
 
         return self._parse(response, output_schema), self._usage(response)
@@ -275,20 +275,21 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         system_prompt: str,
         messages: list[dict[str, Any]],
     ) -> AsyncGenerator[str, None]:
+        """Stream free-form response text token by token from Converse.
+
+        :raises AIBackendError: on any boto client or transport error (code only).
+        """
         request = self._build_request(system_prompt, messages, output_schema=None)
         try:
             response = await asyncio.to_thread(self._client.converse_stream, **request)
         except botocore.exceptions.ClientError as exc:
             code = exc.response.get("Error", {}).get("Code", "Unknown")
             logger.error("Bedrock converse_stream ClientError: code={}", code)
-            raise AIBackendError(
-                f"Bedrock converse_stream failed for {self.model_name} ({code})"
-            ) from exc
+            raise AIBackendError(f"Bedrock converse_stream failed for {self.model_name} ({code})") from exc
         except botocore.exceptions.BotoCoreError as exc:
             logger.error("Bedrock converse_stream transport error: {}", type(exc).__name__)
             raise AIBackendError(
-                f"Bedrock converse_stream transport error for {self.model_name}: "
-                f"{type(exc).__name__}"
+                f"Bedrock converse_stream transport error for {self.model_name}: " f"{type(exc).__name__}"
             ) from exc
 
         # The EventStream is a synchronous, network-backed iterator; pull each
@@ -300,8 +301,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
             except botocore.exceptions.BotoCoreError as exc:
                 logger.error("Bedrock stream interrupted: {}", type(exc).__name__)
                 raise AIBackendError(
-                    f"Bedrock stream interrupted for {self.model_name}: "
-                    f"{type(exc).__name__}"
+                    f"Bedrock stream interrupted for {self.model_name}: " f"{type(exc).__name__}"
                 ) from exc
             if event is _STREAM_DONE:
                 break

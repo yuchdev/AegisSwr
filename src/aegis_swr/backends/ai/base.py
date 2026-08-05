@@ -5,6 +5,7 @@ validation, the one-shot correction retry, and per-call token accounting. Each
 concrete provider implements only :meth:`_invoke` (a single API round-trip) and
 :meth:`stream`.
 """
+
 from __future__ import annotations
 
 import json
@@ -27,6 +28,7 @@ class _BaseAIBackend(AIAPIBackend, Generic[_SettingsT]):
     """Common generate()/token logic; providers implement _invoke() + stream()"""
 
     def __init__(self, settings: _SettingsT):
+        """Store provider *settings*, resolve the model name, and zero token usage."""
         self._settings: _SettingsT = settings
         self.model_name = settings.resolved_model
         self._last_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0}
@@ -39,9 +41,11 @@ class _BaseAIBackend(AIAPIBackend, Generic[_SettingsT]):
         return dict(self._last_usage)
 
     def _reset_usage(self):
+        """Reset the accumulated token usage to zero at the start of a generate call."""
         self._last_usage = {"input_tokens": 0, "output_tokens": 0}
 
     def _accumulate(self, usage: dict[str, int]):
+        """Add one round-trip's *usage* into the running token totals."""
         self._last_usage["input_tokens"] += usage.get("input_tokens", 0)
         self._last_usage["output_tokens"] += usage.get("output_tokens", 0)
 
@@ -53,6 +57,15 @@ class _BaseAIBackend(AIAPIBackend, Generic[_SettingsT]):
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]] = None,
     ) -> BaseModel | str:
+        """Generate a response, validating against *output_schema* with one retry.
+
+        :param system_prompt: the system instruction for the model.
+        :param messages: the conversation messages to send.
+        :param output_schema: when given, the response is parsed and validated into
+            this model, retrying once with a correction turn on failure.
+        :return: the validated model instance, or the raw text when no schema is set.
+        :raises AIOutputValidationError: if validation fails after the retry.
+        """
         self._reset_usage()
 
         if output_schema is None:
@@ -71,8 +84,7 @@ class _BaseAIBackend(AIAPIBackend, Generic[_SettingsT]):
             except (ValidationError, json.JSONDecodeError) as exc:
                 last_error = str(exc)
                 logger.warning(
-                    f"{self.model_name} structured output invalid "
-                    f"(attempt {attempt + 1}/2): {last_error}"
+                    f"{self.model_name} structured output invalid " f"(attempt {attempt + 1}/2): {last_error}"
                 )
                 working = working + self._correction_turn(raw, last_error, output_schema)
 
@@ -87,6 +99,7 @@ class _BaseAIBackend(AIAPIBackend, Generic[_SettingsT]):
         errors: str,
         output_schema: type[BaseModel],
     ) -> list[dict[str, Any]]:
+        """Build the assistant+user turns that ask the model to fix an invalid reply."""
         previous = raw if isinstance(raw, str) else json.dumps(raw)
         return [
             {"role": "assistant", "content": previous},

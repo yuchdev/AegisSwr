@@ -4,6 +4,7 @@ Uses the ``json_schema`` response format for structured output. OpenAI applies
 prompt caching automatically for sufficiently long, stable prefixes, so no
 explicit cache-control directive is required (unlike Anthropic).
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
@@ -25,6 +26,7 @@ def _to_openai_strict_schema(model: type[BaseModel]) -> dict[str, Any]:
     schema = model.model_json_schema()
 
     def _walk(node: Any):
+        """Recursively rewrite *node* in place for OpenAI strict-schema rules."""
         if isinstance(node, dict):
             node.pop("default", None)
             if node.get("type") == "object" and isinstance(node.get("properties"), dict):
@@ -49,7 +51,10 @@ _REASONING_PREFIXES = ("gpt-5",)
 
 
 class OpenAIBackend(_BaseAIBackend[OpenAISettings]):
+    """AI backend that generates RCA content via the OpenAI Chat Completions API."""
+
     def __init__(self, settings: OpenAISettings):
+        """Build the async OpenAI client from *settings* (timeout, retries)."""
         super().__init__(settings)
         # A multi-agent investigation issues many sequential calls; one
         # transient timeout must not abort the whole run. Reasoning models can
@@ -60,6 +65,7 @@ class OpenAIBackend(_BaseAIBackend[OpenAISettings]):
         )
 
     def _is_reasoning_model(self) -> bool:
+        """Return True when the configured model is a gpt-5-family reasoning model."""
         return self.model_name.startswith(_REASONING_PREFIXES)
 
     @property
@@ -73,9 +79,7 @@ class OpenAIBackend(_BaseAIBackend[OpenAISettings]):
         """Token/temperature kwargs that match the model family's API contract"""
         if self._is_reasoning_model():
             # Default temperature only; reasoning needs room beyond the answer.
-            kwargs: dict[str, Any] = {
-                "max_completion_tokens": self._settings.max_completion_tokens
-            }
+            kwargs: dict[str, Any] = {"max_completion_tokens": self._settings.max_completion_tokens}
             if self._settings.reasoning_effort is not None:
                 kwargs["reasoning_effort"] = self._settings.reasoning_effort
             return kwargs
@@ -90,6 +94,7 @@ class OpenAIBackend(_BaseAIBackend[OpenAISettings]):
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]],
     ) -> tuple[str | dict[str, Any], dict[str, int]]:
+        """Issue one Chat Completions round-trip, returning the text and token usage."""
         full_messages = [{"role": "system", "content": system_prompt}, *messages]
         kwargs: dict[str, Any] = {
             "model": self.model_name,
@@ -119,6 +124,7 @@ class OpenAIBackend(_BaseAIBackend[OpenAISettings]):
         system_prompt: str,
         messages: list[dict[str, Any]],
     ) -> AsyncGenerator[str, None]:
+        """Stream free-form response text token by token from Chat Completions."""
         full_messages = [{"role": "system", "content": system_prompt}, *messages]
         stream = await self._client.chat.completions.create(
             model=self.model_name,

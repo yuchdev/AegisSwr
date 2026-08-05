@@ -4,6 +4,7 @@ Uses Messages API tool-use for structured output and always attaches
 ``cache_control: {"type": "ephemeral"}`` to the system prompt block so the
 stable persona/schema instructions are billed at the cached rate.
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
@@ -34,7 +35,10 @@ _THINKING_BUDGET_MIN = 1_024
 
 
 class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
+    """AI backend that generates RCA content via the Anthropic Messages API."""
+
     def __init__(self, settings: AnthropicSettings):
+        """Build the async Anthropic client from *settings* (timeout, retries)."""
         super().__init__(settings)
         # Typed as Any so the rest of the module is not coupled to the SDK's
         # internal TypedDict parameter types.
@@ -49,6 +53,7 @@ class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
         return any(marker in self.model_name for marker in _REASONING_MODEL_MARKERS)
 
     def _system_blocks(self, system_prompt: str) -> list[dict[str, Any]]:
+        """Wrap *system_prompt* in a text block, adding ephemeral caching if enabled."""
         block: dict[str, Any] = {"type": "text", "text": system_prompt}
         if self._settings.prompt_caching:
             block["cache_control"] = {"type": "ephemeral"}
@@ -62,10 +67,7 @@ class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
         """
         if output_schema is not None:
             return False
-        return (
-            self._settings.thinking_budget_tokens >= _THINKING_BUDGET_MIN
-            and self.has_reasoning
-        )
+        return self._settings.thinking_budget_tokens >= _THINKING_BUDGET_MIN and self.has_reasoning
 
     def _create_request(
         self,
@@ -73,6 +75,7 @@ class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
         messages: list[dict[str, Any]],
         thinking: bool,
     ) -> dict[str, Any]:
+        """Assemble the base Messages API request kwargs, honouring extended thinking."""
         kwargs: dict[str, Any] = {
             "model": self.model_name,
             "max_tokens": self._settings.max_tokens,
@@ -123,13 +126,9 @@ class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
             for block in response.content:
                 if getattr(block, "type", None) == "tool_use":
                     return dict(block.input), usage
-            raise AIOutputValidationError(
-                f"{self.model_name} returned no tool_use block for structured output"
-            )
+            raise AIOutputValidationError(f"{self.model_name} returned no tool_use block for structured output")
 
-        text = "".join(
-            block.text for block in response.content if getattr(block, "type", None) == "text"
-        )
+        text = "".join(block.text for block in response.content if getattr(block, "type", None) == "text")
         return text, usage
 
     async def stream(
@@ -137,6 +136,7 @@ class AnthropicBackend(_BaseAIBackend[AnthropicSettings]):
         system_prompt: str,
         messages: list[dict[str, Any]],
     ) -> AsyncGenerator[str, None]:
+        """Stream free-form response text token by token from the Messages API."""
         thinking = self._thinking_enabled(output_schema=None)
         kwargs = self._create_request(system_prompt, messages, thinking)
         async with self._client.messages.stream(**kwargs) as stream:
