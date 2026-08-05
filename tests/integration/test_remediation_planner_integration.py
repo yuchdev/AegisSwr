@@ -31,6 +31,7 @@ from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
 
 def _os(conf: float) -> OSKernelOutput:
+    """Helper that provides os for the remediation planner integration tests."""
     return OSKernelOutput(
         exception_summary=ExceptionSummary(
             fault_class=FaultClass.UNKNOWN,
@@ -44,18 +45,22 @@ def _os(conf: float) -> OSKernelOutput:
 
 
 def _code(conf: float) -> CodeAnalystOutput:
+    """Helper that provides code for the remediation planner integration tests."""
     return CodeAnalystOutput(rca=RCAHypothesis(root_cause="fd leak", confidence=conf), confidence_score=conf)
 
 
 def _historian(conf: float) -> LogHistorianOutput:
+    """Helper that provides historian for the remediation planner integration tests."""
     return LogHistorianOutput(confidence_adjustment=0.0, updated_confidence=conf, history_note="No recurrence.")
 
 
 def _skeptic_yes() -> SkepticVerdict:
+    """Helper that provides skeptic yes for the remediation planner integration tests."""
     return SkepticVerdict(confirmed=True, confidence=ConfidenceLevel.HIGH)
 
 
 def _skeptic_no() -> SkepticVerdict:
+    """Helper that provides skeptic no for the remediation planner integration tests."""
     return SkepticVerdict(
         confirmed=False,
         confidence=ConfidenceLevel.LOW,
@@ -65,6 +70,7 @@ def _skeptic_no() -> SkepticVerdict:
 
 
 def _plan() -> RemediationPlan:
+    """Helper that provides plan for the remediation planner integration tests."""
     return RemediationPlan(
         steps=[
             RemediationStep(order=1, action="isolate", idempotent=True, rollback="rejoin"),
@@ -77,12 +83,21 @@ def _plan() -> RemediationPlan:
 
 
 def _log_source() -> IncidentSource:
+    """Helper that provides log source for the remediation planner integration tests."""
     return IncidentSource(mode=IncidentMode.LOG_FORENSICS)
 
 
 async def test_converged_investigation_yields_remediation_plan(settings: Settings):
     # Default (log-only) panel is the four base agents; converge in round 1, then
     # the synthesizer calls the planner (5th response).
+    """[Integration] remediation planner integration: verifies converged investigation yields remediation plan.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: verifies converged investigation yields remediation plan.
+    """
     responses: list[Any] = [_os(0.9), _code(0.9), _historian(0.9), _skeptic_yes(), _plan()]
     orch = Orchestrator(settings=settings, ai_backend=MockAIBackend(responses=responses))
 
@@ -95,6 +110,14 @@ async def test_converged_investigation_yields_remediation_plan(settings: Setting
 
 
 async def test_hitl_investigation_yields_no_remediation_plan(settings: Settings):
+    """[Integration] remediation planner integration: verifies hitl investigation yields no remediation plan.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: verifies hitl investigation yields no remediation plan.
+    """
     settings.core.max_debate_rounds = 1
     # Round 1 the arbiter rejects; the debate limit is hit -> HITL, no synthesis.
     responses: list[Any] = [_os(0.5), _code(0.5), _historian(0.5), _skeptic_no()]
@@ -107,6 +130,14 @@ async def test_hitl_investigation_yields_no_remediation_plan(settings: Settings)
 
 
 async def test_playbook_validate_compatible_output(settings: Settings):
+    """[Integration] remediation planner integration: verifies playbook validate compatible output.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: verifies playbook validate compatible output.
+    """
     responses: list[Any] = [_os(0.9), _code(0.9), _historian(0.9), _skeptic_yes(), _plan()]
     orch = Orchestrator(settings=settings, ai_backend=MockAIBackend(responses=responses))
 

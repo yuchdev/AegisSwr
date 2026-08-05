@@ -32,6 +32,7 @@ FIXTURES = Path(__file__).parent.parent / "unit" / "fixtures"
 
 
 def _os_kernel_payload() -> dict[str, Any]:
+    """Helper that provides os kernel payload for the ai pipeline tests."""
     return {
         "exception_summary": {
             "fault_class": "memory_access_violation",

@@ -22,6 +22,7 @@ _MOCK_RUN = "aegis_swr.core.orchestrator.Orchestrator.run"
 
 
 def _make_report() -> RCAReport:
+    """Helper that provides make report for the e2e cli tests."""
     return RCAReport(
         mode=IncidentMode.CRASH_DUMP,
         dump_hash="sha256:aabbcc",
@@ -41,12 +42,14 @@ def _make_report() -> RCAReport:
 
 
 def _write_dump(tmp_path: Path) -> Path:
+    """Helper that provides write dump for the e2e cli tests."""
     dump = tmp_path / "crash.dmp"
     dump.write_bytes(b"MDMP" + b"\x00" * 64)
     return dump
 
 
 async def _mock_run(self: object, source: object) -> RCAReport:
+    """Helper that provides mock run for the e2e cli tests."""
     return _make_report()
 
 
@@ -227,6 +230,7 @@ def test_e2e_analyze_log_only_mode(tmp_path: Path):
     log_file.write_text("2026-05-30T14:02:11 FATAL unhandled exception\n")
 
     async def _log_run(self: object, source: object) -> RCAReport:
+        """Helper that provides log run for the e2e cli tests."""
         rep = _make_report()
         return rep.model_copy(update={"mode": IncidentMode.LOG_FORENSICS, "dump_hash": None})
 
@@ -257,7 +261,14 @@ def test_e2e_analyze_log_only_mode(tmp_path: Path):
 
 
 def test_e2e_config_roundtrip(tmp_path: Path):
-    """Save options to JSON config, reload them, run with the stored values"""
+    """[Integration] e2e cli: Save options to JSON config, reload them, run with the stored values.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: save options to JSON config, reload them, run with the stored values.
+    """
     dump = _write_dump(tmp_path)
     config_file = tmp_path / "cfg.json"
 
@@ -286,6 +297,7 @@ def test_e2e_config_roundtrip(tmp_path: Path):
     # Step 2: run using saved config (no --ai flag).
 
     async def _capturing_run(self: object, source: object) -> RCAReport:
+        """Helper that provides capturing run for the e2e cli tests."""
         return _make_report()
 
     with mock.patch(_MOCK_RUN, _capturing_run):
@@ -316,7 +328,14 @@ def test_e2e_config_roundtrip(tmp_path: Path):
 
 
 def test_e2e_nested_log_sections_flow_through(tmp_path: Path):
-    """A config.json using the new nested sections is consumed end-to-end."""
+    """[Integration] e2e cli: A config.json using the new nested sections is consumed end-to-end.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a config.json using the new nested sections is consumed end-to-end.
+    """
     config_file = tmp_path / "cfg.json"
     config_file.write_text(
         json.dumps(
@@ -331,6 +350,7 @@ def test_e2e_nested_log_sections_flow_through(tmp_path: Path):
     captured: dict[str, object] = {}
 
     async def _capture(self: object, source: object) -> RCAReport:
+        """Helper that provides capture for the e2e cli tests."""
         captured["service"] = source.metadata.get("service")  # type: ignore[attr-defined]
         return _make_report()
 
@@ -360,7 +380,14 @@ def test_e2e_nested_log_sections_flow_through(tmp_path: Path):
 
 
 def test_e2e_save_config_writes_nested_sections(tmp_path: Path):
-    """--save-config persists the log options into their nested sections."""
+    """[Integration] e2e cli: --save-config persists the log options into their nested sections.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: --save-config persists the log options into their nested sections.
+    """
     dump = _write_dump(tmp_path)
     config_file = tmp_path / "cfg.json"
     result = runner.invoke(
@@ -400,7 +427,14 @@ def test_e2e_save_config_writes_nested_sections(tmp_path: Path):
 
 
 def test_e2e_new_log_flags_persist_to_sections(tmp_path: Path):
-    """The Phase-C flags are saved into their nested sections by --save-config."""
+    """[Integration] e2e cli: The Phase-C flags are saved into their nested sections by --save-config.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the Phase-C flags are saved into their nested sections by --save-config.
+    """
     dump = _write_dump(tmp_path)
     config_file = tmp_path / "cfg.json"
     result = runner.invoke(
@@ -434,7 +468,14 @@ def test_e2e_new_log_flags_persist_to_sections(tmp_path: Path):
 
 
 def test_e2e_invalid_value_from_config_file_is_rejected(tmp_path: Path):
-    """Validation covers config.json values, not just CLI flags."""
+    """[Integration] e2e cli: Validation covers config.json values, not just CLI flags.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: validation covers config.json values, not just CLI flags.
+    """
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"evidence": {"severity": "DEBUG"}}))
     result = runner.invoke(
@@ -461,8 +502,14 @@ def test_e2e_invalid_value_from_config_file_is_rejected(tmp_path: Path):
 
 
 def test_e2e_elk_sink_falls_back_and_completes(tmp_path: Path):
-    """A stub sink (elk) exercises the real configure_logging fallback path
-    end-to-end without aborting the run (warn + fall back to file/stderr)."""
+    """[Integration] e2e cli: A stub sink (elk) exercises the real configure_logging fallback path.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a stub sink (elk) exercises the real configure_logging fallback path.
+    """
     dump = _write_dump(tmp_path)
     with mock.patch(_MOCK_RUN, _mock_run):
         result = runner.invoke(
@@ -497,11 +544,14 @@ def test_e2e_elk_sink_falls_back_and_completes(tmp_path: Path):
 
 
 def test_e2e_evidence_persist_writes_file(tmp_path: Path, monkeypatch):
-    """End-to-end: --evidence-persist writes the Evidence Stream transcript.
+    """[Integration] e2e cli: End-to-end: --evidence-persist writes the Evidence Stream transcript.
 
-    Drives the real war-room view + persistence by publishing domain events on
-    the orchestrator's bus through a mocked ``stream_events``. Persistence is a
-    WarRoomView feature (wide terminals), so force a >= 80 column width."""
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: end-to-end: --evidence-persist writes the Evidence Stream transcript.
+    """
     from aegis_swr.core.events import (
         EvidenceExtracted,
         InvestigationCompleted,
@@ -519,6 +569,7 @@ def test_e2e_evidence_persist_writes_file(tmp_path: Path, monkeypatch):
     )
 
     async def mock_stream_events(self, source):
+        """Helper that provides mock stream events for the e2e cli tests."""
         self.events.publish(
             InvestigationStarted(incident_id=str(report.incident_id), source=source)
         )
@@ -560,11 +611,18 @@ def test_e2e_evidence_persist_writes_file(tmp_path: Path, monkeypatch):
 
 
 def test_e2e_legacy_logging_config_is_migrated(tmp_path: Path):
-    """A pre-split config.json (single conflated `logging` section) still works:
-    `logging.service` migrates to `ingest.log_source.service` and reaches metadata."""
+    """[Integration] e2e cli: A pre-split config.json (single conflated `logging` section) still works:.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a pre-split config.json (single conflated `logging` section) still works:.
+    """
     captured: dict[str, object] = {}
 
     async def capture(self: object, source: object) -> RCAReport:
+        """Helper that provides capture for the e2e cli tests."""
         captured["service"] = source.metadata.get("service")  # type: ignore[attr-defined]
         return _make_report()
 
@@ -598,8 +656,14 @@ def test_e2e_legacy_logging_config_is_migrated(tmp_path: Path):
 
 
 def test_e2e_malformed_config_warning_reaches_logfile(tmp_path: Path):
-    """An unreadable/malformed config.json never aborts startup, and the warning
-    is captured in the configured application log file (not just on stderr)."""
+    """[Integration] e2e cli: An unreadable/malformed config.json never aborts startup, and the warning.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: an unreadable/malformed config.json never aborts startup, and the warning.
+    """
     bad_config = tmp_path / "cfg.json"
     bad_config.write_text("{not valid json")
     log_dir = tmp_path / "logs"

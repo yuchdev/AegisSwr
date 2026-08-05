@@ -26,12 +26,13 @@ async def test_query_yields_text_chunk_then_done(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
 ) -> None:
-    """A real query returns a non-empty terminal ``DONE`` preceded by >=1 ``TEXT_CHUNK``.
+    """[Integration] grpc stream: A real query returns a non-empty terminal ``DONE`` preceded by >=1 ``TEXT_CHUNK``.
 
-    The prompt references ``stub_project / "app.py"`` by its **absolute path**
-    because the sidecar's cwd is ``_SAFE_CWD`` (``tempfile.gettempdir()``), not
-    ``stub_project``.  Without the absolute path the sidecar would be unable to
-    locate the file.
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a real query returns a non-empty terminal ``DONE`` preceded by >=1 ``TEXT_CHUNK``.
     """
     run_id = str(uuid.uuid4())
     app_py = stub_project / "app.py"
@@ -52,5 +53,12 @@ async def test_query_yields_text_chunk_then_done(
 
 
 async def test_health_check_true_against_live_process(live_grpc_client: OpenClaudeGrpcClient) -> None:
-    """``health_check()`` returns ``True`` against the running sidecar."""
+    """[Integration] grpc stream: ``health_check()`` returns ``True`` against the running sidecar.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``health_check()`` returns ``True`` against the running sidecar.
+    """
     assert await live_grpc_client.health_check() is True

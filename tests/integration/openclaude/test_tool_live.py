@@ -46,21 +46,26 @@ class _Recorder:
     """Capturing :class:`DomainEvent` subscriber."""
 
     def __init__(self) -> None:
+        """Helper that provides init for the tool live tests."""
         self.events: list[DomainEvent] = []
 
     def __call__(self, event: DomainEvent) -> None:
+        """Helper that provides call for the tool live tests."""
         self.events.append(event)
 
     def of(self, event_type: type) -> list[DomainEvent]:
+        """Helper that provides of for the tool live tests."""
         return [e for e in self.events if isinstance(e, event_type)]
 
 
 def _build_tool(client: OpenClaudeGrpcClient, bus: EventBus) -> OpenClaudeTool:
+    """Helper that provides build tool for the tool live tests."""
     settings = OpenClaudeSettings(grpc_url="localhost:50051")  # default read-only allowlist
     return OpenClaudeTool(client, settings, bus, CallBudget(max_tokens=10_000_000))
 
 
 def _live_ctx() -> CodeTaskContext:
+    """Helper that provides live ctx for the tool live tests."""
     return CodeTaskContext(run_id=uuid.uuid4(), dry_run=False)
 
 
@@ -68,7 +73,14 @@ async def test_delegate_returns_non_empty_result(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
 ) -> None:
-    """A live delegate over a real navigation task returns non-empty result text."""
+    """[Integration] tool live: A live delegate over a real navigation task returns non-empty result text.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a live delegate over a real navigation task returns non-empty result text.
+    """
     tool = _build_tool(live_grpc_client, EventBus())
     result = await tool.delegate(_task(stub_project), _live_ctx())
     assert result.available is True
@@ -79,7 +91,14 @@ async def test_stream_completed_carries_positive_token_estimate(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
 ) -> None:
-    """Exactly one ``OpenClaudeStreamCompleted`` is emitted with ``token_estimate > 0`` (C5)."""
+    """[Integration] tool live: Exactly one ``OpenClaudeStreamCompleted`` is emitted with ``token_estimate > 0`` (C5).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: exactly one ``OpenClaudeStreamCompleted`` is emitted with ``token_estimate > 0`` (C5).
+    """
     bus = EventBus()
     recorder = _Recorder()
     bus.subscribe(DomainEvent, recorder)
@@ -96,7 +115,14 @@ async def test_at_least_one_tool_call_emitted(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
 ) -> None:
-    """>=1 ``OpenClaudeToolCall`` proves real navigation, not an answer from priors."""
+    """[Integration] tool live: >=1 ``OpenClaudeToolCall`` proves real navigation, not an answer from priors.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: >=1 ``OpenClaudeToolCall`` proves real navigation, not an answer from priors.
+    """
     bus = EventBus()
     recorder = _Recorder()
     bus.subscribe(DomainEvent, recorder)

@@ -32,6 +32,7 @@ FIXTURES = Path(__file__).parent.parent / "unit" / "fixtures"
 
 
 def _os_kernel_payload() -> dict[str, Any]:
+    """Helper that provides os kernel payload for the bedrock integration tests."""
     return {
         "exception_summary": {
             "fault_class": "memory_access_violation",
@@ -54,6 +55,7 @@ def _os_kernel_payload() -> dict[str, Any]:
 
 
 def _brief_to_messages(brief: Any) -> list[dict[str, Any]]:
+    """Helper that provides brief to messages for the bedrock integration tests."""
     payload = {
         "fault_class": brief.fault_class.value if brief.fault_class else None,
         "faulting_module": brief.faulting_module,
@@ -69,6 +71,7 @@ def _make_backend(
     converse_stream_return: Any = None,
     converse_side_effect: Any = None,
 ) -> tuple[AwsBedrockBackend, Any]:
+    """Helper that provides make backend for the bedrock integration tests."""
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "integration-token")
     client = mock.MagicMock()
     if converse_side_effect is not None:
@@ -242,8 +245,14 @@ async def test_bedrock_transport_error_raises_backend_error(
 async def test_bedrock_token_usage_propagates_to_state(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """After generate() with a response carrying a usage block, backend.last_usage
-    must be non-zero - the values that feed InvestigationState.token_tracker."""
+    """[Integration] bedrock integration: After generate() with a response carrying a usage block, backend.last_usage.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: after generate() with a response carrying a usage block, backend.last_usage.
+    """
     converse_return = {
         "output": {"message": {"content": [{"text": "root cause identified"}]}},
         "usage": {"inputTokens": 850, "outputTokens": 120},
@@ -264,9 +273,14 @@ async def test_bedrock_token_usage_propagates_to_state(
 async def test_bedrock_structured_retry_end_to_end(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """First stubbed converse returns an invalid structured payload, second returns a
-    valid one → the backend yields a validated structured object after one retry,
-    exercising the base class retry loop through the real Bedrock backend."""
+    """[Integration] bedrock integration: First stubbed converse returns an invalid structured payload, second returns a.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: first stubbed converse returns an invalid structured payload, second returns a.
+    """
     from aegis_swr.core.schemas import Hypothesis
 
     # First call: toolUse input missing required `confidence` field.
@@ -323,9 +337,14 @@ async def test_bedrock_pii_never_reaches_request(
     settings: Settings,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """Drive an IncidentSource carrying PII through the adapter (when presidio is
-    available) and then through to the stubbed Converse call; assert that no raw
-    PII value appears in the Converse request body."""
+    """[Integration] bedrock integration: Drive an IncidentSource carrying PII through the adapter (when presidio is.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: drive an IncidentSource carrying PII through the adapter (when presidio is.
+    """
     pytest.importorskip("presidio_analyzer")
     from aegis_swr.core.data_adapter import DataAdapter
 

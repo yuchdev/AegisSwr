@@ -36,6 +36,7 @@ _MODULE = "worker_pool"
 
 
 def _extraction(fault_class: FaultClass) -> DebugExtractionResult:
+    """Helper that provides extraction for the concurrency analyst pipeline tests."""
     return DebugExtractionResult(
         fault_class=fault_class,
         exception_code_raw="0x0",
@@ -56,10 +57,12 @@ def _extraction(fault_class: FaultClass) -> DebugExtractionResult:
 
 
 def _dump_source() -> IncidentSource:
+    """Helper that provides dump source for the concurrency analyst pipeline tests."""
     return IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path="C:\\fake\\crash.dmp")
 
 
 def _os(conf: float = 0.90) -> OSKernelOutput:
+    """Helper that provides os for the concurrency analyst pipeline tests."""
     return OSKernelOutput(
         exception_summary=ExceptionSummary(
             fault_class=FaultClass.DEADLOCK,
@@ -74,6 +77,7 @@ def _os(conf: float = 0.90) -> OSKernelOutput:
 
 
 def _code(conf: float = 0.90) -> CodeAnalystOutput:
+    """Helper that provides code for the concurrency analyst pipeline tests."""
     return CodeAnalystOutput(
         rca=RCAHypothesis(root_cause="AB-BA deadlock", faulting_module=_MODULE, confidence=conf),
         confidence_score=conf,
@@ -81,10 +85,12 @@ def _code(conf: float = 0.90) -> CodeAnalystOutput:
 
 
 def _historian(conf: float = 0.90) -> LogHistorianOutput:
+    """Helper that provides historian for the concurrency analyst pipeline tests."""
     return LogHistorianOutput(confidence_adjustment=0.0, updated_confidence=conf, history_note="No recurrence.")
 
 
 def _concurrency(conf: float = 0.90) -> ConcurrencyAnalystOutput:
+    """Helper that provides concurrency for the concurrency analyst pipeline tests."""
     return ConcurrencyAnalystOutput(
         hypotheses=[Hypothesis(root_cause="AB-BA deadlock", faulting_module=_MODULE, confidence=conf)],
         confidence_score=conf,
@@ -93,10 +99,12 @@ def _concurrency(conf: float = 0.90) -> ConcurrencyAnalystOutput:
 
 
 def _skeptic_yes() -> SkepticVerdict:
+    """Helper that provides skeptic yes for the concurrency analyst pipeline tests."""
     return SkepticVerdict(confirmed=True, confidence=ConfidenceLevel.HIGH)
 
 
 def _resource(conf: float = 0.90) -> ResourceExhaustionOutput:
+    """Helper that provides resource for the concurrency analyst pipeline tests."""
     return ResourceExhaustionOutput(
         hypotheses=[
             Hypothesis(root_cause="AB-BA deadlock", faulting_module=_MODULE, confidence=conf)
@@ -107,11 +115,19 @@ def _resource(conf: float = 0.90) -> ResourceExhaustionOutput:
 
 
 async def _collect(orch: Orchestrator, source: IncidentSource) -> list[Any]:
+    """Helper that provides collect for the concurrency analyst pipeline tests."""
     return [event async for event in orch.stream_events(source)]
 
 
 async def test_enabling_concurrency_analyst_yields_debate_turn(settings: Settings):
-    """[Integration] a deadlock incident auto-includes concurrency_analyst before skeptic."""
+    """[Integration] a deadlock incident auto-includes concurrency_analyst before skeptic.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: [Integration] a deadlock incident auto-includes concurrency_analyst before skeptic.
+    """
     # Execution order: os_kernel, code_analyst, log_historian, concurrency_analyst,
     # resource_exhaustion (both authoritative for deadlock) then skeptic.
     responses: list[Any] = [_os(), _code(), _historian(), _concurrency(), _resource(), _skeptic_yes()]
@@ -133,7 +149,14 @@ async def test_enabling_concurrency_analyst_yields_debate_turn(settings: Setting
 
 
 async def test_base_panel_unaffected_without_specialist(settings: Settings):
-    """[Integration] a fault class with no specialist keeps the legacy four-agent panel."""
+    """[Integration] a fault class with no specialist keeps the legacy four-agent panel.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: [Integration] a fault class with no specialist keeps the legacy four-agent panel.
+    """
     responses: list[Any] = [_os(), _code(), _historian(), _skeptic_yes()]
     orch = Orchestrator(
         settings=settings,

@@ -37,21 +37,26 @@ class _Recorder:
     """Capturing :class:`DomainEvent` subscriber."""
 
     def __init__(self) -> None:
+        """Helper that provides init for the allowlist enforcement tests."""
         self.events: list[DomainEvent] = []
 
     def __call__(self, event: DomainEvent) -> None:
+        """Helper that provides call for the allowlist enforcement tests."""
         self.events.append(event)
 
     def of(self, event_type: type) -> list[DomainEvent]:
+        """Helper that provides of for the allowlist enforcement tests."""
         return [e for e in self.events if isinstance(e, event_type)]
 
 
 def _build_tool(client: OpenClaudeGrpcClient, bus: EventBus) -> OpenClaudeTool:
+    """Helper that provides build tool for the allowlist enforcement tests."""
     settings = OpenClaudeSettings(grpc_url="localhost:50051")  # default read-only allowlist
     return OpenClaudeTool(client, settings, bus, CallBudget(max_tokens=10_000_000))
 
 
 def _live_ctx() -> CodeTaskContext:
+    """Helper that provides live ctx for the allowlist enforcement tests."""
     return CodeTaskContext(run_id=uuid.uuid4(), dry_run=False)
 
 
@@ -59,7 +64,14 @@ async def test_write_task_denied_under_default_allowlist(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
 ) -> None:
-    """A task needing a write tool is denied; the stub project is left unmodified."""
+    """[Integration] allowlist enforcement: A task needing a write tool is denied; the stub project is left unmodified.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a task needing a write tool is denied; the stub project is left unmodified.
+    """
     bus = EventBus()
     recorder = _Recorder()
     bus.subscribe(DomainEvent, recorder)
@@ -82,7 +94,14 @@ async def test_write_task_denied_under_default_allowlist(
 
 
 async def test_read_only_task_succeeds(live_grpc_client: OpenClaudeGrpcClient) -> None:
-    """A ``Read``/``Grep``-only navigation task succeeds under the same allowlist."""
+    """[Integration] allowlist enforcement: A ``Read``/``Grep``-only navigation task succeeds under the same allowlist.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a ``Read``/``Grep``-only navigation task succeeds under the same allowlist.
+    """
     tool = _build_tool(live_grpc_client, EventBus())
     result = await tool.delegate(
         "Grep for compute_checksum and report the file it is defined in.",

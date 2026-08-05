@@ -37,6 +37,7 @@ _MODULE = "db_writer"
 
 
 def _extraction(fault_class: FaultClass) -> DebugExtractionResult:
+    """Helper that provides extraction for the memory forensics integration tests."""
     return DebugExtractionResult(
         fault_class=fault_class,
         exception_code_raw="0xc0000005",
@@ -57,10 +58,12 @@ def _extraction(fault_class: FaultClass) -> DebugExtractionResult:
 
 
 def _dump_source() -> IncidentSource:
+    """Helper that provides dump source for the memory forensics integration tests."""
     return IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path="C:\\fake\\crash.dmp")
 
 
 def _os(conf: float = 0.90) -> OSKernelOutput:
+    """Helper that provides os for the memory forensics integration tests."""
     return OSKernelOutput(
         exception_summary=ExceptionSummary(
             fault_class=FaultClass.MEMORY_ACCESS_VIOLATION,
@@ -75,6 +78,7 @@ def _os(conf: float = 0.90) -> OSKernelOutput:
 
 
 def _code(conf: float = 0.90) -> CodeAnalystOutput:
+    """Helper that provides code for the memory forensics integration tests."""
     return CodeAnalystOutput(
         rca=RCAHypothesis(
             root_cause="UAF in serialize()",
@@ -86,6 +90,7 @@ def _code(conf: float = 0.90) -> CodeAnalystOutput:
 
 
 def _historian(conf: float = 0.90) -> LogHistorianOutput:
+    """Helper that provides historian for the memory forensics integration tests."""
     return LogHistorianOutput(
         confidence_adjustment=0.0,
         updated_confidence=conf,
@@ -94,6 +99,7 @@ def _historian(conf: float = 0.90) -> LogHistorianOutput:
 
 
 def _mem(conf: float = 0.90) -> MemoryForensicsOutput:
+    """Helper that provides mem for the memory forensics integration tests."""
     return MemoryForensicsOutput(
         hypotheses=[Hypothesis(root_cause="UAF in serialize()", faulting_module=_MODULE, confidence=conf)],
         confidence_score=conf,
@@ -102,10 +108,12 @@ def _mem(conf: float = 0.90) -> MemoryForensicsOutput:
 
 
 def _skeptic_yes() -> SkepticVerdict:
+    """Helper that provides skeptic yes for the memory forensics integration tests."""
     return SkepticVerdict(confirmed=True, confidence=ConfidenceLevel.HIGH)
 
 
 def _exploit(conf: float = 0.90) -> ExploitabilityOutput:
+    """Helper that provides exploit for the memory forensics integration tests."""
     return ExploitabilityOutput(
         hypotheses=[Hypothesis(root_cause="UAF in serialize()", faulting_module=_MODULE, confidence=conf)],
         confidence_score=conf,
@@ -116,11 +124,19 @@ def _exploit(conf: float = 0.90) -> ExploitabilityOutput:
 
 
 async def _collect(orch: Orchestrator, source: IncidentSource) -> list[Any]:
+    """Helper that provides collect for the memory forensics integration tests."""
     return [event async for event in orch.stream_events(source)]
 
 
 async def test_memory_forensics_turn_present_in_debate(settings: Settings):
-    """[Integration] a memory_access_violation incident auto-includes memory_forensics."""
+    """[Integration] a memory_access_violation incident auto-includes memory_forensics.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: [Integration] a memory_access_violation incident auto-includes memory_forensics.
+    """
     # Execution order for this panel: os_kernel, code_analyst, log_historian,
     # memory_forensics, exploitability (investigators) then skeptic (arbiter) -
     # exploitability is also authoritative for memory_access_violation.
@@ -147,7 +163,14 @@ async def test_memory_forensics_turn_present_in_debate(settings: Settings):
 
 
 async def test_memory_forensics_absent_from_unrelated_fault_class(settings: Settings):
-    """[Integration] a fault class with no specialist keeps the legacy four-agent panel."""
+    """[Integration] a fault class with no specialist keeps the legacy four-agent panel.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: [Integration] a fault class with no specialist keeps the legacy four-agent panel.
+    """
     responses: list[Any] = [_os(), _code(), _historian(), _skeptic_yes()]
     orch = Orchestrator(
         settings=settings,

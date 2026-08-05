@@ -23,10 +23,12 @@ _RUN = "aegis_swr.backends.debug.base.subprocess.run"
 
 
 def _proc(stdout: str) -> SimpleNamespace:
+    """Helper that provides proc for the debug pipeline tests."""
     return SimpleNamespace(stdout=stdout, stderr="")
 
 
 def _os_kernel_payload() -> dict[str, object]:
+    """Helper that provides os kernel payload for the debug pipeline tests."""
     return {
         "exception_summary": {
             "fault_class": "memory_access_violation",

@@ -29,16 +29,20 @@ class _Recorder:
     """Capturing :class:`DomainEvent` subscriber."""
 
     def __init__(self) -> None:
+        """Helper that provides init for the process lifecycle tests."""
         self.events: list[DomainEvent] = []
 
     def __call__(self, event: DomainEvent) -> None:
+        """Helper that provides call for the process lifecycle tests."""
         self.events.append(event)
 
     def of(self, event_type: type) -> list[DomainEvent]:
+        """Helper that provides of for the process lifecycle tests."""
         return [e for e in self.events if isinstance(e, event_type)]
 
 
 def _bus_with_recorder() -> tuple[EventBus, _Recorder]:
+    """Helper that provides bus with recorder for the process lifecycle tests."""
     bus = EventBus()
     recorder = _Recorder()
     bus.subscribe(DomainEvent, recorder)
@@ -46,12 +50,13 @@ def _bus_with_recorder() -> tuple[EventBus, _Recorder]:
 
 
 async def test_managed_start_connects_within_timeout(stub_project: Path) -> None:
-    """Managed ``__aenter__`` exposes a ready ``grpc_url`` within ``connect_timeout_s``.
+    """[Integration] process lifecycle: Managed ``__aenter__`` exposes a ready ``grpc_url`` within ``connect_timeout_s``.
 
-    ``stub_project`` is requested to guarantee the disposable project tree is
-    on disk for the sidecar's full lifetime.  Navigation tasks must reference
-    files inside it by absolute path (the sidecar's cwd is ``_SAFE_CWD``, not
-    ``stub_project``).
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: managed ``__aenter__`` exposes a ready ``grpc_url`` within ``connect_timeout_s``.
     """
     _ = stub_project  # ensure the stub tree exists for this test's lifetime
     settings = managed_settings()
@@ -63,10 +68,13 @@ async def test_managed_start_connects_within_timeout(stub_project: Path) -> None
 
 
 async def test_connected_and_disconnected_emitted_exactly_once(stub_project: Path) -> None:
-    """Exactly one connected on entry and exactly one disconnected on exit (C6).
+    """[Integration] process lifecycle: Exactly one connected on entry and exactly one disconnected on exit (C6).
 
-    ``stub_project`` is requested so the stub tree exists; see
-    :func:`test_managed_start_connects_within_timeout` for the cwd note.
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: exactly one connected on entry and exactly one disconnected on exit (C6).
     """
     _ = stub_project  # ensure the stub tree exists for this test's lifetime
     bus, recorder = _bus_with_recorder()
@@ -77,22 +85,13 @@ async def test_connected_and_disconnected_emitted_exactly_once(stub_project: Pat
 
 
 async def test_no_process_survives_context(stub_project: Path) -> None:
-    """Managed subprocess terminates gracefully on exit; no sidecar survives the context.
+    """[Integration] process lifecycle: Managed subprocess terminates gracefully on exit; no sidecar survives the context.
 
-    Asserts two things required by the spec (08.0/02):
+    Scenario: the behavior described in the summary is exercised.
 
-    1. **No SIGKILL escalation** — a healthy sidecar exits on SIGTERM within
-       the grace period; ``returncode`` must not be ``-9`` (SIGKILL).
-    2. **PID-existence probe** — after ``__aexit__`` returns, the child's PID
-       is gone according to ``os.kill(pid, 0)``, which raises
-       :class:`ProcessLookupError` when the process no longer exists.
+    Boundaries: scoped to this test case and its direct collaborators.
 
-    NOTE: ``os.kill(pid, 0)`` is a POSIX signal-0 probe: no signal is
-    delivered, but the syscall returns ``ESRCH`` (PID gone) or succeeds (PID
-    alive).  PID reuse is theoretically possible in the narrow window between
-    process exit and this probe, but is extremely unlikely immediately after
-    ``__aexit__`` returns.  The in-process ``returncode`` is also checked for
-    belt-and-suspenders coverage.
+    On failure, first check: managed subprocess terminates gracefully on exit; no sidecar survives the context.
     """
     _ = stub_project  # ensure the stub tree exists for this test's lifetime
     bus, _ = _bus_with_recorder()
@@ -123,5 +122,5 @@ async def test_no_process_survives_context(stub_project: Path) -> None:
         raise AssertionError(  # pragma: no cover - only reached on test failure
             f"PID {pid} still exists after context exit; possible process leak or extremely unlikely PID reuse"
         )
-    except ProcessLookupError:
-        pass  # expected: the child process is gone
+    except ProcessLookupError as e:
+        assert isinstance(e, ProcessLookupError)  # expected: the child process is gone

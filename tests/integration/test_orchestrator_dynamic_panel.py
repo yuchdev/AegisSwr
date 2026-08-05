@@ -80,6 +80,7 @@ class _ExtraAnalystAgent(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Helper that provides system prompt for the orchestrator dynamic panel tests."""
         return "extra analyst system prompt"
 
     async def run(self, state: InvestigationState) -> AgentTurn:
@@ -99,6 +100,7 @@ class _ExtraAnalystAgent(BaseAgent):
 
 
 def _os(confidence: float = 0.90) -> OSKernelOutput:
+    """Helper that provides os for the orchestrator dynamic panel tests."""
     return OSKernelOutput(
         exception_summary=ExceptionSummary(
             fault_class=FaultClass.MEMORY_ACCESS_VIOLATION,
@@ -114,6 +116,7 @@ def _os(confidence: float = 0.90) -> OSKernelOutput:
 
 
 def _code(confidence: float = 0.90, *, with_fix: bool = False) -> CodeAnalystOutput:
+    """Helper that provides code for the orchestrator dynamic panel tests."""
     fix_text: Optional[str] = "guard the pointer with a null check" if with_fix else None
     return CodeAnalystOutput(
         rca=RCAHypothesis(
@@ -128,6 +131,7 @@ def _code(confidence: float = 0.90, *, with_fix: bool = False) -> CodeAnalystOut
 
 
 def _historian(confidence: float = 0.90) -> LogHistorianOutput:
+    """Helper that provides historian for the orchestrator dynamic panel tests."""
     return LogHistorianOutput(
         confidence_adjustment=0.0,
         updated_confidence=confidence,
@@ -136,10 +140,12 @@ def _historian(confidence: float = 0.90) -> LogHistorianOutput:
 
 
 def _skeptic_yes(confidence: ConfidenceLevel = ConfidenceLevel.HIGH) -> SkepticVerdict:
+    """Helper that provides skeptic yes for the orchestrator dynamic panel tests."""
     return SkepticVerdict(confirmed=True, confidence=confidence)
 
 
 def _skeptic_no() -> SkepticVerdict:
+    """Helper that provides skeptic no for the orchestrator dynamic panel tests."""
     return SkepticVerdict(
         confirmed=False,
         confidence=ConfidenceLevel.LOW,
@@ -161,30 +167,13 @@ def _log_only_source() -> IncidentSource:
 async def test_stream_events_default_panel_preserves_prerefactor_order_and_publishes_panel_resolved(
     settings: Settings,
 ) -> None:
-    """The default 4-agent auto-selected panel is byte-identical to the pre-refactor chain.
+    """[Integration] orchestrator dynamic panel: The default 4-agent auto-selected panel is byte-identical to the pre-refactor chain.
 
-    Exercises stream_events() end-to-end with a 2-round debate (round 1 the
-    arbiter rejects with explicit challenges, round 2 it confirms at HIGH
-    confidence). This is more than a repackaged unit test: it exercises the
-    stream_events() path (not just run()), verifies the new PanelResolved event
-    introduced by this redesign is wired and carries correct metadata, and
-    confirms that the role-driven _build_report extracts skeptic_challenges from
-    round 1's arbiter turn without any display-name branch.
+    Scenario: the behavior described in the summary is exercised.
 
-    Assertions:
-    - InvestigationStarted appears first; InvestigationCompleted last.
-    - EvidenceExtracted and PanelResolved appear before any AgentSpoke event.
-    - PanelResolved names the four default agents with the correct roles
-      (os_kernel/code_analyst/log_historian as INVESTIGATOR; skeptic as ARBITER).
-    - Exactly 8 AgentSpoke events (4 agents x 2 rounds) in [os_kernel,
-      code_analyst, log_historian, skeptic] order for each round.
-    - Exactly 2 ConsensusEvaluated events (one per round).
-    - Final RCAReport: consensus_rounds=2, root_cause='UAF in serialize()',
-      confidence_score=0.90, confidence_level=HIGH, no HITL request.
-    - skeptic_challenges from round 1 appear in the final report (role-driven
-      extraction, not 'Skeptic Agent' name match).
+    Boundaries: scoped to this test case and its direct collaborators.
 
-    This is the 'back-compat equivalence test' gate from the design doc.
+    On failure, first check: the default 4-agent auto-selected panel is byte-identical to the pre-refactor chain.
     """
     responses: list[Any] = [
         # Round 1: arbiter rejects, providing explicit challenges.
@@ -281,34 +270,13 @@ async def test_explicit_five_agent_panel_respects_priority_order_and_weight_tier
     settings: Settings,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """An explicit 5-agent panel runs in priority order with two-tier weight resolution.
+    """[Integration] orchestrator dynamic panel: An explicit 5-agent panel runs in priority order with two-tier weight resolution.
 
-    Registers _ExtraAnalystAgent into AGENT_REGISTRY for the duration of this
-    test via monkeypatch.setitem, then runs a full investigation with an explicit
-    5-agent panel. Verifies:
+    Scenario: the behavior described in the summary is exercised.
 
-    - extra_analyst (priority=5) speaks before os_kernel (priority=4) — the
-      ordering is descending-priority, not insertion order.
-    - skeptic (ARBITER) always runs last regardless of its priority.
-    - Probabilistic fix 'guard the pointer with a null check' is extracted from
-      code_analyst's turn via the contributes_fix=True capability flag, not via
-      any 'Code Analyst Agent' display-name check.
-    - consensus_score equals the analytically expected weighted average, proving
-      the two-tier weight precedence was applied:
-        * extra_analyst:  explicit weight=0.60  (tier 1: per-incident override)
-        * os_kernel:      default_weight=0.35   (tier 2: agent-declared)
-        * code_analyst:   default_weight=0.35   (tier 2: agent-declared)
-        * log_historian:  default_weight=0.17   (tier 2: agent-declared)
-        * skeptic:        default_weight=0.13   (tier 2: agent-declared)
-      With scores extra=0.50, all others=0.90:
-        CS = (0.60×0.50 + 0.35×0.90 + 0.35×0.90 + 0.17×0.90 + 0.13×0.90)
-             / (0.60+0.35+0.35+0.17+0.13) = 1.20/1.60 = 0.75
+    Boundaries: scoped to this test case and its direct collaborators.
 
-    A custom consensus_threshold=0.70 is used so that this analytically-derived
-    score triggers convergence; the default 0.85 threshold is deliberately
-    violated to isolate the weight-tier behaviour under test.
-
-    This is the 'variable-panel test' gate from the design doc.
+    On failure, first check: an explicit 5-agent panel runs in priority order with two-tier weight resolution.
     """
     monkeypatch.setitem(
         agent_registry_module.AGENT_REGISTRY,
@@ -405,21 +373,13 @@ async def test_explicit_five_agent_panel_respects_priority_order_and_weight_tier
 async def test_large_max_debate_rounds_completes_without_graph_recursion_error(
     settings: Settings,
 ) -> None:
-    """The (len(panel)+2)*max_rounds+5 budget prevents GraphRecursionError.
+    """[Integration] orchestrator dynamic panel: The (len(panel)+2)*max_rounds+5 budget prevents GraphRecursionError.
 
-    With the default 4-agent panel and max_debate_rounds=7:
-      - total node visits = 7 rounds × 4 agents + 1 terminal (hitl) = 29
-      - LangGraph's default recursion limit of 25 would be exceeded (29 > 25)
-        if the orchestrator did not set a custom recursion_limit.
-      - The fix computes (4+2)*7+5 = 47, well above the actual visit count.
+    Scenario: the behavior described in the summary is exercised.
 
-    The arbiter always returns LOW confidence so convergence never occurs and
-    the debate runs the full 7 rounds before escalating to HITL. The test asserts
-    that the investigation completes with a valid HITL RCAReport and consensus_rounds
-    equal to max_debate_rounds — confirming the graph ran to normal termination
-    rather than being cut short by a recursion error.
+    Boundaries: scoped to this test case and its direct collaborators.
 
-    This is the 'recursion_limit test' gate from the design doc.
+    On failure, first check: the (len(panel)+2)*max_rounds+5 budget prevents GraphRecursionError.
     """
     max_rounds = 7
     # Settings override: only max_debate_rounds changes; other core defaults hold.

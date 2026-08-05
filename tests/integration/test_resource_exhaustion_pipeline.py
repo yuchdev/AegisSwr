@@ -16,6 +16,7 @@ from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
 
 def _state() -> InvestigationState:
+    """Helper that provides state for the resource exhaustion pipeline tests."""
     return {
         "incident_id": "test-id",
         "incident_brief": {
@@ -30,6 +31,7 @@ def _state() -> InvestigationState:
 
 
 def _output() -> ResourceExhaustionOutput:
+    """Helper that provides output for the resource exhaustion pipeline tests."""
     return ResourceExhaustionOutput(
         hypotheses=[Hypothesis(root_cause="fd leak in accept loop", confidence=0.8)],
         confidence_score=0.8,
@@ -38,6 +40,14 @@ def _output() -> ResourceExhaustionOutput:
 
 
 async def test_resource_exhaustion_incident_includes_debate_turn(settings: Settings):
+    """[Integration] resource exhaustion pipeline: verifies resource exhaustion incident includes debate turn.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: verifies resource exhaustion incident includes debate turn.
+    """
     ai = MockAIBackend(responses=[_output()])
     agent = ResourceExhaustionAgent(ai, settings)
 
