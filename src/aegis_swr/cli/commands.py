@@ -74,6 +74,7 @@ class FullHelpGroup(TyperGroup):
     """
 
     def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        """Render the standard help, then recursively echo every subcommand's help."""
         super().format_help(ctx, formatter)  # the usual top-level summary
         _echo_subcommands_help(self, ctx)
 
@@ -706,6 +707,7 @@ def export(
     from aegis_swr.config.settings import Settings
 
     async def _run() -> int:
+        """Copy reports from the source store into the destination store."""
         src_settings = Settings()
         src_settings.backends.storage.provider = store
         if store_config:
@@ -873,6 +875,7 @@ def code_intel_check(
     bus = EventBus()
 
     async def _run() -> bool:
+        """Build the code agent and run the one-shot delegation probe."""
         async with AsyncExitStack() as stack:
             agent = await build_code_agent(
                 settings.openclaude,

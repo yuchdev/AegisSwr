@@ -102,6 +102,7 @@ class _CsvEnvSettingsSource(EnvSettingsSource):
         value: Any,
         value_is_complex: bool,
     ) -> Any:
+        """Split comma-separated env values for list fields, else defer to the base."""
         if field_name in _CSV_LIST_FIELDS and isinstance(value, str):
             return _split_csv(value)
         return super().prepare_field_value(field_name, field, value, value_is_complex)

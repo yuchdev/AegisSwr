@@ -123,6 +123,7 @@ def _parse_timestamp(line: str, reference: datetime) -> Optional[datetime]:
         try:
             parsed = datetime.fromisoformat(f"{iso.group(1)}T{iso.group(2)}")
         except ValueError:
+            logger.debug("_parse_timestamp: invalid ISO datetime string in log line; skipping")
             return None
         return parsed.replace(tzinfo=reference.tzinfo)
     clock = _TIME_ONLY_RE.search(line)
@@ -131,6 +132,7 @@ def _parse_timestamp(line: str, reference: datetime) -> Optional[datetime]:
         try:
             return reference.replace(hour=hour, minute=minute, second=second, microsecond=0)
         except ValueError:
+            logger.debug("_parse_timestamp: invalid time components in log line; skipping")
             return None
     return None
 
@@ -565,6 +567,7 @@ class DataAdapter:
                 try:
                     confidence = float(conf)
                 except (TypeError, ValueError):
+                    logger.debug("DataAdapter: non-numeric OCR confidence value; skipping token")
                     continue
                 if confidence > 60 and text.strip():
                     words.append(text.strip())

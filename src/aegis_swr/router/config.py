@@ -191,6 +191,7 @@ class RouterConfig:
         """
 
         def _replace(match: re.Match[str]) -> str:
+            """Substitute one ``${VAR}`` match with its env value, tracking misses."""
             var_name = match.group(1)
             env_value = os.environ.get(var_name)
             if env_value is None:

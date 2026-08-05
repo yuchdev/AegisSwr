@@ -454,6 +454,7 @@ class Orchestrator:
         """
 
         async def _node(state: InvestigationState) -> dict[str, Any]:
+            """Invoke the bound agent and fold its turn into the state update."""
             turn = await self._invoke_agent(agent, state)
             tracker, history, scores = self._fold_turn(state, turn, agent.agent_key)
             update: dict[str, Any] = {
@@ -562,6 +563,7 @@ class Orchestrator:
         """
 
         async def _node(state: InvestigationState) -> dict[str, Any]:
+            """Build the final report and attach the advisory remediation plan."""
             report = self._build_report(state, panel, hitl_pending=False)
             # Incident-analyst safety rule: never auto-remediate without
             # AEGIS_PROD_CONFIRMED=1. This node only ATTACHES an advisory plan to
@@ -633,6 +635,7 @@ class Orchestrator:
         """
 
         async def _node(state: InvestigationState) -> dict[str, Any]:
+            """Delegate to the HITL node that builds an escalation report."""
             return await self._hitl_node(state, panel)
 
         return _node
@@ -679,6 +682,7 @@ class Orchestrator:
         """
 
         def _route(state: InvestigationState) -> str:
+            """Route to synthesis on convergence, else re-deliberate or escalate."""
             if state.get("is_converged"):
                 return "output_synthesizer_node"
             # round_number has already been incremented by the arbiter node.

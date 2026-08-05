@@ -392,6 +392,7 @@ class DebugSettings(BaseSettings):
     @field_validator("engine")
     @classmethod
     def validate_engine(cls, v: str) -> str:
+        """Validate the debug engine name against the supported set."""
         allowed = {"auto", "cdb", "windbg_js"}
         if v not in allowed:
             raise ValueError(f"engine must be one of {allowed}")
@@ -431,6 +432,7 @@ class StorageSettings(BaseSettings):
     @field_validator("provider")
     @classmethod
     def validate_provider(cls, v: str) -> str:
+        """Validate the storage provider name against the supported set."""
         allowed = {"filesystem", "sqlite", "s3", "postgres"}
         if v not in allowed:
             raise ValueError(f"provider must be one of {allowed}")
@@ -458,6 +460,7 @@ class LogBackendSettings(BaseSettings):
     @field_validator("provider")
     @classmethod
     def validate_provider(cls, v: str) -> str:
+        """Validate the log provider name against the supported set."""
         allowed = {"file", "fluent", "elk"}
         if v not in allowed:
             raise ValueError(f"log provider must be one of {allowed}")
@@ -485,6 +488,7 @@ class CodeBackendSettings(BaseSettings):
     @field_validator("provider")
     @classmethod
     def validate_provider(cls, v: str) -> str:
+        """Validate the code provider name against the supported set."""
         allowed = {"git", "filesystem"}
         if v not in allowed:
             raise ValueError(f"code provider must be one of {allowed}")
@@ -608,7 +612,8 @@ def _read_json_object(path: Path) -> dict[str, Any]:
         return {}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.warning("_read_json_object: could not read {}: {}", path, exc)
         return {}
     return data if isinstance(data, dict) else {}
 
@@ -623,6 +628,7 @@ class AegisJsonSettingsSource(PydanticBaseSettingsSource):
     """
 
     def __init__(self, settings_cls: type[BaseSettings]) -> None:
+        """Load the merged ``config.json`` object as this source's backing data."""
         super().__init__(settings_cls)
         self._data = dict(_read_json_object(CONFIG_JSON))
 
@@ -638,6 +644,7 @@ class AegisJsonSettingsSource(PydanticBaseSettingsSource):
         return self._data.get(field_name), field_name, False
 
     def __call__(self) -> dict[str, Any]:
+        """Return the full merged JSON settings mapping."""
         return self._data
 
 

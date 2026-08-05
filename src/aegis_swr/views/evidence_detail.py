@@ -6,6 +6,7 @@ Stream.  They are deliberately free of any Rich/UI dependency so they can be
 unit-tested in isolation; :mod:`aegis_swr.views.rich_view` formats their output
 into styled lines.
 """
+
 from __future__ import annotations
 
 import struct
@@ -13,6 +14,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Optional
+
+from loguru import logger
 
 #: Display window shown around the incident for every analyzed log file.
 LOG_WINDOW = timedelta(minutes=2)
@@ -82,7 +85,8 @@ def file_properties(raw_path: str) -> FileProps:
     path = Path(raw_path)
     try:
         stat = path.stat()
-    except OSError:
+    except OSError as exc:
+        logger.debug("file_properties: stat failed for {!r}: {}", raw_path, exc)
         return FileProps(name=path.name or raw_path, exists=False)
     return FileProps(
         name=path.name or raw_path,
@@ -136,6 +140,13 @@ class PcapInfo:
 
 
 def _pcap_timestamp(sec: int, sub: int, resolution: str) -> datetime:
+    """Combine seconds and a sub-second count into a UTC datetime.
+
+    :param sec: whole seconds since the epoch.
+    :param sub: sub-second count, interpreted per *resolution*.
+    :param resolution: ``"nanosecond"`` or microsecond precision.
+    :return: the reconstructed UTC timestamp.
+    """
     frac = sub / 1_000_000_000 if resolution == "nanosecond" else sub / 1_000_000
     return datetime.fromtimestamp(sec + frac, tz=UTC)
 
@@ -163,15 +174,11 @@ def pcap_metadata(raw_path: str, *, max_packets: int = 5_000_000) -> PcapInfo:
                     note="pcapng block structure not parsed",
                 )
             if magic not in _PCAP_MAGICS:
-                return PcapInfo(
-                    name=name, container="unknown", note="unrecognized magic number"
-                )
+                return PcapInfo(name=name, container="unknown", note="unrecognized magic number")
 
             byte_order, resolution = _PCAP_MAGICS[magic]
             endian = "<" if byte_order == "little" else ">"
-            (major, minor, _tz, _sig, snaplen, network) = struct.unpack(
-                f"{endian}HHiIII", header[4:24]
-            )
+            (major, minor, _tz, _sig, snaplen, network) = struct.unpack(f"{endian}HHiIII", header[4:24])
             link_type = _LINK_TYPES.get(network, f"LINKTYPE_{network}")
 
             count = 0
@@ -202,4 +209,5 @@ def pcap_metadata(raw_path: str, *, max_packets: int = 5_000_000) -> PcapInfo:
                 last_timestamp=last_ts,
             )
     except OSError as exc:
+        logger.debug("pcap_metadata: cannot read {!r}: {}", raw_path, exc)
         return PcapInfo(name=name, container="unknown", note=f"unreadable: {exc}")

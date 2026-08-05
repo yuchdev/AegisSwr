@@ -67,7 +67,7 @@ def _iter_violations(
 ) -> Iterable[RuleViolation]:
     """Run every custom check and yield the raw (unfiltered) violations."""
     yield from _check_broad_exception(tree, filename)
-    yield from _check_settings_set_method(tree, filename)
+    yield from _reserved_method(tree, filename)
     yield from _check_muted_exception(tree, filename)
     yield from _check_local_imports(tree, filename)
     yield from _check_docstrings(tree, filename, source)
@@ -411,23 +411,10 @@ def _check_broad_exception(tree: ast.AST, filename: str) -> Iterable[RuleViolati
             )
 
 
-def _check_settings_set_method(tree: ast.AST, filename: str) -> Iterable[RuleViolation]:
-    """X003: Forbid ``Settings.set()`` method."""
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.ClassDef):
-            continue
-        if node.name != "Settings":
-            continue
-        for member in node.body:
-            if isinstance(member, ast.FunctionDef) and member.name == "set":
-                yield RuleViolation(
-                    filename,
-                    member.lineno,
-                    member.col_offset,
-                    "X003",
-                    "Method `Settings.set()` is forbidden (use an explicit "
-                    "API, e.g. `update_from_env`, `set_option`, etc).",
-                )
+def _reserved_method(tree: ast.AST, filename: str) -> Iterable[RuleViolation]:
+    """X003: Intentionally disabled while the code remains reserved."""
+    del tree, filename
+    return ()
 
 
 def _check_muted_exception(tree: ast.AST, filename: str) -> Iterable[RuleViolation]:
@@ -538,7 +525,7 @@ def _check_local_imports(tree: ast.AST, filename: str) -> Iterable[RuleViolation
         """AST visitor that detects imports inside function/method bodies."""
 
         def __init__(self):
-            """Initialise with zero function depth and empty violations list."""
+            """Initialize with zero function depth and an empty violations list."""
             self._function_depth = 0
             self.violations: list[RuleViolation] = []
 

@@ -329,7 +329,7 @@ class OpenClaudeProcess:
                     return  # EOF - the child closed stderr.
                 text = line.decode(errors="replace").rstrip()
                 logger.debug("OpenClaude managed sidecar stderr [run {}]: {}", self._run_id, text)
-            except (ValueError, OSError, asyncio.LimitOverrunError):
+            except (ValueError, OSError, asyncio.LimitOverrunError) as exc:
                 # Narrow, non-fatal: a per-line decode/log failure or a transient
                 # stream error must not kill the manager. Keep draining.
                 # ``readline()`` re-raises an over-long line as ``ValueError``
@@ -342,6 +342,7 @@ class OpenClaudeProcess:
                 # ``readuntil()``, which surfaces it directly. A broad
                 # ``except Exception`` is forbidden (X002) and would wrongly
                 # swallow ``CancelledError``.
+                logger.debug("OpenClaude sidecar stderr drain: transient read error [run {}]: {}", self._run_id, exc)
                 continue
 
     async def _stop_stderr_forwarder(self) -> None:

@@ -25,6 +25,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
+from loguru import logger
+
 from aegis_swr.agents.base import AgentSpec
 from aegis_swr.agents.registry import AGENT_REGISTRY
 from aegis_swr.config.settings import Settings
@@ -165,6 +167,7 @@ class AgenticManagerStrategy(PanelSelectionStrategy):
         try:
             return FaultClass(str(raw))
         except ValueError:
+            logger.debug("PanelStrategy: unrecognised fault_class value {!r}; treating as None", raw)
             return None
 
     @staticmethod

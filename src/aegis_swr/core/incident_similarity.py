@@ -15,6 +15,7 @@ probability the historian can reason about.  It is fully deterministic - no
 embeddings, no network - so it is cheap to run on every round and trivial to
 test.
 """
+
 from __future__ import annotations
 
 import re
@@ -33,9 +34,7 @@ of free-form analysis text.
 _SOURCE_EXT = "cpp|cxx|cc|c|hpp|hh|h|rs|go|py|js|ts|java|cs|kt|swift|m|mm"
 
 """Code location, e.g. ``CrashUi.exe!Crash_Window::on_access_violation_click:123``."""
-_CODE_LOCATION_RE = re.compile(
-    rf"([\w.\\/-]+\.(?:{_SOURCE_EXT})):(\d+)", re.IGNORECASE
-)
+_CODE_LOCATION_RE = re.compile(rf"([\w.\\/-]+\.(?:{_SOURCE_EXT})):(\d+)", re.IGNORECASE)
 
 """WinDbg failure bucket, e.g.
 ``NULL_POINTER_WRITE_c0000005_CrashUi.exe!Crash_Window::on_access_violation_click``.
@@ -47,9 +46,7 @@ Hex-aware lookarounds (rather than ``\b``) so a code embedded in a failure
 bucket like ``..._c0000005_...`` is found - underscores are word characters,
 so ``\b`` never fires there - while a sub-run of a 16-digit address is not.
 """
-_EXCEPTION_CODE_RE = re.compile(
-    r"(?<![0-9a-fA-F])(?:0x)?([0-9a-fA-F]{8})(?![0-9a-fA-F])"
-)
+_EXCEPTION_CODE_RE = re.compile(r"(?<![0-9a-fA-F])(?:0x)?([0-9a-fA-F]{8})(?![0-9a-fA-F])")
 
 
 def _norm_module(module: Optional[str]) -> Optional[str]:
@@ -89,12 +86,14 @@ def _norm_exception_code(raw: Optional[str]) -> Optional[str]:
 
 
 def _norm_bucket(raw: Optional[str]) -> Optional[str]:
+    """Normalise a failure-bucket token (trim, strip trailing dots, lower-case)."""
     if not raw:
         return None
     return raw.strip().rstrip(".").lower() or None
 
 
 def _find_code_location(text: str) -> Optional[str]:
+    """Return the first normalised ``file:line`` code location found in *text*."""
     match = _CODE_LOCATION_RE.search(text)
     if not match:
         return None
@@ -103,9 +102,7 @@ def _find_code_location(text: str) -> Optional[str]:
 
 def _find_failure_bucket(text: str) -> Optional[str]:
     """Pull the most bucket-like token out of *text* (longest underscore run)."""
-    candidates = [
-        c for c in _FAILURE_BUCKET_RE.findall(text) if _EXCEPTION_CODE_RE.search(c)
-    ]
+    candidates = [c for c in _FAILURE_BUCKET_RE.findall(text) if _EXCEPTION_CODE_RE.search(c)]
     if not candidates:
         return None
     return _norm_bucket(max(candidates, key=len))
@@ -123,6 +120,7 @@ class IncidentSignature:
     failure_bucket: Optional[str] = None
 
     def as_dict(self) -> dict[str, Optional[str]]:
+        """Return the signature fields as a plain mapping for serialisation."""
         return {
             "fault_class": self.fault_class,
             "exception_code": self.exception_code,
@@ -205,7 +203,6 @@ _STRONG_FIELDS = ("failure_bucket", "faulting_function", "code_location")
 _WEAK_ONLY_CAP = 0.40
 
 
-
 def similarity(a: IncidentSignature, b: IncidentSignature) -> float:
     """Weighted field-match score in ``[0, 1]``.
 
@@ -256,6 +253,7 @@ class HistoryMatch:
     root_cause: str
 
     def as_dict(self) -> dict[str, Any]:
+        """Return the history-match fields as a plain mapping for serialisation."""
         return {
             "incident_id": self.incident_id,
             "similarity": self.similarity,
@@ -279,10 +277,12 @@ class HistoryAnalysis:
 
     @property
     def recurrence_count(self) -> int:
+        """Number of historical incidents matching the current signature."""
         return len(self.matches)
 
     @property
     def is_recurrence(self) -> bool:
+        """True when at least one historical incident matches this signature."""
         return bool(self.matches)
 
     def summary(self) -> str:
@@ -310,9 +310,7 @@ class HistoryAnalysis:
             "recurrence_count": self.recurrence_count,
             "is_recurrence": self.is_recurrence,
             "recurrence_probability": round(self.recurrence_probability, 4),
-            "suggested_confidence_adjustment": round(
-                self.suggested_confidence_adjustment, 4
-            ),
+            "suggested_confidence_adjustment": round(self.suggested_confidence_adjustment, 4),
             "summary": self.summary(),
         }
 
@@ -325,7 +323,7 @@ def _recurrence_probability(best: float, count: int) -> float:
     """
     if count <= 0:
         return round(best, 4)
-    return round(best + (1.0 - best) * (1.0 - 0.5 ** count), 4)
+    return round(best + (1.0 - best) * (1.0 - 0.5**count), 4)
 
 
 def _suggested_adjustment(probability: float, matched: bool, history_size: int) -> float:
@@ -351,9 +349,7 @@ def analyze_history(
     """Score the live incident against *history* and derive recurrence stats."""
     current = signature_from_brief(brief)
     considered: list[RCAReport] = [
-        r
-        for r in history
-        if exclude_incident_id is None or str(r.incident_id) != str(exclude_incident_id)
+        r for r in history if exclude_incident_id is None or str(r.incident_id) != str(exclude_incident_id)
     ]
 
     matches: list[HistoryMatch] = []

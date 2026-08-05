@@ -56,6 +56,7 @@ class OpenClaudeUnavailableError(Exception):
         retriable: bool = True,
         status_code: Optional[str] = None,
     ) -> None:
+        """Record the endpoint, retriability, and gRPC status on the error."""
         self.grpc_url = grpc_url
         self.retriable = retriable
         self.status_code = status_code
@@ -84,6 +85,7 @@ class PermissionDeniedError(Exception):
     retriable: bool = False
 
     def __init__(self, tool: str, denied_binary: str) -> None:
+        """Record the requesting *tool* and the denied *binary* name (payload-free)."""
         self.tool = tool
         self.denied_binary = denied_binary
         super().__init__(
@@ -115,6 +117,7 @@ class OpenClaudeConfigError(ValueError):
     """
 
     def __init__(self, field: str, reason: str) -> None:
+        """Record the offending *field* and payload-free *reason* on the error."""
         self.field = field
         self.reason = reason
         super().__init__(f"OpenClaudeSettings.{field}: {reason}")
