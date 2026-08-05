@@ -47,11 +47,13 @@ from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
 @pytest.fixture
 def ai_backend() -> AIAPIBackend:
+    """Helper that provides ai backend for the agent registry tests."""
     return MockAIBackend()
 
 
 @pytest.fixture
 def settings() -> Settings:
+    """Helper that provides settings for the agent registry tests."""
     return Settings()
 
 
@@ -66,9 +68,11 @@ class _SecondArbiter(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Helper that provides system prompt for the agent registry tests."""
         return "second arbiter"
 
     async def run(self, state: InvestigationState) -> AgentTurn:
+        """Helper that provides run for the agent registry tests."""
         return self.make_turn(turn_number=1, message="x", confidence_score=0.5)
 
 
@@ -78,7 +82,14 @@ class _SecondArbiter(BaseAgent):
 
 
 def test_registry_maps_every_agent_key_to_its_class():
-    """[Unit] registry: the concrete agents register under their canonical keys."""
+    """[Unit] registry: the concrete agents register under their canonical keys.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the concrete agents register under their canonical keys.
+    """
     assert AGENT_REGISTRY == {
         "os_kernel": OSKernelAgent,
         "code_analyst": CodeAnalystAgent,
@@ -93,12 +104,26 @@ def test_registry_maps_every_agent_key_to_its_class():
 
 
 def test_memory_forensics_registered():
-    """[Unit] registry: memory_forensics maps to MemoryForensicsAgent."""
+    """[Unit] registry: memory_forensics maps to MemoryForensicsAgent.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: memory_forensics maps to MemoryForensicsAgent.
+    """
     assert AGENT_REGISTRY["memory_forensics"] is MemoryForensicsAgent
 
 
 def test_memory_forensics_resolves_into_panel(ai_backend, settings):
-    """[Unit] panel: a spec list including memory_forensics resolves it into the panel."""
+    """[Unit] panel: a spec list including memory_forensics resolves it into the panel.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a spec list including memory_forensics resolves it into the panel.
+    """
     specs = [
         AgentSpec(agent_key="os_kernel"),
         AgentSpec(agent_key="memory_forensics"),
@@ -110,7 +135,14 @@ def test_memory_forensics_resolves_into_panel(ai_backend, settings):
 
 
 def test_create_agent_instantiates_registered_class(ai_backend, settings):
-    """[Unit] registry: create_agent builds the right class and attaches the spec."""
+    """[Unit] registry: create_agent builds the right class and attaches the spec.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: create_agent builds the right class and attaches the spec.
+    """
     spec = AgentSpec(agent_key="skeptic", priority=4)
     agent = create_agent(spec, ai_backend, settings)
     assert isinstance(agent, SkepticAgent)
@@ -119,7 +151,14 @@ def test_create_agent_instantiates_registered_class(ai_backend, settings):
 
 
 def test_create_agent_unknown_key_raises(ai_backend, settings):
-    """[Unit] registry: an unregistered key raises UnknownAgentError."""
+    """[Unit] registry: an unregistered key raises UnknownAgentError.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: an unregistered key raises UnknownAgentError.
+    """
     spec = AgentSpec(agent_key="does_not_exist")
     with pytest.raises(UnknownAgentError):
         create_agent(spec, ai_backend, settings)
@@ -131,7 +170,14 @@ def test_create_agent_unknown_key_raises(ai_backend, settings):
 
 
 def test_resolve_panel_happy_path(ai_backend, settings):
-    """[Unit] panel: enabled specs resolve to agents preserving order."""
+    """[Unit] panel: enabled specs resolve to agents preserving order.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: enabled specs resolve to agents preserving order.
+    """
     specs = [
         AgentSpec(agent_key="os_kernel"),
         AgentSpec(agent_key="code_analyst"),
@@ -142,7 +188,14 @@ def test_resolve_panel_happy_path(ai_backend, settings):
 
 
 def test_resolve_panel_drops_disabled_specs(ai_backend, settings):
-    """[Unit] panel: disabled specs are excluded from the resolved panel."""
+    """[Unit] panel: disabled specs are excluded from the resolved panel.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: disabled specs are excluded from the resolved panel.
+    """
     specs = [
         AgentSpec(agent_key="os_kernel", enabled=False),
         AgentSpec(agent_key="code_analyst"),
@@ -153,7 +206,14 @@ def test_resolve_panel_drops_disabled_specs(ai_backend, settings):
 
 
 def test_resolve_panel_unknown_key_warns_and_skips(ai_backend, settings):
-    """[Unit] panel: an unknown key is skipped, not fatal (warn-and-skip)."""
+    """[Unit] panel: an unknown key is skipped, not fatal (warn-and-skip).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: an unknown key is skipped, not fatal (warn-and-skip).
+    """
     specs = [
         AgentSpec(agent_key="os_kernel"),
         AgentSpec(agent_key="typo_agent"),
@@ -164,7 +224,14 @@ def test_resolve_panel_unknown_key_warns_and_skips(ai_backend, settings):
 
 
 def test_resolve_panel_zero_arbiters_raises(ai_backend, settings):
-    """[Unit] panel: a panel with no arbiter is a hard error."""
+    """[Unit] panel: a panel with no arbiter is a hard error.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a panel with no arbiter is a hard error.
+    """
     specs = [
         AgentSpec(agent_key="os_kernel"),
         AgentSpec(agent_key="code_analyst"),
@@ -174,7 +241,14 @@ def test_resolve_panel_zero_arbiters_raises(ai_backend, settings):
 
 
 def test_resolve_panel_two_arbiters_raises(ai_backend, settings, monkeypatch):
-    """[Unit] panel: two arbiters make the convergence gate ambiguous - raise."""
+    """[Unit] panel: two arbiters make the convergence gate ambiguous - raise.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: two arbiters make the convergence gate ambiguous - raise.
+    """
     monkeypatch.setitem(registry.AGENT_REGISTRY, "second_arbiter", _SecondArbiter)
     specs = [
         AgentSpec(agent_key="os_kernel"),
@@ -197,7 +271,14 @@ def _panel(ai_backend, settings, specs: list[AgentSpec]) -> list[BaseAgent]:
 
 
 def test_weights_explicit_override_wins(ai_backend, settings):
-    """[Unit] weights: an explicit AgentSpec.weight beats the agent's default."""
+    """[Unit] weights: an explicit AgentSpec.weight beats the agent's default.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: an explicit AgentSpec.weight beats the agent's default.
+    """
     specs = [
         AgentSpec(agent_key="os_kernel", weight=0.9),
         AgentSpec(agent_key="skeptic"),
@@ -211,7 +292,14 @@ def test_weights_explicit_override_wins(ai_backend, settings):
 
 
 def test_weights_use_agent_declared_default(ai_backend, settings):
-    """[Unit] weights: with no override each agent contributes its own default_weight."""
+    """[Unit] weights: with no override each agent contributes its own default_weight.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: with no override each agent contributes its own default_weight.
+    """
     specs = [
         AgentSpec(agent_key="os_kernel"),
         AgentSpec(agent_key="code_analyst"),
@@ -231,7 +319,14 @@ def test_weights_use_agent_declared_default(ai_backend, settings):
 
 
 def test_weights_priority_does_not_affect_weight(ai_backend, settings):
-    """[Unit] weights: priority is ordering-only and no longer changes the weight."""
+    """[Unit] weights: priority is ordering-only and no longer changes the weight.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: priority is ordering-only and no longer changes the weight.
+    """
     high = [AgentSpec(agent_key="os_kernel", priority=5), AgentSpec(agent_key="skeptic")]
     low = [AgentSpec(agent_key="os_kernel", priority=1), AgentSpec(agent_key="skeptic")]
     w_high = resolve_consensus_weights(_panel(ai_backend, settings, high), high)
@@ -240,7 +335,14 @@ def test_weights_priority_does_not_affect_weight(ai_backend, settings):
 
 
 def test_weights_mixed_override_and_default(ai_backend, settings):
-    """[Unit] weights: an override on one agent leaves the others on their defaults."""
+    """[Unit] weights: an override on one agent leaves the others on their defaults.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: an override on one agent leaves the others on their defaults.
+    """
     specs = [
         AgentSpec(agent_key="os_kernel", weight=0.7),
         AgentSpec(agent_key="code_analyst"),
