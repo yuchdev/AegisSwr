@@ -42,6 +42,7 @@ from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
 
 def _os(confidence: float = 0.90) -> OSKernelOutput:
+    """Build a canned OS-kernel agent output at the given confidence."""
     return OSKernelOutput(
         exception_summary=ExceptionSummary(
             fault_class=FaultClass.MEMORY_ACCESS_VIOLATION,
@@ -57,6 +58,7 @@ def _os(confidence: float = 0.90) -> OSKernelOutput:
 
 
 def _code(confidence: float = 0.90) -> CodeAnalystOutput:
+    """Build a canned code-analyst agent output at the given confidence."""
     return CodeAnalystOutput(
         rca=RCAHypothesis(
             root_cause="UAF in serialize()",
@@ -68,6 +70,7 @@ def _code(confidence: float = 0.90) -> CodeAnalystOutput:
 
 
 def _historian(confidence: float = 0.90) -> LogHistorianOutput:
+    """Build a canned log-historian agent output at the given confidence."""
     return LogHistorianOutput(
         confidence_adjustment=0.0,
         updated_confidence=confidence,
@@ -76,10 +79,12 @@ def _historian(confidence: float = 0.90) -> LogHistorianOutput:
 
 
 def _skeptic_yes(confidence: ConfidenceLevel = ConfidenceLevel.HIGH) -> SkepticVerdict:
+    """Build a confirming skeptic verdict at the given confidence level."""
     return SkepticVerdict(confirmed=True, confidence=confidence)
 
 
 def _skeptic_no() -> SkepticVerdict:
+    """Build a challenging skeptic verdict that rejects the hypothesis."""
     return SkepticVerdict(
         confirmed=False,
         confidence=ConfidenceLevel.LOW,
@@ -89,15 +94,18 @@ def _skeptic_no() -> SkepticVerdict:
 
 
 def _one_round(confidence: float = 0.90) -> list[Any]:
+    """Build one full round of scripted agent outputs ending in a confirming skeptic."""
     return [_os(confidence), _code(confidence), _historian(confidence), _skeptic_yes()]
 
 
 def _make_orchestrator(settings: Settings, responses: list[Any]) -> Orchestrator:
+    """Build an :class:`Orchestrator` driven by a mock AI backend with *responses*."""
     ai = MockAIBackend(responses=responses)
     return Orchestrator(settings=settings, ai_backend=ai)
 
 
 def _log_only_source() -> IncidentSource:
+    """Build a log-forensics :class:`IncidentSource` with no dump."""
     return IncidentSource(mode=IncidentMode.LOG_FORENSICS)
 
 
@@ -254,7 +262,7 @@ async def test_deadlock_produces_hitl_request(settings: Settings):
 
 async def test_cache_hit_skips_analysis(settings: Settings):
     """
-    [Mock] orchestrator: verifies cache hit skips analysis.
+    [Unit] orchestrator: verifies cache hit skips analysis.
 
     Scenario:
         Given test inputs and fixtures for cache hit skips analysis
@@ -370,11 +378,14 @@ async def test_run_streaming_yields_hitl_event_on_deadlock(settings: Settings):
 async def test_default_panel_preserves_investigator_order_and_consensus(settings: Settings):
     """[Unit] orchestrator: the default panel keeps the pre-refactor node chain.
 
-    Back-compat sanity check: with no explicit specs the resolved default panel
-    must debate in the historical ``os_kernel → code_analyst → log_historian →
-    skeptic`` order (so the FIFO-scripted responses line up and each agent reads
-    the correct predecessor turn), and the weighted consensus of a uniform-0.90
-    round must equal 0.90.
+    Scenario: an orchestrator runs with no explicit specs over one uniform-0.90
+    scripted round.
+
+    Boundaries: back-compat sanity check on the default resolved panel ordering and
+    consensus math; the AI backend is mocked.
+
+    On failure, first check: the debate order must be ``os_kernel → code_analyst →
+    log_historian → skeptic`` and the weighted consensus must equal 0.90.
     """
     orch = _make_orchestrator(settings, _one_round(confidence=0.90))
     report = await orch.run(_log_only_source())
@@ -391,9 +402,13 @@ async def test_default_panel_preserves_investigator_order_and_consensus(settings
 def test_order_panel_sorts_by_priority_then_puts_arbiter_last(settings: Settings):
     """[Unit] orchestrator: investigators sort by priority desc; arbiter is last.
 
-    Ties preserve incoming order (stable sort) so a same-priority default panel
-    stays in its declared sequence, and the sole arbiter is scheduled last
-    regardless of its own (here maximal) priority.
+    Scenario: a panel of investigators with mixed priorities plus one arbiter is
+    ordered.
+
+    Boundaries: exercises panel ordering only; ties must be stable.
+
+    On failure, first check: same-priority investigators keep declared order and the
+    sole arbiter is scheduled last regardless of its own priority.
     """
     ai = MockAIBackend()
     # Input order: os_kernel(1), code_analyst(5), log_historian(5), skeptic(5).
@@ -430,9 +445,11 @@ class _CustomArbiter(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Return an empty prompt; this test double never invokes the model."""
         return ""
 
     async def run(self, state: InvestigationState) -> AgentTurn:  # pragma: no cover
+        """Unused by these tests; raise to signal it must not be invoked."""
         raise NotImplementedError
 
 
@@ -447,20 +464,25 @@ class _CustomFixer(BaseAgent):
 
     @property
     def system_prompt(self) -> str:
+        """Return an empty prompt; this test double never invokes the model."""
         return ""
 
     async def run(self, state: InvestigationState) -> AgentTurn:  # pragma: no cover
+        """Unused by these tests; raise to signal it must not be invoked."""
         raise NotImplementedError
 
 
 def test_build_report_extracts_challenges_and_fix_by_role_not_name(settings: Settings):
     """[Unit] orchestrator: _build_report keys off role/capability, not display name.
 
-    A synthetic panel whose arbiter and fix-contributor carry custom display
-    names (never 'Skeptic Agent'/'Code Analyst Agent') still has its challenges,
-    probabilistic fix, and alternative hypotheses extracted correctly - proving
-    the synthesis is driven by ``agent_key``/role/``contributes_fix`` and not by
-    any hardcoded name string.
+    Scenario: a synthetic panel whose arbiter and fix-contributor carry custom
+    display names builds a report.
+
+    Boundaries: proves synthesis is driven by ``agent_key``/role/``contributes_fix``,
+    not by hardcoded display-name strings.
+
+    On failure, first check: challenges, the probabilistic fix, and alternative
+    hypotheses must all be extracted despite the non-standard display names.
     """
     ai = MockAIBackend()
     fixer = _CustomFixer(ai, settings)
