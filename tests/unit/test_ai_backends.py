@@ -3,6 +3,7 @@
 No network access: the SDK client classes are patched so __init__ never needs a
 real API key and every response is fabricated.
 """
+
 from __future__ import annotations
 
 import json
@@ -31,42 +32,48 @@ from aegis_swr.core.schemas import Hypothesis
 
 
 def _anthropic_response(blocks: list[Any], inp: int = 10, out: int = 5) -> SimpleNamespace:
-    return SimpleNamespace(
-        content=blocks, usage=SimpleNamespace(input_tokens=inp, output_tokens=out)
-    )
+    """Build a fake Anthropic ``messages.create`` response with usage counters."""
+    return SimpleNamespace(content=blocks, usage=SimpleNamespace(input_tokens=inp, output_tokens=out))
 
 
 def _tool_block(data: dict[str, Any]) -> SimpleNamespace:
+    """Build a fake Anthropic ``tool_use`` content block carrying *data*."""
     return SimpleNamespace(type="tool_use", input=data)
 
 
 def _text_block(text: str) -> SimpleNamespace:
+    """Build a fake Anthropic ``text`` content block carrying *text*."""
     return SimpleNamespace(type="text", text=text)
 
 
 def _openai_response(content: str, ptok: int = 10, ctok: int = 5) -> SimpleNamespace:
+    """Build a fake OpenAI chat completion response wrapping *content*."""
     message = SimpleNamespace(content=content)
     choice = SimpleNamespace(message=message)
-    return SimpleNamespace(
-        choices=[choice], usage=SimpleNamespace(prompt_tokens=ptok, completion_tokens=ctok)
-    )
+    return SimpleNamespace(choices=[choice], usage=SimpleNamespace(prompt_tokens=ptok, completion_tokens=ctok))
 
 
 class _FakeStreamCtx:
     """Async context manager mimicking anthropic ``messages.stream(...)``"""
 
     def __init__(self, tokens: list[str]):
+        """Store the scripted stream *tokens*."""
         self._tokens = tokens
 
     async def __aenter__(self) -> _FakeStreamCtx:
+        """Enter the fake stream context, returning self."""
         return self
 
     async def __aexit__(self, *args: Any) -> bool:
+        """Exit the fake stream context without suppressing exceptions."""
         return False
 
     @property
     def text_stream(self) -> Any:
+        """Return an async generator yielding the scripted tokens."""
+
         async def _gen() -> Any:
+            """Yield each scripted token in order."""
             for token in self._tokens:
                 yield token
 
@@ -74,14 +81,14 @@ class _FakeStreamCtx:
 
 
 async def _openai_chunks(tokens: list[str]) -> Any:
+    """Yield fake OpenAI streaming chunks for *tokens*, then a usage-only chunk."""
     for token in tokens:
         yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=token))])
     yield SimpleNamespace(choices=[])  # final usage chunk has no choices
 
 
-def _bedrock_tool_response(
-    data: dict[str, Any], inp: int = 10, out: int = 5
-) -> dict[str, Any]:
+def _bedrock_tool_response(data: dict[str, Any], inp: int = 10, out: int = 5) -> dict[str, Any]:
+    """Build a fake Bedrock Converse tool-use response carrying *data*."""
     return {
         "output": {"message": {"content": [{"toolUse": {"name": "structured_output", "input": data}}]}},
         "usage": {"inputTokens": inp, "outputTokens": out},
@@ -90,6 +97,7 @@ def _bedrock_tool_response(
 
 
 def _bedrock_text_response(text: str, inp: int = 10, out: int = 5) -> dict[str, Any]:
+    """Build a fake Bedrock Converse free-form text response carrying *text*."""
     return {
         "output": {"message": {"content": [{"text": text}]}},
         "usage": {"inputTokens": inp, "outputTokens": out},
@@ -98,11 +106,10 @@ def _bedrock_text_response(text: str, inp: int = 10, out: int = 5) -> dict[str, 
 
 
 def _bedrock_stream_response(tokens: list[str]) -> dict[str, Any]:
+    """Build a fake Bedrock ``converse_stream`` event list ending in ``messageStop``."""
     # converse_stream returns {"stream": <EventStream>}; a list is an iterable
     # stand-in. A trailing non-text event exercises the text-only filter.
-    events: list[dict[str, Any]] = [
-        {"contentBlockDelta": {"delta": {"text": t}}} for t in tokens
-    ]
+    events: list[dict[str, Any]] = [{"contentBlockDelta": {"delta": {"text": t}}} for t in tokens]
     events.append({"messageStop": {"stopReason": "end_turn"}})
     return {"stream": events}
 
@@ -114,6 +121,7 @@ def _bedrock_stream_response(tokens: list[str]) -> dict[str, Any]:
 
 @pytest.fixture
 def anthropic_backend() -> tuple[AnthropicBackend, Any]:
+    """Yield an ``AnthropicBackend`` with a patched SDK client mock."""
     settings = AnthropicSettings(model="claude-sonnet-4-6")
     with mock.patch("anthropic.AsyncAnthropic") as cls:
         client = mock.MagicMock()
@@ -124,6 +132,7 @@ def anthropic_backend() -> tuple[AnthropicBackend, Any]:
 
 @pytest.fixture
 def openai_backend() -> tuple[OpenAIBackend, Any]:
+    """Yield an ``OpenAIBackend`` with a patched SDK client mock."""
     settings = OpenAISettings(model="gpt-5.4")
     with mock.patch("openai.AsyncOpenAI") as cls:
         client = mock.MagicMock()
@@ -134,6 +143,7 @@ def openai_backend() -> tuple[OpenAIBackend, Any]:
 
 @pytest.fixture
 def bedrock_backend(monkeypatch: pytest.MonkeyPatch) -> tuple[AwsBedrockBackend, Any]:
+    """Yield an ``AwsBedrockBackend`` with a patched boto3 session and bearer token."""
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "test-bearer-token")
     settings = BedrockSettings()
     client = mock.MagicMock()
@@ -155,23 +165,16 @@ _USER = [{"role": "user", "content": "analyze this"}]
 async def test_anthropic_structured_output_valid(
     anthropic_backend: tuple[AnthropicBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies anthropic structured output valid.
+    """[Unit] ai backends: a valid Anthropic tool block parses into a Hypothesis.
 
-    Scenario:
-        Given test inputs and fixtures for anthropic structured output valid
-        When test_anthropic_structured_output_valid executes the target flow
-        Then the expected outcome for anthropic structured output valid is confirmed.
+    Scenario: the mock client returns one tool block with a well-formed
+    ``root_cause``/``confidence`` payload.
 
-    Boundaries:
-        - Focus: anthropic structured output valid
-        - Fixtures/params: anthropic_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only the parse and usage bookkeeping are
+    under test.
 
-    On failure, first check:
-        - Assertion details tied to anthropic structured output valid
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the result must be a ``Hypothesis`` with the expected
+    confidence and ``last_usage`` reflecting the response tokens.
     """
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
@@ -186,23 +189,16 @@ async def test_anthropic_structured_output_valid(
 async def test_anthropic_sends_cache_control_and_tool(
     anthropic_backend: tuple[AnthropicBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies anthropic sends cache control and tool.
+    """[Unit] ai backends: Anthropic requests carry cache control and forced tool.
 
-    Scenario:
-        Given test inputs and fixtures for anthropic sends cache control and tool
-        When test_anthropic_sends_cache_control_and_tool executes the target flow
-        Then the expected outcome for anthropic sends cache control and tool is confirmed.
+    Scenario: a structured generate call is made and the recorded request kwargs
+    are inspected.
 
-    Boundaries:
-        - Focus: anthropic sends cache control and tool
-        - Fixtures/params: anthropic_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only request assembly is asserted.
 
-    On failure, first check:
-        - Assertion details tied to anthropic sends cache control and tool
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the system block must set ephemeral cache control,
+    ``tool_choice`` must force ``structured_output``, and the tool schema title
+    must be ``Hypothesis``.
     """
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
@@ -218,23 +214,15 @@ async def test_anthropic_sends_cache_control_and_tool(
 async def test_anthropic_retry_then_valid(
     anthropic_backend: tuple[AnthropicBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies anthropic retry then valid.
+    """[Unit] ai backends: Anthropic retries once and accumulates usage on success.
 
-    Scenario:
-        Given test inputs and fixtures for anthropic retry then valid
-        When test_anthropic_retry_then_valid executes the target flow
-        Then the expected outcome for anthropic retry then valid is confirmed.
+    Scenario: the first response omits ``confidence`` (invalid) and the second is
+    valid.
 
-    Boundaries:
-        - Focus: anthropic retry then valid
-        - Fixtures/params: anthropic_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked with a two-call side effect.
 
-    On failure, first check:
-        - Assertion details tied to anthropic retry then valid
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the result must be a ``Hypothesis``, the client must
+    be called twice, and usage must sum across both calls.
     """
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
@@ -253,23 +241,14 @@ async def test_anthropic_retry_then_valid(
 async def test_anthropic_raises_after_retry(
     anthropic_backend: tuple[AnthropicBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies anthropic raises after retry.
+    """[Unit] ai backends: Anthropic raises after the retry budget is exhausted.
 
-    Scenario:
-        Given test inputs and fixtures for anthropic raises after retry
-        When test_anthropic_raises_after_retry executes the target flow
-        Then the expected outcome for anthropic raises after retry is confirmed.
+    Scenario: every response omits ``confidence`` so validation always fails.
 
-    Boundaries:
-        - Focus: anthropic raises after retry
-        - Fixtures/params: anthropic_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked to always return an invalid payload.
 
-    On failure, first check:
-        - Assertion details tied to anthropic raises after retry
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``generate`` must raise ``AIOutputValidationError``
+    after exactly two attempts.
     """
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
@@ -283,23 +262,14 @@ async def test_anthropic_raises_after_retry(
 async def test_anthropic_unstructured_returns_text(
     anthropic_backend: tuple[AnthropicBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies anthropic unstructured returns text.
+    """[Unit] ai backends: an unstructured Anthropic call concatenates text blocks.
 
-    Scenario:
-        Given test inputs and fixtures for anthropic unstructured returns text
-        When test_anthropic_unstructured_returns_text executes the target flow
-        Then the expected outcome for anthropic unstructured returns text is confirmed.
+    Scenario: the mock returns two text blocks and ``generate`` is called with no
+    schema.
 
-    Boundaries:
-        - Focus: anthropic unstructured returns text
-        - Fixtures/params: anthropic_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only text extraction is asserted.
 
-    On failure, first check:
-        - Assertion details tied to anthropic unstructured returns text
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the result must be the joined block text.
     """
     backend, client = anthropic_backend
     client.messages.create = mock.AsyncMock(
@@ -312,23 +282,13 @@ async def test_anthropic_unstructured_returns_text(
 async def test_anthropic_stream_yields_tokens(
     anthropic_backend: tuple[AnthropicBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies anthropic stream yields tokens.
+    """[Unit] ai backends: Anthropic ``stream`` yields each token in order.
 
-    Scenario:
-        Given test inputs and fixtures for anthropic stream yields tokens
-        When test_anthropic_stream_yields_tokens executes the target flow
-        Then the expected outcome for anthropic stream yields tokens is confirmed.
+    Scenario: the mock stream context yields three tokens.
 
-    Boundaries:
-        - Focus: anthropic stream yields tokens
-        - Fixtures/params: anthropic_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK stream is a fake async context manager.
 
-    On failure, first check:
-        - Assertion details tied to anthropic stream yields tokens
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the collected tokens must equal the scripted list.
     """
     backend, client = anthropic_backend
     client.messages.stream = mock.MagicMock(return_value=_FakeStreamCtx(["a", "b", "c"]))
@@ -339,28 +299,16 @@ async def test_anthropic_stream_yields_tokens(
 async def test_anthropic_raises_when_no_tool_block(
     anthropic_backend: tuple[AnthropicBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies anthropic raises when no tool block.
+    """[Unit] ai backends: a structured Anthropic call with no tool block raises.
 
-    Scenario:
-        Given test inputs and fixtures for anthropic raises when no tool block
-        When test_anthropic_raises_when_no_tool_block executes the target flow
-        Then the expected outcome for anthropic raises when no tool block is confirmed.
+    Scenario: the mock returns only a text block when a schema is requested.
 
-    Boundaries:
-        - Focus: anthropic raises when no tool block
-        - Fixtures/params: anthropic_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only the missing-tool guard is exercised.
 
-    On failure, first check:
-        - Assertion details tied to anthropic raises when no tool block
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``generate`` must raise ``AIOutputValidationError``.
     """
     backend, client = anthropic_backend
-    client.messages.create = mock.AsyncMock(
-        return_value=_anthropic_response([_text_block("no tool here")])
-    )
+    client.messages.create = mock.AsyncMock(return_value=_anthropic_response([_text_block("no tool here")]))
     with pytest.raises(AIOutputValidationError):
         await backend.generate("system", _USER, Hypothesis)
 
@@ -373,23 +321,14 @@ async def test_anthropic_raises_when_no_tool_block(
 async def test_openai_structured_output_valid(
     openai_backend: tuple[OpenAIBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies openai structured output valid.
+    """[Unit] ai backends: a valid OpenAI JSON response parses into a Hypothesis.
 
-    Scenario:
-        Given test inputs and fixtures for openai structured output valid
-        When test_openai_structured_output_valid executes the target flow
-        Then the expected outcome for openai structured output valid is confirmed.
+    Scenario: the mock returns well-formed JSON for the requested schema.
 
-    Boundaries:
-        - Focus: openai structured output valid
-        - Fixtures/params: openai_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only parse and usage are asserted.
 
-    On failure, first check:
-        - Assertion details tied to openai structured output valid
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the result must be a ``Hypothesis`` with the expected
+    confidence and mapped usage counters.
     """
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(
@@ -404,23 +343,14 @@ async def test_openai_structured_output_valid(
 async def test_openai_sends_json_schema_strict(
     openai_backend: tuple[OpenAIBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies openai sends json schema strict.
+    """[Unit] ai backends: OpenAI requests use a strict json_schema response format.
 
-    Scenario:
-        Given test inputs and fixtures for openai sends json schema strict
-        When test_openai_sends_json_schema_strict executes the target flow
-        Then the expected outcome for openai sends json schema strict is confirmed.
+    Scenario: a structured generate call is made and the request kwargs inspected.
 
-    Boundaries:
-        - Focus: openai sends json schema strict
-        - Fixtures/params: openai_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only request assembly is asserted.
 
-    On failure, first check:
-        - Assertion details tied to openai sends json schema strict
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the response format must be strict ``json_schema`` and
+    the system prompt must be the first message.
     """
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(
@@ -437,25 +367,16 @@ async def test_openai_sends_json_schema_strict(
 async def test_openai_reasoning_model_uses_max_completion_tokens(
     openai_backend: tuple[OpenAIBackend, Any],
 ):
-    # gpt-5.4 is a reasoning model: must use max_completion_tokens and omit
-    # temperature (only the default temperature is accepted).
-    """
-    [Mock] ai backends: verifies openai reasoning model uses max completion tokens.
+    """[Unit] ai backends: a reasoning model uses max_completion_tokens, no temperature.
 
-    Scenario:
-        Given test inputs and fixtures for openai reasoning model uses max completion tokens
-        When test_openai_reasoning_model_uses_max_completion_tokens executes the target flow
-        Then the expected outcome for openai reasoning model uses max completion tokens is confirmed.
+    Scenario: the reasoning model ``gpt-5.4`` runs a structured generate call and
+    the request kwargs are inspected.
 
-    Boundaries:
-        - Focus: openai reasoning model uses max completion tokens
-        - Fixtures/params: openai_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only the reasoning-model param branch is
+    asserted.
 
-    On failure, first check:
-        - Assertion details tied to openai reasoning model uses max completion tokens
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``max_completion_tokens`` must be present (>=16000)
+    while ``max_tokens`` and ``temperature`` are absent.
     """
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(
@@ -470,23 +391,16 @@ async def test_openai_reasoning_model_uses_max_completion_tokens(
 
 
 async def test_openai_non_reasoning_model_uses_max_tokens():
-    """
-    [Mock] ai backends: verifies openai non reasoning model uses max tokens.
+    """[Unit] ai backends: a non-reasoning model uses max_tokens and temperature.
 
-    Scenario:
-        Given test inputs and fixtures for openai non reasoning model uses max tokens
-        When test_openai_non_reasoning_model_uses_max_tokens executes the target flow
-        Then the expected outcome for openai non reasoning model uses max tokens is confirmed.
+    Scenario: a ``gpt-4o`` backend with explicit temperature/max_tokens runs a
+    structured generate call.
 
-    Boundaries:
-        - Focus: openai non reasoning model uses max tokens
-        - Fixtures/params: none
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only the non-reasoning param branch is
+    asserted.
 
-    On failure, first check:
-        - Assertion details tied to openai non reasoning model uses max tokens
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``max_tokens`` and ``temperature`` must be honoured
+    and ``max_completion_tokens`` absent.
     """
     settings = OpenAISettings(model="gpt-4o", temperature=0.2, max_tokens=4096)
     with mock.patch("openai.AsyncOpenAI") as cls:
@@ -506,23 +420,14 @@ async def test_openai_non_reasoning_model_uses_max_tokens():
 async def test_openai_retry_then_valid(
     openai_backend: tuple[OpenAIBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies openai retry then valid.
+    """[Unit] ai backends: OpenAI retries once and succeeds on the valid response.
 
-    Scenario:
-        Given test inputs and fixtures for openai retry then valid
-        When test_openai_retry_then_valid executes the target flow
-        Then the expected outcome for openai retry then valid is confirmed.
+    Scenario: the first response omits ``confidence`` and the second is valid.
 
-    Boundaries:
-        - Focus: openai retry then valid
-        - Fixtures/params: openai_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked with a two-call side effect.
 
-    On failure, first check:
-        - Assertion details tied to openai retry then valid
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the result must be a ``Hypothesis`` and the client
+    must be called twice.
     """
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(
@@ -539,28 +444,17 @@ async def test_openai_retry_then_valid(
 async def test_openai_raises_on_malformed_json(
     openai_backend: tuple[OpenAIBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies openai raises on malformed json.
+    """[Unit] ai backends: malformed OpenAI JSON raises after the retry budget.
 
-    Scenario:
-        Given test inputs and fixtures for openai raises on malformed json
-        When test_openai_raises_on_malformed_json executes the target flow
-        Then the expected outcome for openai raises on malformed json is confirmed.
+    Scenario: the mock returns non-JSON content for a structured request.
 
-    Boundaries:
-        - Focus: openai raises on malformed json
-        - Fixtures/params: openai_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked to always return invalid content.
 
-    On failure, first check:
-        - Assertion details tied to openai raises on malformed json
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``generate`` must raise ``AIOutputValidationError``
+    after exactly two attempts.
     """
     backend, client = openai_backend
-    client.chat.completions.create = mock.AsyncMock(
-        return_value=_openai_response("not json at all")
-    )
+    client.chat.completions.create = mock.AsyncMock(return_value=_openai_response("not json at all"))
     with pytest.raises(AIOutputValidationError):
         await backend.generate("system", _USER, Hypothesis)
     assert client.chat.completions.create.call_count == 2
@@ -569,28 +463,16 @@ async def test_openai_raises_on_malformed_json(
 async def test_openai_unstructured_returns_text(
     openai_backend: tuple[OpenAIBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies openai unstructured returns text.
+    """[Unit] ai backends: an unstructured OpenAI call returns the message content.
 
-    Scenario:
-        Given test inputs and fixtures for openai unstructured returns text
-        When test_openai_unstructured_returns_text executes the target flow
-        Then the expected outcome for openai unstructured returns text is confirmed.
+    Scenario: the mock returns plain text and ``generate`` is called with no schema.
 
-    Boundaries:
-        - Focus: openai unstructured returns text
-        - Fixtures/params: openai_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only text extraction is asserted.
 
-    On failure, first check:
-        - Assertion details tied to openai unstructured returns text
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the result must equal the message content verbatim.
     """
     backend, client = openai_backend
-    client.chat.completions.create = mock.AsyncMock(
-        return_value=_openai_response("plain answer")
-    )
+    client.chat.completions.create = mock.AsyncMock(return_value=_openai_response("plain answer"))
     result = await backend.generate("system", _USER)
     assert result == "plain answer"
 
@@ -598,23 +480,14 @@ async def test_openai_unstructured_returns_text(
 async def test_openai_stream_yields_tokens(
     openai_backend: tuple[OpenAIBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies openai stream yields tokens.
+    """[Unit] ai backends: OpenAI ``stream`` yields each delta token in order.
 
-    Scenario:
-        Given test inputs and fixtures for openai stream yields tokens
-        When test_openai_stream_yields_tokens executes the target flow
-        Then the expected outcome for openai stream yields tokens is confirmed.
+    Scenario: the mock stream yields two content deltas then a usage-only chunk.
 
-    Boundaries:
-        - Focus: openai stream yields tokens
-        - Fixtures/params: openai_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK stream is a fake async generator.
 
-    On failure, first check:
-        - Assertion details tied to openai stream yields tokens
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the collected tokens must equal the scripted list and
+    the choiceless final chunk must be ignored.
     """
     backend, client = openai_backend
     client.chat.completions.create = mock.AsyncMock(return_value=_openai_chunks(["x", "y"]))
@@ -628,23 +501,14 @@ async def test_openai_stream_yields_tokens(
 
 
 def test_openai_strict_schema_sets_additional_properties_false():
-    """
-    [Unit] ai backends: verifies openai strict schema sets additional properties false.
+    """[Unit] ai backends: the strict-schema adapter forbids additional properties.
 
-    Scenario:
-        Given test inputs and fixtures for openai strict schema sets additional properties false
-        When test_openai_strict_schema_sets_additional_properties_false executes the target flow
-        Then the expected outcome for openai strict schema sets additional properties false is confirmed.
+    Scenario: ``_to_openai_strict_schema`` is called on the ``Hypothesis`` model.
 
-    Boundaries:
-        - Focus: openai strict schema sets additional properties false
-        - Fixtures/params: none
-        - Scope: assertions and setup in this test case only
+    Boundaries: exercises the pure schema-rewriting helper directly.
 
-    On failure, first check:
-        - Assertion details tied to openai strict schema sets additional properties false
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``additionalProperties`` must be False, every property
+    must be required, and no ``default`` key may survive.
     """
     schema = _to_openai_strict_schema(Hypothesis)
     assert schema["additionalProperties"] is False
@@ -660,28 +524,17 @@ def test_openai_strict_schema_sets_additional_properties_false():
 async def test_bedrock_structured_output_valid(
     bedrock_backend: tuple[AwsBedrockBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies bedrock structured output valid.
+    """[Unit] ai backends: a valid Bedrock tool response parses into a Hypothesis.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock structured output valid
-        When test_bedrock_structured_output_valid executes the target flow
-        Then the expected outcome for bedrock structured output valid is confirmed.
+    Scenario: the mock ``converse`` returns a well-formed tool-use payload.
 
-    Boundaries:
-        - Focus: bedrock structured output valid
-        - Fixtures/params: bedrock_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 client is mocked; only parse and usage are asserted.
 
-    On failure, first check:
-        - Assertion details tied to bedrock structured output valid
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the result must be a ``Hypothesis`` with the expected
+    confidence and mapped usage counters.
     """
     backend, client = bedrock_backend
-    client.converse = mock.MagicMock(
-        return_value=_bedrock_tool_response({"root_cause": "uaf", "confidence": 0.8})
-    )
+    client.converse = mock.MagicMock(return_value=_bedrock_tool_response({"root_cause": "uaf", "confidence": 0.8}))
     result = await backend.generate("system", _USER, Hypothesis)
     assert isinstance(result, Hypothesis)
     assert result.confidence == 0.8
@@ -691,28 +544,18 @@ async def test_bedrock_structured_output_valid(
 async def test_bedrock_sends_tool_config_and_system(
     bedrock_backend: tuple[AwsBedrockBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies bedrock sends tool config and system.
+    """[Unit] ai backends: Bedrock requests carry tool config, system, and no thinking.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock sends tool config and system
-        When test_bedrock_sends_tool_config_and_system executes the target flow
-        Then the expected outcome for bedrock sends tool config and system is confirmed.
+    Scenario: a structured generate call is made and the ``converse`` kwargs
+    inspected.
 
-    Boundaries:
-        - Focus: bedrock sends tool config and system
-        - Fixtures/params: bedrock_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 client is mocked; only request assembly is asserted.
 
-    On failure, first check:
-        - Assertion details tied to bedrock sends tool config and system
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the model id, system block, user content wrapping,
+    forced tool name, schema title must match, and thinking fields must be absent.
     """
     backend, client = bedrock_backend
-    client.converse = mock.MagicMock(
-        return_value=_bedrock_tool_response({"root_cause": "x", "confidence": 0.5})
-    )
+    client.converse = mock.MagicMock(return_value=_bedrock_tool_response({"root_cause": "x", "confidence": 0.5}))
     await backend.generate("system prompt", _USER, Hypothesis)
     kwargs = client.converse.call_args.kwargs
     assert kwargs["modelId"] == "au.anthropic.claude-sonnet-4-6"
@@ -730,23 +573,14 @@ async def test_bedrock_sends_tool_config_and_system(
 async def test_bedrock_retry_then_valid(
     bedrock_backend: tuple[AwsBedrockBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies bedrock retry then valid.
+    """[Unit] ai backends: Bedrock retries once and accumulates usage on success.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock retry then valid
-        When test_bedrock_retry_then_valid executes the target flow
-        Then the expected outcome for bedrock retry then valid is confirmed.
+    Scenario: the first tool response omits ``confidence`` and the second is valid.
 
-    Boundaries:
-        - Focus: bedrock retry then valid
-        - Fixtures/params: bedrock_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 client is mocked with a two-call side effect.
 
-    On failure, first check:
-        - Assertion details tied to bedrock retry then valid
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the result must be a ``Hypothesis``, ``converse`` must
+    run twice, and usage must sum across both calls.
     """
     backend, client = bedrock_backend
     client.converse = mock.MagicMock(
@@ -764,23 +598,14 @@ async def test_bedrock_retry_then_valid(
 async def test_bedrock_raises_after_retry(
     bedrock_backend: tuple[AwsBedrockBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies bedrock raises after retry.
+    """[Unit] ai backends: Bedrock raises after the retry budget is exhausted.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock raises after retry
-        When test_bedrock_raises_after_retry executes the target flow
-        Then the expected outcome for bedrock raises after retry is confirmed.
+    Scenario: every tool response omits ``confidence`` so validation always fails.
 
-    Boundaries:
-        - Focus: bedrock raises after retry
-        - Fixtures/params: bedrock_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 client is mocked to always return an invalid payload.
 
-    On failure, first check:
-        - Assertion details tied to bedrock raises after retry
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``generate`` must raise ``AIOutputValidationError``
+    after exactly two attempts.
     """
     backend, client = bedrock_backend
     client.converse = mock.MagicMock(
@@ -794,23 +619,13 @@ async def test_bedrock_raises_after_retry(
 async def test_bedrock_raises_when_no_tool_block(
     bedrock_backend: tuple[AwsBedrockBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies bedrock raises when no tool block.
+    """[Unit] ai backends: a structured Bedrock call with no tool block raises.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock raises when no tool block
-        When test_bedrock_raises_when_no_tool_block executes the target flow
-        Then the expected outcome for bedrock raises when no tool block is confirmed.
+    Scenario: the mock returns a free-form text response for a structured request.
 
-    Boundaries:
-        - Focus: bedrock raises when no tool block
-        - Fixtures/params: bedrock_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 client is mocked; only the missing-tool guard is exercised.
 
-    On failure, first check:
-        - Assertion details tied to bedrock raises when no tool block
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``generate`` must raise ``AIOutputValidationError``.
     """
     backend, client = bedrock_backend
     client.converse = mock.MagicMock(return_value=_bedrock_text_response("no tool here"))
@@ -821,28 +636,17 @@ async def test_bedrock_raises_when_no_tool_block(
 async def test_bedrock_unstructured_returns_text(
     bedrock_backend: tuple[AwsBedrockBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies bedrock unstructured returns text.
+    """[Unit] ai backends: an unstructured Bedrock call returns the response text.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock unstructured returns text
-        When test_bedrock_unstructured_returns_text executes the target flow
-        Then the expected outcome for bedrock unstructured returns text is confirmed.
+    Scenario: the mock returns a free-form text response and ``generate`` is called
+    with no schema.
 
-    Boundaries:
-        - Focus: bedrock unstructured returns text
-        - Fixtures/params: bedrock_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 client is mocked; only text extraction is asserted.
 
-    On failure, first check:
-        - Assertion details tied to bedrock unstructured returns text
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the result must equal the response text verbatim.
     """
     backend, client = bedrock_backend
-    client.converse = mock.MagicMock(
-        return_value=_bedrock_text_response("hello world")
-    )
+    client.converse = mock.MagicMock(return_value=_bedrock_text_response("hello world"))
     result = await backend.generate("system", _USER)
     assert result == "hello world"
 
@@ -850,28 +654,18 @@ async def test_bedrock_unstructured_returns_text(
 async def test_bedrock_stream_yields_tokens(
     bedrock_backend: tuple[AwsBedrockBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies bedrock stream yields tokens.
+    """[Unit] ai backends: Bedrock ``stream`` yields each text delta in order.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock stream yields tokens
-        When test_bedrock_stream_yields_tokens executes the target flow
-        Then the expected outcome for bedrock stream yields tokens is confirmed.
+    Scenario: the mock ``converse_stream`` yields three text deltas then a stop
+    event.
 
-    Boundaries:
-        - Focus: bedrock stream yields tokens
-        - Fixtures/params: bedrock_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 stream is a fake event list.
 
-    On failure, first check:
-        - Assertion details tied to bedrock stream yields tokens
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the collected tokens must equal the scripted list and
+    the non-text stop event must be filtered out.
     """
     backend, client = bedrock_backend
-    client.converse_stream = mock.MagicMock(
-        return_value=_bedrock_stream_response(["a", "b", "c"])
-    )
+    client.converse_stream = mock.MagicMock(return_value=_bedrock_stream_response(["a", "b", "c"]))
     tokens = [t async for t in backend.stream("system", _USER)]
     assert tokens == ["a", "b", "c"]
 
@@ -879,23 +673,15 @@ async def test_bedrock_stream_yields_tokens(
 async def test_bedrock_client_error_becomes_backend_error(
     bedrock_backend: tuple[AwsBedrockBackend, Any],
 ):
-    """
-    [Mock] ai backends: verifies bedrock client error becomes backend error.
+    """[Unit] ai backends: a boto ClientError from converse becomes AIBackendError.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock client error becomes backend error
-        When test_bedrock_client_error_becomes_backend_error executes the target flow
-        Then the expected outcome for bedrock client error becomes backend error is confirmed.
+    Scenario: ``converse`` raises a throttling ``ClientError``.
 
-    Boundaries:
-        - Focus: bedrock client error becomes backend error
-        - Fixtures/params: bedrock_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 client is mocked to raise; only error translation is
+    asserted.
 
-    On failure, first check:
-        - Assertion details tied to bedrock client error becomes backend error
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``generate`` must raise ``AIBackendError`` carrying
+    the ``ThrottlingException`` code.
     """
     import botocore.exceptions
 
@@ -912,23 +698,15 @@ async def test_bedrock_client_error_becomes_backend_error(
 def test_bedrock_registers_bearer_hook_when_token_present(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """
-    [Mock] ai backends: verifies bedrock registers bearer hook when token present.
+    """[Unit] ai backends: a present bearer token registers the auth event hook.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock registers bearer hook when token present
-        When test_bedrock_registers_bearer_hook_when_token_present executes the target flow
-        Then the expected outcome for bedrock registers bearer hook when token present is confirmed.
+    Scenario: ``AWS_BEARER_TOKEN_BEDROCK`` is set and a backend is constructed.
 
-    Boundaries:
-        - Focus: bedrock registers bearer hook when token present
-        - Fixtures/params: monkeypatch
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 session/client are mocked; only hook registration is
+    asserted.
 
-    On failure, first check:
-        - Assertion details tied to bedrock registers bearer hook when token present
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the client's event register must be called once for
+    ``before-send.bedrock-runtime.*``.
     """
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "secret-token")
     client = mock.MagicMock()
@@ -942,23 +720,13 @@ def test_bedrock_registers_bearer_hook_when_token_present(
 
 
 def test_bedrock_no_bearer_hook_without_token(monkeypatch: pytest.MonkeyPatch):
-    """
-    [Mock] ai backends: verifies bedrock no bearer hook without token.
+    """[Unit] ai backends: no bearer token means no auth event hook is registered.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock no bearer hook without token
-        When test_bedrock_no_bearer_hook_without_token executes the target flow
-        Then the expected outcome for bedrock no bearer hook without token is confirmed.
+    Scenario: ``AWS_BEARER_TOKEN_BEDROCK`` is unset and a backend is constructed.
 
-    Boundaries:
-        - Focus: bedrock no bearer hook without token
-        - Fixtures/params: monkeypatch
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 session/client are mocked; only hook absence is asserted.
 
-    On failure, first check:
-        - Assertion details tied to bedrock no bearer hook without token
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the client's event register must not be called.
     """
     monkeypatch.delenv("AWS_BEARER_TOKEN_BEDROCK", raising=False)
     client = mock.MagicMock()
@@ -983,10 +751,17 @@ def test_bedrock_no_bearer_hook_without_token(monkeypatch: pytest.MonkeyPatch):
         "ModelTimeoutException",
     ],
 )
-async def test_bedrock_client_error_codes_parametrized(
-    monkeypatch: pytest.MonkeyPatch, error_code: str
-):
-    """Each stubbed ClientError code from converse surfaces as AIBackendError."""
+async def test_bedrock_client_error_codes_parametrized(monkeypatch: pytest.MonkeyPatch, error_code: str):
+    """[Unit] ai backends: each stubbed ClientError code surfaces as AIBackendError.
+
+    Scenario: ``converse`` raises a ``ClientError`` for a parametrized error code.
+
+    Boundaries: the boto3 client is mocked to raise; only error translation is
+    asserted.
+
+    On failure, first check: ``generate`` must raise ``AIBackendError`` matching the
+    parametrized error code.
+    """
     import botocore.exceptions
 
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
@@ -1005,8 +780,16 @@ async def test_bedrock_client_error_codes_parametrized(
 
 
 async def test_bedrock_error_message_is_sanitised(monkeypatch: pytest.MonkeyPatch):
-    """ClientError message (potentially containing secrets) must not appear in the
-    raised AIBackendError; only the error code is surfaced."""
+    """[Unit] ai backends: a ClientError message with secrets is not surfaced.
+
+    Scenario: ``converse`` raises a ``ClientError`` whose message embeds a secret
+    token.
+
+    Boundaries: enforces the sensitivity policy - only the error code may escape.
+
+    On failure, first check: the raised ``AIBackendError`` must contain the code but
+    never the secret fragment.
+    """
     import botocore.exceptions
 
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
@@ -1035,7 +818,16 @@ async def test_bedrock_error_message_is_sanitised(monkeypatch: pytest.MonkeyPatc
 
 
 def test_bedrock_region_precedence(monkeypatch: pytest.MonkeyPatch):
-    """(a) explicit BedrockSettings(region=...) wins; (b) blank region uses AWS_DEFAULT_REGION."""
+    """[Unit] ai backends: explicit region wins, blank region falls back to env.
+
+    Scenario: a backend is built once with an explicit region and once with a
+    blank region while ``AWS_DEFAULT_REGION`` is set.
+
+    Boundaries: the boto3 session is mocked; only region resolution is asserted.
+
+    On failure, first check: the explicit region must reach ``Session`` and a blank
+    region must fall back to ``AWS_DEFAULT_REGION``.
+    """
     # Part (a): explicit region in settings takes precedence.
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
@@ -1057,11 +849,17 @@ def test_bedrock_region_precedence(monkeypatch: pytest.MonkeyPatch):
     assert call_kwargs_b["region_name"] == "us-east-1"
 
 
-def test_bedrock_bearer_hook_does_not_log_token(
-    monkeypatch: pytest.MonkeyPatch, capfd: pytest.CaptureFixture[str]
-):
-    """The bearer token value must never appear in log output during client construction;
-    the auth-mode label 'bearer-token' must appear."""
+def test_bedrock_bearer_hook_does_not_log_token(monkeypatch: pytest.MonkeyPatch, capfd: pytest.CaptureFixture[str]):
+    """[Unit] ai backends: the bearer token is never logged during construction.
+
+    Scenario: a backend is constructed with a secret bearer token while a DEBUG
+    log sink captures output.
+
+    Boundaries: enforces the sensitivity policy for auth material.
+
+    On failure, first check: the token value must be absent from logs while the
+    ``bearer-token`` auth-mode label is present.
+    """
 
     from loguru import logger
 
@@ -1086,7 +884,17 @@ def test_bedrock_bearer_hook_does_not_log_token(
 async def test_bedrock_stream_interruption_raises_backend_error(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """A BotoCoreError raised mid-stream iteration surfaces as AIBackendError."""
+    """[Unit] ai backends: a BotoCoreError mid-stream surfaces as AIBackendError.
+
+    Scenario: the stream yields one good event then raises ``ReadTimeoutError`` on
+    the next iteration.
+
+    Boundaries: the boto3 stream is a faulting iterator; only mid-stream error
+    translation is asserted.
+
+    On failure, first check: iterating ``stream`` must raise ``AIBackendError``
+    matching ``ReadTimeoutError``.
+    """
     import botocore.exceptions
 
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
@@ -1098,13 +906,18 @@ async def test_bedrock_stream_interruption_raises_backend_error(
 
     # The stream returns one good event then raises ReadTimeoutError on next().
     class _FaultingIterator:
+        """Iterator that yields one text event, then raises ``ReadTimeoutError``."""
+
         def __init__(self) -> None:
+            """Initialise the yielded-event counter."""
             self._count = 0
 
         def __iter__(self) -> _FaultingIterator:
+            """Return self as the iterator."""
             return self
 
         def __next__(self) -> dict[str, Any]:
+            """Yield one text event, then raise ``ReadTimeoutError``."""
             if self._count == 0:
                 self._count += 1
                 return {"contentBlockDelta": {"delta": {"text": "first "}}}
@@ -1118,8 +931,17 @@ async def test_bedrock_stream_interruption_raises_backend_error(
 
 
 async def test_bedrock_thinking_disabled_for_structured(monkeypatch: pytest.MonkeyPatch):
-    """A qualifying thinking_budget_tokens + thinking-capable model + output_schema
-    must produce NO additionalModelRequestFields/thinking in the Converse request."""
+    """[Unit] ai backends: forced tool use disables thinking for structured output.
+
+    Scenario: a thinking-capable model with a qualifying budget runs a structured
+    generate call.
+
+    Boundaries: the boto3 client is mocked; only the thinking-field suppression is
+    asserted.
+
+    On failure, first check: ``additionalModelRequestFields`` must be absent when a
+    schema forces tool use.
+    """
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     # Use a thinking-capable model and a qualifying budget.
     settings = BedrockSettings(
@@ -1131,9 +953,7 @@ async def test_bedrock_thinking_disabled_for_structured(monkeypatch: pytest.Monk
     session.client.return_value = client
     with mock.patch("boto3.Session", return_value=session):
         backend = AwsBedrockBackend(settings)
-    client.converse = mock.MagicMock(
-        return_value=_bedrock_tool_response({"root_cause": "uaf", "confidence": 0.75})
-    )
+    client.converse = mock.MagicMock(return_value=_bedrock_tool_response({"root_cause": "uaf", "confidence": 0.75}))
     await backend.generate("system", _USER, Hypothesis)
     kwargs = client.converse.call_args.kwargs
     # Forced tool use disables thinking - the field must be absent.
@@ -1141,7 +961,17 @@ async def test_bedrock_thinking_disabled_for_structured(monkeypatch: pytest.Monk
 
 
 def test_bedrock_thinking_disabled_for_unsupported_model(monkeypatch: pytest.MonkeyPatch):
-    """A qualifying budget with an unsupported model_id produces no thinking key."""
+    """[Unit] ai backends: an unsupported model omits the thinking key.
+
+    Scenario: a qualifying budget is paired with a non-thinking-capable model id and
+    a free-form request is built directly.
+
+    Boundaries: the boto3 client is mocked; only the model-capability gate is
+    asserted.
+
+    On failure, first check: the built request must not contain
+    ``additionalModelRequestFields``.
+    """
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     # Nova-2-Lite is not in _THINKING_SUPPORTED_PATTERNS.
     settings = BedrockSettings(
@@ -1160,8 +990,17 @@ def test_bedrock_thinking_disabled_for_unsupported_model(monkeypatch: pytest.Mon
 
 
 async def test_bedrock_parse_ignores_reasoning_blocks(monkeypatch: pytest.MonkeyPatch):
-    """A Converse response with reasoningContent + text blocks → generate() returns
-    only the concatenated text, not the reasoning content."""
+    """[Unit] ai backends: reasoning-content blocks are excluded from the text result.
+
+    Scenario: a Converse response mixes a ``reasoningContent`` block with text
+    blocks and ``generate`` is called with no schema.
+
+    Boundaries: enforces the sensitivity policy - internal chain-of-thought must
+    not leak into results.
+
+    On failure, first check: the result must be only the concatenated text, never
+    the reasoning content.
+    """
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     client = mock.MagicMock()
     session = mock.MagicMock()
@@ -1192,23 +1031,16 @@ async def test_bedrock_parse_ignores_reasoning_blocks(monkeypatch: pytest.Monkey
 
 
 async def test_bedrock_thinking_enabled_for_free_form(monkeypatch: pytest.MonkeyPatch):
-    """
-    [Mock] ai backends: verifies bedrock thinking enabled for free form.
+    """[Unit] ai backends: free-form generate enables thinking with temperature 1.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock thinking enabled for free form
-        When test_bedrock_thinking_enabled_for_free_form executes the target flow
-        Then the expected outcome for bedrock thinking enabled for free form is confirmed.
+    Scenario: a qualifying budget runs a free-form (no schema) generate call and
+    the ``converse`` kwargs are inspected.
 
-    Boundaries:
-        - Focus: bedrock thinking enabled for free form
-        - Fixtures/params: monkeypatch
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 client is mocked; only the thinking-field assembly is
+    asserted.
 
-    On failure, first check:
-        - Assertion details tied to bedrock thinking enabled for free form
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the thinking field must be enabled with the budget and
+    ``inferenceConfig`` temperature must be 1.0.
     """
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     settings = BedrockSettings(thinking_budget_tokens=2048)
@@ -1243,23 +1075,15 @@ async def test_bedrock_thinking_enabled_for_free_form(monkeypatch: pytest.Monkey
     ],
 )
 def test_anthropic_has_reasoning(model: str, expected: bool):
-    """
-    [Mock] ai backends: verifies anthropic has reasoning.
+    """[Unit] ai backends: ``has_reasoning`` reflects the Anthropic model generation.
 
-    Scenario:
-        Given test inputs and fixtures for anthropic has reasoning
-        When test_anthropic_has_reasoning executes the target flow
-        Then the expected outcome for anthropic has reasoning is confirmed.
+    Scenario: a backend is built for a parametrized model and ``has_reasoning`` is
+    read.
 
-    Boundaries:
-        - Focus: anthropic has reasoning
-        - Fixtures/params: model, expected (parametrized, 6 cases)
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only the capability flag is asserted.
 
-    On failure, first check:
-        - Assertion details tied to anthropic has reasoning
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``has_reasoning`` must equal the parametrized
+    expectation for each model.
     """
     with mock.patch("anthropic.AsyncAnthropic"):
         backend = AnthropicBackend(AnthropicSettings(model=model))
@@ -1267,23 +1091,15 @@ def test_anthropic_has_reasoning(model: str, expected: bool):
 
 
 def test_openai_has_reasoning_always_false(openai_backend: tuple[OpenAIBackend, Any]):
-    """
-    [Unit] ai backends: verifies openai has reasoning always false.
+    """[Unit] ai backends: OpenAI ``has_reasoning`` is always False over Chat.
 
-    Scenario:
-        Given test inputs and fixtures for openai has reasoning always false
-        When test_openai_has_reasoning_always_false executes the target flow
-        Then the expected outcome for openai has reasoning always false is confirmed.
+    Scenario: a reasoning-model backend is inspected for both the internal flag and
+    the public capability.
 
-    Boundaries:
-        - Focus: openai has reasoning always false
-        - Fixtures/params: openai_backend
-        - Scope: assertions and setup in this test case only
+    Boundaries: proves reasoning traces are not surfaced over Chat Completions.
 
-    On failure, first check:
-        - Assertion details tied to openai has reasoning always false
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``_is_reasoning_model`` may be True but ``has_reasoning``
+    must be False.
     """
     backend, _ = openai_backend
     # gpt-5.4 is a reasoning model, but the trace is not returned over Chat Completions.
@@ -1299,26 +1115,16 @@ def test_openai_has_reasoning_always_false(openai_backend: tuple[OpenAIBackend, 
         ("global.amazon.nova-2-lite-v1:0", False),
     ],
 )
-def test_bedrock_has_reasoning(
-    monkeypatch: pytest.MonkeyPatch, model_id: str, expected: bool
-):
-    """
-    [Mock] ai backends: verifies bedrock has reasoning.
+def test_bedrock_has_reasoning(monkeypatch: pytest.MonkeyPatch, model_id: str, expected: bool):
+    """[Unit] ai backends: Bedrock ``has_reasoning`` reflects the model id capability.
 
-    Scenario:
-        Given test inputs and fixtures for bedrock has reasoning
-        When test_bedrock_has_reasoning executes the target flow
-        Then the expected outcome for bedrock has reasoning is confirmed.
+    Scenario: a backend is built for a parametrized model id and ``has_reasoning``
+    is read.
 
-    Boundaries:
-        - Focus: bedrock has reasoning
-        - Fixtures/params: monkeypatch, model_id, expected (parametrized, 3 cases)
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 session is mocked; only the capability flag is asserted.
 
-    On failure, first check:
-        - Assertion details tied to bedrock has reasoning
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``has_reasoning`` must equal the parametrized
+    expectation for each model id.
     """
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     settings = BedrockSettings(model_id=model_id)
@@ -1330,23 +1136,13 @@ def test_bedrock_has_reasoning(
 
 
 def test_mock_backend_has_reasoning_defaults_false():
-    """
-    [Unit] ai backends: verifies mock backend has reasoning defaults false.
+    """[Unit] ai backends: the test MockAIBackend defaults ``has_reasoning`` to False.
 
-    Scenario:
-        Given test inputs and fixtures for mock backend has reasoning defaults false
-        When test_mock_backend_has_reasoning_defaults_false executes the target flow
-        Then the expected outcome for mock backend has reasoning defaults false is confirmed.
+    Scenario: a fresh ``MockAIBackend`` is inspected.
 
-    Boundaries:
-        - Focus: mock backend has reasoning defaults false
-        - Fixtures/params: none
-        - Scope: assertions and setup in this test case only
+    Boundaries: exercises the test fixture's default capability only.
 
-    On failure, first check:
-        - Assertion details tied to mock backend has reasoning defaults false
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``has_reasoning`` must be False by default.
     """
     from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
@@ -1359,23 +1155,13 @@ def test_mock_backend_has_reasoning_defaults_false():
 
 
 def test_factory_returns_anthropic():
-    """
-    [Mock] ai backends: verifies factory returns anthropic.
+    """[Unit] ai backends: the factory builds an AnthropicBackend for provider anthropic.
 
-    Scenario:
-        Given test inputs and fixtures for factory returns anthropic
-        When test_factory_returns_anthropic executes the target flow
-        Then the expected outcome for factory returns anthropic is confirmed.
+    Scenario: ``create_ai_backend`` is called with ``provider="anthropic"``.
 
-    Boundaries:
-        - Focus: factory returns anthropic
-        - Fixtures/params: none
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only backend selection is asserted.
 
-    On failure, first check:
-        - Assertion details tied to factory returns anthropic
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the returned instance must be an ``AnthropicBackend``.
     """
     with mock.patch("anthropic.AsyncAnthropic"):
         backend = create_ai_backend(AISettings(provider="anthropic"))
@@ -1383,23 +1169,13 @@ def test_factory_returns_anthropic():
 
 
 def test_factory_returns_openai():
-    """
-    [Mock] ai backends: verifies factory returns openai.
+    """[Unit] ai backends: the factory builds an OpenAIBackend for provider openai.
 
-    Scenario:
-        Given test inputs and fixtures for factory returns openai
-        When test_factory_returns_openai executes the target flow
-        Then the expected outcome for factory returns openai is confirmed.
+    Scenario: ``create_ai_backend`` is called with ``provider="openai"``.
 
-    Boundaries:
-        - Focus: factory returns openai
-        - Fixtures/params: none
-        - Scope: assertions and setup in this test case only
+    Boundaries: the SDK client is mocked; only backend selection is asserted.
 
-    On failure, first check:
-        - Assertion details tied to factory returns openai
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the returned instance must be an ``OpenAIBackend``.
     """
     with mock.patch("openai.AsyncOpenAI"):
         backend = create_ai_backend(AISettings(provider="openai"))
@@ -1407,23 +1183,14 @@ def test_factory_returns_openai():
 
 
 def test_factory_returns_bedrock(monkeypatch: pytest.MonkeyPatch):
-    """
-    [Mock] ai backends: verifies factory returns bedrock.
+    """[Unit] ai backends: the factory builds an AwsBedrockBackend for provider bedrock.
 
-    Scenario:
-        Given test inputs and fixtures for factory returns bedrock
-        When test_factory_returns_bedrock executes the target flow
-        Then the expected outcome for factory returns bedrock is confirmed.
+    Scenario: ``create_ai_backend`` is called with ``provider="bedrock"`` and a
+    bearer token set.
 
-    Boundaries:
-        - Focus: factory returns bedrock
-        - Fixtures/params: monkeypatch
-        - Scope: assertions and setup in this test case only
+    Boundaries: the boto3 session is mocked; only backend selection is asserted.
 
-    On failure, first check:
-        - Assertion details tied to factory returns bedrock
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: the returned instance must be an ``AwsBedrockBackend``.
     """
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     with mock.patch("boto3.Session"):
@@ -1432,24 +1199,15 @@ def test_factory_returns_bedrock(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_factory_unknown_provider_raises():
-    # Bypass AISettings validation to reach the factory's guard.
-    """
-    [Unit] ai backends: verifies factory unknown provider raises.
+    """[Unit] ai backends: the factory rejects an unknown provider.
 
-    Scenario:
-        Given test inputs and fixtures for factory unknown provider raises
-        When test_factory_unknown_provider_raises executes the target flow
-        Then the expected outcome for factory unknown provider raises is confirmed.
+    Scenario: a settings stand-in with ``provider="grok"`` bypasses validation and
+    reaches the factory guard.
 
-    Boundaries:
-        - Focus: factory unknown provider raises
-        - Fixtures/params: none
-        - Scope: assertions and setup in this test case only
+    Boundaries: exercises the factory's provider guard only.
 
-    On failure, first check:
-        - Assertion details tied to factory unknown provider raises
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by ai backends
+    On failure, first check: ``create_ai_backend`` must raise ``ValueError`` matching
+    ``Unknown AI provider``.
     """
     fake = SimpleNamespace(provider="grok")
     with pytest.raises(ValueError, match="Unknown AI provider"):
