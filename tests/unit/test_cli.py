@@ -42,6 +42,7 @@ def _strip_ansi(text: str) -> str:
 
 
 def _report(with_hitl: bool = False) -> RCAReport:
+    """Build a canned :class:`RCAReport`, optionally carrying a HITL request."""
     return RCAReport(
         mode=IncidentMode.LOG_FORENSICS,
         root_cause="UAF in serialize()",
@@ -64,7 +65,15 @@ def _report(with_hitl: bool = False) -> RCAReport:
 
 
 def test_python_m_entry_point_runs():
-    """``python -m aegis_swr.cli`` launches the same Typer app as ``aegis``."""
+    """[Unit] cli: ``python -m aegis_swr.cli`` launches the same Typer app.
+
+    Scenario: the module is run with ``--help`` in a subprocess.
+
+    Boundaries: exercises the module entry point end-to-end via subprocess.
+
+    On failure, first check: the process must exit zero and its help must list
+    ``analyze`` and a ``Usage:`` line.
+    """
     import subprocess
     import sys
 
@@ -114,7 +123,15 @@ def test_analyze_help():
 
 
 def test_root_help_is_recursive():
-    """Root --help expands every subcommand and all their CLI options."""
+    """[Unit] cli: root ``--help`` expands every subcommand and its options.
+
+    Scenario: the root ``--help`` output is captured and scanned.
+
+    Boundaries: exercises the recursive help rendering only.
+
+    On failure, first check: the output must list every command and their distinct
+    options, including nested ``config`` subcommands.
+    """
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     out = _strip_ansi(result.output)
@@ -205,29 +222,25 @@ def test_analyze_help_lists_backend_flags():
 
 def test_repo_flag_enables_git_code_backend(tmp_path: Path):
     """
-    [Mock] cli: verifies repo flag enables git code backend.
+    [Unit] cli: the --repo flag enables the git code backend.
 
-    Scenario:
-        Given test inputs and fixtures for repo flag enables git code backend
-        When test_repo_flag_enables_git_code_backend executes the target flow
-        Then the expected outcome for repo flag enables git code backend is confirmed.
+    Scenario: ``analyze --repo <dir>`` runs while the code-backend factory is
+    mocked to capture its settings.
 
-    Boundaries:
-        - Focus: repo flag enables git code backend
-        - Fixtures/params: tmp_path
-        - Scope: assertions and setup in this test case only
+    Boundaries: the orchestrator and code factory are mocked; only flag-to-settings
+    wiring is under test.
 
-    On failure, first check:
-        - Assertion details tied to repo flag enables git code backend
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by cli
+    On failure, first check: the captured settings must be enabled with provider
+    ``git`` and the given repo path.
     """
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):
+        """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
     def _capture_code(settings):
+        """Record the code-backend settings passed by the CLI, returning no backend."""
         captured["enabled"] = settings.enabled
         captured["provider"] = settings.provider
         captured["repo_path"] = settings.repo_path
@@ -260,26 +273,20 @@ def test_repo_flag_enables_git_code_backend(tmp_path: Path):
 
 def test_log_service_sets_metadata(tmp_path: Path):
     """
-    [Mock] cli: verifies log service sets metadata.
+    [Unit] cli: the --log-service flag sets the incident source metadata.
 
-    Scenario:
-        Given test inputs and fixtures for log service sets metadata
-        When test_log_service_sets_metadata executes the target flow
-        Then the expected outcome for log service sets metadata is confirmed.
+    Scenario: ``analyze --log-service auth-api`` runs while ``Orchestrator.run`` is
+    mocked to capture the source metadata.
 
-    Boundaries:
-        - Focus: log service sets metadata
-        - Fixtures/params: tmp_path
-        - Scope: assertions and setup in this test case only
+    Boundaries: the orchestrator is mocked; only flag-to-metadata wiring is under
+    test.
 
-    On failure, first check:
-        - Assertion details tied to log service sets metadata
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by cli
+    On failure, first check: the captured service metadata must equal ``auth-api``.
     """
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):
+        """Capture the incident source's service metadata, then return a report."""
         captured["service"] = source.metadata.get("service")
         return _report()
 
@@ -350,22 +357,15 @@ def test_save_config_writes_json(tmp_path: Path):
 
 def test_save_config_default_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """
-    [Mock] cli: verifies save config default path.
+    [Unit] cli: --save-config with no path writes to the default config path.
 
-    Scenario:
-        Given test inputs and fixtures for save config default path
-        When test_save_config_default_path executes the target flow
-        Then the expected outcome for save config default path is confirmed.
+    Scenario: the default config path is monkeypatched to a temp file and
+    ``analyze --save-config`` runs with no explicit ``--config``.
 
-    Boundaries:
-        - Focus: save config default path
-        - Fixtures/params: tmp_path, monkeypatch
-        - Scope: assertions and setup in this test case only
+    Boundaries: the default path constant is patched; only the default-path branch
+    is exercised.
 
-    On failure, first check:
-        - Assertion details tied to save config default path
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by cli
+    On failure, first check: the default config file must exist after the run.
     """
     config_file = tmp_path / "analyze.json"
     monkeypatch.setattr("aegis_swr.cli.config.DEFAULT_CONFIG_PATH", config_file)
@@ -382,27 +382,22 @@ def test_save_config_default_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 
 def test_config_file_sets_defaults(tmp_path: Path):
     """
-    [Mock] cli: verifies config file sets defaults.
+    [Unit] cli: a config file sets backend defaults reaching the AI factory.
 
-    Scenario:
-        Given test inputs and fixtures for config file sets defaults
-        When test_config_file_sets_defaults executes the target flow
-        Then the expected outcome for config file sets defaults is confirmed.
+    Scenario: ``analyze --config`` runs with a config declaring ai=openai while the
+    AI factory is mocked.
 
-    Boundaries:
-        - Focus: config file sets defaults
-        - Fixtures/params: tmp_path
-        - Scope: assertions and setup in this test case only
+    Boundaries: the orchestrator and AI factory are mocked; only config-to-settings
+    wiring is under test.
 
-    On failure, first check:
-        - Assertion details tied to config file sets defaults
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by cli
+    On failure, first check: the settings passed to the AI factory must carry
+    provider ``openai``.
     """
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"backends": {"ai": {"provider": "openai"}}, "output": "json"}))
 
     async def mock_run(self, source):
+        """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
     with (
@@ -431,10 +426,21 @@ def test_config_file_sets_defaults(tmp_path: Path):
 
 
 def test_cli_reads_settings_from_config_asset(tmp_path: Path):
-    """A config.json fixture is read and applied end-to-end through the CLI."""
+    """[Unit] cli: a config.json fixture is read and applied end-to-end.
+
+    Scenario: ``analyze`` runs with a fixture config while ``Orchestrator.run`` is
+    mocked to capture the incident source.
+
+    Boundaries: the orchestrator is mocked; only config-to-source wiring is under
+    test.
+
+    On failure, first check: the log paths declared in the fixture must flow into
+    the captured ``IncidentSource``.
+    """
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):
+        """Capture the incident source's log paths, then return a report."""
         captured["logs"] = list(source.log_paths)
         return _report()
 
@@ -462,27 +468,21 @@ def test_cli_reads_settings_from_config_asset(tmp_path: Path):
 
 def test_cli_flag_overrides_config_file(tmp_path: Path):
     """
-    [Mock] cli: verifies cli flag overrides config file.
+    [Unit] cli: an explicit flag overrides the config file value.
 
-    Scenario:
-        Given test inputs and fixtures for cli flag overrides config file
-        When test_cli_flag_overrides_config_file executes the target flow
-        Then the expected outcome for cli flag overrides config file is confirmed.
+    Scenario: ``analyze --config`` declares ai=openai but ``--ai anthropic`` is also
+    passed while the AI factory is mocked.
 
-    Boundaries:
-        - Focus: cli flag overrides config file
-        - Fixtures/params: tmp_path
-        - Scope: assertions and setup in this test case only
+    Boundaries: proves flag precedence over config; only the merge is under test.
 
-    On failure, first check:
-        - Assertion details tied to cli flag overrides config file
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by cli
+    On failure, first check: the settings passed to the AI factory must carry
+    provider ``anthropic``, not ``openai``.
     """
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"ai": "openai"}))
 
     async def mock_run(self, source):
+        """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
     with (
@@ -510,15 +510,21 @@ def test_cli_flag_overrides_config_file(tmp_path: Path):
 
 
 def test_config_nested_ingest_service_reaches_metadata(tmp_path: Path):
-    """A config.json in the new nested layout flows end-to-end through the CLI.
+    """[Unit] cli: a nested-layout config flows the service into source metadata.
 
-    The log-subsystem split (plan Part III) moves the log source under
-    ``ingest.log_source``; the service name must still reach
+    Scenario: ``analyze`` runs with a config placing the log source under
+    ``ingest.log_source`` while ``Orchestrator.run`` is mocked.
+
+    Boundaries: the log-subsystem split (plan Part III) moves the log source; only
+    config-to-metadata wiring is under test.
+
+    On failure, first check: the service name must reach
     ``IncidentSource.metadata["service"]`` for the Data Adapter Stage 4 query.
     """
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):
+        """Capture the incident source's service metadata, then return a report."""
         captured["service"] = source.metadata.get("service")
         return _report()
 
@@ -564,6 +570,7 @@ def _run_capturing_assumption(args: list[str], tmp_path: Path) -> tuple[object, 
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):
+        """Capture the incident source's user assumption, then return a report."""
         captured["assumption"] = source.user_assumption
         return _report()
 
@@ -726,22 +733,16 @@ def test_legacy_assume_config_key_migrates_to_prompt(tmp_path: Path):
 
 def test_analyze_json_output(tmp_path: Path):
     """
-    [Mock] cli: verifies analyze json output.
+    [Unit] cli: --output json writes a locator to stdout, not the report body.
 
-    Scenario:
-        Given test inputs and fixtures for analyze json output
-        When test_analyze_json_output executes the target flow
-        Then the expected outcome for analyze json output is confirmed.
+    Scenario: ``analyze --output json`` runs while the event stream is mocked to
+    yield a completion event carrying the report.
 
-    Boundaries:
-        - Focus: analyze json output
-        - Fixtures/params: tmp_path
-        - Scope: assertions and setup in this test case only
+    Boundaries: the report body is written only to the result file; stdout carries a
+    machine-readable locator.
 
-    On failure, first check:
-        - Assertion details tied to analyze json output
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by cli
+    On failure, first check: stdout JSON must expose the incident id, status
+    ``complete``, and a report path, and must never contain the root-cause text.
     """
     report = _report()
 
@@ -750,6 +751,7 @@ def test_analyze_json_output(tmp_path: Path):
     from aegis_swr.core.events import InvestigationCompleted
 
     async def mock_stream_events(self, source):
+        """Yield a single completion event carrying the canned report."""
         yield InvestigationCompleted(report=report)
 
     with mock.patch(_MOCK_STREAM_EVENTS, mock_stream_events):
@@ -778,26 +780,19 @@ def test_analyze_json_output(tmp_path: Path):
 
 def test_analyze_hitl_exits_nonzero(tmp_path: Path):
     """
-    [Mock] cli: verifies analyze hitl exits nonzero.
+    [Unit] cli: a HITL-escalated report makes analyze exit non-zero.
 
-    Scenario:
-        Given test inputs and fixtures for analyze hitl exits nonzero
-        When test_analyze_hitl_exits_nonzero executes the target flow
-        Then the expected outcome for analyze hitl exits nonzero is confirmed.
+    Scenario: ``analyze`` runs while ``Orchestrator.run`` is mocked to return a
+    report carrying a HITL request.
 
-    Boundaries:
-        - Focus: analyze hitl exits nonzero
-        - Fixtures/params: tmp_path
-        - Scope: assertions and setup in this test case only
+    Boundaries: the orchestrator is mocked; only the exit-code mapping is under test.
 
-    On failure, first check:
-        - Assertion details tied to analyze hitl exits nonzero
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by cli
+    On failure, first check: the CLI must exit with code 1 on a HITL report.
     """
     report = _report(with_hitl=True)
 
     async def mock_run(self, source):
+        """Stand in for ``Orchestrator.run``, returning the HITL-bearing report."""
         return report
 
     with mock.patch(_MOCK_RUN, mock_run):
@@ -824,22 +819,15 @@ def test_analyze_hitl_exits_nonzero(tmp_path: Path):
 
 def test_config_show_redacts_secrets(monkeypatch: pytest.MonkeyPatch):
     """
-    [Mock] cli: verifies config show redacts secrets.
+    [Unit] cli: ``config show`` redacts API-key secrets from its output.
 
-    Scenario:
-        Given test inputs and fixtures for config show redacts secrets
-        When test_config_show_redacts_secrets executes the target flow
-        Then the expected outcome for config show redacts secrets is confirmed.
+    Scenario: an ``ANTHROPIC_API_KEY`` is set in the environment and ``config show``
+    runs.
 
-    Boundaries:
-        - Focus: config show redacts secrets
-        - Fixtures/params: monkeypatch
-        - Scope: assertions and setup in this test case only
+    Boundaries: enforces the sensitivity policy for displayed configuration.
 
-    On failure, first check:
-        - Assertion details tied to config show redacts secrets
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by cli
+    On failure, first check: the secret value must be absent and a ``***`` mask must
+    appear.
     """
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-supersecret")
     result = runner.invoke(app, ["config", "show"])
@@ -850,22 +838,15 @@ def test_config_show_redacts_secrets(monkeypatch: pytest.MonkeyPatch):
 
 def test_config_set_writes_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """
-    [Mock] cli: verifies config set writes json.
+    [Unit] cli: ``config set`` writes the dotted key into the JSON config file.
 
-    Scenario:
-        Given test inputs and fixtures for config set writes json
-        When test_config_set_writes_json executes the target flow
-        Then the expected outcome for config set writes json is confirmed.
+    Scenario: the default config path is patched to a temp file and ``config set
+    backends.ai.provider openai`` runs.
 
-    Boundaries:
-        - Focus: config set writes json
-        - Fixtures/params: tmp_path, monkeypatch
-        - Scope: assertions and setup in this test case only
+    Boundaries: only the config-write path is exercised.
 
-    On failure, first check:
-        - Assertion details tied to config set writes json
-        - Fixture or parameter values used by this test
-        - Recent changes in code paths exercised by cli
+    On failure, first check: the JSON file must record the updated provider
+    ``openai``.
     """
     json_path = tmp_path / "config.json"
     json_path.write_text('{"backends": {"ai": {"provider": "anthropic"}}}')
@@ -1070,10 +1051,22 @@ def test_log_sink_rejects_unknown_value(tmp_path: Path):
 
 
 def test_evidence_and_process_severity_thread_independently(tmp_path: Path):
-    """Each war-room channel is sourced from its own flag, not from --log-severity."""
+    """[Unit] cli: evidence and process severities thread from their own flags.
+
+    Scenario: ``analyze`` runs with distinct ``--evidence-severity``/
+    ``--process-severity`` and a separate ``--log-severity`` while the display is
+    mocked.
+
+    Boundaries: proves the two war-room channels are independent of the application
+    log channel.
+
+    On failure, first check: the captured levels must equal the two war-room flags
+    and never the ``--log-severity`` value.
+    """
     captured: dict[str, object] = {}
 
     async def fake_stream(orch, source, console, *, evidence_level, process_level, **_):
+        """Capture the evidence/process verbosity levels threaded into the display."""
         captured["evidence"] = evidence_level
         captured["process"] = process_level
         return _report()
@@ -1103,9 +1096,20 @@ def test_evidence_and_process_severity_thread_independently(tmp_path: Path):
 
 
 def test_log_sink_is_wired_to_configure_logging(tmp_path: Path):
-    """--log-sink reaches configure_logging, which owns the warn+fallback for stubs."""
+    """[Unit] cli: ``--log-sink`` reaches ``configure_logging``.
+
+    Scenario: ``analyze`` runs with ``--log-sink elk`` while ``configure_logging``
+    is mocked.
+
+    Boundaries: the sink stub warn+fallback lives in ``configure_logging``; only the
+    wiring is under test.
+
+    On failure, first check: the effective ``configure_logging`` call must carry the
+    selected ``elk`` sink.
+    """
 
     async def mock_run(self, source):
+        """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
     with (
@@ -1134,9 +1138,19 @@ def test_log_sink_is_wired_to_configure_logging(tmp_path: Path):
 
 
 def test_evidence_persist_quiet_mode_warns(tmp_path: Path):
-    """--evidence-persist with --output quiet has nothing to persist → warns."""
+    """[Unit] cli: ``--evidence-persist`` with quiet output warns of nothing to persist.
+
+    Scenario: ``analyze`` runs with ``--evidence-persist`` and ``--output quiet``
+    while the logger is mocked.
+
+    Boundaries: proves the combination is a no-op that surfaces a warning.
+
+    On failure, first check: a warning mentioning ``evidence-persist`` must be
+    emitted.
+    """
 
     async def mock_run(self, source):
+        """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
     with (
@@ -1167,19 +1181,29 @@ def test_evidence_persist_quiet_mode_warns(tmp_path: Path):
 
 
 def test_cli_ai_bedrock_sets_provider(tmp_path: Path):
-    """``aegis analyze --ai bedrock ...`` must pass provider='bedrock' to the
-    AI backend factory; no actual Bedrock client is constructed."""
+    """[Unit] cli: ``--ai bedrock`` passes provider 'bedrock' to the AI factory.
+
+    Scenario: ``analyze --ai bedrock`` runs while the AI factory is mocked to
+    capture its settings.
+
+    Boundaries: no real Bedrock client is constructed; only provider wiring is under
+    test.
+
+    On failure, first check: the captured provider must be ``bedrock``.
+    """
     from aegis_swr.config.settings import AISettings
 
     captured: dict[str, object] = {}
 
     def _capture_factory(settings: AISettings) -> object:
+        """Record the AI provider requested by the CLI and return a mock backend."""
         captured["provider"] = settings.provider
         m = mock.MagicMock()
         m.model_name = "au.anthropic.claude-sonnet-4-6"
         return m
 
     async def mock_run(self, source):
+        """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
     with (
@@ -1206,8 +1230,16 @@ def test_cli_ai_bedrock_sets_provider(tmp_path: Path):
 
 
 def test_config_example_has_bedrock_section():
-    """The repo-root config.example.json must parse into Settings AND contain a
-    backends.ai.bedrock block whose keys match BedrockSettings fields."""
+    """[Unit] cli: config.example.json carries a valid backends.ai.bedrock block.
+
+    Scenario: the repo-root ``config.example.json`` is parsed and its
+    ``backends.ai.bedrock`` block inspected.
+
+    Boundaries: a static asset validation; no CLI invocation.
+
+    On failure, first check: the block must exist, contain only recognised
+    ``BedrockSettings`` keys, and include ``region`` and ``model_id``.
+    """
     import json
 
     from aegis_swr.config.settings import BedrockSettings
@@ -1224,9 +1256,9 @@ def test_config_example_has_bedrock_section():
     # Every key present in the example block must be a recognized BedrockSettings field.
     known_fields = set(BedrockSettings.model_fields.keys())
     for key in bedrock_block:
-        assert key in known_fields, (
-            f"config.example.json backends.ai.bedrock has unknown key {key!r}; valid keys: {sorted(known_fields)}"
-        )
+        assert (
+            key in known_fields
+        ), f"config.example.json backends.ai.bedrock has unknown key {key!r}; valid keys: {sorted(known_fields)}"
 
     # The required identity fields must be present.
     assert "region" in bedrock_block
@@ -1234,8 +1266,15 @@ def test_config_example_has_bedrock_section():
 
 
 def test_env_example_documents_bedrock_auth():
-    """The repo-root .env.example must exist, mention both AWS_BEARER_TOKEN_BEDROCK
-    and AWS_DEFAULT_REGION, and must not assign any real secret value to either."""
+    """[Unit] cli: .env.example documents Bedrock auth without real secrets.
+
+    Scenario: the repo-root ``.env.example`` is read and scanned.
+
+    Boundaries: a static asset validation; no CLI invocation.
+
+    On failure, first check: the file must mention both ``AWS_BEARER_TOKEN_BEDROCK``
+    and ``AWS_DEFAULT_REGION`` and assign no real secret value.
+    """
     env_path = Path(__file__).parent.parent.parent / ".env.example"
     assert env_path.exists(), f".env.example not found at {env_path}"
     content = env_path.read_text(encoding="utf-8")
@@ -1245,10 +1284,20 @@ def test_env_example_documents_bedrock_auth():
 
 
 def test_evidence_persist_is_wired_to_stream_and_display(tmp_path: Path):
-    """--evidence-persist reaches stream_and_display with a resolved evidence dir."""
+    """[Unit] cli: ``--evidence-persist`` reaches the display with a resolved dir.
+
+    Scenario: ``analyze --evidence-persist`` runs with JSON output while
+    ``stream_and_display`` is mocked.
+
+    Boundaries: proves the persist flag and evidence directory are threaded through.
+
+    On failure, first check: the captured persist flag must be True and the resolved
+    directory non-empty.
+    """
     captured: dict[str, object] = {}
 
     async def fake_stream(orch, source, console, *, evidence_persist, evidence_dir, **_):
+        """Capture the evidence-persist flag and resolved directory from the display."""
         captured["persist"] = evidence_persist
         captured["dir"] = evidence_dir
         return _report()
@@ -1280,7 +1329,7 @@ def test_evidence_persist_is_wired_to_stream_and_display(tmp_path: Path):
 
 def test_agent_flag_builds_explicit_specs(tmp_path: Path):
     """
-    [Mock] cli: verifies repeatable --agent builds explicit AgentSpecs.
+    [Unit] cli: verifies repeatable --agent builds explicit AgentSpecs.
 
     Scenario:
         Given --agent flags with priority/weight segments, when analyze runs,
@@ -1299,6 +1348,7 @@ def test_agent_flag_builds_explicit_specs(tmp_path: Path):
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):
+        """Capture the orchestrator's explicit agent specs, then return a report."""
         captured["explicit_specs"] = self._explicit_specs
         return _report()
 
@@ -1331,7 +1381,7 @@ def test_agent_flag_builds_explicit_specs(tmp_path: Path):
 
 def test_no_agent_flag_leaves_auto_selection(tmp_path: Path):
     """
-    [Mock] cli: verifies omitting --agent leaves the panel on auto-selection.
+    [Unit] cli: verifies omitting --agent leaves the panel on auto-selection.
 
     Scenario:
         Given no --agent flag and a default config (auto mode), when analyze
@@ -1350,6 +1400,7 @@ def test_no_agent_flag_leaves_auto_selection(tmp_path: Path):
     captured: dict[str, object] = {}
 
     async def mock_run(self, source):
+        """Capture the orchestrator's explicit agent specs, then return a report."""
         captured["explicit_specs"] = self._explicit_specs
         return _report()
 
