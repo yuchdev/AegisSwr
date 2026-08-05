@@ -41,6 +41,11 @@ class S3Store(RelationalStore, ObjectStore):
     """S3/MinIO backend; wraps sync boto3 calls in ``asyncio.to_thread``"""
 
     def __init__(self, settings: StorageSettings):
+        """Build the boto3 S3 client and resolve the target bucket from settings.
+
+        :param settings: storage configuration carrying the object-store URL,
+            region, and optional S3 endpoint override.
+        """
         import boto3
 
         self._bucket = _parse_bucket(settings.object_store_url)
@@ -55,6 +60,7 @@ class S3Store(RelationalStore, ObjectStore):
     # ------------------------------------------------------------------
 
     def _put_text(self, key: str, text: str):
+        """Store *text* as a UTF-8 JSON object at *key* in the bucket."""
         self._client.put_object(
             Bucket=self._bucket,
             Key=key,
@@ -63,6 +69,7 @@ class S3Store(RelationalStore, ObjectStore):
         )
 
     def _get_text(self, key: str) -> Optional[str]:
+        """Read the object at *key* as UTF-8 text, or ``None`` if it is absent."""
         try:
             resp = self._client.get_object(Bucket=self._bucket, Key=key)
             raw: str = resp["Body"].read().decode("utf-8")
@@ -74,6 +81,7 @@ class S3Store(RelationalStore, ObjectStore):
 
     @staticmethod
     def _is_no_such_key(exc: BaseException) -> bool:
+        """Return True when *exc* is a boto ``NoSuchKey`` (missing object) error."""
         response = getattr(exc, "response", None)
         if isinstance(response, dict):
             code: str = response.get("Error", {}).get("Code", "")
@@ -81,9 +89,11 @@ class S3Store(RelationalStore, ObjectStore):
         return False
 
     def _put_bytes(self, key: str, data: bytes):
+        """Store raw *data* bytes at *key* in the bucket."""
         self._client.put_object(Bucket=self._bucket, Key=key, Body=data)
 
     def _get_bytes(self, key: str) -> bytes:
+        """Read raw bytes at *key*, raising ``IncidentNotFoundError`` if absent."""
         try:
             resp = self._client.get_object(Bucket=self._bucket, Key=key)
             data: bytes = resp["Body"].read()
@@ -98,9 +108,11 @@ class S3Store(RelationalStore, ObjectStore):
     # ------------------------------------------------------------------
 
     async def save_report(self, report: RCAReport):
+        """Persist *report* and its hash index off the event loop thread."""
         await asyncio.to_thread(self._sync_save_report, report)
 
     def _sync_save_report(self, report: RCAReport):
+        """Write the report JSON and its dump-hash index synchronously."""
         try:
             self._put_text(f"reports/{report.incident_id}.json", report.model_dump_json())
             if report.dump_hash:
@@ -110,16 +122,20 @@ class S3Store(RelationalStore, ObjectStore):
         logger.debug(f"S3Store: saved report {report.incident_id}")
 
     async def get_report(self, incident_id: UUID) -> Optional[RCAReport]:
+        """Load the report for *incident_id* off the event loop thread."""
         return await asyncio.to_thread(self._sync_get_report, incident_id)
 
     def _sync_get_report(self, incident_id: UUID) -> Optional[RCAReport]:
+        """Read and validate the report JSON for *incident_id*, or ``None``."""
         text = self._get_text(f"reports/{incident_id}.json")
         return RCAReport.model_validate_json(text) if text else None
 
     async def find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
+        """Look up a cached report by *dump_hash* off the event loop thread."""
         return await asyncio.to_thread(self._sync_find_by_hash, dump_hash)
 
     def _sync_find_by_hash(self, dump_hash: str) -> Optional[RCAReport]:
+        """Resolve the hash index to an incident id, then load that report."""
         incident_id_text = self._get_text(f"hash-index/{dump_hash}")
         if not incident_id_text:
             return None
@@ -130,6 +146,7 @@ class S3Store(RelationalStore, ObjectStore):
         incident_id: UUID,
         response: dict[str, object],
     ):
+        """Merge a HITL *response* into the stored report off the event loop thread."""
         await asyncio.to_thread(self._sync_update_hitl, incident_id, response)
 
     def _sync_update_hitl(
@@ -137,6 +154,7 @@ class S3Store(RelationalStore, ObjectStore):
         incident_id: UUID,
         response: dict[str, object],
     ):
+        """Read the report JSON, set its ``hitl_request``, and write it back."""
         key = f"reports/{incident_id}.json"
         text = self._get_text(key)
         if text is None:
@@ -150,9 +168,11 @@ class S3Store(RelationalStore, ObjectStore):
     # ------------------------------------------------------------------
 
     async def load_recent(self, limit: int = 100) -> list[RCAReport]:
+        """Load the most recent reports (up to *limit*) off the event loop thread."""
         return await asyncio.to_thread(self._sync_load_recent, limit)
 
     def _sync_load_recent(self, limit: int) -> list[RCAReport]:
+        """Page the report prefix, sort newest-first, and validate up to *limit*."""
         try:
             keys: list[str] = []
             paginator = self._client.get_paginator("list_objects_v2")
@@ -180,9 +200,17 @@ class S3Store(RelationalStore, ObjectStore):
         filename: str,
         data: bytes,
     ) -> str:
+        """Upload raw artifact *data* under the incident, returning its object key.
+
+        :param incident_id: the incident the artifact belongs to.
+        :param filename: the artifact file name within the incident namespace.
+        :param data: the raw bytes to store.
+        :return: the ``{incident_id}/{filename}`` object key for later retrieval.
+        """
         key = f"objects/{incident_id}/{filename}"
         await asyncio.to_thread(self._put_bytes, key, data)
         return f"{incident_id}/{filename}"
 
     async def get_raw(self, object_key: str) -> bytes:
+        """Fetch the raw artifact bytes for *object_key* off the event loop thread."""
         return await asyncio.to_thread(self._get_bytes, f"objects/{object_key}")
