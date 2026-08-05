@@ -32,21 +32,25 @@ _RUN = "aegis_swr.backends.debug.base.subprocess.run"
 
 @pytest.fixture
 def debug_settings() -> DebugSettings:
+    """Provide default :class:`DebugSettings` for the debug-backend tests."""
     return DebugSettings()
 
 
 @pytest.fixture
 def dump_path(tmp_path: Path) -> str:
+    """Write a minimal minidump-header file and return its path."""
     path = tmp_path / "crash.dmp"
     path.write_bytes(b"MDMP" + b"\x00" * 64)
     return str(path)
 
 
 def _source(dump_path: str) -> IncidentSource:
+    """Build a crash-dump :class:`IncidentSource` pointing at *dump_path*."""
     return IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path=dump_path)
 
 
 def _proc(stdout: str) -> SimpleNamespace:
+    """Build a fake completed-process object carrying *stdout* and empty stderr."""
     return SimpleNamespace(stdout=stdout, stderr="")
 
 
@@ -57,7 +61,7 @@ def _proc(stdout: str) -> SimpleNamespace:
 
 def test_cdb_extracts_fault_class_and_fields(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies cdb extracts fault class and fields.
+    [Unit] debug backends: verifies cdb extracts fault class and fields.
 
     Scenario:
         Given test inputs and fixtures for cdb extracts fault class and fields
@@ -88,7 +92,7 @@ def test_cdb_extracts_fault_class_and_fields(debug_settings: DebugSettings, dump
 
 def test_cdb_extracts_stack_frames(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies cdb extracts stack frames.
+    [Unit] debug backends: verifies cdb extracts stack frames.
 
     Scenario:
         Given test inputs and fixtures for cdb extracts stack frames
@@ -121,7 +125,7 @@ def test_cdb_extracts_stack_frames(debug_settings: DebugSettings, dump_path: str
 
 def test_cdb_symbol_resolution_score(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies cdb symbol resolution score.
+    [Unit] debug backends: verifies cdb symbol resolution score.
 
     Scenario:
         Given test inputs and fixtures for cdb symbol resolution score
@@ -148,7 +152,7 @@ def test_cdb_symbol_resolution_score(debug_settings: DebugSettings, dump_path: s
 
 def test_cdb_noise_filter_applied(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies cdb noise filter applied.
+    [Unit] debug backends: verifies cdb noise filter applied.
 
     Scenario:
         Given test inputs and fixtures for cdb noise filter applied
@@ -175,7 +179,7 @@ def test_cdb_noise_filter_applied(debug_settings: DebugSettings, dump_path: str)
 
 def test_cdb_parses_debug_timestamp(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies cdb parses debug timestamp.
+    [Unit] debug backends: verifies cdb parses debug timestamp.
 
     Scenario:
         Given test inputs and fixtures for cdb parses debug timestamp
@@ -231,7 +235,15 @@ def test_cdb_command_sequence(debug_settings: DebugSettings, dump_path: str):
 
 
 def test_cdb_symbol_chain_no_extra_paths(debug_settings: DebugSettings):
-    """Empty symbol list produces a chain with no semicolons (SRV entry only)."""
+    """[Unit] debug backends: an empty symbol list yields a SRV-only symbol chain.
+
+    Scenario: ``_symbol_path_string`` is called with no extra paths.
+
+    Boundaries: exercises the CDB symbol-path assembly only.
+
+    On failure, first check: the chain must start with ``srv*``, include the MS
+    symbol server, and contain no semicolon separators.
+    """
     backend = CdbBackend(debug_settings)
     chain = backend._symbol_path_string([])
     assert chain.startswith("srv*")
@@ -240,7 +252,14 @@ def test_cdb_symbol_chain_no_extra_paths(debug_settings: DebugSettings):
 
 
 def test_cdb_symbol_chain_two_paths(debug_settings: DebugSettings):
-    """Two paths are both present in the chain in order."""
+    """[Unit] debug backends: two extra symbol paths appear in order in the chain.
+
+    Scenario: ``_symbol_path_string`` is called with two extra paths.
+
+    Boundaries: exercises the CDB symbol-path assembly only.
+
+    On failure, first check: both paths must be present and in the given order.
+    """
     backend = CdbBackend(debug_settings)
     chain = backend._symbol_path_string(["C:/proj/x64/Release", "C:/symbols"])
     assert "C:/proj/x64/Release" in chain
@@ -249,7 +268,14 @@ def test_cdb_symbol_chain_two_paths(debug_settings: DebugSettings):
 
 
 def test_sym_paths_flow_from_incident_source_to_command(debug_settings: DebugSettings, dump_path: str):
-    """symbol_path list on IncidentSource is forwarded verbatim to the -y chain."""
+    """[Unit] debug backends: the source symbol_path flows verbatim to the -y chain.
+
+    Scenario: a source carrying two symbol paths builds a CDB command sequence.
+
+    Boundaries: exercises command assembly from an incident source.
+
+    On failure, first check: the ``-y`` chain must carry both source symbol paths.
+    """
     backend = CdbBackend(debug_settings)
     source = IncidentSource(
         mode=IncidentMode.CRASH_DUMP,
@@ -399,7 +425,7 @@ def test_cdb_parses_analyze_stack_text_format():
 
 def test_gdb_maps_sigsegv(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies gdb maps sigsegv.
+    [Unit] debug backends: verifies gdb maps sigsegv.
 
     Scenario:
         Given test inputs and fixtures for gdb maps sigsegv
@@ -426,7 +452,7 @@ def test_gdb_maps_sigsegv(debug_settings: DebugSettings, dump_path: str):
 
 def test_gdb_parses_frames(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies gdb parses frames.
+    [Unit] debug backends: verifies gdb parses frames.
 
     Scenario:
         Given test inputs and fixtures for gdb parses frames
@@ -488,7 +514,7 @@ def test_gdb_command_sequence(debug_settings: DebugSettings, dump_path: str):
 
 def test_lldb_maps_exc_bad_access(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies lldb maps exc bad access.
+    [Unit] debug backends: verifies lldb maps exc bad access.
 
     Scenario:
         Given test inputs and fixtures for lldb maps exc bad access
@@ -515,7 +541,7 @@ def test_lldb_maps_exc_bad_access(debug_settings: DebugSettings, dump_path: str)
 
 def test_lldb_parses_frames(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies lldb parses frames.
+    [Unit] debug backends: verifies lldb parses frames.
 
     Scenario:
         Given test inputs and fixtures for lldb parses frames
@@ -601,7 +627,7 @@ def test_extract_missing_file_raises(debug_settings: DebugSettings):
 
 def test_missing_binary_raises_platform_error(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies missing binary raises platform error.
+    [Unit] debug backends: verifies missing binary raises platform error.
 
     Scenario:
         Given test inputs and fixtures for missing binary raises platform error
@@ -626,7 +652,7 @@ def test_missing_binary_raises_platform_error(debug_settings: DebugSettings, dum
 
 def test_timeout_raises_debug_error(debug_settings: DebugSettings, dump_path: str):
     """
-    [Mock] debug backends: verifies timeout raises debug error.
+    [Unit] debug backends: verifies timeout raises debug error.
 
     Scenario:
         Given test inputs and fixtures for timeout raises debug error
@@ -732,7 +758,7 @@ def test_resolve_symbol_path_explicit():
 
 def test_resolve_symbol_path_default(monkeypatch: pytest.MonkeyPatch):
     """
-    [Mock] debug backends: verifies resolve symbol path default.
+    [Unit] debug backends: verifies resolve symbol path default.
 
     Scenario:
         Given test inputs and fixtures for resolve symbol path default
@@ -756,7 +782,7 @@ def test_resolve_symbol_path_default(monkeypatch: pytest.MonkeyPatch):
 
 def test_resolve_symbol_path_env_override(monkeypatch: pytest.MonkeyPatch):
     """
-    [Mock] debug backends: verifies resolve symbol path env override.
+    [Unit] debug backends: verifies resolve symbol path env override.
 
     Scenario:
         Given test inputs and fixtures for resolve symbol path env override
@@ -783,14 +809,28 @@ def test_resolve_symbol_path_env_override(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_callback_bridge_assigns_ephemeral_port():
-    """_CallbackBridge must bind to an OS-assigned non-zero port"""
+    """[Unit] debug backends: the callback bridge binds an OS-assigned ephemeral port.
+
+    Scenario: a ``_CallbackBridge`` is entered as a context manager.
+
+    Boundaries: exercises the bridge's port binding only.
+
+    On failure, first check: the bound port must be a valid non-zero TCP port.
+    """
     with _CallbackBridge(callback_timeout=2) as bridge:
         assert bridge.port > 0
         assert bridge.port < 65536
 
 
 def test_callback_bridge_receives_payload():
-    """A POST to the bridge port should be returned by wait_for_payload"""
+    """[Unit] debug backends: a POST to the bridge is returned by wait_for_payload.
+
+    Scenario: a JSON body is POSTed to the bridge port and then awaited.
+
+    Boundaries: exercises the bridge's HTTP receive and queue handoff.
+
+    On failure, first check: ``wait_for_payload`` must return the exact POSTed JSON.
+    """
     with _CallbackBridge(callback_timeout=2) as bridge:
         body = json.dumps({"hello": "world"})
         req = urllib.request.Request(
@@ -806,7 +846,15 @@ def test_callback_bridge_receives_payload():
 
 
 def test_callback_bridge_per_instance_queue_isolation():
-    """Two simultaneous bridges must not receive each other's payloads"""
+    """[Unit] debug backends: concurrent bridges keep isolated payload queues.
+
+    Scenario: two bridges run at once; only one receives a POST.
+
+    Boundaries: exercises per-instance queue isolation.
+
+    On failure, first check: only the targeted bridge returns a payload; the other
+    times out with ``DebugExtractionError``.
+    """
     with (
         _CallbackBridge(callback_timeout=2) as bridge_a,
         _CallbackBridge(callback_timeout=2) as bridge_b,
@@ -860,11 +908,13 @@ def test_callback_bridge_timeout_raises():
 
 @pytest.fixture
 def js_settings() -> DebugSettings:
+    """Provide :class:`DebugSettings` selecting the WinDbg JS engine."""
     return DebugSettings(engine="windbg_js")
 
 
 @pytest.fixture
 def js_backend(js_settings: DebugSettings) -> WinDbgJSBackend:
+    """Construct a :class:`WinDbgJSBackend` from the JS-engine settings."""
     return WinDbgJSBackend(js_settings)
 
 
@@ -884,7 +934,7 @@ _BRIDGE_PATH = "aegis_swr.backends.debug.windbg_js_worker._CallbackBridge"
 
 def test_windbg_js_parses_ddm_json(js_backend: WinDbgJSBackend, dump_path: str):
     """
-    [Mock] debug backends: verifies windbg js parses ddm json.
+    [Unit] debug backends: verifies windbg js parses ddm json.
 
     Scenario:
         Given test inputs and fixtures for windbg js parses ddm json
@@ -950,7 +1000,7 @@ def test_windbg_js_command_uses_scriptload(js_backend: WinDbgJSBackend, dump_pat
 
 def test_windbg_js_raises_on_missing_jsprovider(js_backend: WinDbgJSBackend, dump_path: str):
     """
-    [Mock] debug backends: verifies windbg js raises on missing jsprovider.
+    [Unit] debug backends: verifies windbg js raises on missing jsprovider.
 
     Scenario:
         Given test inputs and fixtures for windbg js raises on missing jsprovider
@@ -978,7 +1028,7 @@ def test_windbg_js_raises_on_missing_jsprovider(js_backend: WinDbgJSBackend, dum
 
 def test_windbg_js_raises_on_callback_timeout(js_backend: WinDbgJSBackend, dump_path: str):
     """
-    [Mock] debug backends: verifies windbg js raises on callback timeout.
+    [Unit] debug backends: verifies windbg js raises on callback timeout.
 
     Scenario:
         Given test inputs and fixtures for windbg js raises on callback timeout
@@ -1007,7 +1057,7 @@ def test_windbg_js_raises_on_callback_timeout(js_backend: WinDbgJSBackend, dump_
 
 def test_windbg_js_missing_asset_raises(js_backend: WinDbgJSBackend, dump_path: str):
     """
-    [Mock] debug backends: verifies windbg js missing asset raises.
+    [Unit] debug backends: verifies windbg js missing asset raises.
 
     Scenario:
         Given test inputs and fixtures for windbg js missing asset raises
@@ -1033,7 +1083,7 @@ def test_windbg_js_missing_asset_raises(js_backend: WinDbgJSBackend, dump_path: 
 
 def test_windbg_js_parses_invalid_json_raises(js_backend: WinDbgJSBackend, dump_path: str):
     """
-    [Mock] debug backends: verifies windbg js parses invalid json raises.
+    [Unit] debug backends: verifies windbg js parses invalid json raises.
 
     Scenario:
         Given test inputs and fixtures for windbg js parses invalid json raises
@@ -1090,7 +1140,14 @@ def test_windbg_js_inject_params_substitutes_all_tokens(
 def test_windbg_js_symbol_chain_two_paths(
     js_settings: DebugSettings,
 ):
-    """WinDbgJSBackend uses the same chain logic as CDB: both paths appear in order."""
+    """[Unit] debug backends: the WinDbg JS backend shares CDB symbol-chain logic.
+
+    Scenario: ``_symbol_path_string`` is called with two extra paths.
+
+    Boundaries: exercises the JS backend's symbol-path assembly only.
+
+    On failure, first check: both paths must appear in the chain in the given order.
+    """
     backend = WinDbgJSBackend(js_settings)
     chain = backend._symbol_path_string(["C:/proj/x64/Release", "C:/symbols"])
     assert "C:/proj/x64/Release" in chain
@@ -1151,7 +1208,7 @@ def test_factory_returns_cdb_when_engine_forced():
 
 def test_factory_auto_returns_cdb_when_js_unavailable():
     """
-    [Mock] debug backends: verifies factory auto returns cdb when js unavailable.
+    [Unit] debug backends: verifies factory auto returns cdb when js unavailable.
 
     Scenario:
         Given test inputs and fixtures for factory auto returns cdb when js unavailable
@@ -1175,7 +1232,7 @@ def test_factory_auto_returns_cdb_when_js_unavailable():
 
 def test_factory_auto_returns_windbg_js_when_available():
     """
-    [Mock] debug backends: verifies factory auto returns windbg js when available.
+    [Unit] debug backends: verifies factory auto returns windbg js when available.
 
     Scenario:
         Given test inputs and fixtures for factory auto returns windbg js when available
