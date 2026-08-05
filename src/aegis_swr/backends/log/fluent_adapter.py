@@ -10,6 +10,7 @@ records to log lines. The stub makes no network connection.
 
 See ``docs/specs/generic_implementation_plan.md`` C.5 CodeBackend.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -20,16 +21,14 @@ from loguru import logger
 from aegis_swr.backends.base import LogBackend
 from aegis_swr.config.settings import LogBackendSettings
 
-_MSG = (
-    "FluentAdapter is a stub. "
-    "Implement the Fluent forward/HTTP query in a future phase."
-)
+_MSG = "FluentAdapter is a stub. " "Implement the Fluent forward/HTTP query in a future phase."
 
 
 class FluentAdapter(LogBackend):
     """Fluent backend stub - ``query_window`` raises ``NotImplementedError``"""
 
     def __init__(self, settings: LogBackendSettings):
+        """Retain *settings* and warn that this stub queries no log source."""
         self._settings = settings
         logger.warning("FluentAdapter is a stub and does not query any log source.")
 
@@ -40,4 +39,5 @@ class FluentAdapter(LogBackend):
         end_time: datetime,
         severity_levels: Optional[list[str]] = None,
     ) -> list[str]:
+        """Stub: raise ``NotImplementedError`` (Fluent querying is not implemented)."""
         raise NotImplementedError(_MSG)

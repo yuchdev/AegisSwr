@@ -7,6 +7,7 @@ failures to :class:`CodeBackendError`.
 
 See ``docs/specs/generic_implementation_plan.md`` C.1. AIAPIBackend
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -32,6 +33,7 @@ class GitCodeAdapter(CodeBackend):
     """Full Git history backend (``git log`` / ``git show`` / ``git blame``)"""
 
     def __init__(self, settings: CodeBackendSettings):
+        """Store the code-backend *settings* and cache the git subprocess timeout."""
         self._settings = settings
         self._timeout = settings.git_timeout_seconds
 
@@ -42,6 +44,14 @@ class GitCodeAdapter(CodeBackend):
         window_hours: int = 2,
         limit: int = 10,
     ) -> list[CommitRecord]:
+        """Return commits in a window ending at *before* via ``git log``.
+
+        :param repo_path: path to the git working tree.
+        :param before: upper bound (exclusive) of the commit window.
+        :param window_hours: how many hours before *before* to include.
+        :param limit: maximum number of commits to return.
+        :return: the parsed :class:`CommitRecord` list, newest first.
+        """
         self._assert_repo(repo_path)
         since = before - timedelta(hours=window_hours)
         out = self._git(
@@ -57,13 +67,15 @@ class GitCodeAdapter(CodeBackend):
         return _parse_git_log(out)
 
     def get_file_diff(self, repo_path: str, file_path: str, commit_sha: str) -> str:
+        """Return the ``git show`` diff for *file_path* at *commit_sha*, or ``""``."""
         self._assert_repo(repo_path)
         # Validate the path stays inside the repo (raises ValueError on traversal).
         safe_repo_path(repo_path, file_path)
         try:
             return self._git(repo_path, "show", commit_sha, "--", file_path)
-        except CodeBackendError:
+        except CodeBackendError as exc:
             # Unknown sha / path: no diff rather than a hard failure.
+            logger.debug("GitAdapter.get_file_diff: {}", exc)
             return ""
 
     def blame(
@@ -72,6 +84,7 @@ class GitCodeAdapter(CodeBackend):
         file_path: str,
         line_range: tuple[int, int],
     ) -> list[BlameRecord]:
+        """Return ``git blame`` records for *file_path* over *line_range*, or ``[]``."""
         self._assert_repo(repo_path)
         safe_repo_path(repo_path, file_path)
         start, end = line_range
@@ -85,7 +98,8 @@ class GitCodeAdapter(CodeBackend):
                 "--",
                 file_path,
             )
-        except CodeBackendError:
+        except CodeBackendError as exc:
+            logger.debug("GitAdapter.blame: {}", exc)
             return []
         return _parse_blame_porcelain(out, start)
 
@@ -94,6 +108,7 @@ class GitCodeAdapter(CodeBackend):
     # ------------------------------------------------------------------
 
     def _assert_repo(self, repo_path: str):
+        """Raise ``CodeBackendError`` if *repo_path* is not a git working tree."""
         if not (Path(repo_path).expanduser() / ".git").exists():
             raise CodeBackendError(
                 f"Not a git repository (no .git directory): {repo_path!r}. "
@@ -101,6 +116,10 @@ class GitCodeAdapter(CodeBackend):
             )
 
     def _git(self, repo_path: str, *args: str) -> str:
+        """Run ``git`` with list-form *args* in *repo_path*, returning stdout.
+
+        :raises CodeBackendError: if git is missing, times out, or exits non-zero.
+        """
         try:
             proc = subprocess.run(  # noqa: S603 - list-form argv, no shell
                 ["git", *args],
@@ -112,18 +131,12 @@ class GitCodeAdapter(CodeBackend):
             )
         except FileNotFoundError as exc:
             raise CodeBackendError(
-                "git binary not found on PATH; install Git or use code provider "
-                "'filesystem'."
+                "git binary not found on PATH; install Git or use code provider " "'filesystem'."
             ) from exc
         except subprocess.TimeoutExpired as exc:
-            raise CodeBackendError(
-                f"git command timed out after {self._timeout}s: git {' '.join(args)}"
-            ) from exc
+            raise CodeBackendError(f"git command timed out after {self._timeout}s: git {' '.join(args)}") from exc
         if proc.returncode != 0:
-            raise CodeBackendError(
-                f"git {' '.join(args)} failed (exit {proc.returncode}): "
-                f"{proc.stderr.strip()}"
-            )
+            raise CodeBackendError(f"git {' '.join(args)} failed (exit {proc.returncode}): " f"{proc.stderr.strip()}")
         return proc.stdout
 
 
@@ -195,11 +208,14 @@ def _parse_blame_porcelain(text: str, first_line: int) -> list[BlameRecord]:
 
 
 def _parse_iso(value: str) -> datetime:
+    """Parse an ISO-8601 *value* into a datetime, falling back to the epoch."""
     try:
         return datetime.fromisoformat(value)
     except ValueError:
+        logger.debug("_parse_iso: could not parse ISO timestamp {!r}; using epoch", value)
         return _epoch()
 
 
 def _epoch() -> datetime:
+    """Return the Unix epoch as a naive local datetime (missing-timestamp sentinel)."""
     return datetime.fromtimestamp(0)
