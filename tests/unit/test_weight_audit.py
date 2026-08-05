@@ -69,10 +69,12 @@ _RATIFIED_PANELS: dict[FaultClass, list[str]] = {
 
 @pytest.fixture
 def settings() -> Settings:
+    """Helper that provides settings for the weight audit tests."""
     return Settings()
 
 
 async def _ordered_panel_keys(fault: FaultClass, settings: Settings) -> list[str]:
+    """Helper that provides ordered panel keys for the weight audit tests."""
     ai = MockAIBackend()
     specs = await AgenticManagerStrategy(settings).select({"fault_class": fault.value})
     panel = resolve_panel(specs, ai, settings)
@@ -81,7 +83,14 @@ async def _ordered_panel_keys(fault: FaultClass, settings: Settings) -> list[str
 
 
 async def test_default_panel_is_legacy_four(settings: Settings):
-    """No fault class (auto) resolves to the legacy four-agent chain (back-compat)."""
+    """[Unit] weight audit: No fault class (auto) resolves to the legacy four-agent chain (back-compat).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: no fault class (auto) resolves to the legacy four-agent chain (back-compat).
+    """
     ai = MockAIBackend()
     specs = await AgenticManagerStrategy(settings).select({})
     ordered = Orchestrator._order_panel(resolve_panel(specs, ai, settings))
@@ -90,13 +99,27 @@ async def test_default_panel_is_legacy_four(settings: Settings):
 
 @pytest.mark.parametrize("fault", list(FaultClass))
 async def test_specialist_panel_matches_authority_matrix(fault: FaultClass, settings: Settings):
-    """Each fault class auto-resolves to its ratified panel composition and order."""
+    """[Unit] weight audit: Each fault class auto-resolves to its ratified panel composition and order.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: each fault class auto-resolves to its ratified panel composition and order.
+    """
     assert await _ordered_panel_keys(fault, settings) == _RATIFIED_PANELS[fault]
 
 
 @pytest.mark.parametrize("fault", list(FaultClass))
 async def test_skeptic_always_last(fault: FaultClass, settings: Settings):
-    """The arbiter (skeptic) is the terminal node in every resolved panel."""
+    """[Unit] weight audit: The arbiter (skeptic) is the terminal node in every resolved panel.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the arbiter (skeptic) is the terminal node in every resolved panel.
+    """
     assert (await _ordered_panel_keys(fault, settings))[-1] == "skeptic"
 
 
@@ -105,16 +128,26 @@ async def test_skeptic_always_last(fault: FaultClass, settings: Settings):
     [FaultClass.INTEGER_DIVIDE_BY_ZERO, FaultClass.UNHANDLED_EXCEPTION, FaultClass.UNKNOWN],
 )
 async def test_back_compat_base_only_classes(fault: FaultClass, settings: Settings):
-    """Fault classes with no specialist keep exactly the four base agents."""
+    """[Unit] weight audit: Fault classes with no specialist keep exactly the four base agents.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: fault classes with no specialist keep exactly the four base agents.
+    """
     assert await _ordered_panel_keys(fault, settings) == _BASE_FOUR
 
 
 @pytest.mark.parametrize("fault", list(FaultClass))
 async def test_consensus_weights_normalize_to_one(fault: FaultClass, settings: Settings):
-    """Resolved per-panel weights are all positive and normalize to 1.0.
+    """[Unit] weight audit: Resolved per-panel weights are all positive and normalize to 1.0.
 
-    Weights are intrinsic per-agent (not a config matrix); the evaluator divides
-    by their sum, so an all-confident panel scores exactly 1.0 for any fault.
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: resolved per-panel weights are all positive and normalize to 1.0.
     """
     ai = MockAIBackend()
     specs = await AgenticManagerStrategy(settings).select({"fault_class": fault.value})

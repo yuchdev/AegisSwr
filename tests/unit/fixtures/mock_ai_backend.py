@@ -28,6 +28,7 @@ class MockAIBackend(AIAPIBackend):
         stream_tokens: Optional[list[str]] = None,
         usage: Optional[dict[str, int]] = None,
     ):
+        """Helper that provides init for the mock ai backend tests."""
         self.model_name = "mock-model"
         self._responses: list[Any] = list(responses or [])
         self._stream_tokens: list[str] = list(stream_tokens or ["mock ", "response"])
@@ -40,6 +41,7 @@ class MockAIBackend(AIAPIBackend):
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]] = None,
     ) -> BaseModel | str:
+        """Helper that provides generate for the mock ai backend tests."""
         self.calls.append(
             {"system": system_prompt, "messages": messages, "schema": output_schema}
         )
@@ -63,5 +65,6 @@ class MockAIBackend(AIAPIBackend):
         system_prompt: str,
         messages: list[dict[str, Any]],
     ) -> AsyncGenerator[str, None]:
+        """Helper that provides stream for the mock ai backend tests."""
         for token in self._stream_tokens:
             yield token

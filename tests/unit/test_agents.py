@@ -40,11 +40,13 @@ class RecordingVectorStore(VectorStore):
         responses: Optional[list[RCAReport]] = None,
         error: Optional[Exception] = None,
     ):
+        """Helper that provides init for the agents tests."""
         self._responses = list(responses or [])
         self._error = error
         self.calls: list[dict[str, object]] = []
 
     async def upsert_incident(self, report: RCAReport) -> None:
+        """Helper that provides upsert incident for the agents tests."""
         self.calls.append({"operation": "upsert", "report": report})
 
     async def search_similar(
@@ -53,6 +55,7 @@ class RecordingVectorStore(VectorStore):
         faulting_module: Optional[str],
         top_k: int = 5,
     ) -> list[RCAReport]:
+        """Helper that provides search similar for the agents tests."""
         self.calls.append(
             {
                 "operation": "search",
@@ -67,6 +70,7 @@ class RecordingVectorStore(VectorStore):
 
 
 def _base_state(**extra: Any) -> InvestigationState:
+    """Helper that provides base state for the agents tests."""
     state: InvestigationState = {
         "incident_id": "test-id",
         "incident_brief": {
@@ -105,6 +109,7 @@ def _base_state(**extra: Any) -> InvestigationState:
 
 
 def _os_kernel_response() -> OSKernelOutput:
+    """Helper that provides os kernel response for the agents tests."""
     return OSKernelOutput(
         exception_summary=ExceptionSummary(
             fault_class=FaultClass.MEMORY_ACCESS_VIOLATION,
@@ -120,6 +125,7 @@ def _os_kernel_response() -> OSKernelOutput:
 
 
 def _code_analyst_response() -> CodeAnalystOutput:
+    """Helper that provides code analyst response for the agents tests."""
     return CodeAnalystOutput(
         rca=RCAHypothesis(
             root_cause="Race condition exposes UAF in serialize()",
@@ -134,6 +140,7 @@ def _code_analyst_response() -> CodeAnalystOutput:
 
 
 def _log_historian_response() -> LogHistorianOutput:
+    """Helper that provides log historian response for the agents tests."""
     return LogHistorianOutput(
         pattern_match=None,
         confidence_adjustment=0.0,
@@ -143,6 +150,7 @@ def _log_historian_response() -> LogHistorianOutput:
 
 
 def _skeptic_confirmed() -> SkepticVerdict:
+    """Helper that provides skeptic confirmed for the agents tests."""
     return SkepticVerdict(
         confirmed=True,
         confidence=ConfidenceLevel.HIGH,
@@ -152,6 +160,7 @@ def _skeptic_confirmed() -> SkepticVerdict:
 
 
 def _skeptic_rejected() -> SkepticVerdict:
+    """Helper that provides skeptic rejected for the agents tests."""
     return SkepticVerdict(
         confirmed=False,
         confidence=ConfidenceLevel.LOW,

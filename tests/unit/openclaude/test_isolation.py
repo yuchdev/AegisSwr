@@ -50,7 +50,14 @@ def _import_lines(path: Path) -> list[str]:
 
 
 def test_grpc_imported_only_in_client() -> None:
-    """No source file outside ``grpc/client.py`` imports ``grpc`` / ``_pb2``."""
+    """[Unit] isolation: No source file outside ``grpc/client.py`` imports ``grpc`` / ``_pb2``.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: no source file outside ``grpc/client.py`` imports ``grpc`` / ``_pb2``.
+    """
     offenders: list[str] = []
     for source in _PKG_ROOT.rglob("*.py"):
         if source == _GRPC_ALLOWED or _PROTO_DIR in source.parents:
@@ -62,7 +69,14 @@ def test_grpc_imported_only_in_client() -> None:
 
 
 def test_openclaude_not_imported_by_isolated_modules() -> None:
-    """``core/``, ``views/``, and ``code_intel/`` never import ``aegis_swr.openclaude``."""
+    """[Unit] isolation: ``core/``, ``views/``, and ``code_intel/`` never import ``aegis_swr.openclaude``.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``core/``, ``views/``, and ``code_intel/`` never import ``aegis_swr.openclaude``.
+    """
     offenders: list[str] = []
     for module_dir in _ISOLATED_DIRS:
         for source in (_PKG_ROOT / module_dir).rglob("*.py"):

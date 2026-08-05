@@ -29,24 +29,29 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 class MockDebugBackend(DebugBackend):
+    """Support type for the data adapter tests (MockDebugBackend)."""
     SUPPORTED_FORMATS = [DumpFormat.WINDOWS_MINIDUMP]
     SUPPORTED_PLATFORMS = ["Windows"]
 
     def __init__(self, result: DebugExtractionResult):
+        """Helper that provides init for the data adapter tests."""
         self._result = result
         self.extract_called = False
 
     def extract(self, source: IncidentSource, symbol_path: Optional[str]) -> DebugExtractionResult:
+        """Helper that provides extract for the data adapter tests."""
         self.extract_called = True
         return self._result
 
     def _build_command_sequence(
         self, source: IncidentSource, symbol_path: Optional[str]
     ) -> list[str]:
+        """Helper that provides build command sequence for the data adapter tests."""
         return ["mock"]
 
 
 def _mock_extraction() -> DebugExtractionResult:
+    """Helper that provides mock extraction for the data adapter tests."""
     return DebugExtractionResult(
         fault_class=FaultClass.MEMORY_ACCESS_VIOLATION,
         exception_code_raw="0xc0000005",
@@ -69,6 +74,7 @@ def _mock_extraction() -> DebugExtractionResult:
 
 @pytest.fixture
 def adapter(settings: Settings) -> DataAdapter:
+    """Helper that provides adapter for the data adapter tests."""
     return DataAdapter(settings)
 
 
@@ -508,10 +514,12 @@ class _FakeLogBackend:
     """Minimal LogBackend returning canned windowed lines"""
 
     def __init__(self, lines: list[str]):
+        """Helper that provides init for the data adapter tests."""
         self._lines = lines
         self.called_with: tuple = ()
 
     async def query_window(self, service, start_time, end_time, severity_levels=None):
+        """Helper that provides query window for the data adapter tests."""
         self.called_with = (service, start_time, end_time)
         return self._lines
 
@@ -520,6 +528,7 @@ class _StubLogBackend:
     """LogBackend stub that always raises (like FluentAdapter)"""
 
     async def query_window(self, *args, **kwargs):
+        """Helper that provides query window for the data adapter tests."""
         raise NotImplementedError("stub")
 
 

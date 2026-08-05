@@ -24,7 +24,14 @@ from aegis_swr.router.exceptions import ConfigValidationError
 
 
 def test_three_types_present_with_expected_bases() -> None:
-    """All three types exist as independent hierarchies subclassing Exception/ValueError."""
+    """[Unit] exceptions: All three types exist as independent hierarchies subclassing Exception/ValueError.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: all three types exist as independent hierarchies subclassing Exception/ValueError.
+    """
     assert issubclass(OpenClaudeUnavailableError, Exception)
     assert issubclass(PermissionDeniedError, Exception)
     assert issubclass(OpenClaudeConfigError, ValueError)
@@ -36,12 +43,26 @@ def test_three_types_present_with_expected_bases() -> None:
 
 
 def test_no_legacy_openclaude_error_base() -> None:
-    """The dropped ``OpenClaudeError`` base no longer exists on the module."""
+    """[Unit] exceptions: The dropped ``OpenClaudeError`` base no longer exists on the module.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the dropped ``OpenClaudeError`` base no longer exists on the module.
+    """
     assert not hasattr(exceptions, "OpenClaudeError")
 
 
 def test_unavailable_error_narrow_construction() -> None:
-    """The spec's narrow ``(message, grpc_url)`` form works with retriable defaulting True."""
+    """[Unit] exceptions: The spec's narrow ``(message, grpc_url)`` form works with retriable defaulting True.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the spec's narrow ``(message, grpc_url)`` form works with retriable defaulting True.
+    """
     err = OpenClaudeUnavailableError("backend unreachable", "localhost:50051")
     assert str(err) == "backend unreachable"
     assert err.grpc_url == "localhost:50051"
@@ -50,7 +71,14 @@ def test_unavailable_error_narrow_construction() -> None:
 
 
 def test_unavailable_error_superset_kwargs_client_contract() -> None:
-    """The client.py contract: keyword-only ``retriable``/``status_code`` are stored."""
+    """[Unit] exceptions: The client.py contract: keyword-only ``retriable``/``status_code`` are stored.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the client.py contract: keyword-only ``retriable``/``status_code`` are stored.
+    """
     err = OpenClaudeUnavailableError(
         "OpenClaude gRPC stream failed at the transport level",
         retriable=False,
@@ -62,7 +90,14 @@ def test_unavailable_error_superset_kwargs_client_contract() -> None:
 
 
 def test_unavailable_error_defaults() -> None:
-    """Constructed with only a message, grpc_url is None and retriable defaults True."""
+    """[Unit] exceptions: Constructed with only a message, grpc_url is None and retriable defaults True.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: constructed with only a message, grpc_url is None and retriable defaults True.
+    """
     err = OpenClaudeUnavailableError("unreachable")
     assert err.grpc_url is None
     assert err.retriable is True
@@ -70,7 +105,14 @@ def test_unavailable_error_defaults() -> None:
 
 
 def test_permission_denied_error_shape() -> None:
-    """PermissionDeniedError stores tool/binary, is non-retriable, formats a fixed message."""
+    """[Unit] exceptions: PermissionDeniedError stores tool/binary, is non-retriable, formats a fixed message.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: permissionDeniedError stores tool/binary, is non-retriable, formats a fixed message.
+    """
     err = PermissionDeniedError(tool="Bash", denied_binary="rm")
     assert err.tool == "Bash"
     assert err.denied_binary == "rm"
@@ -80,7 +122,14 @@ def test_permission_denied_error_shape() -> None:
 
 
 def test_config_error_message_and_fields() -> None:
-    """OpenClaudeConfigError stores field/reason and formats the canonical message."""
+    """[Unit] exceptions: OpenClaudeConfigError stores field/reason and formats the canonical message.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: openClaudeConfigError stores field/reason and formats the canonical message.
+    """
     err = OpenClaudeConfigError(field="grpc_url", reason="must be bare host[:port]")
     assert err.field == "grpc_url"
     assert err.reason == "must be bare host[:port]"
@@ -89,25 +138,53 @@ def test_config_error_message_and_fields() -> None:
 
 
 def test_config_error_is_catchable_as_valueerror() -> None:
-    """OpenClaudeConfigError is caught by ``except ValueError`` (Pydantic contract)."""
+    """[Unit] exceptions: OpenClaudeConfigError is caught by ``except ValueError`` (Pydantic contract).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: openClaudeConfigError is caught by ``except ValueError`` (Pydantic contract).
+    """
     with pytest.raises(ValueError):
         raise OpenClaudeConfigError(field="f", reason="r")
 
 
 def test_config_reexport_identity() -> None:
-    """``config.OpenClaudeConfigError`` is the same object as the canonical class."""
+    """[Unit] exceptions: ``config.OpenClaudeConfigError`` is the same object as the canonical class.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``config.OpenClaudeConfigError`` is the same object as the canonical class.
+    """
     assert openclaude_config.OpenClaudeConfigError is OpenClaudeConfigError
 
 
 def test_config_error_distinct_from_router_config_validation_error() -> None:
-    """OpenClaudeConfigError and router ConfigValidationError never subclass each other."""
+    """[Unit] exceptions: OpenClaudeConfigError and router ConfigValidationError never subclass each other.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: openClaudeConfigError and router ConfigValidationError never subclass each other.
+    """
     assert not issubclass(OpenClaudeConfigError, ConfigValidationError)
     assert not issubclass(ConfigValidationError, OpenClaudeConfigError)
     assert OpenClaudeConfigError is not ConfigValidationError
 
 
 def test_no_payload_leakage_by_construction() -> None:
-    """Only caller-provided fields reach a message; no extra payload is embedded."""
+    """[Unit] exceptions: Only caller-provided fields reach a message; no extra payload is embedded.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: only caller-provided fields reach a message; no extra payload is embedded.
+    """
     payload = "SECRET_TOKEN=abcd1234 in dump 0xdeadbeef"
 
     unavailable = OpenClaudeUnavailableError("transport failure", status_code="UNAVAILABLE")
@@ -124,7 +201,14 @@ def test_no_payload_leakage_by_construction() -> None:
 
 
 def test_import_pulls_in_no_grpc() -> None:
-    """Importing the leaf exceptions module never imports ``grpc`` (C3)."""
+    """[Unit] exceptions: Importing the leaf exceptions module never imports ``grpc`` (C3).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: importing the leaf exceptions module never imports ``grpc`` (C3).
+    """
     grpc_before = "grpc" in sys.modules
     importlib_reimport = __import__("aegis_swr.openclaude.exceptions", fromlist=["*"])
     assert importlib_reimport is exceptions

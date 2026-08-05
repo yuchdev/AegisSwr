@@ -45,16 +45,19 @@ class _FakeClient:
     instances: list[_FakeClient] = []
 
     def __init__(self, settings: OpenClaudeSettings) -> None:
+        """Helper that provides init for the composition tests."""
         self.settings = settings
         self.health_calls = 0
         self.query_calls = 0
         _FakeClient.instances.append(self)
 
     async def health_check(self) -> bool:
+        """Helper that provides health check for the composition tests."""
         self.health_calls += 1
         return True
 
     async def query(self, *args: object, **kwargs: object) -> None:  # pragma: no cover
+        """Helper that provides query for the composition tests."""
         self.query_calls += 1
         raise AssertionError("query() must not be called in these unit tests")
 
@@ -63,16 +66,20 @@ class _Capture:
     """Capturing :class:`DomainEvent` subscriber."""
 
     def __init__(self) -> None:
+        """Helper that provides init for the composition tests."""
         self.events: list[DomainEvent] = []
 
     def __call__(self, event: DomainEvent) -> None:
+        """Helper that provides call for the composition tests."""
         self.events.append(event)
 
     def of(self, event_type: type) -> list[DomainEvent]:
+        """Helper that provides of for the composition tests."""
         return [e for e in self.events if isinstance(e, event_type)]
 
 
 def _bus_with_capture() -> tuple[EventBus, _Capture]:
+    """Helper that provides bus with capture for the composition tests."""
     bus = EventBus()
     capture = _Capture()
     bus.subscribe(DomainEvent, capture)
@@ -81,6 +88,7 @@ def _bus_with_capture() -> tuple[EventBus, _Capture]:
 
 @pytest.fixture(autouse=True)
 def _reset_fake_instances() -> None:
+    """Helper that provides reset fake instances for the composition tests."""
     _FakeClient.instances.clear()
 
 
@@ -92,6 +100,7 @@ def _fake_client(monkeypatch: pytest.MonkeyPatch) -> type[_FakeClient]:
 
 
 def _settings(*, grpc_url: Optional[str]) -> OpenClaudeSettings:
+    """Helper that provides settings for the composition tests."""
     return OpenClaudeSettings(grpc_url=grpc_url, auto_start=False)
 
 
@@ -99,7 +108,14 @@ def _settings(*, grpc_url: Optional[str]) -> OpenClaudeSettings:
 # build_code_agent - no grpc_url (capability unavailable, C4)
 # --------------------------------------------------------------------------- #
 async def test_no_grpc_url_returns_backendless_agent(_fake_client: type[_FakeClient]) -> None:
-    """With ``grpc_url`` unset, no backend is registered (C4)."""
+    """[Unit] composition: With ``grpc_url`` unset, no backend is registered (C4).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: with ``grpc_url`` unset, no backend is registered (C4).
+    """
     bus, capture = _bus_with_capture()
     async with AsyncExitStack() as stack:
         agent = await build_code_agent(_settings(grpc_url=None), bus, stack, run_id="r")
@@ -110,7 +126,14 @@ async def test_no_grpc_url_returns_backendless_agent(_fake_client: type[_FakeCli
 
 
 async def test_no_grpc_url_investigate_reports_unavailable(_fake_client: type[_FakeClient]) -> None:
-    """The backend-less agent returns a non-raising unavailable result."""
+    """[Unit] composition: The backend-less agent returns a non-raising unavailable result.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the backend-less agent returns a non-raising unavailable result.
+    """
     bus, _ = _bus_with_capture()
     async with AsyncExitStack() as stack:
         agent = await build_code_agent(_settings(grpc_url=None), bus, stack, run_id="r")
@@ -123,7 +146,14 @@ async def test_no_grpc_url_investigate_reports_unavailable(_fake_client: type[_F
 # build_code_agent - grpc_url set + dry_run (registered, not entered)
 # --------------------------------------------------------------------------- #
 async def test_dry_run_registers_backend_without_connecting(_fake_client: type[_FakeClient]) -> None:
-    """Dry-run builds the graph, registers the backend, and never connects."""
+    """[Unit] composition: Dry-run builds the graph, registers the backend, and never connects.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: dry-run builds the graph, registers the backend, and never connects.
+    """
     bus, capture = _bus_with_capture()
     async with AsyncExitStack() as stack:
         agent = await build_code_agent(_settings(grpc_url=_GRPC_URL), bus, stack, run_id="r", dry_run=True)
@@ -138,7 +168,14 @@ async def test_dry_run_registers_backend_without_connecting(_fake_client: type[_
 
 
 async def test_dry_run_delegate_short_circuits(_fake_client: type[_FakeClient]) -> None:
-    """A delegated task under dry-run returns ``[dry-run]`` with zero tokens."""
+    """[Unit] composition: A delegated task under dry-run returns ``[dry-run]`` with zero tokens.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a delegated task under dry-run returns ``[dry-run]`` with zero tokens.
+    """
     bus, _ = _bus_with_capture()
     async with AsyncExitStack() as stack:
         agent = await build_code_agent(_settings(grpc_url=_GRPC_URL), bus, stack, run_id="r", dry_run=True)
@@ -152,7 +189,14 @@ async def test_dry_run_delegate_short_circuits(_fake_client: type[_FakeClient]) 
 # build_code_agent - grpc_url set, normal run (process entered)
 # --------------------------------------------------------------------------- #
 async def test_normal_run_enters_process_and_health_checks(_fake_client: type[_FakeClient]) -> None:
-    """A non-dry-run entry health-checks the sidecar and emits connected/disconnected."""
+    """[Unit] composition: A non-dry-run entry health-checks the sidecar and emits connected/disconnected.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a non-dry-run entry health-checks the sidecar and emits connected/disconnected.
+    """
     bus, capture = _bus_with_capture()
     async with AsyncExitStack() as stack:
         agent = await build_code_agent(_settings(grpc_url=_GRPC_URL), bus, stack, run_id="r", dry_run=False)

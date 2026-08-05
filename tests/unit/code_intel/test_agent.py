@@ -17,14 +17,28 @@ from aegis_swr.code_intel.backend import CodeResult, CodeTaskContext
 
 
 def test_agent_without_backend_is_unavailable() -> None:
-    """``available`` is ``False`` when constructed with no backend."""
+    """[Unit] agent: ``available`` is ``False`` when constructed with no backend.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``available`` is ``False`` when constructed with no backend.
+    """
     agent = CodeAgent(backend=None)
     assert agent.available is False
 
 
 @pytest.mark.asyncio
 async def test_investigate_without_backend_returns_unavailable_result() -> None:
-    """The no-backend path returns a non-raising unavailable ``CodeResult``."""
+    """[Unit] agent: The no-backend path returns a non-raising unavailable ``CodeResult``.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the no-backend path returns a non-raising unavailable ``CodeResult``.
+    """
     agent = CodeAgent(backend=None)
     result = await agent.investigate(
         "find the null deref",
@@ -37,14 +51,28 @@ async def test_investigate_without_backend_returns_unavailable_result() -> None:
 
 
 def test_agent_with_backend_is_available() -> None:
-    """``available`` is ``True`` when a backend is registered."""
+    """[Unit] agent: ``available`` is ``True`` when a backend is registered.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``available`` is ``True`` when a backend is registered.
+    """
     agent = CodeAgent(backend=AsyncMock())
     assert agent.available is True
 
 
 @pytest.mark.asyncio
 async def test_investigate_delegates_to_backend() -> None:
-    """The backend path builds a ``CodeTaskContext`` and returns the backend result."""
+    """[Unit] agent: The backend path builds a ``CodeTaskContext`` and returns the backend result.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the backend path builds a ``CodeTaskContext`` and returns the backend result.
+    """
     expected = CodeResult(content="stack analysed", token_estimate=4)
     backend = AsyncMock()
     backend.delegate.return_value = expected

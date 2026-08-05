@@ -19,6 +19,7 @@ _DEFAULT_WEIGHTS: dict[str, float] = {
 
 @pytest.fixture
 def evaluator() -> ConsensusEvaluator:
+    """Helper that provides evaluator for the consensus tests."""
     return ConsensusEvaluator()
 
 

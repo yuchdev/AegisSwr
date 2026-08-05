@@ -34,19 +34,40 @@ _EXCEPTION_NAMES = [
 
 @pytest.mark.parametrize("name", _EVENT_NAMES + _EXCEPTION_NAMES)
 def test_public_symbol_resolves_from_top_level(name: str) -> None:
-    """Each of the ten public symbols resolves from ``aegis_swr.openclaude``."""
+    """[Unit] package api: Each of the ten public symbols resolves from ``aegis_swr.openclaude``.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: each of the ten public symbols resolves from ``aegis_swr.openclaude``.
+    """
     package = importlib.import_module("aegis_swr.openclaude")
     assert hasattr(package, name), f"{name} is not re-exported"
 
 
 def test_all_lists_exactly_the_public_symbols() -> None:
-    """``__all__`` names all seven events and all three exceptions, nothing more."""
+    """[Unit] package api: ``__all__`` names all seven events and all three exceptions, nothing more.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``__all__`` names all seven events and all three exceptions, nothing more.
+    """
     package = importlib.import_module("aegis_swr.openclaude")
     assert set(package.__all__) == set(_EVENT_NAMES + _EXCEPTION_NAMES)
 
 
 def test_reexports_are_the_canonical_objects() -> None:
-    """Re-exported symbols are identical to their defining-module objects."""
+    """[Unit] package api: Re-exported symbols are identical to their defining-module objects.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: re-exported symbols are identical to their defining-module objects.
+    """
     package = importlib.import_module("aegis_swr.openclaude")
     events = importlib.import_module("aegis_swr.openclaude.events")
     exceptions = importlib.import_module("aegis_swr.openclaude.exceptions")
@@ -57,21 +78,27 @@ def test_reexports_are_the_canonical_objects() -> None:
 
 
 def test_grpc_bound_classes_not_reexported_at_top_level() -> None:
-    """C3: the ``grpc``-touching classes are not importable from the package root."""
+    """[Unit] package api: C3: the ``grpc``-touching classes are not importable from the package root.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: c3: the ``grpc``-touching classes are not importable from the package root.
+    """
     package = importlib.import_module("aegis_swr.openclaude")
     for name in ("OpenClaudeTool", "OpenClaudeProcess", "OpenClaudeGrpcClient"):
         assert not hasattr(package, name), f"{name} must not be re-exported (C3)"
 
 
 def test_importing_package_pulls_in_no_grpc() -> None:
-    """C3: ``import aegis_swr.openclaude`` leaves ``grpc`` out of ``sys.modules``.
+    """[Unit] package api: C3: ``import aegis_swr.openclaude`` leaves ``grpc`` out of ``sys.modules``.
 
-    Drop any pre-imported ``grpc`` / openclaude modules so the assertion reflects
-    what *this* import pulls in, not incidental state from other tests — then
-    **restore** ``sys.modules`` exactly, so this test never pollutes the global
-    module registry for later tests (deleting ``aegis_swr.openclaude`` entries and
-    leaving them dropped would re-mint class objects and break identity/patching
-    assertions elsewhere).
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: c3: ``import aegis_swr.openclaude`` leaves ``grpc`` out of ``sys.modules``.
     """
     snapshot = {
         mod: sys.modules[mod]

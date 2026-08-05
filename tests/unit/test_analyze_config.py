@@ -25,6 +25,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def _asset(name: str) -> dict:
+    """Helper that provides asset for the analyze config tests."""
     return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
 
 
@@ -101,16 +102,13 @@ _CONFIG_ONLY_FIELDS: frozenset[str] = frozenset(
 
 
 def test_cli_options_have_backing_schema_keys():
-    """CLI and config.json must not maintain separate key lists.
+    """[Unit] analyze config: CLI and config.json must not maintain separate key lists.
 
-    Every ``aegis analyze`` option (besides meta flags and Settings-level
-    overrides) must correspond to an ``AnalyzeConfig`` field - no orphan flags.
-    Conversely every field has a CLI flag *except* the explicit config-file-only
-    set (connection details / evidence-persistence dir).
+    Scenario: the behavior described in the summary is exercised.
 
-    ``ai`` and ``agent`` are intentionally excluded: they are CLI-only overrides
-    for ``settings.backends.ai.provider`` and ``settings.panel`` respectively, and
-    are not persisted as flat analyze keys.
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: cLI and config.json must not maintain separate key lists.
     """
     from aegis_swr.cli.commands import analyze
 
@@ -303,7 +301,14 @@ def _full_sections() -> dict:
 
 
 def test_from_dict_flattens_all_nested_sections():
-    """Every nested section maps onto its flat ``AnalyzeConfig`` field."""
+    """[Unit] analyze config: Every nested section maps onto its flat ``AnalyzeConfig`` field.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: every nested section maps onto its flat ``AnalyzeConfig`` field.
+    """
     cfg = AnalyzeConfig.from_dict(_full_sections())
     # ingest.log_source.*
     assert cfg.log_provider == "fluent"
@@ -472,7 +477,14 @@ def test_sections_round_trip_through_save_and_load(tmp_path: Path):
 
 
 def test_flat_key_overrides_nested_section():
-    """A legacy top-level flat key wins over the nested section."""
+    """[Unit] analyze config: A legacy top-level flat key wins over the nested section.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a legacy top-level flat key wins over the nested section.
+    """
     cfg = AnalyzeConfig.from_dict(
         {
             "log_severity": "ERROR",
@@ -491,17 +503,20 @@ def test_flat_key_overrides_nested_section():
 
 
 def _capture_warnings():
+    """Helper that provides capture warnings for the analyze config tests."""
     captured: list[str] = []
     sink_id = logger.add(lambda m: captured.append(str(m)), level="WARNING")
     return captured, sink_id
 
 
 def test_legacy_conflated_logging_section_is_migrated():
-    """The pre-split ``logging`` section upgrades to the four-section layout.
+    """[Unit] analyze config: The pre-split ``logging`` section upgrades to the four-section layout.
 
-    ``logging.provider``/``service`` move to ``ingest.log_source``; the conflated
-    ``logging.severity`` seeds the war-room panes (clamped to INFO/TRACE) while
-    still driving the application log. A deprecation warning is emitted.
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the pre-split ``logging`` section upgrades to the four-section layout.
     """
     captured, sink_id = _capture_warnings()
     try:
@@ -546,7 +561,14 @@ def test_legacy_severity_clamps_non_stream_levels_to_info():
 
 
 def test_new_sections_suppress_legacy_migration():
-    """When the new sections are present, the legacy `logging` keys do not override."""
+    """[Unit] analyze config: When the new sections are present, the legacy `logging` keys do not override.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: when the new sections are present, the legacy `logging` keys do not override.
+    """
     captured, sink_id = _capture_warnings()
     try:
         cfg = AnalyzeConfig.from_dict(

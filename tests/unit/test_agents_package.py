@@ -12,7 +12,14 @@ import importlib
 
 
 def test_base_import_path() -> None:
-    """The moved agents resolve from the new ``aegis_swr.agents.base`` package."""
+    """[Unit] agents package: The moved agents resolve from the new ``aegis_swr.agents.base`` package.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the moved agents resolve from the new ``aegis_swr.agents.base`` package.
+    """
     from aegis_swr.agents.base import (
         BaseAgent,
         CodeAnalystAgent,
@@ -31,7 +38,14 @@ def test_base_import_path() -> None:
 
 
 def test_base_shared_primitives_reexported() -> None:
-    """``AgentSpec`` and ``AgentCategory`` re-export from the base package."""
+    """[Unit] agents package: ``AgentSpec`` and ``AgentCategory`` re-export from the base package.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``AgentSpec`` and ``AgentCategory`` re-export from the base package.
+    """
     from aegis_swr.agents.base import AgentCategory, AgentSpec
 
     assert AgentSpec is not None
@@ -39,7 +53,14 @@ def test_base_shared_primitives_reexported() -> None:
 
 
 def test_top_level_reexport() -> None:
-    """The four agents remain importable from the top-level ``aegis_swr.agents``."""
+    """[Unit] agents package: The four agents remain importable from the top-level ``aegis_swr.agents``.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the four agents remain importable from the top-level ``aegis_swr.agents``.
+    """
     from aegis_swr.agents import (
         CodeAnalystAgent,
         LogHistorianAgent,
@@ -54,12 +75,26 @@ def test_top_level_reexport() -> None:
 
 
 def test_forensic_package_importable() -> None:
-    """The ``forensic`` category package imports and exports its specialist agents."""
+    """[Unit] agents package: The ``forensic`` category package imports and exports its specialist agents.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the ``forensic`` category package imports and exports its specialist agents.
+    """
     module = importlib.import_module("aegis_swr.agents.forensic")
     assert "MemoryForensicsAgent" in module.__all__
 
 
 def test_synthesis_package_importable() -> None:
-    """The ``synthesis`` category package imports and exports the planner agent."""
+    """[Unit] agents package: The ``synthesis`` category package imports and exports the planner agent.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the ``synthesis`` category package imports and exports the planner agent.
+    """
     module = importlib.import_module("aegis_swr.agents.synthesis")
     assert "RemediationPlannerAgent" in module.__all__

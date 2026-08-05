@@ -14,17 +14,38 @@ from aegis_swr.router.exceptions import (
 
 
 def test_all_providers_exhausted_is_router_exception() -> None:
-    """AllProvidersExhausted is a subclass of RouterException."""
+    """[Unit] exceptions: AllProvidersExhausted is a subclass of RouterException.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: allProvidersExhausted is a subclass of RouterException.
+    """
     assert issubclass(AllProvidersExhausted, RouterException)
 
 
 def test_config_validation_error_is_not_router_exception() -> None:
-    """ConfigValidationError is a separate hierarchy, not RouterException."""
+    """[Unit] exceptions: ConfigValidationError is a separate hierarchy, not RouterException.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: configValidationError is a separate hierarchy, not RouterException.
+    """
     assert not issubclass(ConfigValidationError, RouterException)
 
 
 def test_all_providers_exhausted_stores_context() -> None:
-    """The exception stores role/tried/errors and builds a message."""
+    """[Unit] exceptions: The exception stores role/tried/errors and builds a message.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the exception stores role/tried/errors and builds a message.
+    """
     tried = ["anthropic/claude-sonnet-4-6", "deepseek/deepseek-chat"]
     errors = ["timeout", "429 rate limit"]
 

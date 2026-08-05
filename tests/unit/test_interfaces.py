@@ -109,6 +109,7 @@ def test_minimal_ai_backend_subclass():
     from pydantic import BaseModel
 
     class _DummyAI(AIAPIBackend):
+        """Support type for the interfaces tests (DummyAI)."""
         model_name = "dummy"
 
         async def generate(
@@ -117,6 +118,7 @@ def test_minimal_ai_backend_subclass():
             messages: list[dict[str, Any]],
             output_schema: Optional[type[BaseModel]] = None,
         ) -> BaseModel | str:
+            """Helper that provides generate for the interfaces tests."""
             return "ok"
 
         async def stream(
@@ -124,7 +126,9 @@ def test_minimal_ai_backend_subclass():
             system_prompt: str,
             messages: list[dict[str, Any]],
         ) -> AsyncGenerator[str, None]:
+            """Helper that provides stream for the interfaces tests."""
             async def _gen() -> AsyncGenerator[str, None]:
+                """Helper that provides gen for the interfaces tests."""
                 yield "token"
 
             return _gen()
@@ -158,6 +162,7 @@ def test_minimal_base_agent_subclass():
     from aegis_swr.core.schemas import AgentRole, AgentTurn, InvestigationState
 
     class _DummyAgent(BaseAgent):
+        """Support type for the interfaces tests (DummyAgent)."""
         agent_key: ClassVar[str] = "dummy"
         display_name: ClassVar[str] = "Dummy"
         category: ClassVar[AgentCategory] = "base"
@@ -165,9 +170,11 @@ def test_minimal_base_agent_subclass():
 
         @property
         def system_prompt(self) -> str:
+            """Helper that provides system prompt for the interfaces tests."""
             return "dummy"
 
         async def run(self, state: InvestigationState) -> AgentTurn:
+            """Helper that provides run for the interfaces tests."""
             return self.make_turn(turn_number=1, message="ok", confidence_score=0.5)
 
     agent = _DummyAgent(ai_backend=None, settings=None)  # type: ignore[arg-type]

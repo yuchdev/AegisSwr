@@ -21,6 +21,7 @@ from aegis_swr.core.panel_strategy import (
 
 @pytest.fixture
 def settings() -> Settings:
+    """Helper that provides settings for the panel strategy tests."""
     return Settings()
 
 
@@ -31,7 +32,14 @@ def settings() -> Settings:
 
 @pytest.mark.asyncio
 async def test_explicit_strategy_returns_its_specs_untouched():
-    """[Unit] explicit: select returns the supplied specs, ignoring the brief."""
+    """[Unit] explicit: select returns the supplied specs, ignoring the brief.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: select returns the supplied specs, ignoring the brief.
+    """
     specs = [AgentSpec(agent_key="os_kernel", priority=5), AgentSpec(agent_key="skeptic")]
     strategy = ExplicitPanelStrategy(specs)
     result = await strategy.select({"fault_class": "stack_overflow"})
@@ -46,7 +54,14 @@ async def test_explicit_strategy_returns_its_specs_untouched():
 
 @pytest.mark.asyncio
 async def test_agentic_manager_proposes_base_agents_plus_matching_specialists(settings: Settings):
-    """[Unit] agentic: base agents always, plus specialists authoritative for the fault."""
+    """[Unit] agentic: base agents always, plus specialists authoritative for the fault.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: base agents always, plus specialists authoritative for the fault.
+    """
     strategy = AgenticManagerStrategy(settings)
     keys = [s.agent_key for s in await strategy.select({"fault_class": "memory_access_violation"})]
     # Base agents always present.
@@ -60,7 +75,14 @@ async def test_agentic_manager_proposes_base_agents_plus_matching_specialists(se
 
 @pytest.mark.asyncio
 async def test_agentic_manager_honors_a_custom_registry(settings: Settings):
-    """[Unit] agentic: a custom registry override defines the candidate roster and order."""
+    """[Unit] agentic: a custom registry override defines the candidate roster and order.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a custom registry override defines the candidate roster and order.
+    """
     custom_registry = {"os_kernel": object, "skeptic": object}
     strategy = AgenticManagerStrategy(settings, registry=custom_registry)
     result = await strategy.select({"fault_class": "stack_overflow"})
@@ -71,9 +93,11 @@ async def test_agentic_manager_honors_a_custom_registry(settings: Settings):
 async def test_agentic_manager_is_fault_aware(settings: Settings):
     """[Unit] agentic: forensic specialists are gated by the brief's fault class.
 
-    Each specialist joins only for a fault class it is authoritative for; a fault
-    class with no specialist (and an absent fault) both fall back to exactly the
-    base agents (0001 back-compat).
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: forensic specialists are gated by the brief's fault class.
     """
     strategy = AgenticManagerStrategy(settings)
     for_memory = [s.agent_key for s in await strategy.select({"fault_class": "memory_access_violation"})]
@@ -96,7 +120,14 @@ async def test_agentic_manager_is_fault_aware(settings: Settings):
 
 @pytest.mark.asyncio
 async def test_resolver_delegates_to_explicit_when_specs_present(settings: Settings):
-    """[Unit] resolver: explicit specs win and the brief is ignored."""
+    """[Unit] resolver: explicit specs win and the brief is ignored.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: explicit specs win and the brief is ignored.
+    """
     resolver = PanelResolver(settings)
     explicit = [AgentSpec(agent_key="code_analyst"), AgentSpec(agent_key="skeptic")]
     result = await resolver.resolve({"fault_class": "stack_overflow"}, explicit_specs=explicit)
@@ -105,7 +136,14 @@ async def test_resolver_delegates_to_explicit_when_specs_present(settings: Setti
 
 @pytest.mark.asyncio
 async def test_resolver_uses_auto_when_specs_absent(settings: Settings):
-    """[Unit] resolver: None explicit specs route to the fault-aware auto manager."""
+    """[Unit] resolver: None explicit specs route to the fault-aware auto manager.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: none explicit specs route to the fault-aware auto manager.
+    """
     resolver = PanelResolver(settings)
     result = await resolver.resolve({"fault_class": "memory_access_violation"}, explicit_specs=None)
     keys = [s.agent_key for s in result]
@@ -116,7 +154,14 @@ async def test_resolver_uses_auto_when_specs_absent(settings: Settings):
 
 @pytest.mark.asyncio
 async def test_resolver_treats_empty_explicit_list_as_auto(settings: Settings):
-    """[Unit] resolver: an empty explicit list falls through to (fault-aware) auto selection."""
+    """[Unit] resolver: an empty explicit list falls through to (fault-aware) auto selection.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: an empty explicit list falls through to (fault-aware) auto selection.
+    """
     resolver = PanelResolver(settings)
     result = await resolver.resolve({"fault_class": "integer_divide_by_zero"}, explicit_specs=[])
     # integer_divide_by_zero matches no forensic specialist, so auto yields the base four.

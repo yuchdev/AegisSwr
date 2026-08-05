@@ -12,6 +12,7 @@ from aegis_swr.core.schemas import ConfidenceLevel, Hypothesis, IncidentMode, RC
 
 
 def _crashui_brief() -> dict:
+    """Helper that provides crashui brief for the incident similarity tests."""
     return {
         "fault_class": "access_violation",
         "exception_code_raw": "0xC0000005",
@@ -35,6 +36,7 @@ def _crashui_brief() -> dict:
 
 
 def _crashui_report(incident_id_seed: str = "a") -> RCAReport:
+    """Helper that provides crashui report for the incident similarity tests."""
     return RCAReport(
         mode=IncidentMode.CRASH_DUMP,
         dump_hash=f"sha256:{incident_id_seed}",

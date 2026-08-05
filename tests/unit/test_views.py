@@ -77,14 +77,17 @@ def _resolve_panel(bus: EventBus, panel: Optional[list[PanelAgentDescriptor]] = 
 
 
 def _headless_console(width: int = 120, height: int = 40) -> Console:
+    """Helper that provides headless console for the views tests."""
     return Console(file=io.StringIO(), force_terminal=True, width=width, height=height)
 
 
 def _crash_source() -> IncidentSource:
+    """Helper that provides crash source for the views tests."""
     return IncidentSource(mode=IncidentMode.CRASH_DUMP, dump_path="C:/dumps/CrashUi.dmp")
 
 
 def _report(*, hitl: bool = False) -> RCAReport:
+    """Helper that provides report for the views tests."""
     from aegis_swr.core.schemas import HITLRequest
 
     return RCAReport(
@@ -99,6 +102,7 @@ def _report(*, hitl: bool = False) -> RCAReport:
 
 
 def _evidence_brief() -> dict:
+    """Helper that provides evidence brief for the views tests."""
     return {
         "fault_class": "access_violation",
         "faulting_module": "ImageScope.exe",
@@ -114,6 +118,7 @@ def _evidence_brief() -> dict:
 
 
 def _run_round(bus: EventBus, turn_number: int, confidence: float):
+    """Helper that provides run round for the views tests."""
     for node, name in AGENT_SEQUENCE:
         bus.publish(
             AgentSpoke(
@@ -139,10 +144,12 @@ def _plain(renderable) -> str:
 
 
 def _evidence_text(view: WarRoomView) -> str:
+    """Helper that provides evidence text for the views tests."""
     return " | ".join(_plain(entry.text) for entry in view._evidence_log.lines)
 
 
 def _process_text(view: WarRoomView) -> str:
+    """Helper that provides process text for the views tests."""
     return " | ".join(_plain(entry.text) for entry in view._process_log.lines)
 
 
@@ -994,6 +1001,7 @@ def test_process_conversation_reveals_gradually():
 
 
 def _publish_multiline_turn(view: WarRoomView, message: str):
+    """Helper that provides publish multiline turn for the views tests."""
     bus = EventBus()
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=_crash_source()))
@@ -1075,6 +1083,7 @@ def _debug_brief() -> dict:
 
 
 def _start(view: WarRoomView, source: IncidentSource):
+    """Helper that provides start for the views tests."""
     bus = EventBus()
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=source))
@@ -1083,6 +1092,7 @@ def _start(view: WarRoomView, source: IncidentSource):
 
 
 def _write_pcap(path: Path) -> Path:
+    """Helper that provides write pcap for the views tests."""
     header = struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, 65535, 1)
     record = struct.pack("<IIII", 1_700_000_000, 0, 4, 4) + b"\xde\xad\xbe\xef"
     path.write_bytes(header + record)
@@ -1166,6 +1176,7 @@ def _long_excerpt_brief(n: int = 50) -> dict:
 
 
 def _start_with(view: WarRoomView, brief: dict, source: IncidentSource):
+    """Helper that provides start with for the views tests."""
     bus = EventBus()
     view.attach(bus)
     bus.publish(InvestigationStarted(incident_id="abc", source=source))
@@ -1395,6 +1406,7 @@ def test_stream_log_visible_respects_level_rank():
     log.reveal_all()
 
     def shown(level: str) -> list[str]:
+        """Helper that provides shown for the views tests."""
         lines = log.visible(now=1.0, finished=True, level=level, max_lines=100)
         return [_plain(r) for r in lines]
 
@@ -1684,6 +1696,7 @@ def test_trace_evidence_render_does_not_raise(tmp_path: Path):
 
 
 def _populated_view(height: int = 40) -> WarRoomView:
+    """Helper that provides populated view for the views tests."""
     view = WarRoomView(_headless_console(height=height), auto_refresh=False)
     bus = EventBus()
     view.attach(bus)
@@ -1759,6 +1772,7 @@ def test_render_agents_compact_mode_short_terminal():
 
 
 def _full_report(*, with_fix: bool = True) -> RCAReport:
+    """Helper that provides full report for the views tests."""
     return RCAReport(
         mode=IncidentMode.CRASH_DUMP,
         root_cause="Use-after-free in CImage::Load dereferences a freed bitmap buffer.",

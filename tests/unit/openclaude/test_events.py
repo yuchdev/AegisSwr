@@ -97,13 +97,27 @@ _FORBIDDEN_FIELD_TOKENS = (
 
 @pytest.mark.parametrize("cls", _ALL_CLASSES)
 def test_is_domain_event_subclass(cls: type) -> None:
-    """Every event subclasses :class:`DomainEvent` so the live bus dispatches it."""
+    """[Unit] events: Every event subclasses :class:`DomainEvent` so the live bus dispatches it.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: every event subclasses :class:`DomainEvent` so the live bus dispatches it.
+    """
     assert issubclass(cls, DomainEvent)
 
 
 @pytest.mark.parametrize("event, event_type", _INSTANCES)
 def test_event_type_sentinel_matches_c8(event: DomainEvent, event_type: str) -> None:
-    """Each class exposes the exact C8 ``event_type`` string as a ``ClassVar``."""
+    """[Unit] events: Each class exposes the exact C8 ``event_type`` string as a ``ClassVar``.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: each class exposes the exact C8 ``event_type`` string as a ``ClassVar``.
+    """
     assert event.event_type == event_type
     # ``event_type`` is a ClassVar sentinel, never an instance dataclass field.
     field_names = {f.name for f in dataclasses.fields(event)}
@@ -111,13 +125,27 @@ def test_event_type_sentinel_matches_c8(event: DomainEvent, event_type: str) -> 
 
 
 def test_event_type_strings_are_unique() -> None:
-    """No two events share an ``event_type`` discriminator."""
+    """[Unit] events: No two events share an ``event_type`` discriminator.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: no two events share an ``event_type`` discriminator.
+    """
     types = [event_type for _event, event_type in _INSTANCES]
     assert len(set(types)) == len(types)
 
 
 def test_expected_field_shapes() -> None:
-    """Each class declares exactly the C8 fields with the expected annotations."""
+    """[Unit] events: Each class declares exactly the C8 fields with the expected annotations.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: each class declares exactly the C8 fields with the expected annotations.
+    """
     expected: dict[type, dict[str, type]] = {
         OpenClaudeConnected: {"run_id": str, "grpc_url": str, "mode": str, "timestamp": datetime},
         OpenClaudeDisconnected: {"run_id": str, "reason": str, "timestamp": datetime},
@@ -161,7 +189,14 @@ def test_expected_field_shapes() -> None:
 
 @pytest.mark.parametrize("cls", _ALL_CLASSES)
 def test_no_field_is_typed_any(cls: type) -> None:
-    """No field annotation is ``Any`` - only str/int/bool/datetime allowed (C8)."""
+    """[Unit] events: No field annotation is ``Any`` - only str/int/bool/datetime allowed (C8).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: no field annotation is ``Any`` - only str/int/bool/datetime allowed (C8).
+    """
     allowed = {"str", "int", "bool", "datetime"}
     for f in dataclasses.fields(cls):
         assert f.type in allowed, f"{cls.__name__}.{f.name} -> {f.type}"
@@ -174,7 +209,14 @@ def test_no_field_is_typed_any(cls: type) -> None:
 
 @pytest.mark.parametrize("cls", _ALL_CLASSES)
 def test_frozen_assignment_raises(cls: type) -> None:
-    """Instances are immutable: attribute assignment raises ``FrozenInstanceError``."""
+    """[Unit] events: Instances are immutable: attribute assignment raises ``FrozenInstanceError``.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: instances are immutable: attribute assignment raises ``FrozenInstanceError``.
+    """
     event = cls(**_KWARGS[cls])
     with pytest.raises(dataclasses.FrozenInstanceError):
         event.run_id = "mutated"  # type: ignore[misc]
@@ -182,7 +224,14 @@ def test_frozen_assignment_raises(cls: type) -> None:
 
 @pytest.mark.parametrize("cls", _ALL_CLASSES)
 def test_positional_construction_raises(cls: type) -> None:
-    """``kw_only=True`` means positional construction raises ``TypeError``."""
+    """[Unit] events: ``kw_only=True`` means positional construction raises ``TypeError``.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``kw_only=True`` means positional construction raises ``TypeError``.
+    """
     positional = list(_KWARGS[cls].values())
     with pytest.raises(TypeError):
         cls(*positional)
@@ -190,7 +239,14 @@ def test_positional_construction_raises(cls: type) -> None:
 
 @pytest.mark.parametrize("event, _event_type", _INSTANCES)
 def test_run_id_and_tz_aware_utc_timestamp(event: DomainEvent, _event_type: str) -> None:
-    """Every event carries ``run_id: str`` and a tz-aware UTC ``timestamp``."""
+    """[Unit] events: Every event carries ``run_id: str`` and a tz-aware UTC ``timestamp``.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: every event carries ``run_id: str`` and a tz-aware UTC ``timestamp``.
+    """
     assert isinstance(event.run_id, str)
     assert isinstance(event.timestamp, datetime)
     assert event.timestamp.tzinfo is not None
@@ -205,7 +261,14 @@ def test_run_id_and_tz_aware_utc_timestamp(event: DomainEvent, _event_type: str)
 
 @pytest.mark.parametrize("cls", _ALL_CLASSES)
 def test_no_payload_bearing_fields(cls: type) -> None:
-    """No field name hints at tool args, tool output, response text, or raw errors (C9)."""
+    """[Unit] events: No field name hints at tool args, tool output, response text, or raw errors (C9).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: no field name hints at tool args, tool output, response text, or raw errors (C9).
+    """
     for f in dataclasses.fields(cls):
         name = f.name.lower()
         # ``arg_count`` is a count, not the arguments themselves - explicitly allowed.
@@ -216,7 +279,14 @@ def test_no_payload_bearing_fields(cls: type) -> None:
 
 
 def test_token_estimate_only_on_stream_completed() -> None:
-    """``token_estimate`` lives on :class:`OpenClaudeStreamCompleted` alone (C5/C8)."""
+    """[Unit] events: ``token_estimate`` lives on :class:`OpenClaudeStreamCompleted` alone (C5/C8).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``token_estimate`` lives on :class:`OpenClaudeStreamCompleted` alone (C5/C8).
+    """
     carriers = [cls for cls in _ALL_CLASSES if "token_estimate" in {f.name for f in dataclasses.fields(cls)}]
     assert carriers == [OpenClaudeStreamCompleted]
 
@@ -228,7 +298,14 @@ def test_token_estimate_only_on_stream_completed() -> None:
 
 @pytest.mark.parametrize("event, event_type", _INSTANCES)
 def test_roundtrip_via_domain_event_subscription(event: DomainEvent, event_type: str) -> None:
-    """A ``DomainEvent`` subscriber receives every OpenClaude event and can filter by type."""
+    """[Unit] events: A ``DomainEvent`` subscriber receives every OpenClaude event and can filter by type.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a ``DomainEvent`` subscriber receives every OpenClaude event and can filter by type.
+    """
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(DomainEvent, received.append)
@@ -241,7 +318,14 @@ def test_roundtrip_via_domain_event_subscription(event: DomainEvent, event_type:
 
 @pytest.mark.parametrize("event, _event_type", _INSTANCES)
 def test_roundtrip_via_specific_subscription(event: DomainEvent, _event_type: str) -> None:
-    """A subscriber to the concrete class receives exactly that published instance."""
+    """[Unit] events: A subscriber to the concrete class receives exactly that published instance.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a subscriber to the concrete class receives exactly that published instance.
+    """
     bus = EventBus()
     received: list[DomainEvent] = []
     bus.subscribe(type(event), received.append)
@@ -252,7 +336,14 @@ def test_roundtrip_via_specific_subscription(event: DomainEvent, _event_type: st
 
 
 def test_specific_subscription_does_not_cross_deliver() -> None:
-    """Subscribing to one event class never receives a different OpenClaude event."""
+    """[Unit] events: Subscribing to one event class never receives a different OpenClaude event.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: subscribing to one event class never receives a different OpenClaude event.
+    """
     bus = EventBus()
     connected: list[DomainEvent] = []
     bus.subscribe(OpenClaudeConnected, connected.append)
@@ -268,13 +359,13 @@ def test_specific_subscription_does_not_cross_deliver() -> None:
 
 
 def test_mock_event_bus_captures_events_in_order(mock_event_bus: EventBus) -> None:
-    """``mock_event_bus.captured`` collects every published event in emission order.
+    """[Unit] events: ``mock_event_bus.captured`` collects every published event in emission order.
 
-    Proves the shared conftest fixture is wired correctly: a real
-    :class:`EventBus` with a ``DomainEvent`` subscriber that appends to
-    ``bus.captured``.  The round-trip assertion mirrors the one in
-    :func:`test_roundtrip_via_domain_event_subscription` but exercises the
-    fixture rather than a locally constructed bus.
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``mock_event_bus.captured`` collects every published event in emission order.
     """
     e1 = OpenClaudeConnected(run_id="r1", grpc_url="127.0.0.1:50051", mode="managed")
     e2 = OpenClaudeDisconnected(run_id="r1", reason="context_exit")

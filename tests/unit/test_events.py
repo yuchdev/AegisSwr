@@ -23,6 +23,7 @@ from tests.unit.test_orchestrator import _code, _historian, _one_round, _os, _sk
 
 
 def _turn(agent: str = "OS Kernel Agent") -> AgentTurn:
+    """Helper that provides turn for the events tests."""
     return AgentTurn(agent=agent, turn_number=1, message="m", confidence_score=0.8)
 
 
@@ -165,6 +166,7 @@ def test_failing_subscriber_does_not_break_others():
     received: list[DomainEvent] = []
 
     def _broken(event: DomainEvent):
+        """Helper that provides broken for the events tests."""
         raise RuntimeError("view crashed")
 
     bus.subscribe(ConsensusEvaluated, _broken)
@@ -181,6 +183,7 @@ def test_failing_subscriber_does_not_break_others():
 
 
 def _log_only_source() -> IncidentSource:
+    """Helper that provides log only source for the events tests."""
     return IncidentSource(mode=IncidentMode.LOG_FORENSICS)
 
 

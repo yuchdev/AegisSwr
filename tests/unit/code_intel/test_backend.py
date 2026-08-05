@@ -18,7 +18,14 @@ from aegis_swr.code_intel.backend import CodeIntelBackend, CodeResult, CodeTaskC
 
 
 def test_code_task_context_fields_and_default() -> None:
-    """Constructs with a run_id and defaults ``dry_run`` to ``False``."""
+    """[Unit] backend: Constructs with a run_id and defaults ``dry_run`` to ``False``.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: constructs with a run_id and defaults ``dry_run`` to ``False``.
+    """
     run_id = uuid4()
     ctx = CodeTaskContext(run_id=run_id)
     assert ctx.run_id == run_id
@@ -30,7 +37,14 @@ def test_code_task_context_fields_and_default() -> None:
 
 
 def test_code_task_context_is_frozen_and_slotted() -> None:
-    """``CodeTaskContext`` rejects mutation and carries no ``__dict__`` (slots)."""
+    """[Unit] backend: ``CodeTaskContext`` rejects mutation and carries no ``__dict__`` (slots).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``CodeTaskContext`` rejects mutation and carries no ``__dict__`` (slots).
+    """
     ctx = CodeTaskContext(run_id=uuid4())
     with pytest.raises(dataclasses.FrozenInstanceError):
         ctx.dry_run = True  # type: ignore[misc]
@@ -38,7 +52,14 @@ def test_code_task_context_is_frozen_and_slotted() -> None:
 
 
 def test_code_result_fields_and_defaults() -> None:
-    """Constructs with content/token_estimate and documented defaults."""
+    """[Unit] backend: Constructs with content/token_estimate and documented defaults.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: constructs with content/token_estimate and documented defaults.
+    """
     result = CodeResult(content="answer", token_estimate=7)
     assert result.content == "answer"
     assert result.token_estimate == 7
@@ -48,7 +69,14 @@ def test_code_result_fields_and_defaults() -> None:
 
 
 def test_code_result_metadata_default_is_independent() -> None:
-    """The ``metadata`` default_factory yields distinct mappings per instance."""
+    """[Unit] backend: The ``metadata`` default_factory yields distinct mappings per instance.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: the ``metadata`` default_factory yields distinct mappings per instance.
+    """
     first = CodeResult(content="a", token_estimate=1)
     second = CodeResult(content="b", token_estimate=1)
     assert first.metadata == {}
@@ -57,7 +85,14 @@ def test_code_result_metadata_default_is_independent() -> None:
 
 
 def test_code_result_accepts_explicit_fields() -> None:
-    """All fields, including ``metadata``, may be supplied explicitly."""
+    """[Unit] backend: All fields, including ``metadata``, may be supplied explicitly.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: all fields, including ``metadata``, may be supplied explicitly.
+    """
     result = CodeResult(
         content="[dry-run]",
         token_estimate=0,
@@ -71,7 +106,14 @@ def test_code_result_accepts_explicit_fields() -> None:
 
 
 def test_code_result_is_frozen_and_slotted() -> None:
-    """``CodeResult`` rejects mutation and carries no ``__dict__`` (slots)."""
+    """[Unit] backend: ``CodeResult`` rejects mutation and carries no ``__dict__`` (slots).
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``CodeResult`` rejects mutation and carries no ``__dict__`` (slots).
+    """
     result = CodeResult(content="x", token_estimate=1)
     with pytest.raises(dataclasses.FrozenInstanceError):
         result.content = "y"  # type: ignore[misc]
@@ -79,21 +121,38 @@ def test_code_result_is_frozen_and_slotted() -> None:
 
 
 def test_code_backend_cannot_be_instantiated() -> None:
-    """``CodeIntelBackend`` is abstract and cannot be constructed directly."""
+    """[Unit] backend: ``CodeIntelBackend`` is abstract and cannot be constructed directly.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: ``CodeIntelBackend`` is abstract and cannot be constructed directly.
+    """
     with pytest.raises(TypeError):
         CodeIntelBackend()  # type: ignore[abstract]
 
 
 @pytest.mark.asyncio
 async def test_concrete_backend_subclass_works() -> None:
-    """A trivial concrete subclass implementing the contract is usable."""
+    """[Unit] backend: A trivial concrete subclass implementing the contract is usable.
+
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: a trivial concrete subclass implementing the contract is usable.
+    """
 
     class _StubBackend(CodeIntelBackend):
+        """Support type for the backend tests (StubBackend)."""
         @property
         def description(self) -> str:
+            """Helper that provides description for the backend tests."""
             return "stub backend"
 
         async def delegate(self, task: str, ctx: CodeTaskContext) -> CodeResult:
+            """Helper that provides delegate for the backend tests."""
             return CodeResult(content=f"handled: {task}", token_estimate=1)
 
     backend = _StubBackend()
@@ -105,10 +164,13 @@ async def test_concrete_backend_subclass_works() -> None:
 
 
 def test_code_intel_import_pulls_no_grpc_or_openclaude() -> None:
-    """C3 isolation: importing ``code_intel`` loads no gRPC / OpenClaude modules.
+    """[Unit] backend: C3 isolation: importing ``code_intel`` loads no gRPC / OpenClaude modules.
 
-    A snapshot of ``sys.modules`` is taken and restored so this assertion never
-    leaks module-registry mutations into sibling tests.
+    Scenario: the behavior described in the summary is exercised.
+
+    Boundaries: scoped to this test case and its direct collaborators.
+
+    On failure, first check: c3 isolation: importing ``code_intel`` loads no gRPC / OpenClaude modules.
     """
     snapshot = dict(sys.modules)
     try:

@@ -28,11 +28,13 @@ def _isolate_runtime_config(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def settings() -> Settings:
+    """Helper that provides settings for the conftest tests."""
     return Settings()
 
 
 @pytest.fixture
 def sample_source() -> IncidentSource:
+    """Helper that provides sample source for the conftest tests."""
     return IncidentSource(
         mode=IncidentMode.CRASH_DUMP,
         dump_path="tests/unit/fixtures/sample.dmp",

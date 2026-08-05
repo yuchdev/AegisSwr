@@ -14,12 +14,14 @@ _END = datetime(2026, 5, 30, 14, 0, 30, tzinfo=UTC)
 
 
 def _write_log(root: Path, name: str, *lines: str):
+    """Helper that provides write log for the log backends tests."""
     root.mkdir(parents=True, exist_ok=True)
     (root / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 @pytest.fixture
 def file_adapter(tmp_path: Path) -> FileLogAdapter:
+    """Helper that provides file adapter for the log backends tests."""
     return FileLogAdapter(LogBackendSettings(provider="file", file_root=str(tmp_path)))
 
 
