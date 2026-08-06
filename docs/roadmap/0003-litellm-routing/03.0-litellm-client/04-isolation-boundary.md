@@ -16,7 +16,7 @@ runs the check independently.
 ## pytest test (lives in `tests/router/test_client.py`)
 
 ```python
-def test_litellm_is_only_imported_in_client() -> None:
+def test_litellm_is_only_imported_in_client():
     """Assert 'import litellm' appears in client.py and nowhere else under aegis/."""
     import pathlib
 

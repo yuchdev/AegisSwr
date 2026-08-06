@@ -202,7 +202,7 @@ def _render_docstring(indent: str, classification: str, context_label: str, test
 def _collect_file(file_path: Path, tree: ast.Module, source_lines: list[str]) -> list[TestCase]:
     cases: list[TestCase] = []
 
-    def visit_function(node: ast.AST, class_name: Optional[str]) -> None:
+    def visit_function(node: ast.AST, class_name: Optional[str]):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             return
         if not node.name.startswith("test_"):

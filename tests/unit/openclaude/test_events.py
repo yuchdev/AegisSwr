@@ -96,7 +96,7 @@ _FORBIDDEN_FIELD_TOKENS = (
 
 
 @pytest.mark.parametrize("cls", _ALL_CLASSES)
-def test_is_domain_event_subclass(cls: type) -> None:
+def test_is_domain_event_subclass(cls: type):
     """[Unit] events: Every event subclasses :class:`DomainEvent` so the live bus dispatches it.
 
     Scenario: the behavior described in the summary is exercised.
@@ -109,7 +109,7 @@ def test_is_domain_event_subclass(cls: type) -> None:
 
 
 @pytest.mark.parametrize("event, event_type", _INSTANCES)
-def test_event_type_sentinel_matches_c8(event: DomainEvent, event_type: str) -> None:
+def test_event_type_sentinel_matches_c8(event: DomainEvent, event_type: str):
     """[Unit] events: Each class exposes the exact C8 ``event_type`` string as a ``ClassVar``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -124,7 +124,7 @@ def test_event_type_sentinel_matches_c8(event: DomainEvent, event_type: str) -> 
     assert "event_type" not in field_names
 
 
-def test_event_type_strings_are_unique() -> None:
+def test_event_type_strings_are_unique():
     """[Unit] events: No two events share an ``event_type`` discriminator.
 
     Scenario: the behavior described in the summary is exercised.
@@ -137,7 +137,7 @@ def test_event_type_strings_are_unique() -> None:
     assert len(set(types)) == len(types)
 
 
-def test_expected_field_shapes() -> None:
+def test_expected_field_shapes():
     """[Unit] events: Each class declares exactly the C8 fields with the expected annotations.
 
     Scenario: the behavior described in the summary is exercised.
@@ -188,7 +188,7 @@ def test_expected_field_shapes() -> None:
 
 
 @pytest.mark.parametrize("cls", _ALL_CLASSES)
-def test_no_field_is_typed_any(cls: type) -> None:
+def test_no_field_is_typed_any(cls: type):
     """[Unit] events: No field annotation is ``Any`` - only str/int/bool/datetime allowed (C8).
 
     Scenario: the behavior described in the summary is exercised.
@@ -208,7 +208,7 @@ def test_no_field_is_typed_any(cls: type) -> None:
 
 
 @pytest.mark.parametrize("cls", _ALL_CLASSES)
-def test_frozen_assignment_raises(cls: type) -> None:
+def test_frozen_assignment_raises(cls: type):
     """[Unit] events: Instances are immutable: attribute assignment raises ``FrozenInstanceError``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -223,7 +223,7 @@ def test_frozen_assignment_raises(cls: type) -> None:
 
 
 @pytest.mark.parametrize("cls", _ALL_CLASSES)
-def test_positional_construction_raises(cls: type) -> None:
+def test_positional_construction_raises(cls: type):
     """[Unit] events: ``kw_only=True`` means positional construction raises ``TypeError``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -238,7 +238,7 @@ def test_positional_construction_raises(cls: type) -> None:
 
 
 @pytest.mark.parametrize("event, _event_type", _INSTANCES)
-def test_run_id_and_tz_aware_utc_timestamp(event: DomainEvent, _event_type: str) -> None:
+def test_run_id_and_tz_aware_utc_timestamp(event: DomainEvent, _event_type: str):
     """[Unit] events: Every event carries ``run_id: str`` and a tz-aware UTC ``timestamp``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -260,7 +260,7 @@ def test_run_id_and_tz_aware_utc_timestamp(event: DomainEvent, _event_type: str)
 
 
 @pytest.mark.parametrize("cls", _ALL_CLASSES)
-def test_no_payload_bearing_fields(cls: type) -> None:
+def test_no_payload_bearing_fields(cls: type):
     """[Unit] events: No field name hints at tool args, tool output, response text, or raw errors (C9).
 
     Scenario: the behavior described in the summary is exercised.
@@ -278,7 +278,7 @@ def test_no_payload_bearing_fields(cls: type) -> None:
             assert token not in name, f"{cls.__name__}.{f.name} looks payload-bearing ({token})"
 
 
-def test_token_estimate_only_on_stream_completed() -> None:
+def test_token_estimate_only_on_stream_completed():
     """[Unit] events: ``token_estimate`` lives on :class:`OpenClaudeStreamCompleted` alone (C5/C8).
 
     Scenario: the behavior described in the summary is exercised.
@@ -297,7 +297,7 @@ def test_token_estimate_only_on_stream_completed() -> None:
 
 
 @pytest.mark.parametrize("event, event_type", _INSTANCES)
-def test_roundtrip_via_domain_event_subscription(event: DomainEvent, event_type: str) -> None:
+def test_roundtrip_via_domain_event_subscription(event: DomainEvent, event_type: str):
     """[Unit] events: A ``DomainEvent`` subscriber receives every OpenClaude event and can filter by type.
 
     Scenario: the behavior described in the summary is exercised.
@@ -317,7 +317,7 @@ def test_roundtrip_via_domain_event_subscription(event: DomainEvent, event_type:
 
 
 @pytest.mark.parametrize("event, _event_type", _INSTANCES)
-def test_roundtrip_via_specific_subscription(event: DomainEvent, _event_type: str) -> None:
+def test_roundtrip_via_specific_subscription(event: DomainEvent, _event_type: str):
     """[Unit] events: A subscriber to the concrete class receives exactly that published instance.
 
     Scenario: the behavior described in the summary is exercised.
@@ -335,7 +335,7 @@ def test_roundtrip_via_specific_subscription(event: DomainEvent, _event_type: st
     assert received == [event]
 
 
-def test_specific_subscription_does_not_cross_deliver() -> None:
+def test_specific_subscription_does_not_cross_deliver():
     """[Unit] events: Subscribing to one event class never receives a different OpenClaude event.
 
     Scenario: the behavior described in the summary is exercised.
@@ -358,7 +358,7 @@ def test_specific_subscription_does_not_cross_deliver() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_mock_event_bus_captures_events_in_order(mock_event_bus: EventBus) -> None:
+def test_mock_event_bus_captures_events_in_order(mock_event_bus: EventBus):
     """[Unit] events: ``mock_event_bus.captured`` collects every published event in emission order.
 
     Scenario: the behavior described in the summary is exercised.

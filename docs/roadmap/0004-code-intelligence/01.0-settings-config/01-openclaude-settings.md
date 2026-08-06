@@ -53,7 +53,7 @@ class OpenClaudeConfigError(ValueError):
     :param reason: Human-readable explanation of the violation.
     """
 
-    def __init__(self, field: str, reason: str) -> None:
+    def __init__(self, field: str, reason: str):
         self.field = field
         self.reason = reason
         super().__init__(f"OpenClaudeSettings.{field}: {reason}")
@@ -135,7 +135,7 @@ import sys
 _NPM_PACKAGE = "@gitlawb/openclaude@latest"
 
 
-def install_openclaude_cli() -> None:
+def install_openclaude_cli():
     """Install the OpenClaude CLI globally via npm, best-effort.
 
     Invoked from the Poetry build hook so ``poetry install`` provisions the
@@ -160,7 +160,7 @@ def install_openclaude_cli() -> None:
         print(f"warning: OpenClaude CLI install failed: {exc}", file=sys.stderr)
 
 
-def build(setup_kwargs: dict) -> None:
+def build(setup_kwargs: dict):
     """Poetry build-script entry point; see `pyproject.toml`'s `[tool.poetry.build]`."""
     install_openclaude_cli()
 ```

@@ -46,6 +46,16 @@ except ImportError:
     _Image = None  # type: ignore[assignment]
     _HAS_OCR = False
 
+try:
+    from drain3 import TemplateMiner as _TemplateMiner
+    from drain3.template_miner_config import TemplateMinerConfig as _TemplateMinerConfig
+
+    _HAS_DRAIN3 = True
+except ImportError:  # pragma: no cover - drain3 is a core dependency
+    _TemplateMiner = None  # type: ignore[assignment,misc]
+    _TemplateMinerConfig = None  # type: ignore[assignment,misc]
+    _HAS_DRAIN3 = False
+
 from aegis_swr.backends.base import CodeBackend, DebugBackend, LogBackend
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.exceptions import CodeBackendError, LogBackendError
@@ -477,16 +487,13 @@ class DataAdapter:
         Returns:
             Deduplicated and compressed log lines.
         """
-        try:
-            from drain3 import TemplateMiner
-            from drain3.template_miner_config import TemplateMinerConfig
-        except ImportError:  # pragma: no cover - drain3 is a core dependency
+        if not _HAS_DRAIN3:  # pragma: no cover - drain3 is a core dependency
             logger.warning("drain3 unavailable; skipping log clustering")
             return lines
 
-        config = TemplateMinerConfig()
+        config = _TemplateMinerConfig()
         config.profiling_enabled = False
-        miner = TemplateMiner(config=config)
+        miner = _TemplateMiner(config=config)
 
         assigned: list[tuple[str, int]] = []
         counts: dict[int, int] = defaultdict(int)

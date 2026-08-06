@@ -14,11 +14,14 @@ from typing import Optional
 from loguru import logger
 from rich.console import Console
 
+from aegis_swr.core.events import HumanInputRequired, InvestigationCompleted
 from aegis_swr.core.orchestrator import Orchestrator
 from aegis_swr.core.schemas import IncidentSource, RCAReport
 from aegis_swr.views.rich_view import (  # noqa: F401  (make_console re-exported for CLI)
     WarRoomView,
     make_console,
+    make_view,
+    render_verdict,
 )
 
 _ORIGINAL_RUN = Orchestrator.run
@@ -37,8 +40,6 @@ def rich_formatter(
     show_dialogue: bool = True,
 ):
     """Print the report as a rich terminal verdict (see views.rich_view)"""
-    from aegis_swr.views.rich_view import render_verdict
-
     render_verdict(report, model=model, show_dialogue=show_dialogue)
 
 
@@ -69,9 +70,6 @@ async def stream_and_display(
     D5). Returns the final :class:`RCAReport` once the graph completes, or ``None``
     if the stream ended without a result (should not happen in normal operation).
     """
-    from aegis_swr.core.events import HumanInputRequired, InvestigationCompleted
-    from aegis_swr.views.rich_view import make_view
-
     view = make_view(console, level=evidence_level, process_level=process_level)
     stream_events_func = getattr(type(orch), "stream_events", None)
     run_func = getattr(type(orch), "run", None)
@@ -103,9 +101,7 @@ async def stream_and_display(
     return report
 
 
-def _persist_evidence(
-    view: WarRoomView, evidence_dir: Optional[str], report: RCAReport
-) -> Optional[Path]:
+def _persist_evidence(view: WarRoomView, evidence_dir: Optional[str], report: RCAReport) -> Optional[Path]:
     """Write the war-room Evidence Stream transcript to a file (opt-in, D5).
 
     Writes ``<evidence_dir>/evidence-<incident_id>.log``. Returns the path on

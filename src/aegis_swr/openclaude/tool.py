@@ -125,7 +125,7 @@ class OpenClaudeTool(CodeIntelBackend):
         settings: OpenClaudeSettings,
         bus: EventBus,
         budget: CallBudget,
-    ) -> None:
+    ):
         """Store injected collaborators; open no connection and touch no budget.
 
         :param client: gRPC stream adapter that yields parsed
@@ -281,7 +281,7 @@ class OpenClaudeTool(CodeIntelBackend):
             frame_count=frame_count,
         )
 
-    def _emit_tool_call(self, msg: AgentFrame, ctx: CodeTaskContext) -> None:
+    def _emit_tool_call(self, msg: AgentFrame, ctx: CodeTaskContext):
         """Emit :class:`OpenClaudeToolCall` for a ``TOOL_CALL`` frame (C8).
 
         Carries only the run id, the tool name, and a derived argument count -
@@ -300,7 +300,7 @@ class OpenClaudeTool(CodeIntelBackend):
             )
         )
 
-    def _emit_tool_result(self, msg: AgentFrame, ctx: CodeTaskContext) -> None:
+    def _emit_tool_result(self, msg: AgentFrame, ctx: CodeTaskContext):
         """Emit :class:`OpenClaudeToolResult` for a ``TOOL_RESULT`` frame (C8).
 
         Carries only the run id, the tool name, a success flag, and the output
@@ -339,7 +339,7 @@ class OpenClaudeTool(CodeIntelBackend):
             return 0
         return len(parsed) if isinstance(parsed, (dict, list)) else 0
 
-    def _check_permission(self, msg: AgentFrame, ctx: CodeTaskContext) -> None:
+    def _check_permission(self, msg: AgentFrame, ctx: CodeTaskContext):
         """Allow an allowlisted ``PERMISSION_REQ``; deny anything else (C7).
 
         Auto-approval is implicit: an allowlisted command returns and stream

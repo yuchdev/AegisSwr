@@ -49,7 +49,7 @@ def _import_lines(path: Path) -> list[str]:
     return lines
 
 
-def test_grpc_imported_only_in_client() -> None:
+def test_grpc_imported_only_in_client():
     """[Unit] isolation: No source file outside ``grpc/client.py`` imports ``grpc`` / ``_pb2``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -68,7 +68,7 @@ def test_grpc_imported_only_in_client() -> None:
     assert offenders == [], f"grpc/_pb2 imported outside grpc/client.py (C3): {offenders}"
 
 
-def test_openclaude_not_imported_by_isolated_modules() -> None:
+def test_openclaude_not_imported_by_isolated_modules():
     """[Unit] isolation: ``core/``, ``views/``, and ``code_intel/`` never import ``aegis_swr.openclaude``.
 
     Scenario: the behavior described in the summary is exercised.

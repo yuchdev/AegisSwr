@@ -6,11 +6,13 @@ the strict provider-client isolation invariant. No test performs network I/O.
 
 from __future__ import annotations
 
+import re
 import textwrap
 from pathlib import Path
 
 import pytest
 
+import aegis_swr.router as router_pkg
 from aegis_swr.router.config import (
     AgentConfig,
     ProviderConfig,
@@ -63,7 +65,7 @@ def _write_yaml(tmp_path: Path, content: str) -> Path:
     return path
 
 
-def _set_all_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def _set_all_env(monkeypatch: pytest.MonkeyPatch):
     """Set every env var referenced by ``_FULL_YAML`` to a valid value.
 
     :param monkeypatch: Pytest monkeypatch fixture.
@@ -79,7 +81,7 @@ def _set_all_env(monkeypatch: pytest.MonkeyPatch) -> None:
 # --------------------------------------------------------------------------- #
 # Normal case
 # --------------------------------------------------------------------------- #
-def test_from_yaml_resolves_env_and_builds_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_from_yaml_resolves_env_and_builds_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: a fully-resolvable config parses into structured objects.
 
     Scenario: the behavior described in the summary is exercised.
@@ -100,7 +102,7 @@ def test_from_yaml_resolves_env_and_builds_config(tmp_path: Path, monkeypatch: p
     assert set(config.agents) == {"primary_reasoning", "verdict_compilation"}
 
 
-def test_real_agents_yaml_is_valid(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_real_agents_yaml_is_valid(monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: the committed src config loads cleanly with env vars present.
 
     Scenario: the behavior described in the summary is exercised.
@@ -125,7 +127,7 @@ def test_real_agents_yaml_is_valid(monkeypatch: pytest.MonkeyPatch) -> None:
 # --------------------------------------------------------------------------- #
 # enabled_when gating (0004 subtask 03)
 # --------------------------------------------------------------------------- #
-def test_enabled_when_unset_omits_gated_role(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_enabled_when_unset_omits_gated_role(monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: with OPENCLAUDE_GRPC_URL unset, openclaude_agent is silently omitted.
 
     Scenario: the behavior described in the summary is exercised.
@@ -143,7 +145,7 @@ def test_enabled_when_unset_omits_gated_role(monkeypatch: pytest.MonkeyPatch) ->
     assert "openclaude_agent" not in config.agents
 
 
-def test_enabled_when_set_includes_gated_role(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_enabled_when_set_includes_gated_role(monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: with OPENCLAUDE_GRPC_URL set, openclaude_agent is present with its provider.
 
     Scenario: the behavior described in the summary is exercised.
@@ -163,7 +165,7 @@ def test_enabled_when_set_includes_gated_role(monkeypatch: pytest.MonkeyPatch) -
     assert agent.model is None
 
 
-def test_enabled_when_empty_string_omits_gated_role(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_enabled_when_empty_string_omits_gated_role(monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: an empty OPENCLAUDE_GRPC_URL is treated as absent (role omitted).
 
     Scenario: the behavior described in the summary is exercised.
@@ -182,7 +184,7 @@ def test_enabled_when_empty_string_omits_gated_role(monkeypatch: pytest.MonkeyPa
 
 def test_existing_roles_keep_prefix_inference_and_provider_none(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] router config: regression: the four 0003 roles keep provider=None and prefix inference.
 
     Scenario: the behavior described in the summary is exercised.
@@ -206,7 +208,7 @@ def test_existing_roles_keep_prefix_inference_and_provider_none(
         assert config.agents[role].enabled_when is None
 
 
-def test_r2_still_fires_for_role_without_explicit_provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_r2_still_fires_for_role_without_explicit_provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: r2 still validates prefix inference for roles lacking explicit provider.
 
     Scenario: the behavior described in the summary is exercised.
@@ -238,7 +240,7 @@ def test_r2_still_fires_for_role_without_explicit_provider(tmp_path: Path, monke
 # --------------------------------------------------------------------------- #
 # R1 - missing environment variables (aggregated)
 # --------------------------------------------------------------------------- #
-def test_r1_missing_env_vars_are_all_listed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_r1_missing_env_vars_are_all_listed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: every unset ${VAR} is reported together in one message (R1).
 
     Scenario: the behavior described in the summary is exercised.
@@ -266,7 +268,7 @@ def test_r1_missing_env_vars_are_all_listed(tmp_path: Path, monkeypatch: pytest.
     assert "VLLM_BASE_URL" not in message
 
 
-def test_r1_empty_string_api_key_is_valid(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_r1_empty_string_api_key_is_valid(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: an env var set to '' is a valid (unauthenticated) credential.
 
     Scenario: the behavior described in the summary is exercised.
@@ -284,7 +286,7 @@ def test_r1_empty_string_api_key_is_valid(tmp_path: Path, monkeypatch: pytest.Mo
     assert config.providers["self_hosted"].api_key == ""
 
 
-def test_null_api_key_coerces_to_empty_string(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_null_api_key_coerces_to_empty_string(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: a present-but-null ``api_key:`` becomes '' (not the literal 'None').
 
     Scenario: the behavior described in the summary is exercised.
@@ -318,7 +320,7 @@ def test_null_api_key_coerces_to_empty_string(tmp_path: Path, monkeypatch: pytes
 # --------------------------------------------------------------------------- #
 # R2 - undefined provider reference
 # --------------------------------------------------------------------------- #
-def test_r2_undefined_provider_reference_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_r2_undefined_provider_reference_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: an agent model prefix with no provider entry raises (R2).
 
     Scenario: the behavior described in the summary is exercised.
@@ -350,7 +352,7 @@ def test_r2_undefined_provider_reference_raises(tmp_path: Path, monkeypatch: pyt
     assert "Defined providers: deepseek" in message
 
 
-def test_r2_all_unknown_provider_references_are_aggregated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_r2_all_unknown_provider_references_are_aggregated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: two agents referencing unknown providers surface in one error naming both.
 
     Scenario: the behavior described in the summary is exercised.
@@ -386,7 +388,7 @@ def test_r2_all_unknown_provider_references_are_aggregated(tmp_path: Path, monke
     assert "unknown provider 'openai'" in message
 
 
-def test_r2_null_model_without_explicit_provider_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_r2_null_model_without_explicit_provider_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: a role with ``model: ~`` and no ``provider:`` fails gracefully (not AttributeError).
 
     Scenario: the behavior described in the summary is exercised.
@@ -421,7 +423,7 @@ def test_r2_null_model_without_explicit_provider_raises(tmp_path: Path, monkeypa
 # --------------------------------------------------------------------------- #
 # R3 - idempotency
 # --------------------------------------------------------------------------- #
-def test_r3_from_yaml_is_idempotent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_r3_from_yaml_is_idempotent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: two loads of the same file/env compare equal (frozen contract, R3).
 
     Scenario: the behavior described in the summary is exercised.
@@ -442,7 +444,7 @@ def test_r3_from_yaml_is_idempotent(tmp_path: Path, monkeypatch: pytest.MonkeyPa
 # --------------------------------------------------------------------------- #
 # R4 - unknown role lookup
 # --------------------------------------------------------------------------- #
-def test_r4_agent_for_role_unknown_raises_keyerror(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_r4_agent_for_role_unknown_raises_keyerror(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: unknown role lookup raises KeyError naming requested/available (R4).
 
     Scenario: the behavior described in the summary is exercised.
@@ -464,7 +466,7 @@ def test_r4_agent_for_role_unknown_raises_keyerror(tmp_path: Path, monkeypatch: 
     assert "verdict_compilation" in message
 
 
-def test_agent_for_role_returns_matching_agent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_agent_for_role_returns_matching_agent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: a known role returns its bound AgentConfig.
 
     Scenario: the behavior described in the summary is exercised.
@@ -484,7 +486,7 @@ def test_agent_for_role_returns_matching_agent(tmp_path: Path, monkeypatch: pyte
 # --------------------------------------------------------------------------- #
 # Defaults when optional fields are omitted
 # --------------------------------------------------------------------------- #
-def test_optional_fields_have_correct_defaults(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_optional_fields_have_correct_defaults(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: an agent omitting fallback/timeout_s/retry gets documented defaults.
 
     Scenario: the behavior described in the summary is exercised.
@@ -503,7 +505,7 @@ def test_optional_fields_have_correct_defaults(tmp_path: Path, monkeypatch: pyte
     assert synthesis.retry == RetryPolicy(attempts=2, backoff_s=1.0)
 
 
-def test_fallback_is_stored_as_tuple(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_fallback_is_stored_as_tuple(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: the fallback list is coerced to a tuple for hashability.
 
     Scenario: the behavior described in the summary is exercised.
@@ -526,7 +528,7 @@ def test_fallback_is_stored_as_tuple(tmp_path: Path, monkeypatch: pytest.MonkeyP
 # --------------------------------------------------------------------------- #
 # Frozen / value-object semantics
 # --------------------------------------------------------------------------- #
-def test_dataclasses_are_frozen() -> None:
+def test_dataclasses_are_frozen():
     """[Unit] router config: config value objects reject mutation (frozen dataclass contract).
 
     Scenario: the behavior described in the summary is exercised.
@@ -547,7 +549,7 @@ def test_dataclasses_are_frozen() -> None:
 # --------------------------------------------------------------------------- #
 # Security - resolved api_key must never leak via repr (CLAUDE.md §3)
 # --------------------------------------------------------------------------- #
-def test_api_key_is_suppressed_in_repr(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_api_key_is_suppressed_in_repr(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """[Unit] router config: a resolved api_key secret must not appear in ProviderConfig/RouterConfig repr.
 
     Scenario: the behavior described in the summary is exercised.
@@ -577,7 +579,7 @@ def test_api_key_is_suppressed_in_repr(tmp_path: Path, monkeypatch: pytest.Monke
 # --------------------------------------------------------------------------- #
 # Isolation invariant - no model-client imports in the router package
 # --------------------------------------------------------------------------- #
-def test_router_package_has_no_model_client_imports() -> None:
+def test_router_package_has_no_model_client_imports():
     """[Unit] router config: no source file in the router package imports a model-client SDK.
 
     Scenario: the behavior described in the summary is exercised.
@@ -586,9 +588,7 @@ def test_router_package_has_no_model_client_imports() -> None:
 
     On failure, first check: no source file in the router package imports a model-client SDK.
     """
-    import re
 
-    import aegis_swr.router as router_pkg
 
     package_dir = Path(router_pkg.__file__).resolve().parent
     forbidden = re.compile(r"^\s*(?:import|from)\s+(litellm|anthropic|openai|deepseek)\b")

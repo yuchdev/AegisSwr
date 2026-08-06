@@ -28,11 +28,11 @@ require_managed_openclaude()  # module-level: one skip line when binary/signal a
 class _Recorder:
     """Capturing :class:`DomainEvent` subscriber."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Helper that provides init for the process lifecycle tests."""
         self.events: list[DomainEvent] = []
 
-    def __call__(self, event: DomainEvent) -> None:
+    def __call__(self, event: DomainEvent):
         """Helper that provides call for the process lifecycle tests."""
         self.events.append(event)
 
@@ -49,7 +49,7 @@ def _bus_with_recorder() -> tuple[EventBus, _Recorder]:
     return bus, recorder
 
 
-async def test_managed_start_connects_within_timeout(stub_project: Path) -> None:
+async def test_managed_start_connects_within_timeout(stub_project: Path):
     """[Integration] process lifecycle: Managed ``__aenter__`` exposes a ready ``grpc_url`` within ``connect_timeout_s``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -67,7 +67,7 @@ async def test_managed_start_connects_within_timeout(stub_project: Path) -> None
         assert (time.monotonic() - start) <= settings.connect_timeout_s
 
 
-async def test_connected_and_disconnected_emitted_exactly_once(stub_project: Path) -> None:
+async def test_connected_and_disconnected_emitted_exactly_once(stub_project: Path):
     """[Integration] process lifecycle: Exactly one connected on entry and exactly one disconnected on exit (C6).
 
     Scenario: the behavior described in the summary is exercised.
@@ -84,7 +84,7 @@ async def test_connected_and_disconnected_emitted_exactly_once(stub_project: Pat
     assert len(recorder.of(OpenClaudeDisconnected)) == 1
 
 
-async def test_no_process_survives_context(stub_project: Path) -> None:
+async def test_no_process_survives_context(stub_project: Path):
     """[Integration] process lifecycle: Managed subprocess terminates gracefully on exit; no sidecar survives the context.
 
     Scenario: the behavior described in the summary is exercised.

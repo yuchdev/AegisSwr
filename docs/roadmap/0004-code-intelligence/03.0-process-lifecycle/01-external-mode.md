@@ -55,7 +55,7 @@ class OpenClaudeProcess:
         bus: EventBus,
         run_id: str,
         client: Optional[OpenClaudeGrpcClient] = None,
-    ) -> None:
+    ):
         """Store configuration; perform no I/O and start no process here.
 
         :param settings: Validated :class:`OpenClaudeSettings`.
@@ -94,7 +94,7 @@ class OpenClaudeProcess:
         exc_type: Optional[type[BaseException]],
         exc: Optional[BaseException],
         tb: Optional[TracebackType],
-    ) -> None:
+    ):
         """Exit the context, emitting :class:`OpenClaudeDisconnected` once.
 
         In external mode there is no owned process to terminate; the disconnect

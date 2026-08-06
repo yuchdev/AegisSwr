@@ -13,6 +13,7 @@ from pathlib import Path
 
 from loguru import logger
 
+from aegis_swr.cli.commands import analyze
 from aegis_swr.cli.config import (
     ANALYZE_CONFIG_KEYS,
     DEFAULT_CONFIG_PATH,
@@ -20,6 +21,7 @@ from aegis_swr.cli.config import (
     load_analyze_config,
     save_analyze_config,
 )
+from aegis_swr.config.settings import CONFIG_JSON
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -55,8 +57,6 @@ def test_default_path_is_canonical_config_location():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by analyze config
     """
-    from aegis_swr.config.settings import CONFIG_JSON
-
     normalized = str(DEFAULT_CONFIG_PATH).replace("\\", "/")
     assert normalized.endswith(".aegis-swr/config.json")
     assert DEFAULT_CONFIG_PATH == CONFIG_JSON
@@ -110,8 +110,6 @@ def test_cli_options_have_backing_schema_keys():
 
     On failure, first check: cLI and config.json must not maintain separate key lists.
     """
-    from aegis_swr.cli.commands import analyze
-
     cli_params = set(inspect.signature(analyze).parameters)
     # Exclude meta flags and Settings-level overrides that bypass AnalyzeConfig.
     cli_params -= {"ctx", "config_path", "save_config", "ai", "agent"}
@@ -502,7 +500,7 @@ def test_flat_key_overrides_nested_section():
 # ---------------------------------------------------------------------------
 
 
-def _capture_warnings():
+def _capture_warnings() -> tuple[list[str], int]:
     """Helper that provides capture warnings for the analyze config tests."""
     captured: list[str] = []
     sink_id = logger.add(lambda m: captured.append(str(m)), level="WARNING")

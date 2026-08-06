@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
+from pydantic import ValidationError
 
 from aegis_swr.core.fault_codes import (
     FaultClass,
@@ -586,7 +587,6 @@ def test_memory_forensics_output_rejects_invalid_confidence(bad_score):
 
     On failure, first check: confidence_score outside [0.0, 1.0] raises ValidationError.
     """
-    from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
         MemoryForensicsOutput(hypotheses=[], confidence_score=bad_score)
@@ -643,7 +643,6 @@ def test_concurrency_analyst_output_missing_confidence_raises():
 
     On failure, first check: omitting confidence_score raises ValidationError.
     """
-    from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
         ConcurrencyAnalystOutput(hypotheses=[])
@@ -814,7 +813,6 @@ def test_resource_exhaustion_output_rejects_invalid_confidence(bad_score):
 
     On failure, first check: confidence_score outside [0.0, 1.0] raises ValidationError.
     """
-    from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
         ResourceExhaustionOutput(hypotheses=[], confidence_score=bad_score)
@@ -846,8 +844,6 @@ def _plan(**kw) -> RemediationPlan:
 
 def _minimal_report(**kw) -> RCAReport:
     """Build a minimal :class:`RCAReport`, overriding fields via *kw*."""
-    from aegis_swr.core.schemas import ConfidenceLevel
-
     base = {
         "mode": IncidentMode.LOG_FORENSICS,
         "root_cause": "fd leak",
@@ -869,7 +865,6 @@ def test_remediation_step_requires_rollback():
 
     On failure, first check: an empty rollback string is rejected.
     """
-    from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
         _step(rollback="")
@@ -899,7 +894,6 @@ def test_remediation_step_rejects_readonly_rollback_when_not_idempotent():
 
     On failure, first check: a non-idempotent step cannot use the read-only sentinel.
     """
-    from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
         _step(idempotent=False, rollback="read-only: no state change")
@@ -914,7 +908,6 @@ def test_remediation_plan_rejects_empty_steps():
 
     On failure, first check: a plan with no steps is rejected.
     """
-    from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
         RemediationPlan(steps=[], summary="x", confidence=0.9, requires_human_approval=False)
@@ -929,7 +922,6 @@ def test_remediation_plan_rejects_non_contiguous_order():
 
     On failure, first check: step order must be a contiguous 1-based sequence.
     """
-    from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
         RemediationPlan(

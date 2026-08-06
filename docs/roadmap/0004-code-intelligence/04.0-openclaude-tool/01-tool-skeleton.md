@@ -61,7 +61,7 @@ class OpenClaudeTool(CodeBackend):
         settings: OpenClaudeSettings,
         bus: EventBus,
         budget: CallBudget,
-    ) -> None:
+    ):
         """Store injected collaborators; open no connection and touch no budget.
 
         :param client: gRPC stream adapter that yields parsed agent-message

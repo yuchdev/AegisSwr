@@ -388,7 +388,7 @@ def process_file(
 def write_report(
     unresolvable: list[dict[str, object]],
     report_path: Path,
-) -> None:
+):
     """Write an actionable review report for unresolvable mentions.
 
     :param unresolvable: list of unresolvable entry dicts from

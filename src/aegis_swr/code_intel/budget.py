@@ -36,7 +36,7 @@ class CallBudget:
         """
         return estimate <= self.remaining
 
-    def charge(self, tokens: int) -> None:
+    def charge(self, tokens: int):
         """Post-charge step (C5.2): record *tokens* actually estimated.
 
         Called after stream completion with ``max(1, len(content) // 4)``.

@@ -58,7 +58,7 @@ def _changed_markdown() -> list[str]:
     return [ln for ln in proc.stdout.splitlines() if ln.strip().lower().endswith(".md")]
 
 
-def main() -> None:
+def main():
     event = read_event()
     target = edited_path(event)
 

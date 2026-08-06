@@ -3,9 +3,13 @@ subclasses satisfying all abstract methods can be instantiated"""
 
 from __future__ import annotations
 
-import pytest
+from collections.abc import AsyncGenerator
+from typing import Any, ClassVar, Optional
 
-from aegis_swr.agents.base import BaseAgent
+import pytest
+from pydantic import BaseModel
+
+from aegis_swr.agents.base import AgentCategory, BaseAgent
 from aegis_swr.backends.base import (
     AIAPIBackend,
     CodeBackend,
@@ -15,6 +19,7 @@ from aegis_swr.backends.base import (
     RelationalStore,
     VectorStore,
 )
+from aegis_swr.core.schemas import AgentRole, AgentTurn, InvestigationState
 
 # ---------------------------------------------------------------------------
 # ABCs raise TypeError when instantiated directly
@@ -103,13 +108,10 @@ def test_minimal_ai_backend_subclass():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by interfaces
     """
-    from collections.abc import AsyncGenerator
-    from typing import Any, Optional
-
-    from pydantic import BaseModel
 
     class _DummyAI(AIAPIBackend):
         """Support type for the interfaces tests (DummyAI)."""
+
         model_name = "dummy"
 
         async def generate(
@@ -127,6 +129,7 @@ def test_minimal_ai_backend_subclass():
             messages: list[dict[str, Any]],
         ) -> AsyncGenerator[str, None]:
             """Helper that provides stream for the interfaces tests."""
+
             async def _gen() -> AsyncGenerator[str, None]:
                 """Helper that provides gen for the interfaces tests."""
                 yield "token"
@@ -156,13 +159,10 @@ def test_minimal_base_agent_subclass():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by interfaces
     """
-    from typing import ClassVar
-
-    from aegis_swr.agents.base import AgentCategory
-    from aegis_swr.core.schemas import AgentRole, AgentTurn, InvestigationState
 
     class _DummyAgent(BaseAgent):
         """Support type for the interfaces tests (DummyAgent)."""
+
         agent_key: ClassVar[str] = "dummy"
         display_name: ClassVar[str] = "Dummy"
         category: ClassVar[AgentCategory] = "base"

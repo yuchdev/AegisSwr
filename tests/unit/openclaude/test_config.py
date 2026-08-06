@@ -5,13 +5,15 @@ from __future__ import annotations
 import os
 
 import pytest
+import scripts.postinstall_openclaude as postinstall
 from loguru import logger
 
+from aegis_swr.config.settings import CoreSettings, Settings
 from aegis_swr.openclaude.config import OpenClaudeConfigError, OpenClaudeSettings
 
 
 @pytest.fixture(autouse=True)
-def _clear_openclaude_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def _clear_openclaude_env(monkeypatch: pytest.MonkeyPatch):
     """Ensure no ambient ``OPENCLAUDE_*`` env var leaks into the defaults tests."""
     for key in list(os.environ):
         if key.startswith("OPENCLAUDE_"):
@@ -25,7 +27,7 @@ def _capture_logs() -> tuple[list[str], int]:
     return records, sink_id
 
 
-def test_defaults_no_env() -> None:
+def test_defaults_no_env():
     """[Unit] openclaude config: defaults construct cleanly with grpc_url unset.
 
     Scenario: settings are built with no ``OPENCLAUDE_*`` env vars set.
@@ -47,7 +49,7 @@ def test_defaults_no_env() -> None:
     assert settings.use_tls is False
 
 
-def test_grpc_url_https_rejected() -> None:
+def test_grpc_url_https_rejected():
     """[Unit] openclaude config: a scheme-prefixed grpc_url is rejected.
 
     Scenario: ``grpc_url`` is set to an ``https://`` URL.
@@ -62,7 +64,7 @@ def test_grpc_url_https_rejected() -> None:
     assert exc.value.field == "grpc_url"
 
 
-def test_grpc_url_http_rejected() -> None:
+def test_grpc_url_http_rejected():
     """[Unit] openclaude config: an http scheme grpc_url is also rejected.
 
     Scenario: ``grpc_url`` is set to an ``http://`` URL.
@@ -75,7 +77,7 @@ def test_grpc_url_http_rejected() -> None:
         OpenClaudeSettings(grpc_url="http://bad")
 
 
-def test_grpc_url_host_port_ok() -> None:
+def test_grpc_url_host_port_ok():
     """[Unit] openclaude config: a bare host:port grpc_url is accepted.
 
     Scenario: ``grpc_url`` is set to ``localhost:50051``.
@@ -88,7 +90,7 @@ def test_grpc_url_host_port_ok() -> None:
     assert settings.grpc_url == "localhost:50051"
 
 
-def test_grpc_url_empty_string_is_unset() -> None:
+def test_grpc_url_empty_string_is_unset():
     """[Unit] openclaude config: an empty/whitespace grpc_url coerces to None.
 
     Scenario: ``grpc_url`` is set to an empty and a whitespace-only string.
@@ -102,7 +104,7 @@ def test_grpc_url_empty_string_is_unset() -> None:
     assert OpenClaudeSettings(grpc_url="   ").grpc_url is None
 
 
-def test_grpc_url_empty_env_is_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_grpc_url_empty_env_is_unset(monkeypatch: pytest.MonkeyPatch):
     """[Unit] openclaude config: an empty grpc_url env var coerces to None.
 
     Scenario: ``OPENCLAUDE_GRPC_URL`` is set to an empty string.
@@ -115,7 +117,7 @@ def test_grpc_url_empty_env_is_unset(monkeypatch: pytest.MonkeyPatch) -> None:
     assert OpenClaudeSettings().grpc_url is None
 
 
-def test_grpc_url_invalid_chars_rejected() -> None:
+def test_grpc_url_invalid_chars_rejected():
     """[Unit] openclaude config: a grpc_url host with illegal characters is rejected.
 
     Scenario: ``grpc_url`` contains an embedded space.
@@ -128,7 +130,7 @@ def test_grpc_url_invalid_chars_rejected() -> None:
         OpenClaudeSettings(grpc_url="local host:50051")
 
 
-def test_grpc_url_trailing_newline_rejected() -> None:
+def test_grpc_url_trailing_newline_rejected():
     """[Unit] openclaude config: a trailing newline in grpc_url is rejected.
 
     Scenario: ``grpc_url`` ends with a newline character.
@@ -143,7 +145,7 @@ def test_grpc_url_trailing_newline_rejected() -> None:
     assert exc.value.field == "grpc_url"
 
 
-def test_unknown_tool_rejected() -> None:
+def test_unknown_tool_rejected():
     """[Unit] openclaude config: an unrecognised allowed-tool name is rejected.
 
     Scenario: ``allowed_tools`` includes ``WriteFile``.
@@ -158,7 +160,7 @@ def test_unknown_tool_rejected() -> None:
     assert exc.value.field == "allowed_tools"
 
 
-def test_write_tool_warns_not_raises() -> None:
+def test_write_tool_warns_not_raises():
     """[Unit] openclaude config: allowing Write warns but does not raise.
 
     Scenario: ``allowed_tools`` includes ``Write`` while a WARNING sink is attached.
@@ -179,7 +181,7 @@ def test_write_tool_warns_not_raises() -> None:
     assert "read-only forensic mode is compromised" in combined
 
 
-def test_bash_allowlist_dangerous_binary_warns_not_raises() -> None:
+def test_bash_allowlist_dangerous_binary_warns_not_raises():
     """[Unit] openclaude config: a dangerous bash binary warns but is not rejected.
 
     Scenario: ``bash_allowlist`` includes ``sh`` while a WARNING sink is attached.
@@ -199,7 +201,7 @@ def test_bash_allowlist_dangerous_binary_warns_not_raises() -> None:
     assert "dangerous" in combined
 
 
-def test_bash_allowlist_defaults_do_not_warn() -> None:
+def test_bash_allowlist_defaults_do_not_warn():
     """[Unit] openclaude config: the default allowlist emits no warning.
 
     Scenario: default settings are built while a WARNING sink is attached.
@@ -217,7 +219,7 @@ def test_bash_allowlist_defaults_do_not_warn() -> None:
     assert records == []
 
 
-def test_max_tokens_too_low_rejected() -> None:
+def test_max_tokens_too_low_rejected():
     """[Unit] openclaude config: a below-floor max_response_tokens is rejected.
 
     Scenario: ``max_response_tokens`` is set to 100.
@@ -232,7 +234,7 @@ def test_max_tokens_too_low_rejected() -> None:
     assert exc.value.field == "max_response_tokens"
 
 
-def test_max_tokens_too_high_rejected() -> None:
+def test_max_tokens_too_high_rejected():
     """[Unit] openclaude config: an above-ceiling max_response_tokens is rejected.
 
     Scenario: ``max_response_tokens`` is set to 65537.
@@ -245,7 +247,7 @@ def test_max_tokens_too_high_rejected() -> None:
         OpenClaudeSettings(max_response_tokens=65537)
 
 
-def test_request_timeout_not_greater_than_connect_rejected() -> None:
+def test_request_timeout_not_greater_than_connect_rejected():
     """[Unit] openclaude config: request_timeout must exceed connect_timeout.
 
     Scenario: connect timeout 100 with request timeout 10.
@@ -260,7 +262,7 @@ def test_request_timeout_not_greater_than_connect_rejected() -> None:
     assert exc.value.field == "request_timeout_s"
 
 
-def test_request_timeout_equal_to_connect_rejected() -> None:
+def test_request_timeout_equal_to_connect_rejected():
     """[Unit] openclaude config: equal timeouts fail the strictly-greater check.
 
     Scenario: connect and request timeouts both 30.
@@ -275,7 +277,7 @@ def test_request_timeout_equal_to_connect_rejected() -> None:
     assert exc.value.field == "request_timeout_s"
 
 
-def test_connect_timeout_non_positive_rejected() -> None:
+def test_connect_timeout_non_positive_rejected():
     """[Unit] openclaude config: a non-positive connect_timeout is rejected.
 
     Scenario: ``connect_timeout_s`` is set to 0.
@@ -290,7 +292,7 @@ def test_connect_timeout_non_positive_rejected() -> None:
     assert exc.value.field == "connect_timeout_s"
 
 
-def test_allowed_tools_csv_env_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_allowed_tools_csv_env_roundtrip(monkeypatch: pytest.MonkeyPatch):
     """[Unit] openclaude config: a CSV allowed-tools env parses into a list.
 
     Scenario: ``OPENCLAUDE_ALLOWED_TOOLS`` is a comma-separated string with spaces.
@@ -304,7 +306,7 @@ def test_allowed_tools_csv_env_roundtrip(monkeypatch: pytest.MonkeyPatch) -> Non
     assert settings.allowed_tools == ["Read", "Grep", "Glob", "Bash"]
 
 
-def test_bash_allowlist_csv_env_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bash_allowlist_csv_env_roundtrip(monkeypatch: pytest.MonkeyPatch):
     """[Unit] openclaude config: a CSV bash-allowlist env parses into a list.
 
     Scenario: ``OPENCLAUDE_BASH_ALLOWLIST`` is a comma-separated string with a trailing
@@ -319,7 +321,7 @@ def test_bash_allowlist_csv_env_roundtrip(monkeypatch: pytest.MonkeyPatch) -> No
     assert settings.bash_allowlist == ["rg", "find", "cat"]
 
 
-def test_use_tls_reads_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_use_tls_reads_env(monkeypatch: pytest.MonkeyPatch):
     """[Unit] openclaude config: OPENCLAUDE_USE_TLS toggles the use_tls field.
 
     Scenario: ``OPENCLAUDE_USE_TLS`` is set to ``true``.
@@ -333,7 +335,7 @@ def test_use_tls_reads_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.use_tls is True
 
 
-def test_max_tokens_reads_documented_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_max_tokens_reads_documented_env(monkeypatch: pytest.MonkeyPatch):
     """[Unit] openclaude config: OPENCLAUDE_MAX_TOKENS populates max_response_tokens.
 
     Scenario: ``OPENCLAUDE_MAX_TOKENS`` is set to 1024.
@@ -347,7 +349,7 @@ def test_max_tokens_reads_documented_env(monkeypatch: pytest.MonkeyPatch) -> Non
     assert settings.max_response_tokens == 1024
 
 
-def test_connect_timeout_reads_documented_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_connect_timeout_reads_documented_env(monkeypatch: pytest.MonkeyPatch):
     """[Unit] openclaude config: OPENCLAUDE_CONNECT_TIMEOUT populates connect_timeout_s.
 
     Scenario: ``OPENCLAUDE_CONNECT_TIMEOUT`` is set to 5.
@@ -361,7 +363,7 @@ def test_connect_timeout_reads_documented_env(monkeypatch: pytest.MonkeyPatch) -
     assert settings.connect_timeout_s == 5
 
 
-def test_request_timeout_reads_documented_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_request_timeout_reads_documented_env(monkeypatch: pytest.MonkeyPatch):
     """[Unit] openclaude config: OPENCLAUDE_REQUEST_TIMEOUT populates request_timeout_s.
 
     Scenario: ``OPENCLAUDE_REQUEST_TIMEOUT`` is set to 90.
@@ -375,7 +377,7 @@ def test_request_timeout_reads_documented_env(monkeypatch: pytest.MonkeyPatch) -
     assert settings.request_timeout_s == 90
 
 
-def test_process_binary_reads_documented_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_process_binary_reads_documented_env(monkeypatch: pytest.MonkeyPatch):
     """[Unit] openclaude config: OPENCLAUDE_BINARY populates process_binary.
 
     Scenario: ``OPENCLAUDE_BINARY`` is set to ``/opt/oc``.
@@ -392,7 +394,7 @@ def test_process_binary_reads_documented_env(monkeypatch: pytest.MonkeyPatch) ->
 # --- Postinstall best-effort contract ---------------------------------------
 
 
-def test_postinstall_swallows_oserror(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_postinstall_swallows_oserror(monkeypatch: pytest.MonkeyPatch):
     """[Unit] openclaude config: the postinstall hook swallows a subprocess OSError.
 
     Scenario: ``subprocess.run`` is patched to raise ``OSError`` after the ``which``
@@ -402,11 +404,10 @@ def test_postinstall_swallows_oserror(monkeypatch: pytest.MonkeyPatch) -> None:
 
     On failure, first check: the call must complete without raising.
     """
-    import scripts.postinstall_openclaude as postinstall
 
     monkeypatch.setattr(postinstall.shutil, "which", lambda _cmd: "/usr/bin/npm")
 
-    def _raise_oserror(*_args: object, **_kwargs: object) -> None:
+    def _raise_oserror(*_args: object, **_kwargs: object):
         """Raise ``OSError`` to simulate npm vanishing after the ``which`` check."""
         raise OSError("npm vanished after the which() check")
 
@@ -417,7 +418,7 @@ def test_postinstall_swallows_oserror(monkeypatch: pytest.MonkeyPatch) -> None:
 # --- Composition into the top-level Settings object -------------------------
 
 
-def test_settings_composition_defaults_no_env() -> None:
+def test_settings_composition_defaults_no_env():
     """[Unit] openclaude config: top-level Settings exposes OpenClaudeSettings.
 
     Scenario: a top-level ``Settings`` is built with no env vars.
@@ -427,14 +428,13 @@ def test_settings_composition_defaults_no_env() -> None:
     On failure, first check: ``settings.openclaude`` must be an ``OpenClaudeSettings``
     with ``grpc_url`` ``None``.
     """
-    from aegis_swr.config.settings import Settings
 
     settings = Settings()
     assert isinstance(settings.openclaude, OpenClaudeSettings)
     assert settings.openclaude.grpc_url is None
 
 
-def test_settings_composition_reads_flat_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_settings_composition_reads_flat_env(monkeypatch: pytest.MonkeyPatch):
     """[Unit] openclaude config: a flat grpc_url env flows through composition.
 
     Scenario: ``OPENCLAUDE_GRPC_URL`` is set and a top-level ``Settings`` is built.
@@ -443,14 +443,13 @@ def test_settings_composition_reads_flat_env(monkeypatch: pytest.MonkeyPatch) ->
 
     On failure, first check: ``settings.openclaude.grpc_url`` must equal the env value.
     """
-    from aegis_swr.config.settings import Settings
 
     monkeypatch.setenv("OPENCLAUDE_GRPC_URL", "localhost:50051")
     settings = Settings()
     assert settings.openclaude.grpc_url == "localhost:50051"
 
 
-def test_settings_composition_leaves_siblings_intact() -> None:
+def test_settings_composition_leaves_siblings_intact():
     """[Unit] openclaude config: adding openclaude leaves sibling sections intact.
 
     Scenario: a top-level ``Settings`` is built and its other sections inspected.
@@ -460,7 +459,6 @@ def test_settings_composition_leaves_siblings_intact() -> None:
     On failure, first check: ``core`` must remain a ``CoreSettings`` and the AI backend
     settings must still be present.
     """
-    from aegis_swr.config.settings import CoreSettings, Settings
 
     settings = Settings()
     assert isinstance(settings.core, CoreSettings)

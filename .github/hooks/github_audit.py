@@ -25,7 +25,7 @@ def _sanitize(command: str) -> str:
     return " ".join(result.split())
 
 
-def main() -> None:
+def main():
     event = read_event()
     fields = tool_input(event)
     command = str(fields.get("command", ""))

@@ -51,7 +51,7 @@ def _tool(client, settings, bus) -> OpenClaudeTool:
 
 async def test_run_success_stream_returns_concatenated_text(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """TEXT_CHUNK... + DONE → result.text is the concatenation, success, no error event."""
 
 
@@ -59,7 +59,7 @@ async def test_run_success_stream_returns_concatenated_text(
 
 async def test_run_budget_insufficient_short_circuits(
     settings_with_grpc, mock_event_bus, mock_grpc_client, live_ctx,
-) -> None:
+):
     """CallBudget(0) < max_response_tokens//4 → non-retriable failure, client.query NEVER called."""
 
 
@@ -67,7 +67,7 @@ async def test_run_budget_insufficient_short_circuits(
 
 async def test_run_dry_run_short_circuits(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, dry_run_ctx,
-) -> None:
+):
     """ctx.dry_run → '[dry-run]' result, zero token estimate, client.query NEVER called."""
 
 
@@ -75,12 +75,12 @@ async def test_run_dry_run_short_circuits(
 
 async def test_run_tool_call_frame_emits_openclaude_tool_call(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """A TOOL_CALL frame emits OpenClaudeToolCall and increments the tool-call count."""
 
 async def test_run_tool_result_frame_emits_openclaude_tool_result(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """A TOOL_RESULT frame emits OpenClaudeToolResult."""
 
 
@@ -88,12 +88,12 @@ async def test_run_tool_result_frame_emits_openclaude_tool_result(
 
 async def test_run_allowlisted_permission_auto_approved(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """PERMISSION_REQ for an allowlisted binary is auto-approved; stream continues to DONE; success."""
 
 async def test_run_non_allowlisted_permission_denied(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """PERMISSION_REQ for a non-allowlisted binary → PermissionDeniedError → non-retriable failure + OpenClaudePermissionDenied emitted; budget uncorrupted."""
 
 
@@ -101,12 +101,12 @@ async def test_run_non_allowlisted_permission_denied(
 
 async def test_run_content_truncated_at_max_tokens(
     mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """Accumulated content beyond max_response_tokens is truncated; result metadata truncated=True."""
 
 async def test_run_content_not_truncated_when_within_limit(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """Content within max_response_tokens → truncated=False (the false side of the branch)."""
 
 
@@ -114,7 +114,7 @@ async def test_run_content_not_truncated_when_within_limit(
 
 async def test_run_error_frame_returns_non_retriable_failure(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """A terminal ERROR frame → OpenClaudeStreamError emitted, non-retriable failure result."""
 
 
@@ -122,12 +122,12 @@ async def test_run_error_frame_returns_non_retriable_failure(
 
 async def test_run_grpc_unavailable_returns_retriable_failure(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """query() raising OpenClaudeUnavailableError(UNAVAILABLE) → retriable failure + OpenClaudeStreamError."""
 
 async def test_run_grpc_other_error_returns_non_retriable_failure(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """query() raising a non-UNAVAILABLE OpenClaudeUnavailableError → non-retriable failure + OpenClaudeStreamError."""
 
 
@@ -135,12 +135,12 @@ async def test_run_grpc_other_error_returns_non_retriable_failure(
 
 async def test_stream_completed_carries_boundary_token_estimate(
     settings_with_grpc, mock_event_bus, mock_grpc_client, ample_budget, live_ctx,
-) -> None:
+):
     """On DONE, OpenClaudeStreamCompleted.token_estimate == max(1, len(content)//4)."""
 
 async def test_budget_charged_after_stream_completion_not_precharged(
     settings_with_grpc, mock_event_bus, mock_grpc_client, live_ctx,
-) -> None:
+):
     """Budget is charged max(1, len(content)//4) AFTER DONE, never pre-charged before query()."""
 ```
 

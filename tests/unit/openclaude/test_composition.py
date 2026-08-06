@@ -44,7 +44,7 @@ class _FakeClient:
 
     instances: list[_FakeClient] = []
 
-    def __init__(self, settings: OpenClaudeSettings) -> None:
+    def __init__(self, settings: OpenClaudeSettings):
         """Helper that provides init for the composition tests."""
         self.settings = settings
         self.health_calls = 0
@@ -56,7 +56,7 @@ class _FakeClient:
         self.health_calls += 1
         return True
 
-    async def query(self, *args: object, **kwargs: object) -> None:  # pragma: no cover
+    async def query(self, *args: object, **kwargs: object):  # pragma: no cover
         """Helper that provides query for the composition tests."""
         self.query_calls += 1
         raise AssertionError("query() must not be called in these unit tests")
@@ -65,11 +65,11 @@ class _FakeClient:
 class _Capture:
     """Capturing :class:`DomainEvent` subscriber."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Helper that provides init for the composition tests."""
         self.events: list[DomainEvent] = []
 
-    def __call__(self, event: DomainEvent) -> None:
+    def __call__(self, event: DomainEvent):
         """Helper that provides call for the composition tests."""
         self.events.append(event)
 
@@ -87,7 +87,7 @@ def _bus_with_capture() -> tuple[EventBus, _Capture]:
 
 
 @pytest.fixture(autouse=True)
-def _reset_fake_instances() -> None:
+def _reset_fake_instances():
     """Helper that provides reset fake instances for the composition tests."""
     _FakeClient.instances.clear()
 
@@ -107,7 +107,7 @@ def _settings(*, grpc_url: Optional[str]) -> OpenClaudeSettings:
 # --------------------------------------------------------------------------- #
 # build_code_agent - no grpc_url (capability unavailable, C4)
 # --------------------------------------------------------------------------- #
-async def test_no_grpc_url_returns_backendless_agent(_fake_client: type[_FakeClient]) -> None:
+async def test_no_grpc_url_returns_backendless_agent(_fake_client: type[_FakeClient]):
     """[Unit] composition: With ``grpc_url`` unset, no backend is registered (C4).
 
     Scenario: the behavior described in the summary is exercised.
@@ -125,7 +125,7 @@ async def test_no_grpc_url_returns_backendless_agent(_fake_client: type[_FakeCli
     assert capture.of(OpenClaudeConnected) == []
 
 
-async def test_no_grpc_url_investigate_reports_unavailable(_fake_client: type[_FakeClient]) -> None:
+async def test_no_grpc_url_investigate_reports_unavailable(_fake_client: type[_FakeClient]):
     """[Unit] composition: The backend-less agent returns a non-raising unavailable result.
 
     Scenario: the behavior described in the summary is exercised.
@@ -145,7 +145,7 @@ async def test_no_grpc_url_investigate_reports_unavailable(_fake_client: type[_F
 # --------------------------------------------------------------------------- #
 # build_code_agent - grpc_url set + dry_run (registered, not entered)
 # --------------------------------------------------------------------------- #
-async def test_dry_run_registers_backend_without_connecting(_fake_client: type[_FakeClient]) -> None:
+async def test_dry_run_registers_backend_without_connecting(_fake_client: type[_FakeClient]):
     """[Unit] composition: Dry-run builds the graph, registers the backend, and never connects.
 
     Scenario: the behavior described in the summary is exercised.
@@ -167,7 +167,7 @@ async def test_dry_run_registers_backend_without_connecting(_fake_client: type[_
     assert capture.of(OpenClaudeDisconnected) == []
 
 
-async def test_dry_run_delegate_short_circuits(_fake_client: type[_FakeClient]) -> None:
+async def test_dry_run_delegate_short_circuits(_fake_client: type[_FakeClient]):
     """[Unit] composition: A delegated task under dry-run returns ``[dry-run]`` with zero tokens.
 
     Scenario: the behavior described in the summary is exercised.
@@ -188,7 +188,7 @@ async def test_dry_run_delegate_short_circuits(_fake_client: type[_FakeClient]) 
 # --------------------------------------------------------------------------- #
 # build_code_agent - grpc_url set, normal run (process entered)
 # --------------------------------------------------------------------------- #
-async def test_normal_run_enters_process_and_health_checks(_fake_client: type[_FakeClient]) -> None:
+async def test_normal_run_enters_process_and_health_checks(_fake_client: type[_FakeClient]):
     """[Unit] composition: A non-dry-run entry health-checks the sidecar and emits connected/disconnected.
 
     Scenario: the behavior described in the summary is exercised.

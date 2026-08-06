@@ -65,7 +65,7 @@ from aegis.router.events import RouterCallCompleted
 
 bus = EventBus()
 
-def on_completed(event) -> None:
+def on_completed(event):
     if event.event_type == "router.call.completed":
         print(f"{event.role}: {event.latency_ms:.0f}ms, cost=${event.cost_usd}")
 

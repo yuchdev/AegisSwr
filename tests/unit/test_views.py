@@ -18,6 +18,7 @@ from typing import Optional
 from rich.console import Console
 from rich.text import Text
 
+from aegis_swr.cli.formatters import _persist_evidence
 from aegis_swr.core.events import (
     AgentSpoke,
     ConsensusEvaluated,
@@ -33,12 +34,14 @@ from aegis_swr.core.schemas import (
     AgentRole,
     AgentTurn,
     ConfidenceLevel,
+    HITLRequest,
     Hypothesis,
     IncidentMode,
     IncidentSource,
     RCAReport,
 )
 from aegis_swr.views.rich_view import (
+    SPINNER_FRAMES,
     AgentState,
     RichView,
     WarRoomView,
@@ -46,6 +49,7 @@ from aegis_swr.views.rich_view import (
     _fmt_elapsed,
     _fmt_stamp,
     _spinner_char,
+    _StreamLog,
     _truncate,
     make_view,
     render_verdict,
@@ -66,7 +70,7 @@ _DEFAULT_PANEL: list[PanelAgentDescriptor] = [
 AGENT_SEQUENCE: list[tuple[str, str]] = [(d.node_name, d.display_name) for d in _DEFAULT_PANEL]
 
 
-def _resolve_panel(bus: EventBus, panel: Optional[list[PanelAgentDescriptor]] = None) -> None:
+def _resolve_panel(bus: EventBus, panel: Optional[list[PanelAgentDescriptor]] = None):
     """Publish a ``PanelResolved`` event so the view builds its agent roster."""
     bus.publish(PanelResolved(panel=list(panel if panel is not None else _DEFAULT_PANEL)))
 
@@ -88,7 +92,6 @@ def _crash_source() -> IncidentSource:
 
 def _report(*, hitl: bool = False) -> RCAReport:
     """Helper that provides report for the views tests."""
-    from aegis_swr.core.schemas import HITLRequest
 
     return RCAReport(
         mode=IncidentMode.CRASH_DUMP,
@@ -177,7 +180,6 @@ def test_spinner_char_cycles_through_all_frames():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by views
     """
-    from aegis_swr.views.rich_view import SPINNER_FRAMES
 
     seen = {_spinner_char(t / 10) for t in range(len(SPINNER_FRAMES))}
     assert seen == set(SPINNER_FRAMES)
@@ -620,7 +622,7 @@ def _run_panel_round(
     panel: list[PanelAgentDescriptor],
     turn_number: int,
     confidence: float,
-) -> None:
+):
     """Publish one AgentSpoke per panel agent, in the panel's speaking order."""
     for descriptor in panel:
         bus.publish(
@@ -1337,7 +1339,6 @@ def test_persist_evidence_writes_transcript_file(tmp_path: Path):
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by views
     """
-    from aegis_swr.cli.formatters import _persist_evidence
 
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())
@@ -1370,7 +1371,6 @@ def test_persist_evidence_is_noop_without_a_directory():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by views
     """
-    from aegis_swr.cli.formatters import _persist_evidence
 
     view = WarRoomView(_headless_console(), auto_refresh=False, level="TRACE")
     _start(view, _crash_source())
@@ -1397,7 +1397,6 @@ def test_stream_log_visible_respects_level_rank():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by views
     """
-    from aegis_swr.views.rich_view import _StreamLog
 
     log = _StreamLog(max_lines=100, reveal_interval=0.0)
     log.reset(0.0)
@@ -2036,7 +2035,6 @@ def test_render_verdict_hitl_shows_red_frame():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by views
     """
-    from aegis_swr.core.schemas import HITLRequest
 
     report = _full_report()
     report.hitl_request = HITLRequest(

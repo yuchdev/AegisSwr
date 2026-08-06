@@ -9,6 +9,11 @@ from unittest import mock
 import typer.testing
 
 from aegis_swr.cli.commands import app
+from aegis_swr.core.events import (
+    EvidenceExtracted,
+    InvestigationCompleted,
+    InvestigationStarted,
+)
 from aegis_swr.core.schemas import (
     ConfidenceLevel,
     Hypothesis,
@@ -552,31 +557,20 @@ def test_e2e_evidence_persist_writes_file(tmp_path: Path, monkeypatch):
 
     On failure, first check: end-to-end: --evidence-persist writes the Evidence Stream transcript.
     """
-    from aegis_swr.core.events import (
-        EvidenceExtracted,
-        InvestigationCompleted,
-        InvestigationStarted,
-    )
 
     monkeypatch.setenv("COLUMNS", "120")
     report = _make_report()
     dump = _write_dump(tmp_path)
     config_file = tmp_path / "cfg.json"
     config_file.write_text(
-        json.dumps(
-            {"evidence": {"severity": "TRACE", "persist": True, "dir": str(tmp_path / "ev")}}
-        )
+        json.dumps({"evidence": {"severity": "TRACE", "persist": True, "dir": str(tmp_path / "ev")}})
     )
 
     async def mock_stream_events(self, source):
         """Helper that provides mock stream events for the e2e cli tests."""
+        self.events.publish(InvestigationStarted(incident_id=str(report.incident_id), source=source))
         self.events.publish(
-            InvestigationStarted(incident_id=str(report.incident_id), source=source)
-        )
-        self.events.publish(
-            EvidenceExtracted(
-                brief={"fault_class": "access_violation", "faulting_module": "db_writer"}
-            )
+            EvidenceExtracted(brief={"fault_class": "access_violation", "faulting_module": "db_writer"})
         )
         self.events.publish(InvestigationCompleted(report=report))
         yield InvestigationCompleted(report=report)
@@ -627,9 +621,7 @@ def test_e2e_legacy_logging_config_is_migrated(tmp_path: Path):
         return _make_report()
 
     config_file = tmp_path / "cfg.json"
-    config_file.write_text(
-        json.dumps({"logging": {"provider": "file", "service": "legacy-svc", "severity": "DEBUG"}})
-    )
+    config_file.write_text(json.dumps({"logging": {"provider": "file", "service": "legacy-svc", "severity": "DEBUG"}}))
     log_file = tmp_path / "app.log"
     log_file.write_text("2026-05-30T14:02:11 FATAL boom\n")
 

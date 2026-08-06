@@ -46,7 +46,7 @@ def _managed_settings() -> OpenClaudeSettings:
     return OpenClaudeSettings(auto_start=True, grpc_url="localhost:0")
 
 
-async def test_managed_start_connects_within_timeout(stub_project: Path) -> None:
+async def test_managed_start_connects_within_timeout(stub_project: Path):
     """__aenter__ exposes a ready grpc_url within connect_timeout_s."""
     settings = _managed_settings()
     bus = EventBus()
@@ -57,23 +57,23 @@ async def test_managed_start_connects_within_timeout(stub_project: Path) -> None
     ...
 
 
-async def test_connected_event_emitted_exactly_once(stub_project: Path) -> None:
+async def test_connected_event_emitted_exactly_once(stub_project: Path):
     """Exactly one OpenClaudeConnected is emitted on successful entry."""
     ...  # subscribe a recorder to the bus; count OpenClaudeConnected == 1
 
 
-async def test_aexit_stops_process_within_grace_period(stub_project: Path) -> None:
+async def test_aexit_stops_process_within_grace_period(stub_project: Path):
     """__aexit__ terminates the subprocess within the SIGTERM grace period."""
     ...  # capture PID inside the block; assert not psutil.pid_exists(pid) after,
          # within grace; assert SIGKILL was not required for a clean shutdown
 
 
-async def test_disconnected_event_emitted_exactly_once(stub_project: Path) -> None:
+async def test_disconnected_event_emitted_exactly_once(stub_project: Path):
     """Exactly one OpenClaudeDisconnected is emitted on exit."""
     ...
 
 
-async def test_no_process_survives_session(stub_project: Path) -> None:
+async def test_no_process_survives_session(stub_project: Path):
     """After context exit, no OpenClaude child process remains running."""
     ...  # record child PID(s); after __aexit__, assert none are alive
 ```

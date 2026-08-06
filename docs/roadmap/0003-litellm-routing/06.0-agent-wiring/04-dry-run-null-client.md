@@ -29,7 +29,7 @@ class NullClient:
     :param content: The fixed text content to return in every response.
     """
 
-    def __init__(self, content: str = "[dry-run]") -> None:
+    def __init__(self, content: str = "[dry-run]"):
         self._content = content
 
     async def complete(self, request: CompletionRequest) -> CompletionResponse:

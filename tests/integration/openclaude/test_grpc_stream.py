@@ -25,7 +25,7 @@ require_managed_openclaude()  # module-level: one skip line when binary/signal a
 async def test_query_yields_text_chunk_then_done(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
-) -> None:
+):
     """[Integration] grpc stream: A real query returns a non-empty terminal ``DONE`` preceded by >=1 ``TEXT_CHUNK``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -52,7 +52,7 @@ async def test_query_yields_text_chunk_then_done(
     assert first_chunk_index < done_index
 
 
-async def test_health_check_true_against_live_process(live_grpc_client: OpenClaudeGrpcClient) -> None:
+async def test_health_check_true_against_live_process(live_grpc_client: OpenClaudeGrpcClient):
     """[Integration] grpc stream: ``health_check()`` returns ``True`` against the running sidecar.
 
     Scenario: the behavior described in the summary is exercised.

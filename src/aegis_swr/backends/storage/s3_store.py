@@ -18,6 +18,7 @@ import json
 from typing import Any, Optional
 from uuid import UUID
 
+import boto3
 from botocore.exceptions import ClientError
 from loguru import logger
 
@@ -46,8 +47,6 @@ class S3Store(RelationalStore, ObjectStore):
         :param settings: storage configuration carrying the object-store URL,
             region, and optional S3 endpoint override.
         """
-        import boto3
-
         self._bucket = _parse_bucket(settings.object_store_url)
         kwargs: dict[str, Any] = {"region_name": settings.object_store_region}
         if settings.s3_endpoint_url:

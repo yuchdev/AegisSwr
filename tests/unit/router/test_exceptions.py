@@ -13,7 +13,7 @@ from aegis_swr.router.exceptions import (
 )
 
 
-def test_all_providers_exhausted_is_router_exception() -> None:
+def test_all_providers_exhausted_is_router_exception():
     """[Unit] exceptions: AllProvidersExhausted is a subclass of RouterException.
 
     Scenario: the behavior described in the summary is exercised.
@@ -25,7 +25,7 @@ def test_all_providers_exhausted_is_router_exception() -> None:
     assert issubclass(AllProvidersExhausted, RouterException)
 
 
-def test_config_validation_error_is_not_router_exception() -> None:
+def test_config_validation_error_is_not_router_exception():
     """[Unit] exceptions: ConfigValidationError is a separate hierarchy, not RouterException.
 
     Scenario: the behavior described in the summary is exercised.
@@ -37,7 +37,7 @@ def test_config_validation_error_is_not_router_exception() -> None:
     assert not issubclass(ConfigValidationError, RouterException)
 
 
-def test_all_providers_exhausted_stores_context() -> None:
+def test_all_providers_exhausted_stores_context():
     """[Unit] exceptions: The exception stores role/tried/errors and builds a message.
 
     Scenario: the behavior described in the summary is exercised.

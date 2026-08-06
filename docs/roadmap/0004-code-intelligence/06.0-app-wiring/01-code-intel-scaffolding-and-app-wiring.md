@@ -145,7 +145,7 @@ class CodeAgent:
         code intelligence is unavailable in this deployment.
     """
 
-    def __init__(self, backend: Optional[CodeBackend] = None) -> None:
+    def __init__(self, backend: Optional[CodeBackend] = None):
         """Construct the agent.
 
         :param backend: The code backend to delegate to, or ``None`` to run in
@@ -231,7 +231,7 @@ class CallBudget:
         """
         ...
 
-    def charge(self, tokens: int) -> None:
+    def charge(self, tokens: int):
         """Post-charge step (C5.2): record *tokens* actually estimated.
 
         Called after stream completion with ``max(1, len(content) // 4)``.

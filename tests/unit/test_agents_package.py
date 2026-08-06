@@ -11,7 +11,7 @@ from __future__ import annotations
 import importlib
 
 
-def test_base_import_path() -> None:
+def test_base_import_path():
     """[Unit] agents package: The moved agents resolve from the new ``aegis_swr.agents.base`` package.
 
     Scenario: the behavior described in the summary is exercised.
@@ -20,24 +20,18 @@ def test_base_import_path() -> None:
 
     On failure, first check: the moved agents resolve from the new ``aegis_swr.agents.base`` package.
     """
-    from aegis_swr.agents.base import (
-        BaseAgent,
-        CodeAnalystAgent,
-        LogHistorianAgent,
-        OSKernelAgent,
-        SkepticAgent,
-    )
+    base = importlib.import_module("aegis_swr.agents.base")
 
-    assert BaseAgent is not None
+    assert base.BaseAgent is not None
     assert {
-        OSKernelAgent.agent_key,
-        CodeAnalystAgent.agent_key,
-        LogHistorianAgent.agent_key,
-        SkepticAgent.agent_key,
+        base.OSKernelAgent.agent_key,
+        base.CodeAnalystAgent.agent_key,
+        base.LogHistorianAgent.agent_key,
+        base.SkepticAgent.agent_key,
     } == {"os_kernel", "code_analyst", "log_historian", "skeptic"}
 
 
-def test_base_shared_primitives_reexported() -> None:
+def test_base_shared_primitives_reexported():
     """[Unit] agents package: ``AgentSpec`` and ``AgentCategory`` re-export from the base package.
 
     Scenario: the behavior described in the summary is exercised.
@@ -46,13 +40,13 @@ def test_base_shared_primitives_reexported() -> None:
 
     On failure, first check: ``AgentSpec`` and ``AgentCategory`` re-export from the base package.
     """
-    from aegis_swr.agents.base import AgentCategory, AgentSpec
+    base = importlib.import_module("aegis_swr.agents.base")
 
-    assert AgentSpec is not None
-    assert AgentCategory is not None
+    assert base.AgentSpec is not None
+    assert base.AgentCategory is not None
 
 
-def test_top_level_reexport() -> None:
+def test_top_level_reexport():
     """[Unit] agents package: The four agents remain importable from the top-level ``aegis_swr.agents``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -61,20 +55,15 @@ def test_top_level_reexport() -> None:
 
     On failure, first check: the four agents remain importable from the top-level ``aegis_swr.agents``.
     """
-    from aegis_swr.agents import (
-        CodeAnalystAgent,
-        LogHistorianAgent,
-        OSKernelAgent,
-        SkepticAgent,
-    )
+    agents = importlib.import_module("aegis_swr.agents")
 
-    assert OSKernelAgent is not None
-    assert CodeAnalystAgent is not None
-    assert LogHistorianAgent is not None
-    assert SkepticAgent is not None
+    assert agents.OSKernelAgent is not None
+    assert agents.CodeAnalystAgent is not None
+    assert agents.LogHistorianAgent is not None
+    assert agents.SkepticAgent is not None
 
 
-def test_forensic_package_importable() -> None:
+def test_forensic_package_importable():
     """[Unit] agents package: The ``forensic`` category package imports and exports its specialist agents.
 
     Scenario: the behavior described in the summary is exercised.
@@ -87,7 +76,7 @@ def test_forensic_package_importable() -> None:
     assert "MemoryForensicsAgent" in module.__all__
 
 
-def test_synthesis_package_importable() -> None:
+def test_synthesis_package_importable():
     """[Unit] agents package: The ``synthesis`` category package imports and exports the planner agent.
 
     Scenario: the behavior described in the summary is exercised.

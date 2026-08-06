@@ -627,7 +627,7 @@ class AegisJsonSettingsSource(PydanticBaseSettingsSource):
     the model defaults in force.
     """
 
-    def __init__(self, settings_cls: type[BaseSettings]) -> None:
+    def __init__(self, settings_cls: type[BaseSettings]):
         """Load the merged ``config.json`` object as this source's backing data."""
         super().__init__(settings_cls)
         self._data = dict(_read_json_object(CONFIG_JSON))
@@ -700,14 +700,12 @@ class Settings(BaseSettings):
 
     def redacted_dump(self) -> dict[str, Any]:
         """Return the settings dict with secret values replaced by '***'"""
-        import json
-
         raw: dict[str, Any] = json.loads(self.model_dump_json())
         _redact_secrets(raw)
         return raw
 
 
-def _redact_secrets(obj: Any) -> None:
+def _redact_secrets(obj: Any):
     """Recursively redact known secret keys in a mapping or sequence.
 
     Mutates the provided structure in-place. Any dict key that contains one of

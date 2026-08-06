@@ -46,7 +46,7 @@ def _open_priority_issues() -> str:
         return ""
 
 
-def main() -> None:
+def main():
     branch = _git(["rev-parse", "--abbrev-ref", "HEAD"]) or "(unknown)"
     log = _git(["log", "-5", "--pretty=format:  %h %s"]) or "  (no commits)"
     issues = _open_priority_issues()

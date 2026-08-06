@@ -38,7 +38,7 @@ from aegis_swr.core.schemas import ConfidenceLevel
 # --------------------------------------------------------------------------- #
 # [Unit] — pure logic, no mocks, no I/O. Signal: no mock/runner markers.
 # --------------------------------------------------------------------------- #
-def test_from_score_below_threshold_is_low() -> None:
+def test_from_score_below_threshold_is_low():
     """[Unit] from_score low branch: verifies a score under 0.50 maps to LOW.
 
     Scenario: Call ConfidenceLevel.from_score(0.49) with a plain float, no mocks or I/O.
@@ -52,7 +52,7 @@ def test_from_score_below_threshold_is_low() -> None:
 # --------------------------------------------------------------------------- #
 # [Mock] — unit-scoped, but a collaborator is patched. Signal: mock./monkeypatch.
 # --------------------------------------------------------------------------- #
-def test_signal_mapping_uses_lookup_table(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_signal_mapping_uses_lookup_table(monkeypatch: pytest.MonkeyPatch):
     """[Mock] signal mapping: verifies map_linux_signal delegates to its lookup table.
 
     Scenario: monkeypatch the module's _SIGNAL_MAP to a controlled entry, then map a signal.
@@ -74,7 +74,7 @@ def test_signal_mapping_uses_lookup_table(monkeypatch: pytest.MonkeyPatch) -> No
 # Signal: no e2e runner, real collaborators. (Body is an illustrative sketch.)
 # --------------------------------------------------------------------------- #
 @pytest.mark.skip(reason="illustrative sketch — shows the [Integration] shape, not a live test")
-def test_report_store_round_trip(tmp_path) -> None:
+def test_report_store_round_trip(tmp_path):
     """[Integration] store round-trip: verifies a saved RCAReport reloads by dump_hash.
 
     Scenario: Persist an RCAReport to a real filesystem store rooted at tmp_path,
@@ -97,7 +97,7 @@ def test_report_store_round_trip(tmp_path) -> None:
 # (Body is an illustrative sketch of the runner shape.)
 # --------------------------------------------------------------------------- #
 @pytest.mark.skip(reason="illustrative sketch — shows the [E2E] shape, not a live test")
-def test_analyze_cli_reports_fault_class() -> None:
+def test_analyze_cli_reports_fault_class():
     """[E2E] analyze CLI: verifies `aegis analyze` prints the resolved fault class.
 
     Scenario: Invoke the Typer app through CliRunner with a fixture dump and mocked

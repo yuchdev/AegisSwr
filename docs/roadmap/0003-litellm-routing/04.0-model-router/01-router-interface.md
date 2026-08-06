@@ -58,7 +58,7 @@ class ModelRouter:
         config: RouterConfig,
         client: LiteLLMClient,
         bus: EventBus,
-    ) -> None:
+    ):
         self._config = config
         self._client = client
         self._bus = bus

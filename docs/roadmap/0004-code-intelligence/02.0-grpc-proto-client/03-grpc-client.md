@@ -66,7 +66,7 @@ class OpenClaudeGrpcClient:
     :ivar _stub: The generated ``AgentService`` stub; ``None`` until first use.
     """
 
-    def __init__(self, settings: OpenClaudeSettings) -> None:
+    def __init__(self, settings: OpenClaudeSettings):
         """Construct a client from settings without opening a channel.
 
         :param settings: OpenClaude configuration; ``settings.grpc_url`` must be
@@ -137,7 +137,7 @@ class OpenClaudeGrpcClient:
         """
         ...
 
-    async def close(self) -> None:
+    async def close(self):
         """Shut the channel down, releasing all gRPC resources.
 
         Idempotent; safe to call when the channel was never opened. Emits no
@@ -238,7 +238,7 @@ from aegis.openclaude.config import OpenClaudeSettings
 from aegis.openclaude.grpc.client import OpenClaudeGrpcClient
 
 
-async def main() -> None:
+async def main():
     client = OpenClaudeGrpcClient(OpenClaudeSettings(grpc_url="localhost:50051"))
     async for frame in client.query("ping", run_id="smoke-test"):
         print(frame.frame_type, len(frame.content))

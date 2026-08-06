@@ -33,7 +33,7 @@ from typing import Optional
 class OpenClaudeProcess:
     # ... external-mode surface from subtask 01 ...
 
-    async def _start_managed(self) -> None:
+    async def _start_managed(self):
         """Launch the sidecar and block until its gRPC port is accepting.
 
         Builds the argv (binary + allowlist flags), starts the process via
@@ -59,7 +59,7 @@ class OpenClaudeProcess:
         """
         ...
 
-    async def _await_port_open(self) -> None:
+    async def _await_port_open(self):
         """Poll the resolved gRPC port until it accepts a TCP connection.
 
         Uses :func:`asyncio.sleep` backoff; the total wait is bounded by
@@ -69,7 +69,7 @@ class OpenClaudeProcess:
         """
         ...
 
-    async def _terminate_managed(self) -> None:
+    async def _terminate_managed(self):
         """Terminate the owned subprocess: SIGTERM, grace wait, then SIGKILL.
 
         Idempotent and safe to call when the process is already dead or was

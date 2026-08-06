@@ -53,7 +53,7 @@ def _build_tool(client: OpenClaudeGrpcClient, bus: EventBus) -> OpenClaudeTool:
 async def test_write_task_denied_under_default_allowlist(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
-) -> None:
+):
     """A task needing a write tool is denied; PermissionDenied surfaces."""
     bus = EventBus()
     tool = _build_tool(live_grpc_client, bus)
@@ -73,7 +73,7 @@ async def test_write_task_denied_under_default_allowlist(
 
 async def test_read_only_task_succeeds(
     live_grpc_client: OpenClaudeGrpcClient,
-) -> None:
+):
     """A Read/Grep-only navigation task succeeds under the same allowlist."""
     ...  # tool.run("Grep for compute_checksum and report its file") → non-empty result
 ```

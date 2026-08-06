@@ -39,7 +39,7 @@ class AllProvidersExhausted(RouterException):
     :ivar errors: Parallel list of error messages for each attempted model.
     """
 
-    def __init__(self, role: str, tried: list[str], errors: list[str]) -> None:
+    def __init__(self, role: str, tried: list[str], errors: list[str]):
         """Store the failure context and build a diagnostic message.
 
         :param role: The agent role that was being resolved.

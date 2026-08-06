@@ -45,7 +45,7 @@ class RecordingVectorStore(VectorStore):
         self._error = error
         self.calls: list[dict[str, object]] = []
 
-    async def upsert_incident(self, report: RCAReport) -> None:
+    async def upsert_incident(self, report: RCAReport):
         """Helper that provides upsert incident for the agents tests."""
         self.calls.append({"operation": "upsert", "report": report})
 

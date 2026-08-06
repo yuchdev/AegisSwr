@@ -13,9 +13,13 @@ from typing import Optional
 import pytest
 from loguru import logger
 
+import aegis_swr.cli.aegis_logging as mod
 from aegis_swr.cli.aegis_logging import (
+    _REDACT_RE,
     LOG_FILENAME,
     NOISY_LIBRARY_LOGGERS,
+    _register_elk_sink,
+    _register_fluent_sink,
     configure_logging,
 )
 
@@ -194,7 +198,6 @@ def test_missing_log_dir_does_not_break_stderr_logging(tmp_path: Path, monkeypat
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by logging
     """
-    import aegis_swr.cli.aegis_logging as mod
 
     def _boom(*_a, **_k):
         """Raise ``OSError`` to simulate a permission failure on directory creation."""
@@ -326,7 +329,6 @@ def test_sink_registration_seams_return_false():
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by logging
     """
-    from aegis_swr.cli.aegis_logging import _register_elk_sink, _register_fluent_sink
 
     assert _register_elk_sink("INFO", elk_url="http://elk:9200") is False
     assert _register_fluent_sink("INFO", fluent_host="fluentd", fluent_port=24224) is False
@@ -382,7 +384,6 @@ def test_redact_re_covers_bearer_and_legacy_forms(
     On failure, first check: each secret form must be redacted while benign prose is
     left untouched.
     """
-    from aegis_swr.cli.aegis_logging import _REDACT_RE
 
     result = _REDACT_RE.sub("[REDACTED]", input_text)
 

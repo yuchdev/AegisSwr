@@ -50,7 +50,7 @@ def _grpc_url_set() -> bool:
     return bool(os.environ.get("OPENCLAUDE_GRPC_URL"))
 
 
-def require_managed_openclaude() -> None:
+def require_managed_openclaude():
     """Module-level guard for managed-mode tests.
 
     Call once at the top of a test module (after imports). Emits a single
@@ -63,7 +63,7 @@ def require_managed_openclaude() -> None:
         pytest.skip("openclaude binary not on PATH", allow_module_level=True)
 
 
-def require_external_openclaude() -> None:
+def require_external_openclaude():
     """Module-level guard for external-mode-only tests.
 
     As :func:`require_managed_openclaude`, but additionally requires a set

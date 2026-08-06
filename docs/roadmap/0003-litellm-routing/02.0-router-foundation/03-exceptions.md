@@ -41,7 +41,7 @@ class AllProvidersExhausted(RouterException):
     :param errors: Parallel list of error messages for each attempted model.
     """
 
-    def __init__(self, role: str, tried: list[str], errors: list[str]) -> None:
+    def __init__(self, role: str, tried: list[str], errors: list[str]):
         self.role = role
         self.tried = tried
         self.errors = errors

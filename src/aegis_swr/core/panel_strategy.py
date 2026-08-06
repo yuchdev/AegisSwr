@@ -65,7 +65,7 @@ class ExplicitPanelStrategy(PanelSelectionStrategy):
     :ivar _specs: The specs to return verbatim from :meth:`select`.
     """
 
-    def __init__(self, specs: list[AgentSpec]) -> None:
+    def __init__(self, specs: list[AgentSpec]):
         """Store the explicit specs to be returned unchanged.
 
         :param specs: The specs supplied ahead of time via config/CLI.
@@ -121,7 +121,7 @@ class AgenticManagerStrategy(PanelSelectionStrategy):
         self,
         settings: Settings,
         registry: Optional[dict[str, Any]] = None,
-    ) -> None:
+    ):
         """Construct the manager over the agent registry.
 
         :param settings: Application settings; retained for a future
@@ -210,7 +210,7 @@ class PanelResolver:
         self,
         settings: Settings,
         registry: Optional[dict[str, Any]] = None,
-    ) -> None:
+    ):
         """Construct the resolver over the auto-selection strategy.
 
         :param settings: Application settings, forwarded to

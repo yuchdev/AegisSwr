@@ -78,14 +78,31 @@ include = []
 # tool.py is exempted for the same reason: delegate() is a must-never-raise
 # resilience boundary that must return a typed CodeResult for every failure
 # (C9 - no exception escapes delegate()), requiring a defensive `except Exception`.
+# cli/commands.py is exempted from X006 (local imports): it is the Typer CLI
+# entrypoint and deliberately lazy-imports the heavy backend/orchestrator/
+# OpenClaude object graph (anthropic/openai SDKs, boto3, langgraph, gRPC) inside
+# each subcommand so `aegis --help` and quick commands do not pay the full
+# backend import cost at startup. Moving those imports to module scope would
+# defeat that lazy-loading contract.
+# config/settings.py is exempted from X006 for a genuine circular import: the
+# `explicit` field validator needs `AgentSpec` from `aegis_swr.agents.base`,
+# but that package imports `Settings` from this module, so a module-scope import
+# forms a cycle. The import is deferred into the validator (documented at its
+# call site) which only runs when non-default `explicit` data is supplied.
+# grpc/proto/ holds generated protobuf/gRPC stubs (mirrors ruff.toml's
+# extend-exclude for *_pb2.py / *_pb2_grpc.py and the coverage omit): committed
+# codegen, never hand-edited, so the X-rules do not gate it.
 exclude = [
     "tests/flake8_lint/samples/",
     "src/aegis_swr/core/events.py",
     "src/aegis_swr/openclaude/grpc/client.py",
     "src/aegis_swr/openclaude/tool.py",
+    "src/aegis_swr/cli/commands.py",
+    "src/aegis_swr/config/settings.py",
+    "src/aegis_swr/openclaude/grpc/proto/",
 ]
 
-select = ["X001", "X002", "X005"]
+select = ["X001", "X002", "X004", "X005", "X006", "X007", "X008"]
 ignore = []
 
 # When false, a `# noqa` comment never suppresses a violation (the rule

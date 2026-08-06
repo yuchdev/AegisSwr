@@ -244,7 +244,7 @@ class RouterConfig:
     def _validate_provider_references(
         providers: dict[str, ProviderConfig],
         agents: dict[str, AgentConfig],
-    ) -> None:
+    ):
         """Verify every agent model prefix matches a defined provider (R2).
 
         All violations are collected before raising so operators see every

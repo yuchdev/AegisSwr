@@ -9,7 +9,7 @@ import subprocess
 from _common import REPO_ROOT, allow, append_log, block_turn, read_event
 
 
-def main() -> None:
+def main():
     event = read_event()
     if event.get("stop_hook_active"):
         allow()

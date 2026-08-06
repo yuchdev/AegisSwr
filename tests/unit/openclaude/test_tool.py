@@ -57,7 +57,7 @@ class _ScriptedQuery:
     stream loop invokes ``query`` exactly once with the stringified ``run_id``.
     """
 
-    def __init__(self, frames: list[AgentFrame]) -> None:
+    def __init__(self, frames: list[AgentFrame]):
         """Store the scripted *frames* and initialise the recorded-call list."""
         self._frames = frames
         self.calls: list[tuple[str, str]] = []
@@ -101,7 +101,7 @@ def tool(collaborators: tuple[MagicMock, MagicMock, MagicMock, MagicMock]) -> Op
 
 def test_constructs_with_four_collaborators_and_no_io(
     collaborators: tuple[MagicMock, MagicMock, MagicMock, MagicMock],
-) -> None:
+):
     """[Unit] tool: construction stores all four collaborators and performs no I/O.
 
     Scenario: a tool is built from the four mock collaborators and inspected.
@@ -123,7 +123,7 @@ def test_constructs_with_four_collaborators_and_no_io(
     assert budget.mock_calls == []
 
 
-def test_is_instantiable_codebackend(tool: OpenClaudeTool) -> None:
+def test_is_instantiable_codebackend(tool: OpenClaudeTool):
     """[Unit] tool: the tool is a concrete CodeIntelBackend accepted structurally.
 
     Scenario: a tool instance is passed to a function typed for a
@@ -143,7 +143,7 @@ def test_is_instantiable_codebackend(tool: OpenClaudeTool) -> None:
     assert accepts_backend(tool) is tool
 
 
-def test_name_and_description_are_class_attributes() -> None:
+def test_name_and_description_are_class_attributes():
     """[Unit] tool: ``name``/``description`` are class attributes advertising capability.
 
     Scenario: the class-level ``name`` and ``description`` are read directly from
@@ -183,7 +183,7 @@ def test_name_and_description_are_class_attributes() -> None:
         ),
     ],
 )
-def test_canonical_method_signatures(method_name: str, expected_params: list[str]) -> None:
+def test_canonical_method_signatures(method_name: str, expected_params: list[str]):
     """[Unit] tool: each canonical method exposes the expected parameter names.
 
     Scenario: a parametrized method name and its expected parameter list are
@@ -199,7 +199,7 @@ def test_canonical_method_signatures(method_name: str, expected_params: list[str
     assert list(signature.parameters) == expected_params
 
 
-def test_failure_and_success_keyword_only_markers() -> None:
+def test_failure_and_success_keyword_only_markers():
     """[Unit] tool: accounting args on ``_failure``/``_success`` are keyword-only.
 
     Scenario: the reflected signatures of ``_failure`` and ``_success`` are
@@ -224,7 +224,7 @@ def test_failure_and_success_keyword_only_markers() -> None:
         assert success_params[keyword_only].kind is inspect.Parameter.KEYWORD_ONLY
 
 
-def test_delegate_and_consume_stream_are_coroutines() -> None:
+def test_delegate_and_consume_stream_are_coroutines():
     """[Unit] tool: ``delegate``/``_consume_stream`` are coroutine functions.
 
     Scenario: both methods are checked with ``inspect.iscoroutinefunction``.
@@ -237,7 +237,7 @@ def test_delegate_and_consume_stream_are_coroutines() -> None:
     assert inspect.iscoroutinefunction(OpenClaudeTool._consume_stream)
 
 
-def test_ctx_run_id_is_a_uuid_carrier() -> None:
+def test_ctx_run_id_is_a_uuid_carrier():
     """[Unit] tool: CodeTaskContext carries a UUID ``run_id`` requiring stringify.
 
     Scenario: a context is built with a ``uuid4()`` run id and inspected.
@@ -251,7 +251,7 @@ def test_ctx_run_id_is_a_uuid_carrier() -> None:
     assert ctx.dry_run is False
 
 
-def test_module_source_never_touches_grpc_or_pb2() -> None:
+def test_module_source_never_touches_grpc_or_pb2():
     """[Unit] tool: the module source never imports grpc or references _pb2 (C3).
 
     Scenario: the ``tool.py`` source is read and scanned.
@@ -266,7 +266,7 @@ def test_module_source_never_touches_grpc_or_pb2() -> None:
     assert "_pb2" not in source
 
 
-async def test_consume_stream_calls_query_once_with_str_run_id(tool: OpenClaudeTool) -> None:
+async def test_consume_stream_calls_query_once_with_str_run_id(tool: OpenClaudeTool):
     """[Unit] tool: the stream loop calls ``query`` once with the stringified run id.
 
     Scenario: a scripted DONE-only stream is consumed with a UUID-bearing context.
@@ -285,7 +285,7 @@ async def test_consume_stream_calls_query_once_with_str_run_id(tool: OpenClaudeT
     assert scripted.calls == [("navigate the repo", str(ctx.run_id))]
 
 
-async def test_consume_stream_concatenates_text_chunks_in_order(tool: OpenClaudeTool) -> None:
+async def test_consume_stream_concatenates_text_chunks_in_order(tool: OpenClaudeTool):
     """[Unit] tool: TEXT_CHUNK frames are joined verbatim in arrival order.
 
     Scenario: three text chunks followed by DONE are consumed.
@@ -312,7 +312,7 @@ async def test_consume_stream_concatenates_text_chunks_in_order(tool: OpenClaude
 
 async def test_consume_stream_counts_tool_call_and_tool_result_frames(
     tool: OpenClaudeTool,
-) -> None:
+):
     """[Unit] tool: TOOL_CALL/TOOL_RESULT frames increment their respective counters.
 
     Scenario: a mix of two tool calls, one tool result, and a text chunk is
@@ -342,7 +342,7 @@ async def test_consume_stream_counts_tool_call_and_tool_result_frames(
 
 async def test_consume_stream_frame_count_includes_unknown_skipped_frames(
     tool: OpenClaudeTool,
-) -> None:
+):
     """[Unit] tool: ``frame_count`` counts every frame, including skipped unknowns.
 
     Scenario: a stream mixes a text chunk, an unknown-kind frame, an allowlisted
@@ -377,7 +377,7 @@ async def test_consume_stream_frame_count_includes_unknown_skipped_frames(
 
 async def test_consume_stream_done_returns_success_result_with_metadata(
     tool: OpenClaudeTool,
-) -> None:
+):
     """[Unit] tool: DONE terminates the loop and yields a success result with metadata.
 
     Scenario: a tool call, tool result, text chunk, and DONE are consumed.
@@ -416,7 +416,7 @@ async def test_consume_stream_done_returns_success_result_with_metadata(
 
 async def test_consume_stream_text_only_stream_has_zero_tool_counts(
     tool: OpenClaudeTool,
-) -> None:
+):
     """[Unit] tool: a text-only stream returns joined text with zero tool counts.
 
     Scenario: two text chunks and a DONE are consumed with no tool frames.
@@ -443,7 +443,7 @@ async def test_consume_stream_text_only_stream_has_zero_tool_counts(
     assert result.metadata["frame_count"] == 3
 
 
-async def test_consume_stream_never_logs_payload_content(tool: OpenClaudeTool) -> None:
+async def test_consume_stream_never_logs_payload_content(tool: OpenClaudeTool):
     """[Unit] tool: no payload text reaches any log sink during a stream (C9).
 
     Scenario: chunks carrying a secret token flow through the loop while a DEBUG
@@ -488,7 +488,7 @@ def _published(bus: MagicMock) -> list[object]:
 
 def test_emit_tool_call_publishes_one_event_with_object_arg_count(
     tool: OpenClaudeTool,
-) -> None:
+):
     """[Unit] tool: a JSON-object TOOL_CALL emits one event carrying the key count.
 
     Scenario: a tool call with a two-key JSON object payload is emitted.
@@ -512,7 +512,7 @@ def test_emit_tool_call_publishes_one_event_with_object_arg_count(
     assert event.arg_count == 2
 
 
-def test_emit_tool_call_arg_count_for_json_list_is_length(tool: OpenClaudeTool) -> None:
+def test_emit_tool_call_arg_count_for_json_list_is_length(tool: OpenClaudeTool):
     """[Unit] tool: a JSON-array TOOL_CALL reports the array length as ``arg_count``.
 
     Scenario: a tool call with a three-element JSON array payload is emitted.
@@ -531,7 +531,7 @@ def test_emit_tool_call_arg_count_for_json_list_is_length(tool: OpenClaudeTool) 
 
 
 @pytest.mark.parametrize("content", ["not json", "", "42", '"scalar"', "null"])
-def test_emit_tool_call_arg_count_zero_for_invalid_or_scalar(tool: OpenClaudeTool, content: str) -> None:
+def test_emit_tool_call_arg_count_zero_for_invalid_or_scalar(tool: OpenClaudeTool, content: str):
     """[Unit] tool: non-JSON, empty, or scalar TOOL_CALL content yields arg_count 0.
 
     Scenario: a tool call is emitted with parametrized invalid or scalar content.
@@ -549,7 +549,7 @@ def test_emit_tool_call_arg_count_zero_for_invalid_or_scalar(tool: OpenClaudeToo
     assert _published(tool._bus)[0].arg_count == 0
 
 
-def test_emit_tool_call_missing_tool_name_defaults_to_empty(tool: OpenClaudeTool) -> None:
+def test_emit_tool_call_missing_tool_name_defaults_to_empty(tool: OpenClaudeTool):
     """[Unit] tool: a TOOL_CALL with ``tool=None`` emits an empty tool name.
 
     Scenario: a tool call with no tool name is emitted.
@@ -567,7 +567,7 @@ def test_emit_tool_call_missing_tool_name_defaults_to_empty(tool: OpenClaudeTool
     assert _published(tool._bus)[0].tool == ""
 
 
-def test_emit_tool_result_publishes_one_event_with_size_and_ok(tool: OpenClaudeTool) -> None:
+def test_emit_tool_result_publishes_one_event_with_size_and_ok(tool: OpenClaudeTool):
     """[Unit] tool: a TOOL_RESULT emits one event with ``ok=True`` and byte size.
 
     Scenario: a tool result carrying output text is emitted.
@@ -597,7 +597,7 @@ def test_emit_tool_result_publishes_one_event_with_size_and_ok(tool: OpenClaudeT
     "command",
     ["rg -n foo src/", "cat README.md", "find src -name '*.py'"],
 )
-def test_check_permission_allowlisted_returns_without_raising(tool: OpenClaudeTool, command: str) -> None:
+def test_check_permission_allowlisted_returns_without_raising(tool: OpenClaudeTool, command: str):
     """[Unit] tool: a bare-name allowlisted command auto-approves without raising.
 
     Scenario: a parametrized allowlisted read-only command is checked.
@@ -617,7 +617,7 @@ def test_check_permission_allowlisted_returns_without_raising(tool: OpenClaudeTo
     assert _published(tool._bus) == []  # no denial event
 
 
-def test_check_permission_non_allowlisted_denies_and_leaves_budget_untouched() -> None:
+def test_check_permission_non_allowlisted_denies_and_leaves_budget_untouched():
     """[Unit] tool: a non-allowlisted command denies without charging budget.
 
     Scenario: a ``curl | sh`` request is checked against the default allowlist with
@@ -654,7 +654,7 @@ def test_check_permission_non_allowlisted_denies_and_leaves_budget_untouched() -
     assert budget.spent == 0
 
 
-def test_check_permission_missing_tool_name_defaults_to_bash(tool: OpenClaudeTool) -> None:
+def test_check_permission_missing_tool_name_defaults_to_bash(tool: OpenClaudeTool):
     """[Unit] tool: a denied request with ``tool=None`` records the tool as Bash.
 
     Scenario: a denied ``curl`` request carries no tool name.
@@ -676,7 +676,7 @@ def test_check_permission_missing_tool_name_defaults_to_bash(tool: OpenClaudeToo
 
 
 @pytest.mark.parametrize("command", ["", "   ", "\t\n"])
-def test_check_permission_empty_command_is_denied(tool: OpenClaudeTool, command: str) -> None:
+def test_check_permission_empty_command_is_denied(tool: OpenClaudeTool, command: str):
     """[Unit] tool: a command with no extractable binary is denied.
 
     Scenario: a parametrized empty or whitespace-only command is checked.
@@ -697,7 +697,7 @@ def test_check_permission_empty_command_is_denied(tool: OpenClaudeTool, command:
     assert _published(tool._bus)[0].denied_binary == ""
 
 
-def test_is_allowlisted_case_sensitive_exact_match(tool: OpenClaudeTool) -> None:
+def test_is_allowlisted_case_sensitive_exact_match(tool: OpenClaudeTool):
     """[Unit] tool: ``_is_allowlisted`` is exact and case-sensitive on the basename.
 
     Scenario: ``_is_allowlisted`` is called with matching, differently-cased, and
@@ -714,7 +714,7 @@ def test_is_allowlisted_case_sensitive_exact_match(tool: OpenClaudeTool) -> None
     assert tool._is_allowlisted("ripgrep foo") is False
 
 
-def test_check_permission_denial_leaks_no_command_content(tool: OpenClaudeTool) -> None:
+def test_check_permission_denial_leaks_no_command_content(tool: OpenClaudeTool):
     """[Unit] tool: a denial leaks no full command line to logs or events (C9).
 
     Scenario: a denied ``curl`` command embedding a secret token is checked while a
@@ -765,7 +765,7 @@ def test_check_permission_denial_leaks_no_command_content(tool: OpenClaudeTool) 
         "cat /etc/shadow > /tmp/x; sh",  # redirection + sequencing
     ],
 )
-def test_check_permission_metachar_and_path_bypass_is_denied(tool: OpenClaudeTool, command: str) -> None:
+def test_check_permission_metachar_and_path_bypass_is_denied(tool: OpenClaudeTool, command: str):
     """[Unit] tool: metacharacter/path-qualified bypasses are denied, not approved.
 
     Scenario: a parametrized command with an allowlisted first token but a shell
@@ -789,7 +789,7 @@ def test_check_permission_metachar_and_path_bypass_is_denied(tool: OpenClaudeToo
     assert isinstance(events[0], OpenClaudePermissionDenied)
 
 
-def test_check_permission_path_qualified_binary_is_denied(tool: OpenClaudeTool) -> None:
+def test_check_permission_path_qualified_binary_is_denied(tool: OpenClaudeTool):
     """[Unit] tool: a full-path allowlisted binary is now denied (hardening).
 
     Scenario: ``/usr/bin/rg`` basename-matches ``rg`` but is path-qualified.
@@ -815,7 +815,7 @@ def test_check_permission_path_qualified_binary_is_denied(tool: OpenClaudeTool) 
     "command",
     ["rg -n foo src/", "find src -name '*.py'", "cat file.txt"],
 )
-def test_is_allowlisted_legitimate_read_only_commands_approve(tool: OpenClaudeTool, command: str) -> None:
+def test_is_allowlisted_legitimate_read_only_commands_approve(tool: OpenClaudeTool, command: str):
     """[Unit] tool: legitimate bare-name read-only commands still approve.
 
     Scenario: a parametrized read-only command with a bare allowlisted first token
@@ -840,7 +840,7 @@ class _RaisingQuery:
     ``delegate``'s ``except OpenClaudeUnavailableError`` arm.
     """
 
-    def __init__(self, exc: BaseException) -> None:
+    def __init__(self, exc: BaseException):
         """Store the exception to raise and initialise the recorded-call list."""
         self._exc = exc
         self.calls: list[tuple[str, str]] = []
@@ -871,7 +871,7 @@ def _delegate_tool(
     return OpenClaudeTool(client, settings, bus, budget), bus
 
 
-async def test_delegate_insufficient_budget_returns_failure_without_querying() -> None:
+async def test_delegate_insufficient_budget_returns_failure_without_querying():
     """[Unit] tool: an unaffordable budget fails non-retriably with zero gRPC calls.
 
     Scenario: a zero-token budget is used to delegate a task.
@@ -896,7 +896,7 @@ async def test_delegate_insufficient_budget_returns_failure_without_querying() -
     assert _published(bus) == []
 
 
-async def test_delegate_dry_run_short_circuits_with_zero_tokens() -> None:
+async def test_delegate_dry_run_short_circuits_with_zero_tokens():
     """[Unit] tool: a dry run returns ``[dry-run]`` and never calls ``query`` (C9).
 
     Scenario: a dry-run context is delegated with ample budget.
@@ -922,7 +922,7 @@ async def test_delegate_dry_run_short_circuits_with_zero_tokens() -> None:
     assert _published(bus) == []
 
 
-async def test_delegate_pre_check_precedes_dry_run() -> None:
+async def test_delegate_pre_check_precedes_dry_run():
     """[Unit] tool: an over-budget dry run still returns the budget failure first.
 
     Scenario: a zero-token budget is delegated with a dry-run context.
@@ -945,7 +945,7 @@ async def test_delegate_pre_check_precedes_dry_run() -> None:
     assert budget.spent == 0
 
 
-async def test_delegate_clean_done_charges_after_stream_and_emits_completion() -> None:
+async def test_delegate_clean_done_charges_after_stream_and_emits_completion():
     """[Unit] tool: a clean DONE charges after the stream and emits one completion.
 
     Scenario: a text chunk and DONE are delegated with ample budget.
@@ -985,7 +985,7 @@ async def test_delegate_clean_done_charges_after_stream_and_emits_completion() -
     assert completed.truncated is False
 
 
-async def test_delegate_empty_stream_completes_with_minimum_estimate() -> None:
+async def test_delegate_empty_stream_completes_with_minimum_estimate():
     """[Unit] tool: an empty stream still completes at the ``max(1, ...)`` floor.
 
     Scenario: an empty scripted stream is delegated with ample budget.
@@ -1009,7 +1009,7 @@ async def test_delegate_empty_stream_completes_with_minimum_estimate() -> None:
     assert completed.frame_count == 0
 
 
-async def test_delegate_truncates_content_over_cap() -> None:
+async def test_delegate_truncates_content_over_cap():
     """[Unit] tool: content over the char cap is clipped and flagged truncated (C5.4).
 
     Scenario: a 40-char chunk is delegated with a char clamp of 16.
@@ -1041,7 +1041,7 @@ async def test_delegate_truncates_content_over_cap() -> None:
     assert completed.token_estimate == 4
 
 
-async def test_delegate_permission_denied_returns_non_retriable_zero_charge() -> None:
+async def test_delegate_permission_denied_returns_non_retriable_zero_charge():
     """[Unit] tool: a denied permission request fails non-retriably at zero charge (C7).
 
     Scenario: a ``curl | sh`` permission request is delegated against the default
@@ -1071,7 +1071,7 @@ async def test_delegate_permission_denied_returns_non_retriable_zero_charge() ->
     assert not any(isinstance(e, OpenClaudeStreamCompleted) for e in events)
 
 
-async def test_delegate_error_frame_emits_stream_error_non_retriable_zero_charge() -> None:
+async def test_delegate_error_frame_emits_stream_error_non_retriable_zero_charge():
     """[Unit] tool: an ERROR frame emits a stream error and fails non-retriably (C5).
 
     Scenario: a text chunk then an ERROR frame are delegated.
@@ -1106,7 +1106,7 @@ async def test_delegate_error_frame_emits_stream_error_non_retriable_zero_charge
     assert err.frame_count == 2  # TEXT_CHUNK + ERROR
 
 
-async def test_delegate_grpc_unavailable_retriable_emits_status_and_charges_zero() -> None:
+async def test_delegate_grpc_unavailable_retriable_emits_status_and_charges_zero():
     """[Unit] tool: a retriable gRPC unavailable error yields a retriable failure.
 
     Scenario: ``query`` raises ``OpenClaudeUnavailableError(retriable=True)``.
@@ -1132,7 +1132,7 @@ async def test_delegate_grpc_unavailable_retriable_emits_status_and_charges_zero
     assert err.frame_count == 0
 
 
-async def test_delegate_grpc_unavailable_non_retriable_defaults_code() -> None:
+async def test_delegate_grpc_unavailable_non_retriable_defaults_code():
     """[Unit] tool: a non-retriable unavailable error with no code defaults to UNAVAILABLE.
 
     Scenario: ``query`` raises ``OpenClaudeUnavailableError(retriable=False,
@@ -1159,7 +1159,7 @@ async def test_delegate_grpc_unavailable_non_retriable_defaults_code() -> None:
 
 async def test_delegate_defensive_arm_returns_typed_failure(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] tool: a fault-injected consume never escapes ``delegate`` (C9).
 
     Scenario: ``_consume_stream`` is patched to raise a plain ``RuntimeError``.
@@ -1186,7 +1186,7 @@ async def test_delegate_defensive_arm_returns_typed_failure(
     assert _published(bus) == []
 
 
-async def test_delegate_only_completion_event_carries_token_estimate() -> None:
+async def test_delegate_only_completion_event_carries_token_estimate():
     """[Unit] tool: only the completion event carries token data across a run (C8).
 
     Scenario: a full tool-call/result/text/DONE run is delegated and the emitted

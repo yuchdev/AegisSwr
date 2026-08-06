@@ -42,7 +42,7 @@ class _FakeRpcError(Exception):
     fake mirrors the `.code()` accessor the client reads.
     """
 
-    def __init__(self, code: str) -> None:
+    def __init__(self, code: str):
         self._code = code
 
     def code(self) -> str:
@@ -60,22 +60,22 @@ def fake_channel_factory():
     ...
 
 
-async def test_query_yields_scripted_frames_in_order(fake_channel_factory) -> None:
+async def test_query_yields_scripted_frames_in_order(fake_channel_factory):
     """query() yields the scripted TEXT_CHUNK...DONE frames in emission order."""
 
-async def test_from_channel_construction_no_network(fake_channel_factory) -> None:
+async def test_from_channel_construction_no_network(fake_channel_factory):
     """from_channel(channel, settings) builds a client without opening a socket."""
 
-async def test_health_check_returns_false_on_unavailable(fake_channel_factory) -> None:
+async def test_health_check_returns_false_on_unavailable(fake_channel_factory):
     """A simulated UNAVAILABLE status makes health_check() return False, not raise."""
 
-async def test_query_raises_on_deadline_exceeded(fake_channel_factory) -> None:
+async def test_query_raises_on_deadline_exceeded(fake_channel_factory):
     """A simulated DEADLINE_EXCEEDED makes query() raise OpenClaudeUnavailableError."""
 
-async def test_query_raises_unavailable_error_on_unavailable(fake_channel_factory) -> None:
+async def test_query_raises_unavailable_error_on_unavailable(fake_channel_factory):
     """A simulated UNAVAILABLE during query() raises OpenClaudeUnavailableError."""
 
-async def test_close_shuts_down_channel(fake_channel_factory) -> None:
+async def test_close_shuts_down_channel(fake_channel_factory):
     """close() awaits the channel's close/shutdown exactly once."""
 ```
 

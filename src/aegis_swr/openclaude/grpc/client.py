@@ -121,7 +121,7 @@ class OpenClaudeGrpcClient:
     :ivar _stub: The generated ``AgentService`` stub; ``None`` until first use.
     """
 
-    def __init__(self, settings: OpenClaudeSettings) -> None:
+    def __init__(self, settings: OpenClaudeSettings):
         """Construct a client from settings without opening a channel.
 
         :param settings: OpenClaude configuration; ``settings.grpc_url`` must be
@@ -350,7 +350,7 @@ class OpenClaudeGrpcClient:
             logger.debug("OpenClaude health check raised unexpected {}", type(exc).__name__)
             return False
 
-    async def close(self) -> None:
+    async def close(self):
         """Shut the channel down, releasing all gRPC resources.
 
         Idempotent; safe to call when the channel was never opened. Emits no
@@ -378,7 +378,7 @@ class OpenClaudeGrpcClient:
         exc_type: Optional[type[BaseException]],
         exc: Optional[BaseException],
         tb: Optional[object],
-    ) -> None:
+    ):
         """Exit the async context, closing the channel so it cannot leak.
 
         :param exc_type: Exception type raised in the ``async with`` body, if any.

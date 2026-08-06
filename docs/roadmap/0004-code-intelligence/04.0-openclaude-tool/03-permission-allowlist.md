@@ -22,7 +22,7 @@ repository under analysis, and a denial never corrupts budget accounting
 ## File: `aegis/openclaude/tool.py`
 
 ```python
-def _emit_tool_call(self, msg: AgentMessage, ctx: CodeContext) -> None:
+def _emit_tool_call(self, msg: AgentMessage, ctx: CodeContext):
     """Emit :class:`OpenClaudeToolCall` for a ``TOOL_CALL`` frame (C8).
 
     :param msg: The ``TOOL_CALL`` frame; ``msg.tool`` names the invoked tool.
@@ -30,7 +30,7 @@ def _emit_tool_call(self, msg: AgentMessage, ctx: CodeContext) -> None:
     """
     self._bus.publish(OpenClaudeToolCall(run_id=ctx.run_id, tool=msg.tool))
 
-def _emit_tool_result(self, msg: AgentMessage, ctx: CodeContext) -> None:
+def _emit_tool_result(self, msg: AgentMessage, ctx: CodeContext):
     """Emit :class:`OpenClaudeToolResult` for a ``TOOL_RESULT`` frame (C8).
 
     :param msg: The ``TOOL_RESULT`` frame.
@@ -38,7 +38,7 @@ def _emit_tool_result(self, msg: AgentMessage, ctx: CodeContext) -> None:
     """
     self._bus.publish(OpenClaudeToolResult(run_id=ctx.run_id, tool=msg.tool))
 
-def _check_permission(self, msg: AgentMessage, ctx: CodeContext) -> None:
+def _check_permission(self, msg: AgentMessage, ctx: CodeContext):
     """Allow an allowlisted ``PERMISSION_REQ``; deny anything else.
 
     Auto-approval is implicit: an allowlisted command returns and stream

@@ -11,7 +11,9 @@ from types import SimpleNamespace
 from typing import Any
 from unittest import mock
 
+import botocore.exceptions
 import pytest
+from loguru import logger
 
 from aegis_swr.backends.ai import create_ai_backend
 from aegis_swr.backends.ai.anthropic_provider import AnthropicBackend
@@ -25,6 +27,7 @@ from aegis_swr.config.settings import (
 )
 from aegis_swr.core.exceptions import AIBackendError, AIOutputValidationError
 from aegis_swr.core.schemas import Hypothesis
+from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
 # ---------------------------------------------------------------------------
 # Fake SDK response builders
@@ -683,7 +686,6 @@ async def test_bedrock_client_error_becomes_backend_error(
     On failure, first check: ``generate`` must raise ``AIBackendError`` carrying
     the ``ThrottlingException`` code.
     """
-    import botocore.exceptions
 
     backend, client = bedrock_backend
     client.converse = mock.MagicMock(
@@ -762,7 +764,6 @@ async def test_bedrock_client_error_codes_parametrized(monkeypatch: pytest.Monke
     On failure, first check: ``generate`` must raise ``AIBackendError`` matching the
     parametrized error code.
     """
-    import botocore.exceptions
 
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     client = mock.MagicMock()
@@ -790,7 +791,6 @@ async def test_bedrock_error_message_is_sanitised(monkeypatch: pytest.MonkeyPatc
     On failure, first check: the raised ``AIBackendError`` must contain the code but
     never the secret fragment.
     """
-    import botocore.exceptions
 
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     secret_fragment = "sk-secret-ABCDEF1234567890"
@@ -861,8 +861,6 @@ def test_bedrock_bearer_hook_does_not_log_token(monkeypatch: pytest.MonkeyPatch,
     ``bearer-token`` auth-mode label is present.
     """
 
-    from loguru import logger
-
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "super-secret-bearer-xyz9876")
     log_records: list[str] = []
 
@@ -895,7 +893,6 @@ async def test_bedrock_stream_interruption_raises_backend_error(
     On failure, first check: iterating ``stream`` must raise ``AIBackendError``
     matching ``ReadTimeoutError``.
     """
-    import botocore.exceptions
 
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "t")
     client = mock.MagicMock()
@@ -908,7 +905,7 @@ async def test_bedrock_stream_interruption_raises_backend_error(
     class _FaultingIterator:
         """Iterator that yields one text event, then raises ``ReadTimeoutError``."""
 
-        def __init__(self) -> None:
+        def __init__(self):
             """Initialise the yielded-event counter."""
             self._count = 0
 
@@ -1144,7 +1141,6 @@ def test_mock_backend_has_reasoning_defaults_false():
 
     On failure, first check: ``has_reasoning`` must be False by default.
     """
-    from tests.unit.fixtures.mock_ai_backend import MockAIBackend
 
     assert MockAIBackend().has_reasoning is False
 

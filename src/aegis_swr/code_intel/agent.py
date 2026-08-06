@@ -23,7 +23,7 @@ class CodeAgent:
         when code intelligence is unavailable in this deployment.
     """
 
-    def __init__(self, backend: Optional[CodeIntelBackend] = None) -> None:
+    def __init__(self, backend: Optional[CodeIntelBackend] = None):
         """Construct the agent.
 
         :param backend: The code backend to delegate to, or ``None`` to run in

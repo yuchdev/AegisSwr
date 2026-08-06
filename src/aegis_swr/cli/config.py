@@ -106,7 +106,7 @@ def _dig(data: Mapping[str, Any], path: str) -> Any:
     return node
 
 
-def _bury(root: dict[str, Any], path: str, value: Any) -> None:
+def _bury(root: dict[str, Any], path: str, value: Any):
     """Set *value* at a dotted *path* in *root*, creating intermediate dicts."""
     parts = path.split(".")
     node = root
@@ -337,7 +337,7 @@ def load_analyze_config(path: Optional[Path] = None) -> dict[str, Any]:
     return _flatten_sections(data)
 
 
-def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> None:
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]):
     """Recursively merge *override* into *base* in-place."""
     for k, v in override.items():
         if isinstance(v, dict) and isinstance(base.get(k), dict):
@@ -350,7 +350,7 @@ def save_analyze_config(
     opts: Mapping[str, Any],
     path: Optional[Path] = None,
     extra: Optional[dict[str, Any]] = None,
-) -> None:
+):
     """Write *opts* (filtered to known keys) to the JSON config file.
 
     :param opts: Mapping of analyze config keys (AnalyzeConfig fields) to save.

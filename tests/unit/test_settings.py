@@ -1,6 +1,8 @@
 import pytest
+from loguru import logger
 from pydantic import ValidationError
 
+from aegis_swr.agents.registry import AGENT_REGISTRY
 from aegis_swr.config.settings import (
     AISettings,
     AnthropicSettings,
@@ -481,7 +483,6 @@ def test_legacy_flat_keys_emit_warning():
         - Recent changes in code paths exercised by settings
     """
     records: list[str] = []
-    from loguru import logger
 
     sink_id = logger.add(records.append, level="WARNING")
     try:
@@ -560,15 +561,10 @@ def test_weight_is_declared_by_each_agent():
         - Whether a concrete agent is missing its default_weight ClassVar
         - Recent changes in code paths exercised by the agent registry
     """
-    from aegis_swr.agents.registry import AGENT_REGISTRY
 
     weights = {key: cls.default_weight for key, cls in AGENT_REGISTRY.items()}
     assert all(isinstance(w, float) for w in weights.values())
     # The four built-in base agents (the default back-compat panel) sum to 1.0;
     # fault-gated forensic specialists are excluded from that invariant.
-    base_weights = {
-        key: cls.default_weight
-        for key, cls in AGENT_REGISTRY.items()
-        if cls.category == "base"
-    }
+    base_weights = {key: cls.default_weight for key, cls in AGENT_REGISTRY.items() if cls.category == "base"}
     assert sum(base_weights.values()) == pytest.approx(1.0)

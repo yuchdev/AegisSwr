@@ -166,7 +166,7 @@ def _log_only_source() -> IncidentSource:
 
 async def test_stream_events_default_panel_preserves_prerefactor_order_and_publishes_panel_resolved(
     settings: Settings,
-) -> None:
+):
     """[Integration] orchestrator dynamic panel: The default 4-agent auto-selected panel is byte-identical to the pre-refactor chain.
 
     Scenario: the behavior described in the summary is exercised.
@@ -269,7 +269,7 @@ async def test_stream_events_default_panel_preserves_prerefactor_order_and_publi
 async def test_explicit_five_agent_panel_respects_priority_order_and_weight_tiers(
     settings: Settings,
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Integration] orchestrator dynamic panel: An explicit 5-agent panel runs in priority order with two-tier weight resolution.
 
     Scenario: the behavior described in the summary is exercised.
@@ -372,7 +372,7 @@ async def test_explicit_five_agent_panel_respects_priority_order_and_weight_tier
 
 async def test_large_max_debate_rounds_completes_without_graph_recursion_error(
     settings: Settings,
-) -> None:
+):
     """[Integration] orchestrator dynamic panel: The (len(panel)+2)*max_rounds+5 budget prevents GraphRecursionError.
 
     Scenario: the behavior described in the summary is exercised.

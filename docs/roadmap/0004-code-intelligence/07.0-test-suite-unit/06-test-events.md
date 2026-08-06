@@ -53,32 +53,32 @@ def _instance(cls):
 
 
 @pytest.mark.parametrize("cls", ALL_EVENT_TYPES)
-def test_event_instantiates(cls) -> None:
+def test_event_instantiates(cls):
     """Each of the seven event classes constructs without error (keyword-only)."""
 
 @pytest.mark.parametrize("cls", ALL_EVENT_TYPES)
-def test_event_is_frozen(cls) -> None:
+def test_event_is_frozen(cls):
     """Mutating any field raises dataclasses.FrozenInstanceError (frozen=True)."""
 
 @pytest.mark.parametrize("cls", ALL_EVENT_TYPES)
-def test_event_carries_run_id_timestamp_and_event_type(cls) -> None:
+def test_event_carries_run_id_timestamp_and_event_type(cls):
     """Each instance exposes run_id, a UTC timestamp, and a ClassVar event_type sentinel."""
 
 @pytest.mark.parametrize("cls", ALL_EVENT_TYPES)
-def test_event_type_sentinel_matches_c8(cls) -> None:
+def test_event_type_sentinel_matches_c8(cls):
     """event_type equals the C8 string (e.g. 'openclaude.connected')."""
 
 @pytest.mark.parametrize("cls", ALL_EVENT_TYPES)
-def test_event_round_trips_through_bus(cls, mock_event_bus) -> None:
+def test_event_round_trips_through_bus(cls, mock_event_bus):
     """Emitting the event puts exactly that instance on mock_event_bus.captured."""
 
-def test_stream_completed_carries_token_estimate_and_frame_counts() -> None:
+def test_stream_completed_carries_token_estimate_and_frame_counts():
     """OpenClaudeStreamCompleted carries token_estimate + frame/tool-call counts correctly."""
 
-def test_only_stream_completed_carries_token_estimate() -> None:
+def test_only_stream_completed_carries_token_estimate():
     """No other of the seven events has a token_estimate field (C8 non-duplication)."""
 
-def test_no_event_has_any_typed_field() -> None:
+def test_no_event_has_any_typed_field():
     """No event field is annotated `Any` and none carries raw payload/response text (C9)."""
 ```
 

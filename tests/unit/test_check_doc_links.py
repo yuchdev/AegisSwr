@@ -36,7 +36,7 @@ cdl = _load()
         ("Tasks", "tasks"),
     ],
 )
-def test_slugify_matches_github(heading: str, slug: str) -> None:
+def test_slugify_matches_github(heading: str, slug: str):
     """
     [Unit] check doc links: verifies slugify matches github.
 
@@ -58,7 +58,7 @@ def test_slugify_matches_github(heading: str, slug: str) -> None:
     assert cdl.slugify(heading) == slug
 
 
-def test_duplicate_headings_get_suffixed_anchors(tmp_path: Path) -> None:
+def test_duplicate_headings_get_suffixed_anchors(tmp_path: Path):
     """
     [Unit] check doc links: verifies duplicate headings get suffixed anchors.
 
@@ -82,7 +82,7 @@ def test_duplicate_headings_get_suffixed_anchors(tmp_path: Path) -> None:
     assert cdl.heading_anchors(doc) == {"tasks", "tasks-1", "tasks-2"}
 
 
-def test_valid_links_pass(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_valid_links_pass(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """
     [Unit] check doc links: verifies valid links pass.
 
@@ -111,7 +111,7 @@ def test_valid_links_pass(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
     assert cdl.check_file(src) == []
 
 
-def test_dangling_file_and_missing_anchor_fail(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dangling_file_and_missing_anchor_fail(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """
     [Unit] check doc links: verifies dangling file and missing anchor fail.
 
@@ -144,7 +144,7 @@ def test_dangling_file_and_missing_anchor_fail(tmp_path: Path, monkeypatch: pyte
     assert any("missing" in p for p in problems)
 
 
-def test_skips_urls_templates_and_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_skips_urls_templates_and_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """
     [Unit] check doc links: verifies skips urls templates and code.
 

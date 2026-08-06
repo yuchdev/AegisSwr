@@ -36,7 +36,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_query_yields_text_chunk_then_done(
     live_grpc_client: OpenClaudeGrpcClient,
-) -> None:
+):
     """A real query returns a non-empty terminal DONE preceded by >=1 TEXT_CHUNK."""
     run_id = str(uuid.uuid4())
     prompt = "Find the function named compute_checksum and report the file it lives in."
@@ -53,7 +53,7 @@ async def test_query_yields_text_chunk_then_done(
 
 async def test_health_check_true_against_live_process(
     live_grpc_client: OpenClaudeGrpcClient,
-) -> None:
+):
     """health_check() returns True against the running sidecar."""
     assert await live_grpc_client.health_check() is True
     ...

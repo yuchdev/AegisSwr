@@ -49,19 +49,19 @@ def now_iso() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def append_log(filename: str, line: str) -> None:
+def append_log(filename: str, line: str):
     """Append a single timestamped line to a file under .claude/logs/."""
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     with (LOG_DIR / filename).open("a", encoding="utf-8") as fh:
         fh.write(f"{now_iso()} {line}\n")
 
 
-def emit_json(payload: dict[str, Any]) -> None:
+def emit_json(payload: dict[str, Any]):
     """Write a single compact JSON payload to stdout."""
     sys.stdout.write(json.dumps(payload, separators=(",", ":")))
 
 
-def deny(message: str) -> None:
+def deny(message: str):
     """Deny a pre-tool action using Copilot's JSON decision format."""
     emit_json(
         {
@@ -72,17 +72,17 @@ def deny(message: str) -> None:
     sys.exit(0)
 
 
-def block_turn(reason: str) -> None:
+def block_turn(reason: str):
     """Force the agent to continue by blocking a Stop/agentStop hook."""
     emit_json({"decision": "block", "reason": reason.rstrip()})
     sys.exit(0)
 
 
-def additional_context(message: str) -> None:
+def additional_context(message: str):
     """Inject additional context into the current Copilot turn."""
     emit_json({"additionalContext": message.rstrip()})
     sys.exit(0)
 
 
-def allow() -> None:
+def allow():
     sys.exit(0)

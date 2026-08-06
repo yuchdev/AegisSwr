@@ -9,6 +9,7 @@ brief is threaded into a Bedrock prompt, and the mocked Converse response is
 parsed back into a validated structured object - the same contract the
 orchestrator relies on.
 """
+
 from __future__ import annotations
 
 import json
@@ -23,9 +24,10 @@ import pytest
 from aegis_swr.backends.ai import create_ai_backend
 from aegis_swr.backends.ai.aws_bedrock_provider import AwsBedrockBackend
 from aegis_swr.config.settings import AISettings, Settings
+from aegis_swr.core.data_adapter import DataAdapter
 from aegis_swr.core.exceptions import AIBackendError
 from aegis_swr.core.fault_codes import FaultClass
-from aegis_swr.core.schemas import IncidentMode, IncidentSource, OSKernelOutput
+from aegis_swr.core.schemas import Hypothesis, IncidentMode, IncidentSource, OSKernelOutput
 from tests.unit.fixtures.mock_debug_backend import MockDebugBackend, default_extraction
 
 FIXTURES = Path(__file__).parent.parent / "unit" / "fixtures"
@@ -118,7 +120,6 @@ async def test_adapter_to_bedrock_backend_structured(
     # The Data Adapter requires the optional ``pii`` extra (presidio); skip the
     # adapter-coupled assertions when it is not installed.
     pytest.importorskip("presidio_analyzer")
-    from aegis_swr.core.data_adapter import DataAdapter
 
     source = IncidentSource(
         mode=IncidentMode.CRASH_DUMP,
@@ -126,26 +127,16 @@ async def test_adapter_to_bedrock_backend_structured(
         log_paths=[str(FIXTURES / "sample_logs_with_pii.txt")],
     )
     adapter = DataAdapter(settings)
-    brief = await adapter.process(
-        source, debug_backend=MockDebugBackend(default_extraction())
-    )
+    brief = await adapter.process(source, debug_backend=MockDebugBackend(default_extraction()))
 
     converse_return = {
-        "output": {
-            "message": {
-                "content": [
-                    {"toolUse": {"name": "structured_output", "input": _os_kernel_payload()}}
-                ]
-            }
-        },
+        "output": {"message": {"content": [{"toolUse": {"name": "structured_output", "input": _os_kernel_payload()}}]}},
         "usage": {"inputTokens": 1200, "outputTokens": 150},
         "stopReason": "tool_use",
     }
     backend, client = _make_backend(monkeypatch, converse_return=converse_return)
 
-    result = await backend.generate(
-        "You are the OS Kernel Agent.", _brief_to_messages(brief), OSKernelOutput
-    )
+    result = await backend.generate("You are the OS Kernel Agent.", _brief_to_messages(brief), OSKernelOutput)
 
     assert isinstance(result, OSKernelOutput)
     assert result.exception_summary.fault_class == FaultClass.MEMORY_ACCESS_VIOLATION
@@ -161,9 +152,7 @@ async def test_adapter_to_bedrock_backend_structured(
     assert "alice@example.com" not in (brief.log_summary or "")
 
 
-async def test_adapter_to_bedrock_backend_stream(
-    settings: Settings, monkeypatch: pytest.MonkeyPatch
-):
+async def test_adapter_to_bedrock_backend_stream(settings: Settings, monkeypatch: pytest.MonkeyPatch):
     """
     [Integration] bedrock integration: verifies adapter to bedrock backend stream.
 
@@ -183,7 +172,6 @@ async def test_adapter_to_bedrock_backend_stream(
         - Recent changes in code paths exercised by bedrock integration
     """
     pytest.importorskip("presidio_analyzer")
-    from aegis_swr.core.data_adapter import DataAdapter
 
     source = IncidentSource(
         mode=IncidentMode.LOG_FORENSICS,
@@ -281,16 +269,11 @@ async def test_bedrock_structured_retry_end_to_end(
 
     On failure, first check: first stubbed converse returns an invalid structured payload, second returns a.
     """
-    from aegis_swr.core.schemas import Hypothesis
 
     # First call: toolUse input missing required `confidence` field.
     first_response = {
         "output": {
-            "message": {
-                "content": [
-                    {"toolUse": {"name": "structured_output", "input": {"root_cause": "uaf"}}}
-                ]
-            }
+            "message": {"content": [{"toolUse": {"name": "structured_output", "input": {"root_cause": "uaf"}}}]}
         },
         "usage": {"inputTokens": 200, "outputTokens": 50},
         "stopReason": "tool_use",
@@ -346,7 +329,6 @@ async def test_bedrock_pii_never_reaches_request(
     On failure, first check: drive an IncidentSource carrying PII through the adapter (when presidio is.
     """
     pytest.importorskip("presidio_analyzer")
-    from aegis_swr.core.data_adapter import DataAdapter
 
     pii_log_path = str(FIXTURES / "sample_logs_with_pii.txt")
     source = IncidentSource(
@@ -373,8 +355,6 @@ async def test_bedrock_pii_never_reaches_request(
     # Read the known PII strings from the fixture file.
     fixture_text = Path(pii_log_path).read_text(encoding="utf-8")
     # alice@example.com is the canonical PII address in the sample fixture.
-    assert "alice@example.com" not in submitted_text, (
-        "Raw PII email found in Converse request body"
-    )
+    assert "alice@example.com" not in submitted_text, "Raw PII email found in Converse request body"
     # The fixture content itself contains PII to make the assertion meaningful.
     assert "alice@example.com" in fixture_text

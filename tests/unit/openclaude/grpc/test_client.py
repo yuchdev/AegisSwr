@@ -40,7 +40,7 @@ def _msg(frame_type: int, content: str = "", tool: str = "") -> SimpleNamespace:
 class _FakeStreamCall:
     """Async iterator over a scripted frame sequence (mimics a gRPC stream call)."""
 
-    def __init__(self, frames: list[SimpleNamespace]) -> None:
+    def __init__(self, frames: list[SimpleNamespace]):
         """Store an iterator over the scripted *frames*."""
         self._it = iter(frames)
 
@@ -59,7 +59,7 @@ class _FakeStreamCall:
 class _FakeMultiCallable:
     """Callable returned by ``channel.unary_stream``; yields a scripted call."""
 
-    def __init__(self, frames: list[SimpleNamespace]) -> None:
+    def __init__(self, frames: list[SimpleNamespace]):
         """Store the scripted *frames* and initialise the recorded timeout."""
         self._frames = frames
         self.timeout: Optional[float] = None
@@ -73,7 +73,7 @@ class _FakeMultiCallable:
 class _FakeChannel:
     """Minimal async gRPC channel double supporting ``unary_stream`` and ``close``."""
 
-    def __init__(self, frames: Optional[list[SimpleNamespace]] = None) -> None:
+    def __init__(self, frames: Optional[list[SimpleNamespace]] = None):
         """Store the scripted *frames* and initialise the close counter."""
         self._frames = frames or []
         self.close_calls = 0
@@ -82,7 +82,7 @@ class _FakeChannel:
         """Return a multicallable that yields the scripted frames."""
         return _FakeMultiCallable(self._frames)
 
-    async def close(self, grace: Optional[float] = None) -> None:
+    async def close(self, grace: Optional[float] = None):
         """Record a channel close call."""
         self.close_calls += 1
 
@@ -99,7 +99,7 @@ def _rpc_error(code: grpc.StatusCode) -> grpc.aio.AioRpcError:
 class _RaisingStreamCall:
     """Async iterator whose first ``__anext__`` raises a gRPC status error."""
 
-    def __init__(self, error: grpc.aio.AioRpcError) -> None:
+    def __init__(self, error: grpc.aio.AioRpcError):
         """Store the *error* to raise on first iteration."""
         self._error = error
 
@@ -115,7 +115,7 @@ class _RaisingStreamCall:
 class _RaisingChannel:
     """Channel double whose stream fails immediately with a gRPC status error."""
 
-    def __init__(self, error: grpc.aio.AioRpcError) -> None:
+    def __init__(self, error: grpc.aio.AioRpcError):
         """Store the *error* raised by the stream and initialise the close counter."""
         self._error = error
         self.close_calls = 0
@@ -129,7 +129,7 @@ class _RaisingChannel:
 
         return _call
 
-    async def close(self, grace: Optional[float] = None) -> None:
+    async def close(self, grace: Optional[float] = None):
         """Record a channel close call."""
         self.close_calls += 1
 
@@ -150,7 +150,7 @@ class _SlowStreamCall:
 class _SlowChannel:
     """Channel double whose stream hangs indefinitely."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialise the close counter."""
         self.close_calls = 0
 
@@ -163,7 +163,7 @@ class _SlowChannel:
 
         return _call
 
-    async def close(self, grace: Optional[float] = None) -> None:
+    async def close(self, grace: Optional[float] = None):
         """Record a channel close call."""
         self.close_calls += 1
 
@@ -183,7 +183,7 @@ class _RuntimeErrorStreamCall:
 class _RuntimeErrorChannel:
     """Channel double whose stream fails with an unexpected (non-gRPC) error."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialise the close counter."""
         self.close_calls = 0
 
@@ -196,7 +196,7 @@ class _RuntimeErrorChannel:
 
         return _call
 
-    async def close(self, grace: Optional[float] = None) -> None:
+    async def close(self, grace: Optional[float] = None):
         """Record a channel close call."""
         self.close_calls += 1
 
@@ -227,7 +227,7 @@ async def _drain(client: OpenClaudeGrpcClient) -> list[AgentFrame]:
     return [frame async for frame in client.query("prompt", run_id="run-1")]
 
 
-async def test_multi_frame_stream_ends_in_done() -> None:
+async def test_multi_frame_stream_ends_in_done():
     """[Unit] client: a text stream ending in DONE yields every frame in order.
 
     Scenario: two text chunks followed by a DONE frame are drained via ``query``.
@@ -256,7 +256,7 @@ async def test_multi_frame_stream_ends_in_done() -> None:
     assert frames[-1].content == "hello world"
 
 
-async def test_stream_ends_in_error_frame() -> None:
+async def test_stream_ends_in_error_frame():
     """[Unit] client: a stream ending in an ERROR frame yields it last.
 
     Scenario: a text chunk followed by an ERROR frame is drained via ``query``.
@@ -281,7 +281,7 @@ async def test_stream_ends_in_error_frame() -> None:
     assert frames[-1].content == "boom"
 
 
-async def test_query_stops_after_first_terminal_frame() -> None:
+async def test_query_stops_after_first_terminal_frame():
     """[Unit] client: frames after the first terminal DONE are not yielded.
 
     Scenario: a DONE frame is followed by a stray text chunk in the script.
@@ -305,7 +305,7 @@ async def test_query_stops_after_first_terminal_frame() -> None:
     assert frames[0].frame_type is FrameKind.DONE
 
 
-async def test_empty_tool_string_projects_to_none() -> None:
+async def test_empty_tool_string_projects_to_none():
     """[Unit] client: an empty proto ``tool`` string projects to ``None``.
 
     Scenario: a TOOL_CALL frame carries an empty ``tool`` string, followed by DONE.
@@ -329,7 +329,7 @@ async def test_empty_tool_string_projects_to_none() -> None:
     assert frames[0].tool is None
 
 
-async def test_populated_tool_string_preserved() -> None:
+async def test_populated_tool_string_preserved():
     """[Unit] client: a non-empty proto ``tool`` string is preserved.
 
     Scenario: a TOOL_CALL frame carries ``tool="Read"``, followed by DONE.
@@ -351,7 +351,7 @@ async def test_populated_tool_string_preserved() -> None:
     assert frames[0].tool == "Read"
 
 
-async def test_unspecified_frame_type_is_terminal_error() -> None:
+async def test_unspecified_frame_type_is_terminal_error():
     """[Unit] client: a FRAME_TYPE_UNSPECIFIED frame raises rather than dropping.
 
     Scenario: a single unspecified-type frame is drained via ``query``.
@@ -367,7 +367,7 @@ async def test_unspecified_frame_type_is_terminal_error() -> None:
         await _drain(client)
 
 
-async def test_stream_without_terminal_frame_raises() -> None:
+async def test_stream_without_terminal_frame_raises():
     """[Unit] client: a stream ending without DONE/ERROR is a transport failure.
 
     Scenario: a lone text chunk with no terminal frame is drained via ``query``.
@@ -383,7 +383,7 @@ async def test_stream_without_terminal_frame_raises() -> None:
         await _drain(client)
 
 
-async def test_close_idempotent_and_closes_channel() -> None:
+async def test_close_idempotent_and_closes_channel():
     """[Unit] client: ``close()`` shuts the channel once and is safe to repeat.
 
     Scenario: ``close`` is called twice on a client bound to a fake channel.
@@ -401,7 +401,7 @@ async def test_close_idempotent_and_closes_channel() -> None:
     assert channel.close_calls == 1
 
 
-async def test_close_safe_when_channel_never_opened() -> None:
+async def test_close_safe_when_channel_never_opened():
     """[Unit] client: ``close()`` is a no-op when no channel was created.
 
     Scenario: ``close`` is called on a cold client constructed from settings.
@@ -418,7 +418,7 @@ async def test_close_safe_when_channel_never_opened() -> None:
     assert client._channel is None
 
 
-def test_init_does_not_open_channel() -> None:
+def test_init_does_not_open_channel():
     """[Unit] client: constructing from settings creates neither channel nor stub.
 
     Scenario: a client is built from settings with no injected channel.
@@ -434,7 +434,7 @@ def test_init_does_not_open_channel() -> None:
     assert client._stub is None
 
 
-def test_from_channel_bypasses_lazy_creation() -> None:
+def test_from_channel_bypasses_lazy_creation():
     """[Unit] client: ``from_channel`` binds the channel and builds the stub eagerly.
 
     Scenario: a client is built via ``from_channel`` with a fake channel.
@@ -453,7 +453,7 @@ def test_from_channel_bypasses_lazy_creation() -> None:
 
 def test_ensure_channel_uses_insecure_when_tls_disabled(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] client: ``_ensure_channel`` picks insecure when ``use_tls`` is False.
 
     Scenario: both channel constructors are mocked and ``_ensure_channel`` runs
@@ -478,7 +478,7 @@ def test_ensure_channel_uses_insecure_when_tls_disabled(
 
 def test_ensure_channel_uses_secure_when_tls_enabled(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] client: ``_ensure_channel`` picks secure when ``use_tls`` is True.
 
     Scenario: both channel constructors are mocked and ``_ensure_channel`` runs
@@ -501,7 +501,7 @@ def test_ensure_channel_uses_secure_when_tls_enabled(
     insecure.assert_not_called()
 
 
-def test_ensure_channel_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ensure_channel_is_idempotent(monkeypatch: pytest.MonkeyPatch):
     """[Unit] client: repeated ``_ensure_channel`` calls reuse channel and stub.
 
     Scenario: the insecure constructor is mocked and ``_ensure_channel`` is called
@@ -523,7 +523,7 @@ def test_ensure_channel_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
     insecure.assert_called_once()
 
 
-async def test_context_manager_closes_channel() -> None:
+async def test_context_manager_closes_channel():
     """[Unit] client: the async context manager closes the channel on exit.
 
     Scenario: a client is used as an ``async with`` context and then inspected.
@@ -544,7 +544,7 @@ async def test_context_manager_closes_channel() -> None:
 # --- subtask 04: health_check(), timeouts, and status translation -----------
 
 
-async def test_health_check_true_on_terminal_done() -> None:
+async def test_health_check_true_on_terminal_done():
     """[Unit] client: ``health_check`` returns True when the probe ends in DONE.
 
     Scenario: a probe stream yields a text chunk then a DONE frame.
@@ -559,7 +559,7 @@ async def test_health_check_true_on_terminal_done() -> None:
     assert await client.health_check() is True
 
 
-async def test_health_check_false_on_unavailable() -> None:
+async def test_health_check_false_on_unavailable():
     """[Unit] client: ``health_check`` returns False (never raises) on UNAVAILABLE.
 
     Scenario: the probe stream raises a gRPC UNAVAILABLE status error.
@@ -574,7 +574,7 @@ async def test_health_check_false_on_unavailable() -> None:
     assert await client.health_check() is False
 
 
-async def test_health_check_false_on_deadline_exceeded() -> None:
+async def test_health_check_false_on_deadline_exceeded():
     """[Unit] client: ``health_check`` returns False on DEADLINE_EXCEEDED.
 
     Scenario: the probe stream raises a gRPC DEADLINE_EXCEEDED status error.
@@ -589,7 +589,7 @@ async def test_health_check_false_on_deadline_exceeded() -> None:
     assert await client.health_check() is False
 
 
-async def test_health_check_false_on_timeout() -> None:
+async def test_health_check_false_on_timeout():
     """[Unit] client: a probe that never answers within the deadline yields False.
 
     Scenario: a slow channel never yields; the connect timeout is shrunk to 0.05s.
@@ -606,7 +606,7 @@ async def test_health_check_false_on_timeout() -> None:
     assert await client.health_check() is False
 
 
-async def test_health_check_false_on_terminal_error_frame() -> None:
+async def test_health_check_false_on_terminal_error_frame():
     """[Unit] client: a terminal ERROR frame during a probe yields False.
 
     Scenario: the probe stream ends in an ERROR frame rather than DONE.
@@ -621,7 +621,7 @@ async def test_health_check_false_on_terminal_error_frame() -> None:
     assert await client.health_check() is False
 
 
-async def test_health_check_false_on_unspecified_frame() -> None:
+async def test_health_check_false_on_unspecified_frame():
     """[Unit] client: a protocol-violating unspecified frame during a probe yields False.
 
     Scenario: the probe stream yields a single unspecified-type frame.
@@ -637,7 +637,7 @@ async def test_health_check_false_on_unspecified_frame() -> None:
     assert await client.health_check() is False
 
 
-async def test_health_check_false_on_stream_without_terminal_frame() -> None:
+async def test_health_check_false_on_stream_without_terminal_frame():
     """[Unit] client: a probe stream ending without DONE/ERROR yields False.
 
     Scenario: the probe stream yields only a partial text chunk.
@@ -656,7 +656,7 @@ async def test_health_check_false_on_stream_without_terminal_frame() -> None:
     "code",
     [grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED],
 )
-async def test_query_raises_retriable_on_transient_status(code: grpc.StatusCode) -> None:
+async def test_query_raises_retriable_on_transient_status(code: grpc.StatusCode):
     """[Unit] client: ``query`` maps transient status to a retriable domain error.
 
     Scenario: the stream raises UNAVAILABLE or DEADLINE_EXCEEDED while draining.
@@ -676,7 +676,7 @@ async def test_query_raises_retriable_on_transient_status(code: grpc.StatusCode)
     assert excinfo.value.status_code == code.name
 
 
-async def test_query_raises_non_retriable_on_other_status() -> None:
+async def test_query_raises_non_retriable_on_other_status():
     """[Unit] client: a non-transient status maps to a non-retriable domain error.
 
     Scenario: the stream raises PERMISSION_DENIED while draining.
@@ -696,7 +696,7 @@ async def test_query_raises_non_retriable_on_other_status() -> None:
     assert excinfo.value.status_code == grpc.StatusCode.PERMISSION_DENIED.name
 
 
-async def test_terminal_error_frame_is_yielded_not_raised() -> None:
+async def test_terminal_error_frame_is_yielded_not_raised():
     """[Unit] client: an ERROR *frame* is surfaced as an AgentFrame, not raised.
 
     Scenario: a text chunk followed by an ERROR frame is drained via ``query``.
@@ -716,7 +716,7 @@ async def test_terminal_error_frame_is_yielded_not_raised() -> None:
     assert isinstance(frames[-1], AgentFrame)
 
 
-def test_request_deadline_uses_request_timeout_s() -> None:
+def test_request_deadline_uses_request_timeout_s():
     """[Unit] client: ``_request_deadline`` returns ``request_timeout_s`` verbatim.
 
     Scenario: a client is built with distinct connect and request timeouts.
@@ -732,7 +732,7 @@ def test_request_deadline_uses_request_timeout_s() -> None:
     assert client._request_deadline() == settings.request_timeout_s == 42
 
 
-async def test_query_passes_request_deadline_to_rpc() -> None:
+async def test_query_passes_request_deadline_to_rpc():
     """[Unit] client: ``query`` passes the per-request deadline to the RPC timeout.
 
     Scenario: a client with ``request_timeout_s=77`` drains a DONE-only stream.
@@ -751,7 +751,7 @@ async def test_query_passes_request_deadline_to_rpc() -> None:
     assert client._stub.Query.timeout == 77
 
 
-async def test_health_check_logs_no_probe_or_response_text() -> None:
+async def test_health_check_logs_no_probe_or_response_text():
     """[Unit] client: no probe prompt or response text reaches a DEBUG sink.
 
     Scenario: a UNAVAILABLE probe runs with a DEBUG log sink attached; the
@@ -779,7 +779,7 @@ async def test_health_check_logs_no_probe_or_response_text() -> None:
     assert any("UNAVAILABLE" in line for line in records)
 
 
-async def test_health_check_false_on_unexpected_probe_exception() -> None:
+async def test_health_check_false_on_unexpected_probe_exception():
     """[Unit] client: ``health_check`` swallows an unexpected probe error.
 
     Scenario: the probe stream raises a non-gRPC ``RuntimeError``.
@@ -798,7 +798,7 @@ async def test_health_check_false_on_unexpected_probe_exception() -> None:
 
 async def test_health_check_false_when_cold_channel_creation_raises(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] client: a cold client whose channel creation raises yields False.
 
     Scenario: the insecure channel constructor is patched to raise; a cold client
@@ -823,7 +823,7 @@ async def test_health_check_false_when_cold_channel_creation_raises(
 
 def test_ensure_channel_warns_on_plaintext_to_remote_host(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] client: a non-loopback insecure endpoint emits a cleartext WARNING.
 
     Scenario: an insecure client bound to a remote host runs ``_ensure_channel``
@@ -856,7 +856,7 @@ def test_ensure_channel_warns_on_plaintext_to_remote_host(
 def test_ensure_channel_no_plaintext_warning_for_loopback(
     host: str,
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] client: a loopback insecure endpoint emits no cleartext WARNING.
 
     Scenario: an insecure client bound to a loopback host runs ``_ensure_channel``

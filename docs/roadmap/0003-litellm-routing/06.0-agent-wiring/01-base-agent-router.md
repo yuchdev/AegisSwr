@@ -35,7 +35,7 @@ class BaseAgent(ABC):
     :param bus: EventBus for emitting events.
     """
 
-    def __init__(self, router: ModelRouter, bus: EventBus) -> None:
+    def __init__(self, router: ModelRouter, bus: EventBus):
         self._router = router
         self._bus = bus
 

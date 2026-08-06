@@ -30,7 +30,7 @@ from loguru import logger
 class OpenClaudeProcess:
     # ... external-, managed-, and port-selection surface from subtasks 01–03 ...
 
-    def _start_stderr_forwarder(self) -> None:
+    def _start_stderr_forwarder(self):
         """Spawn the background task that drains the child's stderr.
 
         Creates an :class:`asyncio.Task` running :meth:`_forward_stderr` and
@@ -39,7 +39,7 @@ class OpenClaudeProcess:
         """
         ...
 
-    async def _forward_stderr(self) -> None:
+    async def _forward_stderr(self):
         """Read child stderr line-by-line and log each at ``DEBUG``.
 
         Loops over ``process.stderr.readline()`` until EOF, decoding each line
@@ -49,7 +49,7 @@ class OpenClaudeProcess:
         """
         ...
 
-    async def _stop_stderr_forwarder(self) -> None:
+    async def _stop_stderr_forwarder(self):
         """Cancel the forwarding task and await its clean shutdown.
 
         Idempotent; safe when the forwarder was never started (external mode) or

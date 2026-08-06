@@ -109,7 +109,7 @@ class OpenClaudeProcess:
         bus: EventBus,
         run_id: str,
         client: Optional[OpenClaudeGrpcClient] = None,
-    ) -> None:
+    ):
         """Store configuration; perform no I/O and start no process here.
 
         :param settings: Validated :class:`OpenClaudeSettings`.
@@ -248,7 +248,7 @@ class OpenClaudeProcess:
             await self._terminate_managed()
             raise
 
-    async def _start_managed(self) -> None:
+    async def _start_managed(self):
         """Launch the sidecar and block until its gRPC port is accepting.
 
         Builds and validates the argv (binary + allowlist flags + loopback bind
@@ -289,7 +289,7 @@ class OpenClaudeProcess:
             await self._terminate_managed()
             raise
 
-    def _start_stderr_forwarder(self) -> None:
+    def _start_stderr_forwarder(self):
         """Spawn the background task that drains the managed child's stderr.
 
         Creates an :class:`asyncio.Task` running :meth:`_forward_stderr` and
@@ -299,7 +299,7 @@ class OpenClaudeProcess:
         """
         self._stderr_task = asyncio.create_task(self._forward_stderr())
 
-    async def _forward_stderr(self) -> None:
+    async def _forward_stderr(self):
         """Read the child's stderr line-by-line and log each at ``DEBUG`` (C9).
 
         Loops over ``process.stderr.readline()`` until EOF (an empty ``bytes``),
@@ -345,7 +345,7 @@ class OpenClaudeProcess:
                 logger.debug("OpenClaude sidecar stderr drain: transient read error [run {}]: {}", self._run_id, exc)
                 continue
 
-    async def _stop_stderr_forwarder(self) -> None:
+    async def _stop_stderr_forwarder(self):
         """Cancel the stderr-forwarding task and await its clean shutdown.
 
         Idempotent: a no-op when the forwarder was never started (external mode,
@@ -532,7 +532,7 @@ class OpenClaudeProcess:
             )
         return host, int(port_text)
 
-    async def _await_port_open(self) -> None:
+    async def _await_port_open(self):
         """Poll the resolved loopback gRPC port until it accepts a TCP connect.
 
         Probes the same loopback ``host:port`` the sidecar was told to bind,
@@ -583,7 +583,7 @@ class OpenClaudeProcess:
             logger.debug("OpenClaude managed port probe close raced with the sidecar")
         return True
 
-    async def _terminate_managed(self) -> None:
+    async def _terminate_managed(self):
         """Terminate the owned subprocess: SIGTERM, grace wait, then SIGKILL.
 
         Operates only on the stored asyncio process handle - never ``os.kill``
@@ -618,7 +618,7 @@ class OpenClaudeProcess:
         exc_type: Optional[type[BaseException]],
         exc: Optional[BaseException],
         tb: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         """Exit the context, emitting :class:`OpenClaudeDisconnected` once.
 
         In managed mode the owned subprocess is terminated first

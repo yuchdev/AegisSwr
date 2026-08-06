@@ -24,13 +24,13 @@ class LiteLLMClient:
     :param provider_configs: Mapping of provider name to ProviderConfig.
     """
 
-    def __init__(self, provider_configs: dict[str, ProviderConfig]) -> None:
+    def __init__(self, provider_configs: dict[str, ProviderConfig]):
         self._configure_providers(provider_configs)
 
     def _configure_providers(
         self,
         providers: dict[str, ProviderConfig],
-    ) -> None:
+    ):
         """Set litellm API keys and base URLs for each configured provider.
 
         Called once at construction; not called again during the lifetime

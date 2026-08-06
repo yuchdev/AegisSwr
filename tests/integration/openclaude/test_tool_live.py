@@ -45,11 +45,11 @@ def _task(stub_project: Path) -> str:
 class _Recorder:
     """Capturing :class:`DomainEvent` subscriber."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Helper that provides init for the tool live tests."""
         self.events: list[DomainEvent] = []
 
-    def __call__(self, event: DomainEvent) -> None:
+    def __call__(self, event: DomainEvent):
         """Helper that provides call for the tool live tests."""
         self.events.append(event)
 
@@ -72,7 +72,7 @@ def _live_ctx() -> CodeTaskContext:
 async def test_delegate_returns_non_empty_result(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
-) -> None:
+):
     """[Integration] tool live: A live delegate over a real navigation task returns non-empty result text.
 
     Scenario: the behavior described in the summary is exercised.
@@ -90,7 +90,7 @@ async def test_delegate_returns_non_empty_result(
 async def test_stream_completed_carries_positive_token_estimate(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
-) -> None:
+):
     """[Integration] tool live: Exactly one ``OpenClaudeStreamCompleted`` is emitted with ``token_estimate > 0`` (C5).
 
     Scenario: the behavior described in the summary is exercised.
@@ -114,7 +114,7 @@ async def test_stream_completed_carries_positive_token_estimate(
 async def test_at_least_one_tool_call_emitted(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
-) -> None:
+):
     """[Integration] tool live: >=1 ``OpenClaudeToolCall`` proves real navigation, not an answer from priors.
 
     Scenario: the behavior described in the summary is exercised.

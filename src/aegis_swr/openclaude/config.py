@@ -139,7 +139,7 @@ class OpenClaudeSettings(BaseSettings):
     process_binary: str = Field(default="openclaude", validation_alias="OPENCLAUDE_BINARY")
     use_tls: bool = False
 
-    def __init__(self, **values: Any) -> None:
+    def __init__(self, **values: Any):
         """Construct the settings, surfacing :class:`OpenClaudeConfigError` directly.
 
         Pydantic wraps any ``ValueError`` raised inside a field validator into a

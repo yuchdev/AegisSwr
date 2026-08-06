@@ -33,7 +33,7 @@ _EXCEPTION_NAMES = [
 
 
 @pytest.mark.parametrize("name", _EVENT_NAMES + _EXCEPTION_NAMES)
-def test_public_symbol_resolves_from_top_level(name: str) -> None:
+def test_public_symbol_resolves_from_top_level(name: str):
     """[Unit] package api: Each of the ten public symbols resolves from ``aegis_swr.openclaude``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -46,7 +46,7 @@ def test_public_symbol_resolves_from_top_level(name: str) -> None:
     assert hasattr(package, name), f"{name} is not re-exported"
 
 
-def test_all_lists_exactly_the_public_symbols() -> None:
+def test_all_lists_exactly_the_public_symbols():
     """[Unit] package api: ``__all__`` names all seven events and all three exceptions, nothing more.
 
     Scenario: the behavior described in the summary is exercised.
@@ -59,7 +59,7 @@ def test_all_lists_exactly_the_public_symbols() -> None:
     assert set(package.__all__) == set(_EVENT_NAMES + _EXCEPTION_NAMES)
 
 
-def test_reexports_are_the_canonical_objects() -> None:
+def test_reexports_are_the_canonical_objects():
     """[Unit] package api: Re-exported symbols are identical to their defining-module objects.
 
     Scenario: the behavior described in the summary is exercised.
@@ -77,7 +77,7 @@ def test_reexports_are_the_canonical_objects() -> None:
         assert getattr(package, name) is getattr(exceptions, name)
 
 
-def test_grpc_bound_classes_not_reexported_at_top_level() -> None:
+def test_grpc_bound_classes_not_reexported_at_top_level():
     """[Unit] package api: C3: the ``grpc``-touching classes are not importable from the package root.
 
     Scenario: the behavior described in the summary is exercised.
@@ -91,7 +91,7 @@ def test_grpc_bound_classes_not_reexported_at_top_level() -> None:
         assert not hasattr(package, name), f"{name} must not be re-exported (C3)"
 
 
-def test_importing_package_pulls_in_no_grpc() -> None:
+def test_importing_package_pulls_in_no_grpc():
     """[Unit] package api: C3: ``import aegis_swr.openclaude`` leaves ``grpc`` out of ``sys.modules``.
 
     Scenario: the behavior described in the summary is exercised.

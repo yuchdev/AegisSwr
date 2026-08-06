@@ -59,27 +59,27 @@ def patched_create_subprocess(monkeypatch, fake_subprocess):
 
 async def test_external_mode_raises_when_health_check_fails(
     settings_no_grpc, mock_event_bus, mock_grpc_client,
-) -> None:
+):
     """auto_start=False + health_check()->False → __aenter__ raises OpenClaudeUnavailableError, no connect event."""
 
 async def test_external_mode_success_emits_connected_once(
     settings_with_grpc, mock_event_bus, mock_grpc_client,
-) -> None:
+):
     """auto_start=False + healthy endpoint → exactly one OpenClaudeConnected; grpc_url readable inside block."""
 
 async def test_external_mode_never_spawns_subprocess(
     settings_with_grpc, mock_event_bus, mock_grpc_client, monkeypatch,
-) -> None:
+):
     """External mode never calls asyncio.create_subprocess_exec."""
 
 async def test_grpc_url_before_enter_raises_runtime_error(
     settings_with_grpc, mock_event_bus, mock_grpc_client,
-) -> None:
+):
     """Reading .grpc_url before __aenter__ raises RuntimeError (programming error)."""
 
 async def test_external_mode_disconnected_emitted_once_on_clean_exit(
     settings_with_grpc, mock_event_bus, mock_grpc_client,
-) -> None:
+):
     """Clean __aexit__ emits exactly one OpenClaudeDisconnected in external mode."""
 
 
@@ -87,27 +87,27 @@ async def test_external_mode_disconnected_emitted_once_on_clean_exit(
 
 async def test_managed_mode_terminates_subprocess_on_clean_exit(
     mock_event_bus, mock_grpc_client, patched_create_subprocess, fake_subprocess,
-) -> None:
+):
     """auto_start=True, normal exit → SIGTERM sent, process reaped, no SIGKILL needed."""
 
 async def test_managed_mode_sigkill_after_grace_period(
     mock_event_bus, mock_grpc_client, patched_create_subprocess, fake_subprocess,
-) -> None:
+):
     """A process that ignores SIGTERM is SIGKILLed after the grace period and reaped."""
 
 async def test_managed_mode_connected_and_disconnected_each_once(
     mock_event_bus, mock_grpc_client, patched_create_subprocess, fake_subprocess,
-) -> None:
+):
     """One full context cycle emits exactly one Connected and one Disconnected."""
 
 async def test_managed_mode_terminates_when_entry_raises_after_port_open(
     mock_event_bus, mock_grpc_client, patched_create_subprocess, fake_subprocess,
-) -> None:
+):
     """__aenter__ raising AFTER the process started still terminates it (03.0/02 invariant)."""
 
 async def test_managed_mode_port_never_opens_raises_and_terminates(
     mock_event_bus, mock_grpc_client, patched_create_subprocess, fake_subprocess,
-) -> None:
+):
     """Port not open within connect_timeout_s → OpenClaudeUnavailableError AND the started process is terminated."""
 ```
 

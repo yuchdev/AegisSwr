@@ -33,7 +33,7 @@ class _MockClient:
     injected instance was used verbatim (no real client was constructed).
     """
 
-    def __init__(self, *, healthy: bool = True, raises: Optional[BaseException] = None) -> None:
+    def __init__(self, *, healthy: bool = True, raises: Optional[BaseException] = None):
         """Store the scripted health verdict and optional error to raise.
 
         :param healthy: value returned by ``health_check`` when it does not raise.
@@ -59,11 +59,11 @@ def _settings(*, grpc_url: Optional[str] = _GRPC_URL, auto_start: bool = False) 
 class _Capture:
     """Capturing :class:`DomainEvent` subscriber recording every event."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialise with an empty captured-event list."""
         self.events: list[DomainEvent] = []
 
-    def __call__(self, event: DomainEvent) -> None:
+    def __call__(self, event: DomainEvent):
         """Append *event* to the captured-event list."""
         self.events.append(event)
 
@@ -80,7 +80,7 @@ def _bus_with_capture() -> tuple[EventBus, _Capture]:
     return bus, capture
 
 
-async def test_grpc_url_before_entry_raises_runtime_error() -> None:
+async def test_grpc_url_before_entry_raises_runtime_error():
     """[Unit] process: reading ``grpc_url`` before entry raises ``RuntimeError``.
 
     Scenario: a process is constructed but ``__aenter__`` has not run; the
@@ -99,7 +99,7 @@ async def test_grpc_url_before_entry_raises_runtime_error() -> None:
         _ = proc.grpc_url
 
 
-async def test_reachable_endpoint_emits_single_connected_and_exposes_url() -> None:
+async def test_reachable_endpoint_emits_single_connected_and_exposes_url():
     """[Unit] process: a reachable endpoint emits one connect and exposes the url.
 
     Scenario: external mode enters with a healthy mock client; the connect event
@@ -129,7 +129,7 @@ async def test_reachable_endpoint_emits_single_connected_and_exposes_url() -> No
     assert client.health_calls == 1
 
 
-async def test_unreachable_endpoint_raises_and_emits_no_connected() -> None:
+async def test_unreachable_endpoint_raises_and_emits_no_connected():
     """[Unit] process: an unhealthy endpoint raises and emits no connect event.
 
     Scenario: the mock client reports ``healthy=False``; entry is attempted.
@@ -151,7 +151,7 @@ async def test_unreachable_endpoint_raises_and_emits_no_connected() -> None:
     assert capture.of(OpenClaudeDisconnected) == []
 
 
-async def test_health_check_raising_unavailable_propagates_and_emits_no_connected() -> None:
+async def test_health_check_raising_unavailable_propagates_and_emits_no_connected():
     """[Unit] process: a health check raising unavailable propagates unchanged.
 
     Scenario: ``health_check`` raises ``OpenClaudeUnavailableError``; entry is
@@ -173,7 +173,7 @@ async def test_health_check_raising_unavailable_propagates_and_emits_no_connecte
     assert capture.of(OpenClaudeConnected) == []
 
 
-async def test_unset_grpc_url_raises_unavailable() -> None:
+async def test_unset_grpc_url_raises_unavailable():
     """[Unit] process: an unset ``grpc_url`` raises unavailable at entry.
 
     Scenario: external-mode settings carry ``grpc_url=None``; entry is attempted.
@@ -193,7 +193,7 @@ async def test_unset_grpc_url_raises_unavailable() -> None:
     assert capture.of(OpenClaudeConnected) == []
 
 
-async def test_external_mode_never_spawns_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_external_mode_never_spawns_subprocess(monkeypatch: pytest.MonkeyPatch):
     """[Unit] process: external mode never spawns a subprocess.
 
     Scenario: ``asyncio.create_subprocess_exec`` is spied; external mode enters
@@ -210,7 +210,7 @@ async def test_external_mode_never_spawns_subprocess(monkeypatch: pytest.MonkeyP
 
     calls: list[tuple] = []
 
-    async def _spy(*args: object, **kwargs: object) -> None:
+    async def _spy(*args: object, **kwargs: object):
         """Record a spawn attempt; external mode must never invoke this."""
         calls.append((args, kwargs))  # pragma: no cover - must never run
 
@@ -224,7 +224,7 @@ async def test_external_mode_never_spawns_subprocess(monkeypatch: pytest.MonkeyP
     assert client.health_calls == 1
 
 
-async def test_exit_emits_single_disconnected() -> None:
+async def test_exit_emits_single_disconnected():
     """[Unit] process: clean ``__aexit__`` emits exactly one disconnect.
 
     Scenario: external mode enters and exits normally; disconnect events are
@@ -249,7 +249,7 @@ async def test_exit_emits_single_disconnected() -> None:
     assert event.reason == "context_exit"
 
 
-async def test_exit_is_idempotent_on_repeated_call() -> None:
+async def test_exit_is_idempotent_on_repeated_call():
     """[Unit] process: a repeated ``__aexit__`` does not double-emit disconnect.
 
     Scenario: after a normal exit, ``__aexit__`` is invoked a second time
@@ -272,7 +272,7 @@ async def test_exit_is_idempotent_on_repeated_call() -> None:
     assert len(capture.of(OpenClaudeDisconnected)) == 1
 
 
-async def test_exception_in_body_still_emits_disconnected_and_propagates() -> None:
+async def test_exception_in_body_still_emits_disconnected_and_propagates():
     """[Unit] process: a body exception still emits one disconnect and propagates.
 
     Scenario: an error is raised inside the ``async with`` body after a
@@ -299,7 +299,7 @@ async def test_exception_in_body_still_emits_disconnected_and_propagates() -> No
 
 async def test_injected_client_used_verbatim_no_real_client(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: an injected client is used verbatim; no real client built.
 
     Scenario: the ``OpenClaudeGrpcClient`` constructor is patched to explode;
@@ -311,9 +311,8 @@ async def test_injected_client_used_verbatim_no_real_client(
     On failure, first check: entry must not construct ``OpenClaudeGrpcClient``
     and must use the injected client's ``health_check``.
     """
-    import aegis_swr.openclaude.process as process_mod
 
-    def _boom(*args: object, **kwargs: object) -> None:
+    def _boom(*args: object, **kwargs: object):
         """Fail if the real client constructor is invoked while injected."""
         raise AssertionError("OpenClaudeGrpcClient must not be constructed when injected")
 
@@ -331,7 +330,7 @@ async def test_injected_client_used_verbatim_no_real_client(
 
 async def test_client_built_from_settings_when_not_injected(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: with no injected client, one is built from settings.
 
     Scenario: the client factory is patched to record settings; entry runs with
@@ -342,8 +341,6 @@ async def test_client_built_from_settings_when_not_injected(
     On failure, first check: entry must construct the client from the same
     settings instance and emit one connect event.
     """
-    import aegis_swr.openclaude.process as process_mod
-
     built: list[OpenClaudeSettings] = []
 
     def _factory(settings: OpenClaudeSettings) -> _MockClient:
@@ -364,7 +361,7 @@ async def test_client_built_from_settings_when_not_injected(
     assert len(capture.of(OpenClaudeConnected)) == 1
 
 
-async def test_events_carry_only_ids_and_status_strings() -> None:
+async def test_events_carry_only_ids_and_status_strings():
     """[Unit] process: emitted events carry only ids/config/status, no payload.
 
     Scenario: external mode enters and exits; the field sets of the connect and
@@ -411,7 +408,7 @@ class _FakeStreamReader:
     cancelled on context exit. Records :attr:`readline_calls` for assertions.
     """
 
-    def __init__(self, lines: Optional[list[bytes]] = None) -> None:
+    def __init__(self, lines: Optional[list[bytes]] = None):
         """Queue *lines* and initialise the exhaustion/block events and counter."""
         self._lines = list(lines or [])
         self.readline_calls = 0
@@ -446,7 +443,7 @@ class _FakeProcess:
         terminate_exits: bool = True,
         exit_code: int = 0,
         stderr_lines: Optional[list[bytes]] = None,
-    ) -> None:
+    ):
         """Configure the reap-on-terminate behaviour, exit code, and stderr lines.
 
         :param terminate_exits: when True, ``terminate`` reaps the process.
@@ -463,14 +460,14 @@ class _FakeProcess:
         self.stdout = None
         self.stderr = _FakeStreamReader(stderr_lines)
 
-    def terminate(self) -> None:
+    def terminate(self):
         """Record a SIGTERM; reap the process when ``terminate_exits`` is set."""
         self.terminate_calls += 1
         if self._terminate_exits:
             self.returncode = self._exit_code
             self._exited.set()
 
-    def kill(self) -> None:
+    def kill(self):
         """Record a SIGKILL and reap the process immediately."""
         self.kill_calls += 1
         self.returncode = -9
@@ -520,7 +517,7 @@ def _spawn_recorder(
     return calls
 
 
-def _patch_probe(monkeypatch: pytest.MonkeyPatch, proc: OpenClaudeProcess, *, opens: bool) -> None:
+def _patch_probe(monkeypatch: pytest.MonkeyPatch, proc: OpenClaudeProcess, *, opens: bool):
     """Replace *proc*'s TCP readiness probe with a scripted verdict."""
 
     async def _probe(host: str, port: int) -> bool:
@@ -532,7 +529,7 @@ def _patch_probe(monkeypatch: pytest.MonkeyPatch, proc: OpenClaudeProcess, *, op
 
 async def test_managed_mode_spawns_once_with_joined_allowlist_flags(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: managed entry spawns once with joined single-token flags.
 
     Scenario: managed mode enters with a fake process and an always-open probe;
@@ -576,7 +573,7 @@ async def test_managed_mode_spawns_once_with_joined_allowlist_flags(
 
 async def test_managed_process_handle_stored_for_subtask_04(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: the spawned process handle is retained for stderr forwarding.
 
     Scenario: managed mode enters with a fake process; the internal ``_process``
@@ -606,7 +603,7 @@ async def test_managed_process_handle_stored_for_subtask_04(
 async def test_managed_hostile_bash_allowlist_fails_closed_no_spawn(
     monkeypatch: pytest.MonkeyPatch,
     hostile: str,
-) -> None:
+):
     """[Unit] process: a hostile bash-allowlist value aborts entry before spawn.
 
     Scenario: managed settings carry a hostile ``bash_allowlist`` token
@@ -632,7 +629,7 @@ async def test_managed_hostile_bash_allowlist_fails_closed_no_spawn(
     assert capture.of(OpenClaudeConnected) == []
 
 
-def test_validate_argv_token_rejects_hostile_values_for_both_fields() -> None:
+def test_validate_argv_token_rejects_hostile_values_for_both_fields():
     """[Unit] process: the argv token helper fails closed for both allowlist fields.
 
     Scenario: ``_validate_argv_token`` is called with hostile tokens for both
@@ -650,7 +647,7 @@ def test_validate_argv_token_rejects_hostile_values_for_both_fields() -> None:
     assert OpenClaudeProcess._validate_argv_token("rg", field="bash_allowlist") == "rg"
 
 
-def test_validate_argv_token_rejects_trailing_newline_but_accepts_plain() -> None:
+def test_validate_argv_token_rejects_trailing_newline_but_accepts_plain():
     """[Unit] process: a trailing newline is rejected by the start/end anchors.
 
     Scenario: ``_validate_argv_token`` is given a value with a trailing newline
@@ -670,7 +667,7 @@ def test_validate_argv_token_rejects_trailing_newline_but_accepts_plain() -> Non
 
 async def test_managed_bash_allowlist_trailing_newline_fails_closed_no_spawn(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a newline in bash-allowlist aborts entry with no spawn.
 
     Scenario: managed settings carry ``bash_allowlist=["rg", "rg\\n"]``; entry is
@@ -698,7 +695,7 @@ async def test_managed_bash_allowlist_trailing_newline_fails_closed_no_spawn(
 
 async def test_managed_non_loopback_host_raises_no_spawn(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a non-loopback grpc host is refused before spawning.
 
     Scenario: managed settings bind ``10.0.0.5:50051``; entry is attempted.
@@ -725,7 +722,7 @@ async def test_managed_non_loopback_host_raises_no_spawn(
 
 async def test_managed_missing_port_raises_no_spawn(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a grpc url without an explicit port is refused before spawn.
 
     Scenario: managed settings bind ``127.0.0.1`` with no port; entry is
@@ -751,7 +748,7 @@ async def test_managed_missing_port_raises_no_spawn(
 
 async def test_managed_relative_binary_path_raises_no_spawn(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a relative path-form process binary is rejected.
 
     Scenario: managed settings set ``process_binary="./openclaude"``; entry is
@@ -778,7 +775,7 @@ async def test_managed_relative_binary_path_raises_no_spawn(
 
 async def test_managed_unset_grpc_url_raises_no_spawn(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: managed mode with no grpc url has no address and never spawns.
 
     Scenario: managed settings carry ``grpc_url=None``; entry is attempted.
@@ -803,7 +800,7 @@ async def test_managed_unset_grpc_url_raises_no_spawn(
 
 async def test_managed_absolute_missing_binary_raises_no_spawn(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: an absolute but missing process binary is rejected.
 
     Scenario: managed settings point ``process_binary`` at a non-existent
@@ -832,7 +829,7 @@ async def test_managed_absolute_missing_binary_raises_no_spawn(
     assert calls == []
 
 
-async def test_probe_port_true_when_a_listener_accepts() -> None:
+async def test_probe_port_true_when_a_listener_accepts():
     """[Unit] process: the real TCP probe returns True against a live listener.
 
     Scenario: a loopback server is started on an ephemeral port and
@@ -845,7 +842,7 @@ async def test_probe_port_true_when_a_listener_accepts() -> None:
     accepts connections on the bound port.
     """
 
-    async def _handle(_: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    async def _handle(_: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Accept and immediately close the probe connection."""
         writer.close()
 
@@ -858,7 +855,7 @@ async def test_probe_port_true_when_a_listener_accepts() -> None:
         await server.wait_closed()
 
 
-async def test_probe_port_false_when_nothing_listens() -> None:
+async def test_probe_port_false_when_nothing_listens():
     """[Unit] process: the real TCP probe returns False for a refused port.
 
     Scenario: a loopback server is started then torn down, freeing its port,
@@ -870,7 +867,7 @@ async def test_probe_port_false_when_nothing_listens() -> None:
     on the target port.
     """
 
-    async def _noop(_: asyncio.StreamReader, __: asyncio.StreamWriter) -> None:
+    async def _noop(_: asyncio.StreamReader, __: asyncio.StreamWriter):
         """Never invoked; the listener is torn down before any probe."""
         pass  # pragma: no cover - never invoked; the listener is torn down first
 
@@ -884,7 +881,7 @@ async def test_probe_port_false_when_nothing_listens() -> None:
 
 async def test_managed_port_timeout_terminates_then_raises(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a port that never opens terminates the sidecar then raises.
 
     Scenario: managed mode spawns but the readiness probe always reports closed
@@ -917,7 +914,7 @@ async def test_managed_port_timeout_terminates_then_raises(
 
 async def test_managed_exit_sigterm_without_kill(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: clean managed exit sends SIGTERM and never SIGKILL.
 
     Scenario: the fake process exits on terminate; managed mode enters and exits
@@ -948,7 +945,7 @@ async def test_managed_exit_sigterm_without_kill(
 
 async def test_managed_exit_escalates_to_sigkill(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a child ignoring SIGTERM within grace is escalated to SIGKILL.
 
     Scenario: the fake process never exits on terminate and the grace period is
@@ -986,11 +983,11 @@ class _KillRaisesProcess(_FakeProcess):
     the grace-period escalation path is always taken.
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialise a fake that never reaps on terminate."""
         super().__init__(terminate_exits=False)
 
-    def kill(self) -> None:
+    def kill(self):
         """Simulate the child already gone, then raise ``ProcessLookupError``."""
         self.kill_calls += 1
         # The child was reaped by a SIGCHLD; wait() can complete, but kill()
@@ -1002,7 +999,7 @@ class _KillRaisesProcess(_FakeProcess):
 
 async def test_managed_exit_kill_process_lookup_error_tolerated(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a kill raising ProcessLookupError is tolerated on exit.
 
     Scenario: the fake ``kill`` raises ``ProcessLookupError`` (child already
@@ -1035,7 +1032,7 @@ async def test_managed_exit_kill_process_lookup_error_tolerated(
 
 async def test_managed_exit_emits_single_disconnected_after_terminate(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: managed exit emits one disconnect, only after teardown.
 
     Scenario: ``terminate`` is wrapped to record its ordering relative to the
@@ -1052,7 +1049,7 @@ async def test_managed_exit_emits_single_disconnected_after_terminate(
     fake = _FakeProcess()
     original_terminate = fake.terminate
 
-    def _tracking_terminate() -> None:
+    def _tracking_terminate():
         """Record the terminate call then delegate to the original."""
         order.append("terminate")
         original_terminate()
@@ -1062,7 +1059,7 @@ async def test_managed_exit_emits_single_disconnected_after_terminate(
 
     bus = EventBus()
 
-    def _record_disconnect(_: DomainEvent) -> None:
+    def _record_disconnect(_: DomainEvent):
         """Record that a disconnect event was published."""
         order.append("disconnect")
 
@@ -1077,7 +1074,7 @@ async def test_managed_exit_emits_single_disconnected_after_terminate(
     assert order == ["terminate", "disconnect"]
 
 
-async def test_terminate_managed_idempotent_when_never_started() -> None:
+async def test_terminate_managed_idempotent_when_never_started():
     """[Unit] process: terminating with no owned process is a safe no-op.
 
     Scenario: ``_terminate_managed`` is called on a managed process that never
@@ -1098,7 +1095,7 @@ async def test_terminate_managed_idempotent_when_never_started() -> None:
 
 async def test_terminate_managed_idempotent_on_repeated_call(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a second terminate on a reaped process does nothing further.
 
     Scenario: managed mode enters and exits, then ``_terminate_managed`` is
@@ -1127,7 +1124,7 @@ async def test_terminate_managed_idempotent_on_repeated_call(
 
 async def test_managed_subscriber_raising_after_readiness_terminates_sidecar(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a connect-publish error after readiness reaps the sidecar.
 
     Scenario: the port opens immediately but ``bus.publish`` is patched to raise
@@ -1152,7 +1149,7 @@ async def test_managed_subscriber_raising_after_readiness_terminates_sidecar(
     # readiness. Monkeypatch publish (rather than a plain subscriber) because
     # EventBus.publish deliberately swallows subscriber ``Exception``s; the
     # failure we model here is one that reaches __aenter__.
-    def _boom(event: DomainEvent) -> None:
+    def _boom(event: DomainEvent):
         """Raise a sentinel error when the connect event is published."""
         raise _SubscriberError("publish blew up on connect")
 
@@ -1174,7 +1171,7 @@ async def test_managed_subscriber_raising_after_readiness_terminates_sidecar(
 
 async def test_managed_cancellation_after_readiness_terminates_sidecar(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: cancellation in the connect emit still reaps the sidecar.
 
     Scenario: the port opens immediately but the connect subscriber raises
@@ -1193,7 +1190,7 @@ async def test_managed_cancellation_after_readiness_terminates_sidecar(
 
     bus = EventBus()
 
-    def _cancel(_: DomainEvent) -> None:
+    def _cancel(_: DomainEvent):
         """Raise ``CancelledError`` when the connect event is published."""
         raise asyncio.CancelledError()
 
@@ -1218,7 +1215,7 @@ async def test_managed_cancellation_after_readiness_terminates_sidecar(
 
 async def test_managed_port_zero_resolves_concrete_single_source_of_truth(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a ``:0`` wildcard resolves once to one shared concrete port.
 
     Scenario: managed mode binds ``localhost:0``; the resolved port is compared
@@ -1265,7 +1262,7 @@ async def test_managed_port_zero_resolves_concrete_single_source_of_truth(
 
 async def test_managed_concrete_port_passes_through_no_free_port_probe(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a concrete port is used verbatim with no free-port probe.
 
     Scenario: managed mode binds ``127.0.0.1:50051`` while ``_pick_free_port`` is
@@ -1301,7 +1298,7 @@ async def test_managed_concrete_port_passes_through_no_free_port_probe(
 
 def test_pick_free_port_returns_usable_port_and_closes_socket(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: the free-port probe binds then closes its socket.
 
     Scenario: ``socket.socket`` is wrapped by a tracker; ``_pick_free_port`` is
@@ -1319,7 +1316,7 @@ def test_pick_free_port_returns_usable_port_and_closes_socket(
     class _TrackingSocket:
         """Wrap a real socket to record that ``__exit__`` (close) actually ran."""
 
-        def __init__(self, *args: object, **kwargs: object) -> None:
+        def __init__(self, *args: object, **kwargs: object):
             """Create the wrapped real socket and register this tracker."""
             self._sock = real_socket(*args, **kwargs)  # type: ignore[arg-type]
             self.closed_via_exit = False
@@ -1330,12 +1327,12 @@ def test_pick_free_port_returns_usable_port_and_closes_socket(
             self._sock.__enter__()
             return self
 
-        def __exit__(self, *exc: object) -> None:
+        def __exit__(self, *exc: object):
             """Record that close ran and delegate to the wrapped socket."""
             self.closed_via_exit = True
             self._sock.__exit__(*exc)  # type: ignore[arg-type]
 
-        def bind(self, address: tuple[str, int]) -> None:
+        def bind(self, address: tuple[str, int]):
             """Bind the wrapped socket to *address*."""
             self._sock.bind(address)
 
@@ -1355,7 +1352,7 @@ def test_pick_free_port_returns_usable_port_and_closes_socket(
 
 async def test_external_mode_port_zero_not_rewritten_surfaces_unavailable(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: external mode never rewrites ``:0`` and surfaces unavailable.
 
     Scenario: external mode is configured with ``localhost:0`` and an unhealthy
@@ -1392,7 +1389,7 @@ async def test_external_mode_port_zero_not_rewritten_surfaces_unavailable(
     assert capture.of(OpenClaudeConnected) == []
 
 
-def test_module_has_no_forbidden_spawn_primitives() -> None:
+def test_module_has_no_forbidden_spawn_primitives():
     """[Unit] process: the module never uses shell spawn, raw Popen, or sleep.
 
     Scenario: the module source is read and scanned for forbidden primitives.
@@ -1424,21 +1421,21 @@ class _LogRecorder:
     without adding a real loguru sink.
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialise empty per-level recorded-call lists."""
         self.debug: list[tuple] = []
         self.info: list[tuple] = []
         self.warning: list[tuple] = []
 
-    def record_debug(self, *args: object, **kwargs: object) -> None:
+    def record_debug(self, *args: object, **kwargs: object):
         """Record a ``logger.debug`` call."""
         self.debug.append(args)
 
-    def record_info(self, *args: object, **kwargs: object) -> None:
+    def record_info(self, *args: object, **kwargs: object):
         """Record a ``logger.info`` call."""
         self.info.append(args)
 
-    def record_warning(self, *args: object, **kwargs: object) -> None:
+    def record_warning(self, *args: object, **kwargs: object):
         """Record a ``logger.warning`` call."""
         self.warning.append(args)
 
@@ -1455,7 +1452,7 @@ def _text_appears(calls: list[tuple], text: str) -> bool:
 
 async def test_managed_stderr_drained_line_by_line_at_debug_not_info_or_warning(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: managed stderr is drained line-by-line at DEBUG only.
 
     Scenario: the fake process scripts two stderr lines; the logger levels are
@@ -1490,7 +1487,7 @@ async def test_managed_stderr_drained_line_by_line_at_debug_not_info_or_warning(
 
 async def test_managed_stderr_only_stderr_read_stdout_has_no_reader(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: only stderr is drained; stdout is DEVNULL with no reader.
 
     Scenario: the fake process scripts one stderr line; the spawn kwargs and the
@@ -1521,7 +1518,7 @@ async def test_managed_stderr_only_stderr_read_stdout_has_no_reader(
 
 async def test_managed_exit_cancels_and_awaits_stderr_forwarder(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: exit cancels and awaits the stderr forwarder with no leak.
 
     Scenario: the child keeps stderr open so the forwarder is still pending at
@@ -1554,7 +1551,7 @@ async def test_managed_exit_cancels_and_awaits_stderr_forwarder(
 
 async def test_managed_entry_raised_after_start_stops_stderr_forwarder(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: an entry failure after start also stops the forwarder.
 
     Scenario: the port never opens so entry raises after the forwarder started;
@@ -1586,7 +1583,7 @@ async def test_managed_entry_raised_after_start_stops_stderr_forwarder(
     assert capture.of(OpenClaudeConnected) == []
 
 
-async def test_external_mode_never_starts_stderr_forwarder() -> None:
+async def test_external_mode_never_starts_stderr_forwarder():
     """[Unit] process: external mode starts no forwarder and stop is a safe no-op.
 
     Scenario: external mode enters and exits; the forwarder handle is inspected
@@ -1611,7 +1608,7 @@ async def test_external_mode_never_starts_stderr_forwarder() -> None:
 
 async def test_managed_stderr_per_line_error_does_not_propagate_keeps_draining(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a per-line log error is swallowed narrowly, draining continues.
 
     Scenario: ``logger.debug`` raises on the first scripted line but not the
@@ -1628,7 +1625,7 @@ async def test_managed_stderr_per_line_error_does_not_propagate_keeps_draining(
 
     seen: list[object] = []
 
-    def _debug(template: object, *args: object, **kwargs: object) -> None:
+    def _debug(template: object, *args: object, **kwargs: object):
         """Record forwarded stderr text and raise once on the ``bad`` line."""
         if "stderr" in str(template):
             text = args[-1]
@@ -1666,7 +1663,7 @@ class _OverrunOnceStreamReader(_FakeStreamReader):
     draining subsequent lines and never propagates the error.
     """
 
-    def __init__(self, lines: Optional[list[bytes]] = None) -> None:
+    def __init__(self, lines: Optional[list[bytes]] = None):
         """Queue *lines* and arm the one-shot overrun flag."""
         super().__init__(lines)
         self._raised = False
@@ -1686,7 +1683,7 @@ class _OverrunOnceStreamReader(_FakeStreamReader):
 
 async def test_managed_stderr_limit_overrun_error_does_not_propagate_keeps_draining(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: a readline LimitOverrunError is swallowed, draining continues.
 
     Scenario: the stderr reader raises ``asyncio.LimitOverrunError`` once, then
@@ -1717,7 +1714,7 @@ async def test_managed_stderr_limit_overrun_error_does_not_propagate_keeps_drain
 
 async def test_managed_stderr_flows_through_project_logger_not_a_bespoke_sink(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+):
     """[Unit] process: forwarded stderr flows through the project logger, not a sink.
 
     Scenario: ``logger.debug`` is recorded and ``logger.add`` is patched to fail
@@ -1735,7 +1732,7 @@ async def test_managed_stderr_flows_through_project_logger_not_a_bespoke_sink(
     rec = _LogRecorder()
     monkeypatch.setattr(process_mod.logger, "debug", rec.record_debug)
 
-    def _no_add(*args: object, **kwargs: object) -> None:
+    def _no_add(*args: object, **kwargs: object):
         """Fail if stderr forwarding tries to add a bespoke/unfiltered sink."""
         raise AssertionError("stderr forwarding must not add a bespoke/unfiltered sink")
 

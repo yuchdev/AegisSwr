@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 from unittest import mock
 
@@ -15,6 +17,8 @@ from aegis_swr.cli.config import (
     load_analyze_config,
     save_analyze_config,
 )
+from aegis_swr.config.settings import AISettings, BedrockSettings
+from aegis_swr.core.events import InvestigationCompleted
 from aegis_swr.core.schemas import (
     ConfidenceLevel,
     HITLRequest,
@@ -74,8 +78,6 @@ def test_python_m_entry_point_runs():
     On failure, first check: the process must exit zero and its help must list
     ``analyze`` and a ``Usage:`` line.
     """
-    import subprocess
-    import sys
 
     result = subprocess.run(
         [sys.executable, "-m", "aegis_swr.cli", "--help"],
@@ -235,7 +237,7 @@ def test_repo_flag_enables_git_code_backend(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
@@ -244,7 +246,7 @@ def test_repo_flag_enables_git_code_backend(tmp_path: Path):
         captured["enabled"] = settings.enabled
         captured["provider"] = settings.provider
         captured["repo_path"] = settings.repo_path
-        return None
+        return
 
     with (
         mock.patch(_MOCK_RUN, mock_run),
@@ -285,7 +287,7 @@ def test_log_service_sets_metadata(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Capture the incident source's service metadata, then return a report."""
         captured["service"] = source.metadata.get("service")
         return _report()
@@ -396,7 +398,7 @@ def test_config_file_sets_defaults(tmp_path: Path):
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"backends": {"ai": {"provider": "openai"}}, "output": "json"}))
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
@@ -439,7 +441,7 @@ def test_cli_reads_settings_from_config_asset(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Capture the incident source's log paths, then return a report."""
         captured["logs"] = list(source.log_paths)
         return _report()
@@ -481,7 +483,7 @@ def test_cli_flag_overrides_config_file(tmp_path: Path):
     config_file = tmp_path / "cfg.json"
     config_file.write_text(json.dumps({"ai": "openai"}))
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
@@ -523,7 +525,7 @@ def test_config_nested_ingest_service_reaches_metadata(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Capture the incident source's service metadata, then return a report."""
         captured["service"] = source.metadata.get("service")
         return _report()
@@ -569,7 +571,7 @@ def _run_capturing_assumption(args: list[str], tmp_path: Path) -> tuple[object, 
     """Invoke ``analyze`` with *args*, capturing ``source.user_assumption``."""
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Capture the incident source's user assumption, then return a report."""
         captured["assumption"] = source.user_assumption
         return _report()
@@ -748,7 +750,6 @@ def test_analyze_json_output(tmp_path: Path):
 
     # json/rich output drives the domain-event stream (live display goes to
     # stderr); the stream must end with a completion event carrying the report.
-    from aegis_swr.core.events import InvestigationCompleted
 
     async def mock_stream_events(self, source):
         """Yield a single completion event carrying the canned report."""
@@ -791,7 +792,7 @@ def test_analyze_hitl_exits_nonzero(tmp_path: Path):
     """
     report = _report(with_hitl=True)
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Stand in for ``Orchestrator.run``, returning the HITL-bearing report."""
         return report
 
@@ -1065,7 +1066,7 @@ def test_evidence_and_process_severity_thread_independently(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def fake_stream(orch, source, console, *, evidence_level, process_level, **_):
+    async def fake_stream(orch, source, console, *, evidence_level, process_level, **_) -> RCAReport:
         """Capture the evidence/process verbosity levels threaded into the display."""
         captured["evidence"] = evidence_level
         captured["process"] = process_level
@@ -1108,7 +1109,7 @@ def test_log_sink_is_wired_to_configure_logging(tmp_path: Path):
     selected ``elk`` sink.
     """
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
@@ -1149,7 +1150,7 @@ def test_evidence_persist_quiet_mode_warns(tmp_path: Path):
     emitted.
     """
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
@@ -1191,7 +1192,6 @@ def test_cli_ai_bedrock_sets_provider(tmp_path: Path):
 
     On failure, first check: the captured provider must be ``bedrock``.
     """
-    from aegis_swr.config.settings import AISettings
 
     captured: dict[str, object] = {}
 
@@ -1202,7 +1202,7 @@ def test_cli_ai_bedrock_sets_provider(tmp_path: Path):
         m.model_name = "au.anthropic.claude-sonnet-4-6"
         return m
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Stand in for ``Orchestrator.run``, returning a canned report."""
         return _report()
 
@@ -1240,10 +1240,6 @@ def test_config_example_has_bedrock_section():
     On failure, first check: the block must exist, contain only recognised
     ``BedrockSettings`` keys, and include ``region`` and ``model_id``.
     """
-    import json
-
-    from aegis_swr.config.settings import BedrockSettings
-
     config_path = Path(__file__).parent.parent.parent / "config.example.json"
     assert config_path.exists(), f"config.example.json not found at {config_path}"
     data = json.loads(config_path.read_text(encoding="utf-8"))
@@ -1296,7 +1292,7 @@ def test_evidence_persist_is_wired_to_stream_and_display(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def fake_stream(orch, source, console, *, evidence_persist, evidence_dir, **_):
+    async def fake_stream(orch, source, console, *, evidence_persist, evidence_dir, **_) -> RCAReport:
         """Capture the evidence-persist flag and resolved directory from the display."""
         captured["persist"] = evidence_persist
         captured["dir"] = evidence_dir
@@ -1347,7 +1343,7 @@ def test_agent_flag_builds_explicit_specs(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Capture the orchestrator's explicit agent specs, then return a report."""
         captured["explicit_specs"] = self._explicit_specs
         return _report()
@@ -1399,7 +1395,7 @@ def test_no_agent_flag_leaves_auto_selection(tmp_path: Path):
     """
     captured: dict[str, object] = {}
 
-    async def mock_run(self, source):
+    async def mock_run(self, source) -> RCAReport:
         """Capture the orchestrator's explicit agent specs, then return a report."""
         captured["explicit_specs"] = self._explicit_specs
         return _report()

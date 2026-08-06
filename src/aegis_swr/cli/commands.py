@@ -42,7 +42,7 @@ _LOG_SINKS = frozenset({"file", "elk", "fluent"})
 _DEFAULT_EVIDENCE_DIR = str(CONFIG_DIR / "evidence")
 
 
-def _validate_log_options(config: AnalyzeConfig) -> None:
+def _validate_log_options(config: AnalyzeConfig):
     """Reject out-of-range logging-channel values (from CLI flags or config.json).
 
     Evidence and Investigation-Process accept only ``INFO``/``TRACE``; the
@@ -73,13 +73,13 @@ class FullHelpGroup(TyperGroup):
     options at once.
     """
 
-    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter):
         """Render the standard help, then recursively echo every subcommand's help."""
         super().format_help(ctx, formatter)  # the usual top-level summary
         _echo_subcommands_help(self, ctx)
 
 
-def _echo_subcommands_help(group: TyperGroup, parent_ctx: click.Context) -> None:
+def _echo_subcommands_help(group: TyperGroup, parent_ctx: click.Context):
     """Depth-first print the full help of every subcommand under *group*."""
     for name in group.list_commands(parent_ctx):
         cmd = group.get_command(parent_ctx, name)

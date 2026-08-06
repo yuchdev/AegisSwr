@@ -36,11 +36,11 @@ require_managed_openclaude()  # module-level: one skip line when binary/signal a
 class _Recorder:
     """Capturing :class:`DomainEvent` subscriber."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Helper that provides init for the allowlist enforcement tests."""
         self.events: list[DomainEvent] = []
 
-    def __call__(self, event: DomainEvent) -> None:
+    def __call__(self, event: DomainEvent):
         """Helper that provides call for the allowlist enforcement tests."""
         self.events.append(event)
 
@@ -63,7 +63,7 @@ def _live_ctx() -> CodeTaskContext:
 async def test_write_task_denied_under_default_allowlist(
     live_grpc_client: OpenClaudeGrpcClient,
     stub_project: Path,
-) -> None:
+):
     """[Integration] allowlist enforcement: A task needing a write tool is denied; the stub project is left unmodified.
 
     Scenario: the behavior described in the summary is exercised.
@@ -93,7 +93,7 @@ async def test_write_task_denied_under_default_allowlist(
     assert target.read_bytes() == before  # stub project unmodified
 
 
-async def test_read_only_task_succeeds(live_grpc_client: OpenClaudeGrpcClient) -> None:
+async def test_read_only_task_succeeds(live_grpc_client: OpenClaudeGrpcClient):
     """[Integration] allowlist enforcement: A ``Read``/``Grep``-only navigation task succeeds under the same allowlist.
 
     Scenario: the behavior described in the summary is exercised.

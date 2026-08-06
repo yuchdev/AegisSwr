@@ -8,6 +8,7 @@ exclude = ["samples"]
 extend-exclude = ["*_pb2.py", "*_pb2_grpc.py"]
 
 [lint]
+# Fix specific types of warnings with `ruff check --select SIM102 --fix .`
 select = [
     "E",
     "F",
@@ -24,7 +25,7 @@ select = [
 #   UP007 - Union[...] -> X | Y; Optional[X] -> X | None
 #   UP038 - ininstance(X, Y) -> X | Y
 #   SIM300 - Yoda condition x == f(a, b)
-#   E501 - line too long
+#   E501 - the line is too long
 ignore = [
     "UP007",
     "UP038",

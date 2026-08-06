@@ -133,14 +133,14 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         return _thinking_supported(self.model_name)
 
     @staticmethod
-    def _register_bearer_auth_hook(client: Any, raw_token: str) -> None:
+    def _register_bearer_auth_hook(client: Any, raw_token: str):
         """Inject ``Authorization: Bearer <token>`` on every Bedrock request.
 
         ``before-send`` fires after SigV4 signing, so this header wins. The
         token is captured in the closure and never logged.
         """
 
-        def _inject_auth_header(request: Any, **_: Any) -> None:
+        def _inject_auth_header(request: Any, **_: Any):
             """Set the bearer ``Authorization`` header on the outgoing request."""
             request.headers["Authorization"] = f"Bearer {raw_token}"
 

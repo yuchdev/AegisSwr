@@ -8,7 +8,7 @@ from aegis_swr.core.schemas import IncidentMode, IncidentSource
 
 
 @pytest.fixture(autouse=True)
-def _isolate_runtime_config(monkeypatch: pytest.MonkeyPatch) -> None:
+def _isolate_runtime_config(monkeypatch: pytest.MonkeyPatch):
     """Keep ``Settings()`` hermetic across the suite.
 
     Without this, every ``Settings()`` constructed in a test would merge in the

@@ -16,7 +16,7 @@ from aegis_swr.code_intel.agent import CodeAgent
 from aegis_swr.code_intel.backend import CodeResult, CodeTaskContext
 
 
-def test_agent_without_backend_is_unavailable() -> None:
+def test_agent_without_backend_is_unavailable():
     """[Unit] agent: ``available`` is ``False`` when constructed with no backend.
 
     Scenario: the behavior described in the summary is exercised.
@@ -30,7 +30,7 @@ def test_agent_without_backend_is_unavailable() -> None:
 
 
 @pytest.mark.asyncio
-async def test_investigate_without_backend_returns_unavailable_result() -> None:
+async def test_investigate_without_backend_returns_unavailable_result():
     """[Unit] agent: The no-backend path returns a non-raising unavailable ``CodeResult``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -50,7 +50,7 @@ async def test_investigate_without_backend_returns_unavailable_result() -> None:
     assert result.metadata == {"reason": "no_backend_registered"}
 
 
-def test_agent_with_backend_is_available() -> None:
+def test_agent_with_backend_is_available():
     """[Unit] agent: ``available`` is ``True`` when a backend is registered.
 
     Scenario: the behavior described in the summary is exercised.
@@ -64,7 +64,7 @@ def test_agent_with_backend_is_available() -> None:
 
 
 @pytest.mark.asyncio
-async def test_investigate_delegates_to_backend() -> None:
+async def test_investigate_delegates_to_backend():
     """[Unit] agent: The backend path builds a ``CodeTaskContext`` and returns the backend result.
 
     Scenario: the behavior described in the summary is exercised.

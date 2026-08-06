@@ -54,7 +54,7 @@ def _build_tool(client: OpenClaudeGrpcClient, bus: EventBus) -> OpenClaudeTool:
 
 async def test_run_returns_non_empty_result(
     live_grpc_client: OpenClaudeGrpcClient,
-) -> None:
+):
     """A live run() over a real navigation task returns non-empty result text."""
     bus = EventBus()
     tool = _build_tool(live_grpc_client, bus)
@@ -68,14 +68,14 @@ async def test_run_returns_non_empty_result(
 
 async def test_stream_completed_carries_positive_token_estimate(
     live_grpc_client: OpenClaudeGrpcClient,
-) -> None:
+):
     """OpenClaudeStreamCompleted carries a positive boundary token estimate."""
     ...  # record events; find OpenClaudeStreamCompleted; assert token_estimate > 0
 
 
 async def test_at_least_one_tool_call_emitted(
     live_grpc_client: OpenClaudeGrpcClient,
-) -> None:
+):
     """>=1 OpenClaudeToolCall proves real navigation, not an answer from priors."""
     ...  # record events; assert any(isinstance(e, OpenClaudeToolCall) for e in seen)
 ```

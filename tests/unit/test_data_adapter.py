@@ -30,6 +30,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 class MockDebugBackend(DebugBackend):
     """Support type for the data adapter tests (MockDebugBackend)."""
+
     SUPPORTED_FORMATS = [DumpFormat.WINDOWS_MINIDUMP]
     SUPPORTED_PLATFORMS = ["Windows"]
 
@@ -43,9 +44,7 @@ class MockDebugBackend(DebugBackend):
         self.extract_called = True
         return self._result
 
-    def _build_command_sequence(
-        self, source: IncidentSource, symbol_path: Optional[str]
-    ) -> list[str]:
+    def _build_command_sequence(self, source: IncidentSource, symbol_path: Optional[str]) -> list[str]:
         """Helper that provides build command sequence for the data adapter tests."""
         return ["mock"]
 
@@ -413,9 +412,7 @@ def test_temporal_window_slices_correctly(adapter: DataAdapter):
         - Recent changes in code paths exercised by data adapter
     """
     incident = datetime(2026, 5, 30, 14, 2, 11)
-    summary = adapter._process_logs(
-        [str(FIXTURES / "sample_logs_timestamped.txt")], incident
-    )
+    summary = adapter._process_logs([str(FIXTURES / "sample_logs_timestamped.txt")], incident)
     assert summary is not None
     # In window, WARN+ kept
     assert "FATAL_MARKER" in summary
@@ -450,9 +447,7 @@ def test_no_timestamp_keeps_tail(adapter: DataAdapter):
         - Fixture or parameter values used by this test
         - Recent changes in code paths exercised by data adapter
     """
-    summary = adapter._process_logs(
-        [str(FIXTURES / "sample_logs_timestamped.txt")], None
-    )
+    summary = adapter._process_logs([str(FIXTURES / "sample_logs_timestamped.txt")], None)
     assert summary is not None
     assert "AFTER_WINDOW_MARKER_2" in summary
 
@@ -518,7 +513,7 @@ class _FakeLogBackend:
         self._lines = lines
         self.called_with: tuple = ()
 
-    async def query_window(self, service, start_time, end_time, severity_levels=None):
+    async def query_window(self, service, start_time, end_time, severity_levels=None) -> list[str]:
         """Helper that provides query window for the data adapter tests."""
         self.called_with = (service, start_time, end_time)
         return self._lines

@@ -31,53 +31,53 @@ from aegis.router.config import RouterConfig
 
 # --- OpenClaudeSettings: valid parse + defaults -----------------------------
 
-def test_defaults_when_no_env_vars(monkeypatch) -> None:
+def test_defaults_when_no_env_vars(monkeypatch):
     """No env vars set → grpc_url is None and all C1 defaults apply, no raise.
 
     (monkeypatch clears the OPENCLAUDE_* env, not any module global — this is
     the one legitimate env-clearing use, not a module-global patch.)
     """
 
-def test_valid_bare_host_port_accepted() -> None:
+def test_valid_bare_host_port_accepted():
     """grpc_url='localhost:50051' parses and round-trips unchanged."""
 
-def test_comma_separated_allowlists_parsed_from_env(monkeypatch) -> None:
+def test_comma_separated_allowlists_parsed_from_env(monkeypatch):
     """OPENCLAUDE_ALLOWED_TOOLS='Read,Grep' → allowed_tools == ['Read','Grep']."""
 
 
 # --- OpenClaudeSettings: invalid input raises OpenClaudeConfigError ----------
 
-def test_scheme_prefixed_grpc_url_raises() -> None:
+def test_scheme_prefixed_grpc_url_raises():
     """grpc_url='https://bad' raises OpenClaudeConfigError(field='grpc_url')."""
 
-def test_http_scheme_grpc_url_raises() -> None:
+def test_http_scheme_grpc_url_raises():
     """grpc_url='http://host:1' is rejected — the URL field carries no scheme."""
 
-def test_unknown_allowed_tool_raises() -> None:
+def test_unknown_allowed_tool_raises():
     """allowed_tools=['Read','WriteFile'] raises — 'WriteFile' is not canonical."""
 
-def test_write_capable_tool_warns_but_does_not_raise(caplog) -> None:
+def test_write_capable_tool_warns_but_does_not_raise(caplog):
     """allowed_tools=['Read','Write'] parses but logs a read-only-compromise warning."""
 
-def test_max_tokens_below_range_raises() -> None:
+def test_max_tokens_below_range_raises():
     """max_response_tokens=100 (< 256) raises OpenClaudeConfigError."""
 
-def test_max_tokens_above_range_raises() -> None:
+def test_max_tokens_above_range_raises():
     """max_response_tokens=70000 (> 65536) raises OpenClaudeConfigError."""
 
-def test_request_timeout_not_greater_than_connect_raises() -> None:
+def test_request_timeout_not_greater_than_connect_raises():
     """connect_timeout_s=100, request_timeout_s=10 raises (must be strictly greater)."""
 
 
 # --- RouterConfig.enabled_when gate -----------------------------------------
 
-def test_enabled_when_absent_env_omits_role(monkeypatch, tmp_path) -> None:
+def test_enabled_when_absent_env_omits_role(monkeypatch, tmp_path):
     """OPENCLAUDE_GRPC_URL unset → 'openclaude_agent' absent from RouterConfig.agents, no raise."""
 
-def test_enabled_when_present_env_includes_role(monkeypatch, tmp_path) -> None:
+def test_enabled_when_present_env_includes_role(monkeypatch, tmp_path):
     """OPENCLAUDE_GRPC_URL set → 'openclaude_agent' present in RouterConfig.agents."""
 
-def test_role_without_enabled_when_always_included(monkeypatch, tmp_path) -> None:
+def test_role_without_enabled_when_always_included(monkeypatch, tmp_path):
     """A role lacking enabled_when is parsed identically regardless of env (no regression)."""
 ```
 

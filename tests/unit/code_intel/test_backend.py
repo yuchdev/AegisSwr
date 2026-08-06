@@ -9,15 +9,17 @@ Cover the immutable :class:`CodeResult`/:class:`CodeTaskContext` value objects
 from __future__ import annotations
 
 import dataclasses
+import importlib
 import sys
 from uuid import UUID, uuid4
 
 import pytest
 
+import aegis_swr.code_intel as pkg
 from aegis_swr.code_intel.backend import CodeIntelBackend, CodeResult, CodeTaskContext
 
 
-def test_code_task_context_fields_and_default() -> None:
+def test_code_task_context_fields_and_default():
     """[Unit] backend: Constructs with a run_id and defaults ``dry_run`` to ``False``.
 
     Scenario: the behavior described in the summary is exercised.
@@ -36,7 +38,7 @@ def test_code_task_context_fields_and_default() -> None:
     assert ctx_dry.dry_run is True
 
 
-def test_code_task_context_is_frozen_and_slotted() -> None:
+def test_code_task_context_is_frozen_and_slotted():
     """[Unit] backend: ``CodeTaskContext`` rejects mutation and carries no ``__dict__`` (slots).
 
     Scenario: the behavior described in the summary is exercised.
@@ -51,7 +53,7 @@ def test_code_task_context_is_frozen_and_slotted() -> None:
     assert not hasattr(ctx, "__dict__")
 
 
-def test_code_result_fields_and_defaults() -> None:
+def test_code_result_fields_and_defaults():
     """[Unit] backend: Constructs with content/token_estimate and documented defaults.
 
     Scenario: the behavior described in the summary is exercised.
@@ -68,7 +70,7 @@ def test_code_result_fields_and_defaults() -> None:
     assert result.metadata == {}
 
 
-def test_code_result_metadata_default_is_independent() -> None:
+def test_code_result_metadata_default_is_independent():
     """[Unit] backend: The ``metadata`` default_factory yields distinct mappings per instance.
 
     Scenario: the behavior described in the summary is exercised.
@@ -84,7 +86,7 @@ def test_code_result_metadata_default_is_independent() -> None:
     assert first.metadata is not second.metadata
 
 
-def test_code_result_accepts_explicit_fields() -> None:
+def test_code_result_accepts_explicit_fields():
     """[Unit] backend: All fields, including ``metadata``, may be supplied explicitly.
 
     Scenario: the behavior described in the summary is exercised.
@@ -105,7 +107,7 @@ def test_code_result_accepts_explicit_fields() -> None:
     assert result.metadata == {"reason": "no_backend_registered"}
 
 
-def test_code_result_is_frozen_and_slotted() -> None:
+def test_code_result_is_frozen_and_slotted():
     """[Unit] backend: ``CodeResult`` rejects mutation and carries no ``__dict__`` (slots).
 
     Scenario: the behavior described in the summary is exercised.
@@ -120,7 +122,7 @@ def test_code_result_is_frozen_and_slotted() -> None:
     assert not hasattr(result, "__dict__")
 
 
-def test_code_backend_cannot_be_instantiated() -> None:
+def test_code_backend_cannot_be_instantiated():
     """[Unit] backend: ``CodeIntelBackend`` is abstract and cannot be constructed directly.
 
     Scenario: the behavior described in the summary is exercised.
@@ -134,7 +136,7 @@ def test_code_backend_cannot_be_instantiated() -> None:
 
 
 @pytest.mark.asyncio
-async def test_concrete_backend_subclass_works() -> None:
+async def test_concrete_backend_subclass_works():
     """[Unit] backend: A trivial concrete subclass implementing the contract is usable.
 
     Scenario: the behavior described in the summary is exercised.
@@ -146,6 +148,7 @@ async def test_concrete_backend_subclass_works() -> None:
 
     class _StubBackend(CodeIntelBackend):
         """Support type for the backend tests (StubBackend)."""
+
         @property
         def description(self) -> str:
             """Helper that provides description for the backend tests."""
@@ -163,7 +166,7 @@ async def test_concrete_backend_subclass_works() -> None:
     assert result.token_estimate == 1
 
 
-def test_code_intel_import_pulls_no_grpc_or_openclaude() -> None:
+def test_code_intel_import_pulls_no_grpc_or_openclaude():
     """[Unit] backend: C3 isolation: importing ``code_intel`` loads no gRPC / OpenClaude modules.
 
     Scenario: the behavior described in the summary is exercised.
@@ -177,10 +180,6 @@ def test_code_intel_import_pulls_no_grpc_or_openclaude() -> None:
         for name in list(sys.modules):
             if name == "grpc" or name.startswith(("grpc.", "aegis_swr.openclaude")):
                 del sys.modules[name]
-
-        import importlib
-
-        import aegis_swr.code_intel as pkg
 
         importlib.reload(pkg)
 

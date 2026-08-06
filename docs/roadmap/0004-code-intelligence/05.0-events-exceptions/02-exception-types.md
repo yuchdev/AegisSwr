@@ -41,7 +41,7 @@ class OpenClaudeUnavailableError(Exception):
     :ivar grpc_url: The unreachable endpoint, or ``None``.
     """
 
-    def __init__(self, message: str, grpc_url: Optional[str] = None) -> None:
+    def __init__(self, message: str, grpc_url: Optional[str] = None):
         self.grpc_url = grpc_url
         super().__init__(message)
 
@@ -67,7 +67,7 @@ class PermissionDeniedError(Exception):
 
     retriable: bool = False
 
-    def __init__(self, tool: str, denied_binary: str) -> None:
+    def __init__(self, tool: str, denied_binary: str):
         self.tool = tool
         self.denied_binary = denied_binary
         super().__init__(
@@ -99,7 +99,7 @@ class OpenClaudeConfigError(ValueError):
     :ivar reason: The violation explanation.
     """
 
-    def __init__(self, field: str, reason: str) -> None:
+    def __init__(self, field: str, reason: str):
         self.field = field
         self.reason = reason
         super().__init__(f"OpenClaudeSettings.{field}: {reason}")

@@ -19,7 +19,7 @@ import sys
 _NPM_PACKAGE = "@gitlawb/openclaude@latest"
 
 
-def install_openclaude_cli() -> None:
+def install_openclaude_cli():
     """Install the OpenClaude CLI globally via npm, best-effort.
 
     Never raises: a missing Node.js/npm toolchain only blocks managed-mode

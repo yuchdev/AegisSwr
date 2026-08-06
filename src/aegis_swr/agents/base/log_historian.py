@@ -10,6 +10,7 @@ from loguru import logger
 from aegis_swr.agents.base import AgentCategory, BaseAgent
 from aegis_swr.backends.base import VectorStore
 from aegis_swr.core.exceptions import VectorStoreError
+from aegis_swr.core.fault_codes import FaultClass
 from aegis_swr.core.incident_similarity import analyze_history
 from aegis_swr.core.schemas import (
     AgentRole,
@@ -125,8 +126,6 @@ class LogHistorianAgent(BaseAgent):
         swallowed so a missing/empty vector store never blocks the metadata
         comparison.
         """
-        from aegis_swr.core.fault_codes import FaultClass
-
         fault_str = brief.get("fault_class") or "unknown"
         try:
             fault_class = FaultClass(fault_str)
