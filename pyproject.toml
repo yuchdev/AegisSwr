@@ -85,7 +85,7 @@ exclude = [
     "src/aegis_swr/openclaude/tool.py",
 ]
 
-select = ["X001", "X002"]
+select = ["X001", "X002", "X005"]
 ignore = []
 
 # When false, a `# noqa` comment never suppresses a violation (the rule
