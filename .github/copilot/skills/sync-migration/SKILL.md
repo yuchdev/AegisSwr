@@ -1,6 +1,6 @@
 ---
 name: sync-migration
-description: User-invoked as /sync-migration. Compares the date in .github/copilot/MIGRATION.md with the latest git history touching .claude/, then syncs changed Claude files into the Copilot layout when Claude is ahead.
+description: User-invoked as /sync-migration. Compares the date in .github/copilot/Migration-report.md with the latest git history touching .claude/, then syncs changed Claude files into the Copilot layout when Claude is ahead.
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 invocation: /sync-migration
 ---
@@ -9,9 +9,9 @@ invocation: /sync-migration
 
 Keep the Copilot migration current with the latest Claude-side changes.
 
-This skill treats `.github/copilot/MIGRATION.md` as the sync boundary:
+This skill treats `.github/copilot/Migration-report.md` as the sync boundary:
 
-- Read `**Date**: YYYY-MM-DD` from `.github/copilot/MIGRATION.md`
+- Read `**Date**: YYYY-MM-DD` from `.github/copilot/Migration-report.md`
 - Fetch the latest git date touching `.claude/`
 - If `.claude` is newer, migrate the changed files
 
@@ -68,15 +68,15 @@ It reports:
 
    - `.claude/CLAUDE.md`
      - Propagate durable policy changes into relevant Copilot agents, skills,
-       hooks, and `MIGRATION.md`.
+       hooks, and `Migration-report.md`.
 
 4. **Refresh the migration boundary**
    - After all changed Claude files are migrated, update:
-     - `**Date**:` in `.github/copilot/MIGRATION.md`
+     - `**Date**:` in `.github/copilot/Migration-report.md`
    - Set it to the `last_claude_date` reported by the helper script.
 
 5. **Summarize what changed**
-   - In `.github/copilot/MIGRATION.md`, update any sections that are now stale:
+   - In `.github/copilot/Migration-report.md`, update any sections that are now stale:
      - structure
      - hook map
      - remaining gaps
@@ -91,7 +91,7 @@ Report:
 - whether Claude was ahead
 - direct-copy files synced
 - manual-port files updated
-- final date written back to `.github/copilot/MIGRATION.md`
+- final date written back to `.github/copilot/Migration-report.md`
 
 ## Completion checklist
 
@@ -100,5 +100,5 @@ Report:
 - [ ] Every `manual_port` item reviewed and ported to the Copilot-native target
 - [ ] `.github/hooks/*.py` changes preserve Copilot hook JSON protocol
 - [ ] `.github/hooks/aegis-hooks.json` updated if `.claude/settings.json` changed
-- [ ] `.github/copilot/MIGRATION.md` date set to `last_claude_date`
+- [ ] `.github/copilot/Migration-report.md` date set to `last_claude_date`
 - [ ] Final migration summary reflects the newly synced state
