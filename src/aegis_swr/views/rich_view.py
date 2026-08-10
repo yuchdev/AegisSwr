@@ -22,7 +22,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 from rich.console import Console, Group, RenderableType
 from rich.json import JSON
@@ -1244,7 +1244,9 @@ class RichView:
             self._live = None
 
 
-def make_view(console: Console, *, level: str = "INFO", process_level: Optional[str] = None) -> RichView | WarRoomView:
+def make_view(
+    console: Console, *, level: str = "INFO", process_level: Optional[str] = None
+) -> Union[RichView, WarRoomView]:
     """Pick the war-room view on wide terminals, the trail view otherwise.
 
     *level* selects the Evidence Stream (left pane) verbosity: ``INFO`` shows the

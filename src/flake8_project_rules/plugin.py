@@ -1,4 +1,4 @@
-"""Flake8 AST plugin that exposes custom project rules X001–X011."""
+"""Flake8 AST plugin that exposes custom project rules X001–X012."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from flake8_project_rules.rules import check_tree
 
 
 class ProjectRulesPlugin:
-    """Flake8 AST plugin for project-specific lint rules X001–X011."""
+    """Flake8 AST plugin for project-specific lint rules X001–X012."""
 
     name = "flake8-project-rules"
     version = "0.1.0"

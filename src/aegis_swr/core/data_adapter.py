@@ -26,35 +26,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
+import pytesseract as _pytesseract
+from drain3 import TemplateMiner as _TemplateMiner
+from drain3.template_miner_config import TemplateMinerConfig as _TemplateMinerConfig
 from loguru import logger
-
-try:
-    from presidio_analyzer import AnalyzerEngine as _AnalyzerEngine
-
-    _HAS_PRESIDIO = True
-except ImportError:
-    _AnalyzerEngine = None  # type: ignore[assignment,misc]
-    _HAS_PRESIDIO = False
-
-try:
-    import pytesseract as _pytesseract
-    from PIL import Image as _Image
-
-    _HAS_OCR = True
-except ImportError:
-    _pytesseract = None  # type: ignore[assignment]
-    _Image = None  # type: ignore[assignment]
-    _HAS_OCR = False
-
-try:
-    from drain3 import TemplateMiner as _TemplateMiner
-    from drain3.template_miner_config import TemplateMinerConfig as _TemplateMinerConfig
-
-    _HAS_DRAIN3 = True
-except ImportError:  # pragma: no cover - drain3 is a core dependency
-    _TemplateMiner = None  # type: ignore[assignment,misc]
-    _TemplateMinerConfig = None  # type: ignore[assignment,misc]
-    _HAS_DRAIN3 = False
+from PIL import Image as _Image
+from presidio_analyzer import AnalyzerEngine as _AnalyzerEngine
 
 from aegis_swr.backends.base import CodeBackend, DebugBackend, LogBackend
 from aegis_swr.config.settings import Settings
@@ -478,8 +455,7 @@ class DataAdapter:
         """Deduplicate and compress log lines using Drain3 template mining.
 
         Groups repeated log messages into templates, emits each template once
-        with a count (e.g., "(×42)"), and keeps unique lines as-is. Falls back
-        to returning input lines unmodified if drain3 is unavailable.
+        with a count (e.g., "(×42)"), and keeps unique lines as-is.
 
         Args:
             lines: Log lines to deduplicate.
@@ -487,10 +463,6 @@ class DataAdapter:
         Returns:
             Deduplicated and compressed log lines.
         """
-        if not _HAS_DRAIN3:  # pragma: no cover - drain3 is a core dependency
-            logger.warning("drain3 unavailable; skipping log clustering")
-            return lines
-
         config = _TemplateMinerConfig()
         config.profiling_enabled = False
         miner = _TemplateMiner(config=config)
@@ -545,8 +517,8 @@ class DataAdapter:
         """Extract and OCR text from screenshots with Tesseract and Pillow.
 
         Processes images, filters text by confidence (>60%), and assembles a UI
-        context. Gracefully falls back to None if libraries are unavailable or
-        OCR fails on individual images.
+        context. Gracefully falls back to None if OCR fails on individual images
+        (e.g., the Tesseract binary is not installed on the host).
 
         Args:
             screenshot_paths: Paths to screenshot files.
@@ -560,8 +532,6 @@ class DataAdapter:
             if not path.exists():
                 continue
             try:
-                if not _HAS_OCR:
-                    continue
                 data = _pytesseract.image_to_data(_Image.open(path), output_type=_pytesseract.Output.DICT)
             except (
                 OSError,
@@ -635,8 +605,6 @@ class DataAdapter:
     @staticmethod
     def _presidio_enhance(text: str, state: _ScrubState) -> str:
         """Optional NER pass to catch entities the regex baseline misses"""
-        if not _HAS_PRESIDIO:
-            return text
         try:
             analyzer = _AnalyzerEngine()
             entities = ["PERSON", "PHONE_NUMBER", "US_SSN", "CRYPTO", "LOCATION"]

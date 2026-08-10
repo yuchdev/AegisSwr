@@ -1,5 +1,5 @@
 """
-Project-specific AST lint rules X001–X011.
+Project-specific AST lint rules X001–X012.
 
 This module is the authoritative production implementation of the custom rule
 engine.  It must never import from ``tests/lint/`` or any other test-only
@@ -13,7 +13,7 @@ import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -76,6 +76,7 @@ def _iter_violations(
     yield from _check_percent_formatting(tree, filename)
     yield from _check_import_error_suppression(tree, filename)
     yield from _check_union_none_annotations(tree, filename)
+    yield from _check_union_type_annotations(tree, filename)
 
 
 # Matches a trailing ``# noqa`` marker anywhere in a line's comment, optionally
@@ -150,7 +151,7 @@ def _is_muting_stmt(stmt: ast.stmt) -> bool:
 
 
 def _has_proper_docstring(
-    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef,
+    node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef],
     lines: Optional[Sequence[str]],
 ) -> bool:
     """Check that *node* has a triple-double-quote docstring as its first statement."""
@@ -204,9 +205,9 @@ def _has_test_imports(tree: ast.AST) -> bool:
                 if root in ("pytest", "unittest"):
                     return True
         elif isinstance(node, ast.ImportFrom) and node.module:
-                root = node.module.split(".", 1)[0]
-                if root in ("pytest", "unittest"):
-                    return True
+            root = node.module.split(".", 1)[0]
+            if root in ("pytest", "unittest"):
+                return True
     return False
 
 
@@ -265,7 +266,12 @@ def _is_test_class(node: ast.ClassDef) -> bool:
     for base in node.bases:
         if isinstance(base, ast.Name) and base.id == "TestCase":
             return True
-        if isinstance(base, ast.Attribute) and isinstance(base.value, ast.Name) and base.value.id == "unittest" and base.attr == "TestCase":
+        if (
+            isinstance(base, ast.Attribute)
+            and isinstance(base.value, ast.Name)
+            and base.value.id == "unittest"
+            and base.attr == "TestCase"
+        ):
             return True
     return False
 
@@ -288,7 +294,7 @@ def _docstring_has_section(doc: str, section_name: str) -> bool:
     return False
 
 
-def _function_returns_value(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+def _function_returns_value(node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> bool:
     """Return True if *node* has at least one ``return <expr>`` in its own body."""
 
     class _ReturnVisitor(ast.NodeVisitor):
@@ -380,6 +386,20 @@ def _is_union_with_none(ann: Optional[ast.expr]) -> bool:
     return found_none and found_bitor
 
 
+def _is_union_without_none(ann: Optional[ast.expr]) -> bool:
+    """Return True when the annotation is a PEP 604 union that excludes ``None``."""
+    if ann is None:
+        return False
+    found_none = False
+    found_bitor = False
+    for sub in ast.walk(ann):
+        if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.BitOr):
+            found_bitor = True
+        if _expr_is_none(sub):
+            found_none = True
+    return found_bitor and not found_none
+
+
 # ---------------------------------------------------------------------------
 # Rule implementations
 # ---------------------------------------------------------------------------
@@ -453,8 +473,7 @@ def _check_docstrings(
     is_test_module = _is_test_module(tree, filename)
 
     generic_message = (
-        "Missing or improperly formatted docstring: add a coherent docstring "
-        "block as the first statement in the body."
+        "Missing or improperly formatted docstring: add a coherent docstring block as the first statement in the body."
     )
 
     if is_test_module:
@@ -550,7 +569,7 @@ def _check_local_imports(tree: ast.AST, filename: str) -> Iterable[RuleViolation
                         node.lineno,
                         node.col_offset,
                         "X006",
-                        "Do not use local imports inside function bodies; " "move imports to module scope.",
+                        "Do not use local imports inside function bodies; move imports to module scope.",
                     )
                 )
 
@@ -563,23 +582,23 @@ def _check_local_imports(tree: ast.AST, filename: str) -> Iterable[RuleViolation
                         node.lineno,
                         node.col_offset,
                         "X006",
-                        "Do not use local imports inside function bodies; " "move imports to module scope.",
+                        "Do not use local imports inside function bodies; move imports to module scope.",
                     )
                 )
 
         def visit_Call(self, node: ast.Call):
             """Flag ``__import__()`` calls inside function bodies."""
             if self._function_depth > 0 and isinstance(node.func, ast.Name) and node.func.id == "__import__":
-                    self.violations.append(
-                        RuleViolation(
-                            filename,
-                            node.lineno,
-                            node.col_offset,
-                            "X006",
-                            "Do not use local imports inside function bodies; "
-                            "move imports to module scope (including __import__() calls).",
-                        )
+                self.violations.append(
+                    RuleViolation(
+                        filename,
+                        node.lineno,
+                        node.col_offset,
+                        "X006",
+                        "Do not use local imports inside function bodies; "
+                        "move imports to module scope (including __import__() calls).",
                     )
+                )
             self.generic_visit(node)
 
     visitor = _LocalImportVisitor()
@@ -693,7 +712,7 @@ def _check_import_error_suppression(tree: ast.AST, filename: str) -> Iterable[Ru
                 if isinstance(node, (ast.Import, ast.ImportFrom)):
                     return True
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "__import__":
-                        return True
+                    return True
         return False
 
     for node in ast.walk(tree):
@@ -748,4 +767,37 @@ def _check_union_none_annotations(tree: ast.AST, filename: str) -> Iterable[Rule
                 yield _report(node)
         elif isinstance(node, ast.AnnAssign):
             if _is_union_with_none(node.annotation):
+                yield _report(node.annotation)
+
+
+def _check_union_type_annotations(tree: ast.AST, filename: str) -> Iterable[RuleViolation]:
+    """X012: Forbid ``Type1 | Type2``; require ``Union[Type1, Type2]``."""
+
+    def _report(annotation_node: ast.AST) -> RuleViolation:
+        """Build a violation for a ``Type1 | Type2`` annotation."""
+        return RuleViolation(
+            filename=filename,
+            lineno=getattr(annotation_node, "lineno", 1),
+            col_offset=getattr(annotation_node, "col_offset", 0),
+            code="X012",
+            message="Do not use `Type1 | Type2` in type hints; use `Union[Type1, Type2]` from typing instead.",
+        )
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            args = (
+                list(node.args.posonlyargs)
+                + list(node.args.args)
+                + ([] if node.args.vararg is None else [node.args.vararg])
+                + list(node.args.kwonlyargs)
+                + ([] if node.args.kwarg is None else [node.args.kwarg])
+            )
+            for arg in args:
+                ann = getattr(arg, "annotation", None)
+                if _is_union_without_none(ann):
+                    yield _report(arg)
+            if _is_union_without_none(getattr(node, "returns", None)):
+                yield _report(node)
+        elif isinstance(node, ast.AnnAssign):
+            if _is_union_without_none(node.annotation):
                 yield _report(node.annotation)

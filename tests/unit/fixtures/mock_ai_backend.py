@@ -3,10 +3,11 @@
 Returns pre-scripted responses without any network access. Shared by the AI
 backend tests (Step 3) and the orchestrator tests (Step 5).
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel
 
@@ -40,11 +41,9 @@ class MockAIBackend(AIAPIBackend):
         system_prompt: str,
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]] = None,
-    ) -> BaseModel | str:
+    ) -> Union[BaseModel, str]:
         """Helper that provides generate for the mock ai backend tests."""
-        self.calls.append(
-            {"system": system_prompt, "messages": messages, "schema": output_schema}
-        )
+        self.calls.append({"system": system_prompt, "messages": messages, "schema": output_schema})
         response = self._responses.pop(0) if self._responses else None
 
         if output_schema is not None:
@@ -52,9 +51,7 @@ class MockAIBackend(AIAPIBackend):
                 return response
             if isinstance(response, dict):
                 return output_schema.model_validate(response)
-            raise AIOutputValidationError(
-                f"MockAIBackend has no scripted {output_schema.__name__} response"
-            )
+            raise AIOutputValidationError(f"MockAIBackend has no scripted {output_schema.__name__} response")
 
         if isinstance(response, str):
             return response

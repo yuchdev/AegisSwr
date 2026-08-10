@@ -31,7 +31,7 @@ from __future__ import annotations
 import asyncio
 import os
 from collections.abc import AsyncGenerator, Iterator
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import boto3
 import botocore.config
@@ -225,7 +225,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         self,
         response: dict[str, Any],
         output_schema: Optional[type[BaseModel]],
-    ) -> str | dict[str, Any]:
+    ) -> Union[str, dict[str, Any]]:
         """Extract the tool payload or concatenated text from a Converse response.
 
         Reasoning-content blocks are ignored so internal chain-of-thought never
@@ -249,7 +249,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         system_prompt: str,
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]],
-    ) -> tuple[str | dict[str, Any], dict[str, int]]:
+    ) -> tuple[Union[str, dict[str, Any]], dict[str, int]]:
         """Issue one Converse round-trip off the event loop, returning payload+usage.
 
         :raises AIBackendError: on any boto client or transport error, surfacing only
@@ -265,7 +265,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         except botocore.exceptions.BotoCoreError as exc:
             logger.error("Bedrock converse transport error: {}", type(exc).__name__)
             raise AIBackendError(
-                f"Bedrock converse transport error for {self.model_name}: " f"{type(exc).__name__}"
+                f"Bedrock converse transport error for {self.model_name}: {type(exc).__name__}"
             ) from exc
 
         return self._parse(response, output_schema), self._usage(response)
@@ -289,7 +289,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
         except botocore.exceptions.BotoCoreError as exc:
             logger.error("Bedrock converse_stream transport error: {}", type(exc).__name__)
             raise AIBackendError(
-                f"Bedrock converse_stream transport error for {self.model_name}: " f"{type(exc).__name__}"
+                f"Bedrock converse_stream transport error for {self.model_name}: {type(exc).__name__}"
             ) from exc
 
         # The EventStream is a synchronous, network-backed iterator; pull each
@@ -300,9 +300,7 @@ class AwsBedrockBackend(_BaseAIBackend[BedrockSettings]):
                 event: Any = await asyncio.to_thread(next, iterator, _STREAM_DONE)
             except botocore.exceptions.BotoCoreError as exc:
                 logger.error("Bedrock stream interrupted: {}", type(exc).__name__)
-                raise AIBackendError(
-                    f"Bedrock stream interrupted for {self.model_name}: " f"{type(exc).__name__}"
-                ) from exc
+                raise AIBackendError(f"Bedrock stream interrupted for {self.model_name}: {type(exc).__name__}") from exc
             if event is _STREAM_DONE:
                 break
             delta = event.get("contentBlockDelta", {}).get("delta", {})

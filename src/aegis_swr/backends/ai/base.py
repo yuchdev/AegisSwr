@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from abc import abstractmethod
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar, Union
 
 from loguru import logger
 from pydantic import BaseModel, ValidationError
@@ -56,7 +56,7 @@ class _BaseAIBackend(AIAPIBackend, Generic[_SettingsT]):
         system_prompt: str,
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]] = None,
-    ) -> BaseModel | str:
+    ) -> Union[BaseModel, str]:
         """Generate a response, validating against *output_schema* with one retry.
 
         :param system_prompt: the system instruction for the model.
@@ -83,19 +83,16 @@ class _BaseAIBackend(AIAPIBackend, Generic[_SettingsT]):
                 return output_schema.model_validate(data)
             except (ValidationError, json.JSONDecodeError) as exc:
                 last_error = str(exc)
-                logger.warning(
-                    f"{self.model_name} structured output invalid " f"(attempt {attempt + 1}/2): {last_error}"
-                )
+                logger.warning(f"{self.model_name} structured output invalid (attempt {attempt + 1}/2): {last_error}")
                 working = working + self._correction_turn(raw, last_error, output_schema)
 
         raise AIOutputValidationError(
-            f"{self.model_name} failed to satisfy {output_schema.__name__} "
-            f"after one retry. Last error: {last_error}"
+            f"{self.model_name} failed to satisfy {output_schema.__name__} after one retry. Last error: {last_error}"
         )
 
     @staticmethod
     def _correction_turn(
-        raw: str | dict[str, Any],
+        raw: Union[str, dict[str, Any]],
         errors: str,
         output_schema: type[BaseModel],
     ) -> list[dict[str, Any]]:
@@ -121,7 +118,7 @@ class _BaseAIBackend(AIAPIBackend, Generic[_SettingsT]):
         system_prompt: str,
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]],
-    ) -> tuple[str | dict[str, Any], dict[str, int]]:
+    ) -> tuple[Union[str, dict[str, Any]], dict[str, int]]:
         """One API round-trip.
 
         Returns ``(payload, usage)`` where payload is a parsed dict when

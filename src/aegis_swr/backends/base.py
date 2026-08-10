@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar, Optional, Union
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -45,7 +45,7 @@ class AIAPIBackend(ABC):
         system_prompt: str,
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]] = None,
-    ) -> BaseModel | str:
+    ) -> Union[BaseModel, str]:
         """Send a completion request.
 
         Returns a validated Pydantic instance when output_schema is provided,

@@ -26,17 +26,15 @@ dependencies = [
     "slowapi>=0.1,<0.2",
     "grpcio>=1.68.1,<2",
     "protobuf>=7.0,<8",
-]
-
-[project.optional-dependencies]
-ocr = ["pytesseract>=0.3,<0.4", "easyocr>=1.7,<2"]
-pii = ["spacy>=3.8,<4", "presidio-analyzer>=2.2,<3", "presidio-anonymizer>=2.2,<3"]
-all = [
-    "pytesseract>=0.3,<0.4",
-    "easyocr>=1.7,<2",
-    "spacy>=3.8,<4",
     "presidio-analyzer>=2.2,<3",
     "presidio-anonymizer>=2.2,<3",
+    "pytesseract>=0.3,<0.4",
+    "spacy>=3.8,<4",
+    # spaCy model required by presidio-analyzer's SpacyNlpEngine. Pinned as a
+    # direct-URL wheel so `uv sync` installs it explicitly; without it presidio
+    # tries to auto-download via `python -m pip`, which fails in this pip-less
+    # uv-managed venv (SystemExit). The 3.8.0 model release matches spacy>=3.8.
+    "en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl",
 ]
 
 [project.scripts]
@@ -44,6 +42,7 @@ aegis = "aegis_swr.cli.commands:app"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.10",
     "pytest>=8.3,<9",
     "pytest-asyncio>=0.24,<0.25",
     "pytest-cov>=6.0,<7",
@@ -63,6 +62,11 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.metadata]
+# Required so the direct-URL spaCy model wheel (en-core-web-lg) in
+# project.dependencies is accepted by hatchling at build time.
+allow-direct-references = true
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/aegis_swr"]
 
@@ -72,7 +76,7 @@ packages = ["src/aegis_swr"]
 # select/ignore: rules, first apply whitelist, then blacklist
 # Leaving both empty (the default) tests every rule.
 include = []
-# client.py is exempted for the same reason as core/events.py: health_check() is
+# client.py is exempted for the same reason as core/events.py: health check() is
 # a resilience boundary (a readiness predicate the Task 03.0 lifecycle manager
 # polls) that must never propagate, requiring a typed `except Exception` backstop.
 # tool.py is exempted for the same reason: delegate() is a must-never-raise
@@ -82,15 +86,15 @@ include = []
 # entrypoint and deliberately lazy-imports the heavy backend/orchestrator/
 # OpenClaude object graph (anthropic/openai SDKs, boto3, langgraph, gRPC) inside
 # each subcommand so `aegis --help` and quick commands do not pay the full
-# backend import cost at startup. Moving those imports to module scope would
+# backend import cost at startup. Moving those imports to the module scope would
 # defeat that lazy-loading contract.
 # config/settings.py is exempted from X006 for a genuine circular import: the
 # `explicit` field validator needs `AgentSpec` from `aegis_swr.agents.base`,
 # but that package imports `Settings` from this module, so a module-scope import
 # forms a cycle. The import is deferred into the validator (documented at its
-# call site) which only runs when non-default `explicit` data is supplied.
+# call site), which only runs when non-default `explicit` data is supplied.
 # grpc/proto/ holds generated protobuf/gRPC stubs (mirrors ruff.toml's
-# extend-exclude for *_pb2.py / *_pb2_grpc.py and the coverage omit): committed
+# extend-exclude for *_pb2.py / *_pb2_grpc.py and the coverage omitted): committed
 # codegen, never hand-edited, so the X-rules do not gate it.
 exclude = [
     "tests/flake8_lint/samples/",
@@ -99,11 +103,11 @@ exclude = [
     "src/aegis_swr/openclaude/tool.py",
     "src/aegis_swr/cli/commands.py",
     "src/aegis_swr/config/settings.py",
-    "src/aegis_swr/openclaude/grpc/proto/",
+    "src/aegis_swr/openclaude/grpc/proto/"
 ]
 
-select = ["X001", "X002", "X004", "X005", "X006", "X007", "X008"]
-ignore = []
+select = ["X001", "X002", "X004", "X005", "X006", "X007", "X008", "X009", "X010", "X011", "X012"]
+ignore = ["X003"]
 
 # When false, a `# noqa` comment never suppresses a violation (the rule
 # engine's noqa support is bypassed entirely). Default true.
@@ -125,7 +129,7 @@ parallel = true
 omit = [
     "*/site-packages/*",
     "*/distutils/*",
-    # Generated gRPC stubs are committed code, not hand-written; exclude from
+    # Generated gRPC stubs are committed code, not handwritten; exclude from
     # coverage (mirrors ruff's `extend-exclude` for `*_pb2.py`). Keeps the
     # scoped OpenClaude coverage gate honest rather than penalising codegen.
     "*/openclaude/grpc/proto/*",

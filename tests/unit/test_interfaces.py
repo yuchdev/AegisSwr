@@ -4,7 +4,7 @@ subclasses satisfying all abstract methods can be instantiated"""
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar, Optional, Union
 
 import pytest
 from pydantic import BaseModel
@@ -119,7 +119,7 @@ def test_minimal_ai_backend_subclass():
             system_prompt: str,
             messages: list[dict[str, Any]],
             output_schema: Optional[type[BaseModel]] = None,
-        ) -> BaseModel | str:
+        ) -> Union[BaseModel, str]:
             """Helper that provides generate for the interfaces tests."""
             return "ok"
 

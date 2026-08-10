@@ -8,7 +8,7 @@ explicit cache-control directive is required (unlike Anthropic).
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import openai
 from pydantic import BaseModel
@@ -93,7 +93,7 @@ class OpenAIBackend(_BaseAIBackend[OpenAISettings]):
         system_prompt: str,
         messages: list[dict[str, Any]],
         output_schema: Optional[type[BaseModel]],
-    ) -> tuple[str | dict[str, Any], dict[str, int]]:
+    ) -> tuple[Union[str, dict[str, Any]], dict[str, int]]:
         """Issue one Chat Completions round-trip, returning the text and token usage."""
         full_messages = [{"role": "system", "content": system_prompt}, *messages]
         kwargs: dict[str, Any] = {
