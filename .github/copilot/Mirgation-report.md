@@ -15,7 +15,6 @@ blocking `preToolUse` decisions, `sessionStart` context injection, and `Stop`
 
 - `.github/hooks/aegis-hooks.json` defines the hook metadata.
 - `.github/hooks/*.py` contains the Copilot hook commands.
-- `.github/copilot/hooks-emulated/` is removed because it was no longer the right model.
 
 The `.claude/` directory still remains for Claude Code compatibility.
 
