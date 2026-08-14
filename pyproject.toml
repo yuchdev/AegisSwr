@@ -63,8 +63,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.metadata]
-# Required so the direct-URL spaCy model wheel (en-core-web-lg) in
-# project.dependencies is accepted by hatchling at build time.
+# Required so hatchling accepts the direct-URL spaCy model wheel (en-core-web-lg) in
+# project.dependencies at build time.
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
