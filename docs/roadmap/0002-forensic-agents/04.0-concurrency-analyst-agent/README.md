@@ -12,7 +12,7 @@ thread-scheduling and lock-ordering knowledge provides decisive signal:
 `assertion_failure` (concurrent invariant violation, secondary).
 
 The agent follows the shared forensic-specialist shape defined in
-[plan.md §Tasks 03.0–06.0](/docs/roadmap/0002-forensic-agents/plan.md#tasks-030060--forensic-specialists-shared-shape).
+[plan.md §Tasks 03.0–06.0](/docs/roadmap/0002-forensic-agents/plan.md#tasks-030060---forensic-specialists-shared-shape).
 Its distinguishing feature is a **deterministic wait-chain pre-check** that
 scans the incident brief's raw text excerpt and thread summary for blocking
 primitives (e.g. `WaitForMultipleObjects`, `EnterCriticalSection`,

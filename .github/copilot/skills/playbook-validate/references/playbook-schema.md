@@ -2,7 +2,7 @@
 
 The authoritative field vocabulary is defined by the Remediation Planner
 alignment spec
-([docs/roadmap/0002-forensic-agents/07.0-remediation-planner-agent/04-playbook-validate-alignment.md](../../../../docs/roadmap/0002-forensic-agents/07.0-remediation-planner-agent/04-playbook-validate-alignment.md)).
+([docs/roadmap/0002-forensic-agents/07.0-remediation-planner-agent/04-playbook-validate-alignment.md](../../../../../docs/roadmap/0002-forensic-agents/07.0-remediation-planner-agent/04-playbook-validate-alignment.md)).
 A validated `RemediationPlan` (via its adapter shim) must satisfy everything below.
 This reference is what the `SKILL.md §Checks` steps validate against — keep the two
 in sync.

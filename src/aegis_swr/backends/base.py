@@ -87,7 +87,7 @@ class DebugBackend(ABC):
     def _build_command_sequence(
         self,
         source: IncidentSource,
-        symbol_path: Optional[str],
+        symbol_path: list[str],
     ) -> list[str]:
         """Return the debugger argv list for subprocess.run()"""
 

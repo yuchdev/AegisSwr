@@ -30,6 +30,7 @@ from aegis_swr.cli.config import (
 from aegis_swr.cli.formatters import json_formatter, rich_formatter, stream_and_display
 from aegis_swr.config.settings import CONFIG_DIR
 from aegis_swr.core.exceptions import PlatformNotSupportedError
+from aegis_swr.core.schemas import RCAReport
 
 console = Console()
 
@@ -456,6 +457,7 @@ def analyze(  # noqa: PLR0913
 
     fmt = config.output
 
+    report: Optional[RCAReport]
     if fmt == "quiet":
         # No display - just run and store.
         report = asyncio.run(orch.run(source))

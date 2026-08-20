@@ -22,6 +22,14 @@ jobs:
       - run: pip install ruff
       - run: ruff check src/ tests/
 
+  doc-links:
+    name: "Docs: cross-reference links and anchors resolve"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv run python scripts/check_doc_links.py
+
   unit-test:
     runs-on: ubuntu-latest
     strategy:

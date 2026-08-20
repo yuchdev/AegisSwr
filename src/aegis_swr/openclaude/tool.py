@@ -266,8 +266,8 @@ class OpenClaudeTool(CodeIntelBackend):
             if handler is None:
                 continue  # unknown frame type; skip silently
             result = await handler(msg)
-            if result is _DONE:
-                break  # identity check on the typed terminal sentinel
+            if isinstance(result, _Done):
+                break  # narrows the sentinel out of the union below
             elif result is not None:
                 return result  # early exit (error or other terminal state)
 
