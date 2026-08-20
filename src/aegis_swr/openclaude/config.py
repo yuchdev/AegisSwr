@@ -23,7 +23,7 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
-from aegis_swr.openclaude.exceptions import OpenClaudeConfigError
+from aegis_swr.openclaude.exceptions import OpenClaudeConfigError as OpenClaudeConfigError
 
 _CSV_LIST_FIELDS: frozenset[str] = frozenset({"allowed_tools", "bash_allowlist"})
 

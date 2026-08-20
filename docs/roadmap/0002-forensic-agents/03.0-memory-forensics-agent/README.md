@@ -12,7 +12,7 @@ memory-layout and allocator-state knowledge provides decisive signal:
 `use_after_free` (primary).
 
 The agent follows the shared forensic-specialist shape defined in
-[plan.md §Tasks 03.0–06.0](/docs/roadmap/0002-forensic-agents/plan.md#tasks-030060--forensic-specialists-shared-shape).
+[plan.md §Tasks 03.0–06.0](/docs/roadmap/0002-forensic-agents/plan.md#tasks-030060---forensic-specialists-shared-shape).
 Its distinguishing feature is a **deterministic fill-pattern pre-check** that
 scans the incident brief's stack frames and raw text for known heap-metadata
 sentinel values (e.g. `0xBAADF00D`, `0xFEEEFEEE`) before - and independent of -

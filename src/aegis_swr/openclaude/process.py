@@ -495,7 +495,7 @@ class OpenClaudeProcess:
         """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
             probe.bind((host, 0))
-            return probe.getsockname()[1]
+            return int(probe.getsockname()[1])
 
     def _resolve_bind_address(self) -> tuple[str, int]:
         """Resolve the loopback ``host, port`` the sidecar binds and we probe.

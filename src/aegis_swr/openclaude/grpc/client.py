@@ -130,7 +130,10 @@ class OpenClaudeGrpcClient:
         """
         self._settings = settings
         self._channel: Optional[grpc.aio.Channel] = None
-        self._stub: Optional[openclaude_pb2_grpc.AgentServiceStub] = None
+        # AgentServiceStub(channel) with a grpc.aio.Channel dispatches, via the
+        # generated __new__ overload, to AgentServiceAsyncStub - the type-only
+        # subtype whose Query is the async (not sync) UnaryStreamMultiCallable.
+        self._stub: Optional[openclaude_pb2_grpc.AgentServiceAsyncStub] = None
 
     @classmethod
     def from_channel(
@@ -231,6 +234,7 @@ class OpenClaudeGrpcClient:
             transport level or ends without a terminal frame (see subtask 04).
         """
         self._ensure_channel()
+        assert self._stub is not None  # set by _ensure_channel()
         request = openclaude_pb2.PromptRequest(prompt=prompt, run_id=run_id)
 
         logger.debug("Issuing OpenClaude Query RPC")
@@ -295,6 +299,7 @@ class OpenClaudeGrpcClient:
         :return: ``True`` on a terminal ``DONE``; ``False`` otherwise.
         """
         self._ensure_channel()
+        assert self._stub is not None  # set by _ensure_channel()
         request = openclaude_pb2.PromptRequest(prompt=_HEALTH_PROBE_PROMPT, run_id="health-check")
         call = self._stub.Query(request, timeout=self._settings.connect_timeout_s)
 

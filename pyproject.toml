@@ -56,6 +56,9 @@ dev = [
     "pathspec!=1.1.1",
     "types-pyyaml>=6.0,<7",
     "types-boto3>=1.35,<2",
+    "mypy-protobuf>=5.1.0",
+    "types-protobuf>=7.34.1.20260816",
+    "types-grpcio>=1.83.0.20260730",
 ]
 
 [build-system]
@@ -63,8 +66,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.metadata]
-# Required so hatchling accepts the direct-URL spaCy model wheel (en-core-web-lg) in
-# project.dependencies at build time.
+# Required so the direct-URL spaCy model wheel (en-core-web-lg) in
+# project.dependencies is accepted by hatchling at build time.
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]

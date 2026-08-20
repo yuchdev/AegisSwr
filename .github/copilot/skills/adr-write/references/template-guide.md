@@ -1,6 +1,6 @@
 # ADR template guide (section-by-section)
 
-The canonical structure lives in [`docs/adr/template.md`](../../../../docs/adr/template.md).
+The canonical structure lives in [`docs/adr/template.md`](../../../../../docs/adr/template.md).
 This guide explains what each section must contain and how the git/issue context
 the skill gathers in Step 2 maps onto it. Read `template.md` for the exact
 headings; read this for how to fill them.

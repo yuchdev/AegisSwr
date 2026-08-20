@@ -16,6 +16,12 @@ loaded as package submodules). This avoids any hand-editing of generated code.
 ``grpcio-tools==1.82.1``); this deliberately avoids shelling out to ``make`` or
 re-invoking ``python -m grpc_tools.protoc`` as a subprocess.
 
+The ``mypy-protobuf`` plugin additionally emits ``.pyi`` stubs alongside the
+``_pb2.py`` / ``_pb2_grpc.py`` modules (``protoc-gen-mypy`` /
+``protoc-gen-mypy_grpc``, resolved from PATH via the dev-only ``mypy-protobuf``
+dependency), so mypy sees real message/stub attributes instead of the opaque
+dynamically-built classes protobuf generates at import time.
+
 Usage::
 
     uv run python scripts/proto_gen.py
@@ -48,6 +54,8 @@ def main() -> int:
             f"--proto_path={PROTO_ROOT}",
             f"--python_out={PROTO_ROOT}",
             f"--grpc_python_out={PROTO_ROOT}",
+            f"--mypy_out={PROTO_ROOT}",
+            f"--mypy_grpc_out={PROTO_ROOT}",
             str(PROTO_FILE),
         ]
     )

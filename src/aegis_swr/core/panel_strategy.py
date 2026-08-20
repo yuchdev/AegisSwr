@@ -190,7 +190,7 @@ class AgenticManagerStrategy(PanelSelectionStrategy):
         if category == "synthesis":
             return False
         if category == "forensic":
-            authoritative = getattr(agent_cls, "authoritative_fault_classes", frozenset())
+            authoritative: frozenset[FaultClass] = getattr(agent_cls, "authoritative_fault_classes", frozenset())
             return fault is not None and fault in authoritative
         return True
 

@@ -17,11 +17,13 @@ from rich.console import Console
 from aegis_swr.core.events import HumanInputRequired, InvestigationCompleted
 from aegis_swr.core.orchestrator import Orchestrator
 from aegis_swr.core.schemas import IncidentSource, RCAReport
-from aegis_swr.views.rich_view import (  # noqa: F401  (make_console re-exported for CLI)
+from aegis_swr.views.rich_view import (
     WarRoomView,
-    make_console,
     make_view,
     render_verdict,
+)
+from aegis_swr.views.rich_view import (
+    make_console as make_console,  # re-exported for CLI consumers
 )
 
 _ORIGINAL_RUN = Orchestrator.run

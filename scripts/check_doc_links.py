@@ -58,6 +58,9 @@ _CODE_SPAN_RE = re.compile(r"`+[^`]*`+")
 _FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 # ATX heading: up to 3 leading spaces, 1-6 '#', then a space.
 _HEADING_RE = re.compile(r"^ {0,3}(#{1,6})\s+(.*?)\s*#*\s*$")
+# Explicit HTML anchor: ``<a id="foo"></a>`` or ``<a name="foo"></a>``, GitHub's
+# supported way to give a section a stable anchor independent of its heading text.
+_EXPLICIT_ANCHOR_RE = re.compile(r'<a\s+(?:id|name)="([^"]+)"')
 # External schemes we never resolve as file paths.
 _SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 
@@ -83,7 +86,9 @@ def heading_anchors(path: Path) -> set[str]:
 
     Duplicate slugs get the ``-1``, ``-2`` ... suffixes a renderer would assign,
     so a link to the second identical heading still validates. Headings inside
-    fenced code blocks are ignored.
+    fenced code blocks are ignored. Explicit ``<a id="...">``/``<a name="...">``
+    anchors are also collected verbatim - GitHub honours these regardless of
+    the heading text, so a doc can pin a stable anchor independent of wording.
     """
     anchors: set[str] = set()
     seen: dict[str, int] = {}
@@ -101,6 +106,8 @@ def heading_anchors(path: Path) -> set[str]:
             continue
         if in_fence:
             continue
+        for explicit in _EXPLICIT_ANCHOR_RE.finditer(line):
+            anchors.add(explicit.group(1))
         heading = _HEADING_RE.match(line)
         if not heading:
             continue

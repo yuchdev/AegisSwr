@@ -29,8 +29,7 @@ section) with the following content:
    | `VLLM_BASE_URL`    | Self-hosted vLLM | Base URL of the vLLM server       |
    | `VLLM_API_KEY`     | Self-hosted vLLM | Optional auth key (can be empty)  |
 
-3. Link: "See [docs/config-reference.md](docs/config-reference.md) for full
-   `agents.yaml` reference."
+3. Link: "See `docs/config-reference.md` for full `agents.yaml` reference."
 
 ## CHANGELOG.md changes
 

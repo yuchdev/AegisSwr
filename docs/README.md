@@ -15,6 +15,7 @@ Mermaid diagrams live in `adr/assets/`.
 | [0001-new-ui-rich-based-design.md](adr/0001-new-ui-rich-based-design.md) | Implemented | WarRoomView three-pane terminal UI: Evidence Stream (left), Forensic Agents (right-top), Investigation Process (right-bottom). Animation, event→widget mapping, post-conclusion transition, Rich API inventory. |
 | [0002-agent-weight-as-property.md](adr/0002-agent-weight-as-property.md) | Accepted | Consensus weight declared as a `ClassVar` on each agent class, not in an external config file; eliminates double-roster maintenance and enables per-agent defaults with a two-tier override. |
 | [0003-code-intel-composition-root.md](adr/0003-code-intel-composition-root.md) | Accepted | Code-intelligence composition root moved to `openclaude/composition.py` and exposed via `aegis code-intel check`; `CodeBackend` renamed to `CodeIntelBackend`; orphan `app.py` deleted. |
+| [0004-harness-composition-generalization.md](adr/0004-harness-composition-generalization.md) | Proposed | Composition root generalised out of `openclaude/` into a neutral `harness/` package for multi-backend Code Intelligence (OpenClaude + Claude Code + OpenHands); single-active-backend selection with loud ambiguity error; `Settings.openclaude` → `Settings.harness.openclaude`. Extends ADR 0003. |
 | [template.md](adr/template.md) | - | Blank MADR template; use `/adr-write <title>` to scaffold a new record. |
 
 ---
@@ -45,6 +46,8 @@ Development timeline, per-phase task briefs, and live progress tracking.
 | [0002-forensic-agents/plan.md](/docs/roadmap/0002-forensic-agents/plan.md)                   | Agentic execution brief per task: agent matrix, verbatim per-agent instructions, inputs, verification gates.                                                                                                                         |
 | [0003-litellm-routing/plan.md](/docs/roadmap/0003-litellm-routing/plan.md)                   | LiteLLM routing task brief.                                                                                                                                                                                                          |
 | [0004-code-intelligence/plan.md](/docs/roadmap/0004-code-intelligence/plan.md)               | OpenClaude integration: the central Code Intelligence mechanism (supersedes the bespoke Milestone 0004 design).                                                                                                                      |
+| [0005-harness-backends/plan.md](/docs/roadmap/0005-harness-backends/plan.md)                 | Code Intelligence harness & multi-backend support: generalises the single-backend subsystem into a neutral `harness/` selection layer and adds Claude Code (`claude` CLI) and OpenHands (Docker-sandboxed) backends. Extends Milestone 0004. |
+| [0005-harness-backends/status.md](/docs/roadmap/0005-harness-backends/status.md)             | Live tracker for Milestone 0005 (Harness & multi-backend): **not started**; task-level plan only, records the "no documented second backend" research finding and the single-active-backend selection decision. |
 
 ---
 

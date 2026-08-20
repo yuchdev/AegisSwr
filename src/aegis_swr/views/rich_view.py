@@ -22,7 +22,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, cast
 
 from rich.console import Console, Group, RenderableType
 from rich.json import JSON
@@ -216,9 +216,10 @@ def _plain_text(renderable: RenderableType) -> str:
     Used to serialise the Evidence Stream to a persisted transcript: a wide,
     no-colour capture console avoids ANSI escapes and line wrapping.
     """
-    capture = Console(file=io.StringIO(), width=10_000, no_color=True, force_terminal=False)
+    buffer = io.StringIO()
+    capture = Console(file=buffer, width=10_000, no_color=True, force_terminal=False)
     capture.print(renderable)
-    return capture.file.getvalue().rstrip("\n")
+    return buffer.getvalue().rstrip("\n")
 
 
 @dataclass
@@ -542,7 +543,7 @@ class WarRoomView:
                 self._stamp_field(label, str(value), "grey70", level="TRACE")
 
         # Full stack beyond the INFO top-three, with module/source detail.
-        frames = brief.get("stack_frames") or []
+        frames = cast("list[dict[str, object]]", brief.get("stack_frames", []))
         for i, frame in enumerate(frames):
             if i < 3:
                 continue

@@ -17,7 +17,7 @@ The agent joins the debate for three fault classes:
   the resource is available worker threads.
 
 The agent follows the shared forensic-specialist shape defined in
-[plan.md §Tasks 03.0–06.0](/docs/roadmap/0002-forensic-agents/plan.md#tasks-030060--forensic-specialists-shared-shape).
+[plan.md §Tasks 03.0–06.0](/docs/roadmap/0002-forensic-agents/plan.md#tasks-030060---forensic-specialists-shared-shape).
 Its distinguishing feature is a **deterministic leak-indicator pre-check** that
 scans `brief.log_summary` and `brief.raw_text_excerpt` for resource-pressure
 signals (e.g. `"too many open files"`, `"ERROR_NO_SYSTEM_RESOURCES"`,
