@@ -24,14 +24,14 @@ advertising it as the Docker-sandboxed multi-file navigation backend.
 Action/Observation stream instead of OpenClaude's gRPC frame stream, and for the
 **dual token-accounting source** OpenHands allows (C9).
 
-`delegate()` behaviour (finalised in subtask 02):
+`delegate()` behaviour (finalized in subtask 02):
 
 1. **Budget pre-check (C5-equivalent).** Pre-check the `CallBudget` against
    `max_response_tokens // 4` and return a **non-retriable** failure **without
    opening any connection** if insufficient.
 2. **Dry-run (C8 item 6).** When `ctx.dry_run`, short-circuit to a `[dry-run]`
    zero-token `CodeResult` **before any network call** (no REST/WS traffic).
-3. **Stream (subtask 01).** Otherwise call `client.stream(task, run_id)` and
+3. **Stream (subtask 01).** Otherwise, call `client.stream(task, run_id)` and
    iterate the Action/Observation event stream — accumulating the assistant's
    text up to the terminal event, emitting `OpenHandsAction` /
    `OpenHandsObservation` per frame (C10), and emitting
@@ -51,55 +51,35 @@ Action/Observation stream instead of OpenClaude's gRPC frame stream, and for the
 
 ## Subtasks
 
-| # | Name | Blocks | Status |
-|---|------|--------|--------|
-| 01 | [Tool skeleton + Action/Observation stream consumption](/docs/roadmap/0005-harness-backends/08.0-openhands-tool/01-stream-consumption.md) | 02 | ⬜ Not started |
+| #  | Name                                                                                                                                                                   | Blocks     | Status         |
+|----|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|----------------|
+| 01 | [Tool skeleton + Action/Observation stream consumption](/docs/roadmap/0005-harness-backends/08.0-openhands-tool/01-stream-consumption.md)                              | 02         | ⬜ Not started |
 | 02 | [`delegate()`: budget pre-check, token-estimate resolution, dry-run, truncation](/docs/roadmap/0005-harness-backends/08.0-openhands-tool/02-delegate-budget-tokens.md) | 09.0, 11.0 | ⬜ Not started |
 
 ## Key constraints
 
-- Implements the unchanged `CodeIntelBackend` contract from
-  `aegis_swr/code_intel/backend.py` (Milestone 0004); it imports nothing from
-  `aegis_swr.code_intel` beyond that contract, and `aegis_swr/code_intel/` never
-  imports it (C3). `code_intel/backend.py`, `agent.py`, `budget.py` stay
-  byte-for-byte unchanged; `CodeResult.token_estimate` keeps its name and `int`
-  type (C9).
-- The tool **never imports the OpenHands HTTP/WS client library** — every event
-  type it consumes comes from `aegis_swr/openhands/client.py` (task 07.0), the
-  **sole** importer of that library (C3, C8 item 3). No sibling-backend import.
-- Budget is charged **after** stream completion, never pre-charged; the pre-check
-  reserves nothing. Failure paths (insufficient budget, dry-run, denial,
-  transport error) charge **zero** tokens (C5-equivalent).
-- `token_estimate` is the **server-reported real usage when present**, else the
-  boundary estimate `max(1, len(content) // 4)` (C9); it is carried by exactly
-  one event, `OpenHandsStreamCompleted` (`openhands.completed`), never
-  duplicated (C10).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- Implements the unchanged `CodeIntelBackend` contract from `aegis_swr/code_intel/backend.py` (Milestone 0004); it imports nothing from `aegis_swr.code_intel` beyond that contract, and `aegis_swr/code_intel/` never imports it (C3). `code_intel/backend.py`, `agent.py`, `budget.py` stay byte-for-byte unchanged; `CodeResult.token_estimate` keeps its name and `int` type (C9).
+- The tool **never imports the OpenHands HTTP/WS client library** — every event type it consumes comes from `aegis_swr/openhands/client.py` (task 07.0), the **sole** importer of that library (C3, C8 item 3). No sibling-backend import.
+- Budget is charged **after** stream completion, never pre-charged; the pre-check reserves nothing. Failure paths (insufficient budget, dry-run, denial, transport error) charge **zero** tokens (C5-equivalent).
+- `token_estimate` is the **server-reported real usage when present**, else the boundary estimate `max(1, len(content) // 4)` (C9); it is carried by exactly one event, `OpenHandsStreamCompleted` (`openhands.completed`), never duplicated (C10).
 - `ctx.dry_run` returns `[dry-run]`/`0` **without any REST/WS call** (C8 item 6).
-- **100% branch coverage required** on `tool.py` (task 11.0), mirroring the 0004
-  `OpenClaudeTool` gate; no unhandled exception escapes `delegate()`.
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None` (C13); `ruff` and `python scripts/replace_optional.py --check`
-  clean; no `Any` in any signature.
-- Loguru with `SensitiveFilter` on every sink; **no** assistant text,
-  observation output, action arguments, or incident payload ever reaches a log
-  sink, exception message, or event payload — events carry counts and
-  status/type strings only (C13).
+- **100% branch coverage required** on `tool.py` (task 11.0), mirroring the 0004 `OpenClaudeTool` gate; no unhandled exception escapes `delegate()`.
+- Loguru with `SensitiveFilter` on every sink; **no** assistant text, observation output, action arguments, or incident payload ever reaches a log sink, exception message, or event payload — events carry counts and status/type strings only (C13).
 
 ## Files
 
 ```
 src/aegis_swr/openhands/
-├── tool.py        ← OpenHandsTool (this task): CodeIntelBackend impl,
-│                     Action/Observation stream → CodeResult, budget, dry-run (C8, C9)
-├── client.py      ← task 07.0: sole importer of the OpenHands client; yields the
-│                     normalised OpenHands event stream this tool consumes
+├── tool.py        ← OpenHandsTool (this task): CodeIntelBackend impl, Action/Observation stream → CodeResult, budget, dry-run (C8, C9)
+├── client.py      ← task 07.0: sole importer of the OpenHands client; yields the normalised OpenHands event stream this tool consumes
 ├── process.py     ← task 07.0: sidecar lifecycle (mirrors OpenClaudeProcess / 0004 C6)
-├── config.py      ← task 06.0: OpenHandsSettings (server_url, runtime_mode,
-│                     allowlist, timeouts, auto_start; max_response_tokens per C5)
+├── config.py      ← task 06.0: OpenHandsSettings (server_url, runtime_mode, allowlist, timeouts, auto_start; max_response_tokens per C5)
 ├── events.py      ← task 09.0: openhands.* DomainEvent taxonomy (imported here)
 └── exceptions.py  ← task 09.0: OpenHandsUnavailableError, … (imported here)
 
 tests/unit/openhands/
-└── test_tool.py   ← task 11.0: per-branch delegate() coverage, no-network-on-dry-run,
-                      token-estimate-source matrix, no-secret-in-events assertions
+└── test_tool.py   ← task 11.0: per-branch delegate() coverage, no-network-on-dry-run, token-estimate-source matrix, no-secret-in-events assertions
 ```

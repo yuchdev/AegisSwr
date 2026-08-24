@@ -19,9 +19,9 @@ live process, socket, subprocess, or container is ever started in a unit test.
 This mirrors 0004's `mock_grpc_client` seam pattern
 ([0004 07.0/01](/docs/roadmap/0004-code-intelligence/07.0-test-suite-unit/01-conftest-fixtures.md)):
 a shared `conftest.py` provides the injection seams so every collaborator is
-constructor-injected, never monkeypatched at a module global.
+constructor-injected, never monkey-patched at a module's global.
 
-The shared fixture module (subtask 01) provides, generalising the 0004 seams to
+The shared fixture module (subtask 01) provides, generalizing the 0004 seams to
 three backends:
 
 - a **mock subprocess factory** (`mock_claude_subprocess`) that builds a fake
@@ -66,42 +66,25 @@ Test files mirror the implementation and the plan's File map:
 
 ## Subtasks
 
-| # | Name | Status | Blocks |
-|---|------|--------|--------|
+| #  | Name                                                       | Status         | Blocks     |
+|----|------------------------------------------------------------|----------------|------------|
 | 01 | [Shared fixtures / `conftest.py`](01-conftest-fixtures.md) | ⬜ Not started | 02, 03, 04 |
-| 02 | [`tests/unit/harness/` suite](02-harness-suite.md) | ⬜ Not started | - |
-| 03 | [`tests/unit/claude_code/` suite](03-claude-code-suite.md) | ⬜ Not started | - |
-| 04 | [`tests/unit/openhands/` suite](04-openhands-suite.md) | ⬜ Not started | - |
+| 02 | [`tests/unit/harness/` suite](02-harness-suite.md)         | ⬜ Not started | -          |
+| 03 | [`tests/unit/claude_code/` suite](03-claude-code-suite.md) | ⬜ Not started | -          |
+| 04 | [`tests/unit/openhands/` suite](04-openhands-suite.md)     | ⬜ Not started | -          |
 
 ## Key constraints
 
-- All unit tests pass with `AEGIS_CODE_INTEL_BACKEND` unset, all three presence
-  signals unset, and no `claude` binary / Docker / OpenHands server available —
-  **no live process, socket, subprocess, or container ever starts** (global
-  acceptance criterion; C13).
-- **100% branch coverage on `delegate()`** for `claude_code/tool.py` **and**
-  `openhands/tool.py` (each scoped `--cov-branch --cov-fail-under=100`, mirroring
-  0004's `tool.py` gate); ≥ 90% per-backend overall unit coverage (gate in
-  task 13.0).
-- `test_config.py` in `tests/unit/harness/` covers the **full C2 truth table**,
-  including that an `OPENCLAUDE_GRPC_URL`-only environment still auto-selects with
-  zero further changes (preserving 0004's closing guarantee).
-- `test_process.py` in `tests/unit/claude_code/` asserts the task text substring
-  **never** appears in the constructed argv (C6).
-- `test_auth_modes.py` covers the **full C7 matrix** and asserts no OAuth token,
-  credential-file content, or API-key value ever reaches a captured log record or
-  exception message across every auth path (C7, C13).
-- `test_isolation.py` per package extends 0004's `openclaude-isolation`
-  grep-style check into an **import-statement-aware pytest test** (docstring
-  mentions do not trip it) verifying no backend package imports a sibling and
-  that `harness/composition.py` is the only module importing more than one family.
-- No `monkeypatch` of module-level globals; every subprocess / client / process /
-  bus dependency is constructor-injected via the shared fixtures (subtask 01). The
-  only legitimate `monkeypatch` use is setting/clearing real env vars that
-  Pydantic Settings read.
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` at the top of every file (C13). `ruff` and
-  `scripts/replace_optional.py --check` stay clean.
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- All unit tests pass with `AEGIS_CODE_INTEL_BACKEND` unset, all three presence signals unset, and no `claude` binary / Docker / OpenHands server available — **no live process, socket, subprocess, or container ever starts** (global acceptance criterion; C13).
+- **100% branch coverage on `delegate()`** for `claude_code/tool.py` **and** `openhands/tool.py` (each scoped `--cov-branch --cov-fail-under=100`, mirroring 0004's `tool.py` gate); ≥ 90% per-backend overall unit coverage (gate in task 13.0).
+- `test_config.py` in `tests/unit/harness/` covers the **full C2 truth table**, including that an `OPENCLAUDE_GRPC_URL`-only environment still auto-selects with zero further changes (preserving 0004's closing guarantee).
+- `test_process.py` in `tests/unit/claude_code/` asserts the task text substring **never** appears in the constructed argv (C6).
+- `test_auth_modes.py` covers the **full C7 matrix** and asserts no OAuth token, credential-file content, or API-key value ever reaches a captured log record or exception message across every auth path (C7, C13).
+- `test_isolation.py` per package extends 0004's `openclaude-isolation` grep-style check into an **import-statement-aware pytest test** (docstring mentions do not trip it) verifying no backend package imports a sibling and that `harness/composition.py` is the only module importing more than one family.
+- No `monkeypatch` of module-level globals; every subprocess / client / process / bus dependency is constructor-injected via the shared fixtures (subtask 01). The only legitimate `monkeypatch` use is setting/clearing real env vars that Pydantic Settings read.
 
 ## Files
 

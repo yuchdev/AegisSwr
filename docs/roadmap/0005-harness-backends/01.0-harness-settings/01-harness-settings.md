@@ -17,7 +17,7 @@ settings classes. The C2 selection/ambiguity *resolution* logic (the
 `model_validator`, `active_backend`, and `presence_signals`) is added to this
 same class by subtask 02.
 
-When no env vars are set the object must be constructible without error: the
+When no env vars are set, the object must be constructible without error: the
 selector resolves to `None` and each nested settings object constructs at its
 own defaults (its presence signal absent). A no-config `HarnessSettings()` means
 "no backend selected, none auto-selectable" — never a construction crash.
@@ -33,11 +33,11 @@ own defaults (its presence signal absent). A no-config `HarnessSettings()` means
 **Nested sub-settings** (composed via `default_factory`, each sources its own
 family's env vars — C1/C5):
 
-| Field         | Type                 | Default factory        | Presence signal (C2)          |
-|---------------|----------------------|------------------------|-------------------------------|
-| `openclaude`  | `OpenClaudeSettings` | `OpenClaudeSettings`   | `grpc_url is not None`         |
-| `claude_code` | `ClaudeCodeSettings` | `ClaudeCodeSettings`   | `enabled is True`             |
-| `openhands`   | `OpenHandsSettings`  | `OpenHandsSettings`    | `server_url is not None`      |
+| Field         | Type                 | Default factory      | Presence signal (C2)     |
+|---------------|----------------------|----------------------|--------------------------|
+| `openclaude`  | `OpenClaudeSettings` | `OpenClaudeSettings` | `grpc_url is not None`   |
+| `claude_code` | `ClaudeCodeSettings` | `ClaudeCodeSettings` | `enabled is True`        |
+| `openhands`   | `OpenHandsSettings`  | `OpenHandsSettings`  | `server_url is not None` |
 
 ```python
 from __future__ import annotations
@@ -190,27 +190,12 @@ class HarnessSettings(BaseSettings):
 
 ## Success criteria
 
-- [ ] `aegis_swr/harness/__init__.py` exists (empty) and
-      `aegis_swr/harness/config.py` defines `HarnessBackend` and
-      `HarnessSettings`.
-- [ ] `HarnessSettings()` with no env vars set constructs without raising;
-      `backend is None` and each nested settings object holds its family
-      defaults (`openclaude.grpc_url is None`, `claude_code.enabled is False`,
-      `openhands.server_url is None`).
-- [ ] `HarnessSettings(backend="openclaude")` constructs with
-      `backend is HarnessBackend.OPENCLAUDE`.
-- [ ] `AEGIS_CODE_INTEL_BACKEND=""` (empty) resolves to `backend is None`
-      (auto-select), not a validation error.
-- [ ] `HarnessSettings(backend="not_a_backend")` raises `HarnessConfigError`
-      (not a bare Pydantic `ValidationError`) naming field `"backend"`.
-- [ ] Each nested sub-object is sourced from its own family's env vars only —
-      e.g. `OPENCLAUDE_GRPC_URL=localhost:50051` sets
-      `settings.openclaude.grpc_url == "localhost:50051"` and leaves
-      `claude_code` / `openhands` at defaults.
-- [ ] `HarnessSettings` reads no environment variable other than
-      `AEGIS_CODE_INTEL_BACKEND` (verified by asserting nested-family values
-      come only through their own settings classes).
-- [ ] No import of `HarnessSettings` appears in `aegis_swr/core/`,
-      `aegis_swr/views/`, or `aegis_swr/code_intel/` (C3).
-- [ ] `scripts/replace_optional.py --check` clean; `ruff` clean; no `Any` in
-      field types.
+- [ ] `aegis_swr/harness/__init__.py` exists (empty) and `aegis_swr/harness/config.py` defines `HarnessBackend` and `HarnessSettings`.
+- [ ] `HarnessSettings()` with no env vars set constructs without raising; `backend is None` and each nested settings object holds its family defaults (`openclaude.grpc_url is None`, `claude_code.enabled is False`, `openhands.server_url is None`).
+- [ ] `HarnessSettings(backend="openclaude")` constructs with `backend is HarnessBackend.OPENCLAUDE`.
+- [ ] `AEGIS_CODE_INTEL_BACKEND=""` (empty) resolves to `backend is None` (auto-select), not a validation error.
+- [ ] `HarnessSettings(backend="not_a_backend")` raises `HarnessConfigError` (not a bare Pydantic `ValidationError`) naming field `"backend"`.
+- [ ] Each nested sub-object is sourced from its own family's env vars only — e.g. `OPENCLAUDE_GRPC_URL=localhost:50051` sets `settings.openclaude.grpc_url == "localhost:50051"` and leaves `claude_code` / `openhands` at defaults.
+- [ ] `HarnessSettings` reads no environment variable other than `AEGIS_CODE_INTEL_BACKEND` (verified by asserting nested-family values come only through their own settings classes).
+- [ ] No import of `HarnessSettings` appears in `aegis_swr/core/`, `aegis_swr/views/`, or `aegis_swr/code_intel/` (C3).
+- [ ] `scripts/replace_optional.py --check` clean; `ruff` clean; no `Any` in field types.

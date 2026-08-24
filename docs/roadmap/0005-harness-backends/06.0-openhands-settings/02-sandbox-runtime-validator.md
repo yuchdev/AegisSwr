@@ -15,7 +15,7 @@ explicit `allow_unsandboxed_runtime` override field and a cross-field
 model-validator that **rejects construction** when `runtime_mode` selects a
 non-sandboxed runtime *unless* that override is explicitly set. This mirrors the
 discipline `OpenClaudeSettings` applies to write-capable tools (which are
-opt-in and warn loudly) and, more strictly, the OpenClaude allowlist-relaxation
+opted in and warned loudly) and, more strictly, the OpenClaude allowlist-relaxation
 posture referenced throughout the milestone: the safe default is enforced, and
 opting out demands deliberate, auditable friction.
 
@@ -96,9 +96,9 @@ class OpenHandsSettings(BaseSettings):
 - Because subtask 01's `__init__` already unwraps `OpenHandsConfigError` from
   Pydantic's `ValidationError`, an error raised inside this model-validator
   surfaces to callers as a bare `OpenHandsConfigError` with no extra work — the
-  unwrap logic covers validators of both kinds.
+  unwrapped logic covers validators of both kinds.
 - `allow_unsandboxed_runtime` is parsed from `OPENHANDS_ALLOW_UNSANDBOXED` via
-  the family `env_prefix` (bool coercion is Pydantic's default). No CSV handling
+  the family `env_prefix` (bool coercion is Pydantic's default). No CSV handling is 
   needed.
 - This subtask does **not** verify Docker is actually installed or that the
   chosen runtime is reachable — that is a composition/health-check concern in
@@ -108,36 +108,20 @@ class OpenHandsSettings(BaseSettings):
 
 ## Constraints
 
-- **Relaxing the sandbox default requires an ADR** (`docs/adr/`, MADR). Per
-  [plan.md](/docs/roadmap/0005-harness-backends/plan.md) C8, a non-sandboxed runtime "requires an explicit override plus an
-  ADR (same discipline as the OpenClaude allowlist)." The `model_validator`
-  enforces the explicit-override half; the ADR is a process obligation the
-  warning message must point at. This subtask must not silently permit an
-  unsandboxed runtime, and must not treat the override flag as sufficient on its
-  own to skip the warning.
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` (C13).
-- The error `reason` and warning message name only the field and the override
-  env var — never any `server_url` value, credential, or payload text (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- **Relaxing the sandbox default requires an ADR** (`docs/adr/`, MADR). Per [plan.md](/docs/roadmap/0005-harness-backends/plan.md) C8, a non-sandboxed runtime "requires an explicit override plus an ADR (same discipline as the OpenClaude allowlist)." The `model_validator` enforces the explicit-override half; the ADR is a process obligation the warning message must point at. This subtask must not silently permit an unsandboxed runtime and must not treat the override flag as sufficient on its own to skip the warning.
+- The error `reason` and warning message name only the field and the override env var — never any `server_url` value, credential, or payload text (C13).
 - `replace_optional.py --check` clean; `ruff` clean; no new `# type: ignore`.
 - No import of the OpenHands client library or any sibling backend package (C3).
 
 ## Success criteria
 
-- [ ] `OpenHandsSettings()` (default `runtime_mode="docker"`) constructs without
-      raising and emits no sandbox warning.
-- [ ] `OpenHandsSettings(runtime_mode="remote")` constructs without raising
-      (a sandboxed runtime) and emits no sandbox warning.
-- [ ] `OpenHandsSettings(runtime_mode="local")` raises `OpenHandsConfigError`
-      whose message names `OPENHANDS_ALLOW_UNSANDBOXED` and references the ADR
-      requirement, and contains no `server_url`/payload text.
-- [ ] `OpenHandsSettings(runtime_mode="local", allow_unsandboxed_runtime=True)`
-      constructs without raising **and** logs a single warning that the Docker
-      sandbox is disabled and an ADR is required.
-- [ ] `OPENHANDS_RUNTIME=local` alone in the environment raises
-      `OpenHandsConfigError`; adding `OPENHANDS_ALLOW_UNSANDBOXED=true` permits
-      it with a warning.
-- [ ] `allow_unsandboxed_runtime=True` with a sandboxed `runtime_mode`
-      (`"docker"`/`"remote"`) constructs without raising and emits no warning
-      (the override is inert when the runtime is already sandboxed).
+- [ ] `OpenHandsSettings()` (default `runtime_mode="docker"`) constructs without raising and emits no sandbox warning.
+- [ ] `OpenHandsSettings(runtime_mode="remote")` constructs without raising (a sandboxed runtime) and emits no sandbox warning.
+- [ ] `OpenHandsSettings(runtime_mode="local")` raises `OpenHandsConfigError` whose message names `OPENHANDS_ALLOW_UNSANDBOXED` and references the ADR requirement, and contains no `server_url`/payload text.
+- [ ] `OpenHandsSettings(runtime_mode="local", allow_unsandboxed_runtime=True)` constructs without raising **and** logs a single warning that the Docker sandbox is disabled and an ADR is required.
+- [ ] `OPENHANDS_RUNTIME=local` alone in the environment raises `OpenHandsConfigError`; adding `OPENHANDS_ALLOW_UNSANDBOXED=true` permits it with a warning.
+- [ ] `allow_unsandboxed_runtime=True` with a sandboxed `runtime_mode` (`"docker"`/`"remote"`) constructs without raising and emits no warning (the override is inert when the runtime is already sandboxed).
 - [ ] `replace_optional.py --check` clean; `ruff` clean.

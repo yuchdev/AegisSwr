@@ -176,31 +176,31 @@ def test_core_views_code_intel_import_no_backend():
 
 ## Test cases
 
-| Test | Contract verified |
-|------|-------------------|
-| `test_unset_selector_zero_signals_no_backend` | C2 row 1: unset + 0 signals → `active_backend is None`, no raise (0004 C4) |
-| `test_unset_selector_openclaude_only_auto_selects` | C2 row 2: single `OPENCLAUDE_GRPC_URL` signal auto-selects OpenClaude |
-| `test_openclaude_only_needs_zero_further_changes` | **0004 closing guarantee** preserved verbatim — no other var required |
-| `test_unset_selector_claude_code_only_auto_selects` | C2 row 2: single `CLAUDE_CODE_ENABLED` signal auto-selects Claude Code |
-| `test_unset_selector_openhands_only_auto_selects` | C2 row 2: single `OPENHANDS_SERVER_URL` signal auto-selects OpenHands |
-| `test_unset_selector_multiple_signals_raises_config_error` | C2 row 3: >1 signal + unset selector → `HarnessConfigError` **at construction** |
-| `test_config_error_names_signals_seen_no_secret` | C2/C13: error carries signal names only, never a url/token/payload value |
-| `test_selector_openclaude_with_signal_selects_openclaude` | C2 row 4: explicit selector + matching signal → that backend |
-| `test_selector_claude_code_with_signal_selects_claude_code` | C2 row 4 (claude_code) |
-| `test_selector_openhands_with_signal_selects_openhands` | C2 row 4 (openhands) |
-| `test_selector_overrides_other_present_signal` | C2: explicit selector suppresses the multi-signal ambiguity error |
-| `test_selector_set_signal_absent_constructs_without_config_error` | C2 row 5: deferred failure — construction does **not** raise `HarnessConfigError` |
-| `test_invalid_selector_value_raises_config_error` | C1: `backend` is enum-validated; unknown value → `HarnessConfigError` |
-| `test_no_backend_returns_backendless_agent` | C4 step 2: `None` → backend-less `CodeAgent`, no fallback |
-| `test_openclaude_path_assembles_unchanged_stack` | C4 step 3: OpenClaude stack moved **verbatim** from the deleted `openclaude/composition.py` |
-| `test_claude_code_path_assembles_tool_no_sidecar` | C4 step 4: Claude Code tool, nothing on the `AsyncExitStack` |
-| `test_openhands_path_registers_sidecar_on_exit_stack` | C4 step 5: OpenHands sidecar registered for RAII teardown |
-| `test_selected_backend_signal_absent_raises_unavailable` | C2 row 5: `HarnessUnavailableError` at composition/health-check time |
-| `test_dry_run_constructs_graph_without_entering_sidecar` | C4/C13: dry-run builds the graph, enters no sidecar, makes no outbound call |
-| `test_composition_is_sole_branch_on_active_backend` | C4: the one-and-only backend-selection branch lives here |
-| `test_no_backend_package_imports_a_sibling` | C3: no family imports a sibling family |
-| `test_composition_is_only_multi_family_importer` | C3: `harness/composition.py` is the sole multi-family importer |
-| `test_core_views_code_intel_import_no_backend` | C3: scaffolding imports no backend family and no `grpc` |
+| Test                                                              | Contract verified                                                                           |
+|-------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| `test_unset_selector_zero_signals_no_backend`                     | C2 row 1: unset + 0 signals → `active_backend is None`, no raise (0004 C4)                  |
+| `test_unset_selector_openclaude_only_auto_selects`                | C2 row 2: single `OPENCLAUDE_GRPC_URL` signal auto-selects OpenClaude                       |
+| `test_openclaude_only_needs_zero_further_changes`                 | **0004 closing guarantee** preserved verbatim — no other var required                       |
+| `test_unset_selector_claude_code_only_auto_selects`               | C2 row 2: single `CLAUDE_CODE_ENABLED` signal auto-selects Claude Code                      |
+| `test_unset_selector_openhands_only_auto_selects`                 | C2 row 2: single `OPENHANDS_SERVER_URL` signal auto-selects OpenHands                       |
+| `test_unset_selector_multiple_signals_raises_config_error`        | C2 row 3: >1 signal + unset selector → `HarnessConfigError` **at construction**             |
+| `test_config_error_names_signals_seen_no_secret`                  | C2/C13: error carries signal names only, never a url/token/payload value                    |
+| `test_selector_openclaude_with_signal_selects_openclaude`         | C2 row 4: explicit selector + matching signal → that backend                                |
+| `test_selector_claude_code_with_signal_selects_claude_code`       | C2 row 4 (claude_code)                                                                      |
+| `test_selector_openhands_with_signal_selects_openhands`           | C2 row 4 (openhands)                                                                        |
+| `test_selector_overrides_other_present_signal`                    | C2: explicit selector suppresses the multi-signal ambiguity error                           |
+| `test_selector_set_signal_absent_constructs_without_config_error` | C2 row 5: deferred failure — construction does **not** raise `HarnessConfigError`           |
+| `test_invalid_selector_value_raises_config_error`                 | C1: `backend` is enum-validated; unknown value → `HarnessConfigError`                       |
+| `test_no_backend_returns_backendless_agent`                       | C4 step 2: `None` → backend-less `CodeAgent`, no fallback                                   |
+| `test_openclaude_path_assembles_unchanged_stack`                  | C4 step 3: OpenClaude stack moved **verbatim** from the deleted `openclaude/composition.py` |
+| `test_claude_code_path_assembles_tool_no_sidecar`                 | C4 step 4: Claude Code tool, nothing on the `AsyncExitStack`                                |
+| `test_openhands_path_registers_sidecar_on_exit_stack`             | C4 step 5: OpenHands sidecar registered for RAII teardown                                   |
+| `test_selected_backend_signal_absent_raises_unavailable`          | C2 row 5: `HarnessUnavailableError` at composition/health-check time                        |
+| `test_dry_run_constructs_graph_without_entering_sidecar`          | C4/C13: dry-run builds the graph, enters no sidecar, makes no outbound call                 |
+| `test_composition_is_sole_branch_on_active_backend`               | C4: the one-and-only backend-selection branch lives here                                    |
+| `test_no_backend_package_imports_a_sibling`                       | C3: no family imports a sibling family                                                      |
+| `test_composition_is_only_multi_family_importer`                  | C3: `harness/composition.py` is the sole multi-family importer                              |
+| `test_core_views_code_intel_import_no_backend`                    | C3: scaffolding imports no backend family and no `grpc`                                     |
 
 ## Implementation notes
 
@@ -227,31 +227,21 @@ def test_core_views_code_intel_import_no_backend():
 
 ## Constraints
 
-- All tests pass with `AEGIS_CODE_INTEL_BACKEND` unset, all signals unset, and no
-  binary / Docker / server available — no network, subprocess, or container.
-- `monkeypatch` is used **only** to set/clear real env vars the settings read —
-  never to patch a module-level global or class attribute.
-- Assert on `HarnessConfigError` / `HarnessUnavailableError` (the canonical 01.0
-  types), not Pydantic's `ValidationError` — 01.0 unwraps to the project errors.
-- No exception message or error payload asserted in the C2 tests may contain a
-  url, token, or payload value — only field/backend/signal **names** (C13).
-- `test_isolation.py` imports no backend family itself; it reads source files as
-  text and parses them, so it introduces no import coupling.
-- `Optional[T]` from `typing`; `from __future__ import annotations` (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new unit test has a test-specific docstring (`[Unit]`|`[Mock]`|`[Integration]`|`E2E` / `Scenario` / `Boundaries` / `On failuse`)
+- All tests pass with `AEGIS_CODE_INTEL_BACKEND` unset, all signals unset, and no binary / Docker / server available — no network, subprocess, or container.
+- `monkeypatch` is used **only** to set/clear real env vars the settings read — never to patch a module-level global or class attribute.
+- Assert on `HarnessConfigError` / `HarnessUnavailableError` (the canonical 01.0 types), not Pydantic's `ValidationError` — 01.0 unwraps to the project errors.
+- No exception message or error payload asserted in the C2 tests may contain a url, token, or payload value — only field/backend/signal **names** (C13).
+- `test_isolation.py` imports no backend family itself; it reads source files as text and parses them, so it introduces no import coupling.
 
 ## Success criteria
 
-- [ ] All five C2 truth-table rows are covered; the `OPENCLAUDE_GRPC_URL`-only
-      auto-select and the "zero further changes" guarantee each have a dedicated
-      passing test.
-- [ ] Multiple-signal ambiguity asserts `HarnessConfigError` **at construction**;
-      selected-but-absent asserts `HarnessUnavailableError` **at composition**.
-- [ ] `test_config_error_names_signals_seen_no_secret` asserts the error string
-      contains signal **names** and contains no configured url/token value.
-- [ ] `test_composition.py` covers all five C4 assembly outcomes plus the dry-run
-      orthogonality path.
-- [ ] `test_isolation.py` passes AST-based (not grep) and would **fail** if any
-      backend package imported a sibling or a second family were imported outside
-      `harness/composition.py`.
+- [ ] All five C2 truth-table rows are covered; the `OPENCLAUDE_GRPC_URL`-only auto-select and the "zero further changes" guarantee each have a dedicated passing test.
+- [ ] Multiple-signal ambiguity asserts `HarnessConfigError` **at construction**; selected-but-absent asserts `HarnessUnavailableError` **at composition**.
+- [ ] `test_config_error_names_signals_seen_no_secret` asserts the error string contains signal **names** and contains no configured url/token value.
+- [ ] `test_composition.py` covers all five C4 assembly outcomes plus the dry-run orthogonality path.
+- [ ] `test_isolation.py` passes AST-based (not grep) and would **fail** if any backend package imported a sibling or a second family were imported outside `harness/composition.py`.
 - [ ] No `grpc` / `_pb2` / OpenHands-client import in any file of this suite.
 - [ ] `ruff`, `replace_optional.py --check` clean.

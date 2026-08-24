@@ -451,8 +451,9 @@ tests/
         └── test_allowlist_enforcement.py
 
 docs/
-    ├── openclaude-setup.md             ← NEW
-    └── openclaude-config-reference.md  ← NEW
+    └── config/
+        ├── openclaude-setup.md             ← NEW (moved to docs/config/ in Milestone 0005)
+        └── openclaude-config-reference.md  ← NEW (moved to docs/config/ in Milestone 0005)
 
 scripts/proto_gen.py                    ← NEW: proto stub regeneration script
 ```

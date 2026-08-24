@@ -262,7 +262,7 @@ def _success(
     )
 ```
 
-> `_consume_stream` (subtask 01) is finalised here to call `_on_finish(...)` at
+> `_consume_stream` (subtask 01) is finalized here to call `_on_finish(...)` at
 > its `FINISH`/loop exit (passing `server_usage` and the counts) and
 > `_on_error_event(...)` at its `ERROR` handler.
 
@@ -314,49 +314,26 @@ def _success(
 
 ## Constraints
 
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None`, including in subscripts (C13).
-- No import of the OpenHands client library, `httpx`, `websockets`, or any
-  transport stub in this file (C3); retriability comes from the exception
-  attribute, not a status enum.
-- Budget charged **after** `FINISH` only; the pre-check reserves nothing; every
-  failure path (insufficient budget, dry-run, denial, `ERROR`, transport) charges
-  **zero** tokens.
-- `--dry-run` and insufficient-budget paths make **zero** calls to
-  `client.stream` (assert via mock call-count, task 11.0).
-- Every branch — budget-insufficient, dry-run, allowlisted-action,
-  denied-action, truncated, real-usage-token, boundary-estimate-token,
-  `ERROR`-event, transport-retriable, transport-non-retriable, `FINISH`-success,
-  defensive-`Exception` — is a small single-purpose arm, independently testable
-  to satisfy **100% branch coverage on `tool.py`** (task 11.0). No nested
-  compound conditionals.
-- No exception escapes `delegate()`; no unredacted response/error/usage text is
-  logged or placed on an event (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- No import of the OpenHands client library, `httpx`, `websockets`, or any transport stub in this file (C3); retriability comes from the exception attribute, not a status enum.
+- Budget charged **after** `FINISH` only; the pre-check reserves nothing; every failure path (insufficient budget, dry-run, denial, `ERROR`, transport) charges **zero** tokens.
+- `--dry-run` and insufficient-budget paths make **zero** calls to `client.stream` (assert via mock call-count, task 11.0).
+- Every branch — budget-insufficient, dry-run, allowlisted-action, denied-action, truncated, real-usage-token, boundary-estimate-token, `ERROR`-event, transport-retriable, transport-non-retriable, `FINISH`-success, defensive-`Exception` — is a small single-purpose arm, independently testable to satisfy **100% branch coverage on `tool.py`** (task 11.0). No nested compound conditionals.
+- No exception escapes `delegate()`; no unredacted response/error/usage text is logged or placed on an event (C13).
 
 ## Success criteria
 
-- [ ] Insufficient budget returns a non-retriable failure and `client.stream`
-      is **never** called.
-- [ ] `ctx.dry_run` returns `content == "[dry-run]"`, `token_estimate == 0`, and
-      `client.stream` is **never** called (checked even when budget is ample).
-- [ ] The pre-check runs before the dry-run branch (over-budget + dry-run still
-      returns the budget failure).
-- [ ] A clean `FINISH` **with** server usage sets `token_estimate ==
-      usage.input_tokens + usage.output_tokens`, charges exactly that after the
-      stream, emits one `OpenHandsStreamCompleted`, and returns success.
-- [ ] A clean `FINISH` **without** server usage sets `token_estimate ==
-      max(1, len(text) // 4)` on the truncated text and charges exactly that.
-- [ ] Content exceeding `max_response_tokens` is truncated, `metadata`
-      `truncated` is `True`, and the boundary estimate (when used) is computed on
-      the truncated text.
+- [ ] Insufficient budget returns a non-retriable failure and `client.stream` is **never** called.
+- [ ] `ctx.dry_run` returns `content == "[dry-run]"`, `token_estimate == 0`, and `client.stream` is **never** called (checked even when the budget is ample).
+- [ ] The pre-check runs before the dry-run branch (over-budget plus dry-run still returns the budget failure).
+- [ ] A clean `FINISH` **with** server usage sets `token_estimate == usage.input_tokens + usage.output_tokens`, charges exactly that after the stream, emits one `OpenHandsStreamCompleted`, and returns success.
+- [ ] A clean `FINISH` **without** server usage sets `token_estimate == max(1, len(text) // 4)` on the truncated text and charges exactly that.
+- [ ] Content exceeding `max_response_tokens` is truncated, `metadata` `truncated` is `True`, and the boundary estimate (when used) is computed on the truncated text.
 - [ ] A denied action returns a non-retriable failure and charges zero tokens.
-- [ ] An `ERROR` event emits `OpenHandsStreamError` and returns a non-retriable
-      failure with zero tokens charged.
-- [ ] `OpenHandsUnavailableError` with `retriable=True` returns a retriable
-      failure; with `retriable=False` returns non-retriable — both emit
-      `OpenHandsStreamError` and charge zero.
+- [ ] An `ERROR` event emits `OpenHandsStreamError` and returns a non-retriable failure with zero tokens charged.
+- [ ] `OpenHandsUnavailableError` with `retriable=True` returns a retriable failure; with `retriable=False` returns non-retriable — both emit `OpenHandsStreamError` and charge zero.
 - [ ] `OpenHandsStreamCompleted` is the only event carrying `token_estimate`.
-- [ ] No exception escapes `delegate()`; a fault-injected `_consume_stream` still
-      yields a typed failure.
-- [ ] 100% branch coverage on `tool.py`; `ruff` and
-      `replace_optional.py --check` clean.
+- [ ] No exception escapes `delegate()`; a fault-injected `_consume_stream` still yields a typed failure.
+- [ ] 100% branch coverage on `tool.py`; `ruff` and `replace_optional.py --check` clean.

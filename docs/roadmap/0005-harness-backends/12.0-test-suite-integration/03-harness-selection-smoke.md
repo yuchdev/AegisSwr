@@ -21,7 +21,7 @@ This is deliberately a *single* thin smoke test (one live delegate per available
 backend), not a re-run of the per-backend suites: its job is to exercise the
 **selection + composition wiring**, not to re-validate each backend's internals.
 It reuses the per-backend availability guards from subtasks 01/02 so it inherits
-their skip-not-fail behaviour verbatim, and it explicitly asserts the
+their skip-not-fail behavior verbatim, and it explicitly asserts the
 zero-signals and multi-signal outcomes of the C2 truth table (capability
 unavailable vs `HarnessConfigError`) without needing any backend to be live.
 
@@ -216,43 +216,25 @@ def test_multiple_signals_raise_harness_config_error(monkeypatch: pytest.MonkeyP
   fixed by task 10.0; align the smoke test to whatever 10.0 ships. Whatever the
   shape, the sidecar (OpenHands) must be registered for RAII teardown so nothing
   survives the block.
-- The smoke guard requires **exactly one** live backend so auto-selection is
+- The smoke guard requires **exactly one** live backend, so auto-selection is
   well-defined; when two are live it skips (the operator would hit
   `HarnessConfigError` at construction, which the config-outcome test asserts
   directly).
 
 ## Constraints
 
-- **Skip, never fail.** The live smoke module skips unless exactly one backend is
-  both signalled and available; the config-outcome module runs unconditionally
-  and asserts pure settings behaviour (no backend needed).
-- The live delegate path runs with **zero mocks** through the real composition
-  root and a real backend.
-- Any sidecar registered on the `AsyncExitStack` is torn down on block exit;
-  **nothing survives** the module (Claude Code reaps its one-shot process;
-  OpenHands' sidecar session closes via the stack).
-- No raw response text or credential ever reaches a log sink or event payload
-  (C13); loguru sinks keep `SensitiveFilter`.
-- `monkeypatch` is used to clear/set env for the config-outcome tests so they are
-  hermetic and do not leak signals into other modules.
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None`; `asyncio.sleep` never `time.sleep`; `ruff` and
-  `replace_optional.py --check` clean.
+- **Skip, never fail.** The live smoke module skips unless exactly one backend is both signaled and available; the config-outcome module runs unconditionally and asserts pure settings behavior (no backend needed).
+- The live delegate path runs with **zero mocks** through the real composition root and a real backend.
+- Any sidecar registered on the `AsyncExitStack` is torn down on block exit; **nothing survives** the module (Claude Code reaps its one-shot process; OpenHands' sidecar session closes via the stack).
+- No raw response text or credential ever reaches a log sink or event payload (C13); loguru sinks keep `SensitiveFilter`.
+- `monkeypatch` is used to clear/set env for the config-outcome tests so they are a hermetic and do not leak signals into other modules.
 
 ## Success criteria
 
-- [ ] With exactly one live presence signal, `HarnessSettings.active_backend`
-      auto-selects that family (C2).
-- [ ] `create_code_intel_backend(...)` composes a `CodeAgent` whose live
-      `delegate()` returns an available, non-empty `CodeResult` with
-      `token_estimate > 0` (C4).
-- [ ] Any registered sidecar is torn down on `AsyncExitStack` exit; no process or
-      sidecar session survives the module.
-- [ ] Selector unset + zero signals → `active_backend is None`, no exception
-      (unchanged from 0004 C4).
-- [ ] Selector unset + more than one signal → `HarnessConfigError` at
-      settings-construction time (C2).
-- [ ] The live smoke module reports **skipped** (not failed) unless exactly one
-      backend is signalled and available.
+- [ ] With exactly one live presence signal, `HarnessSettings.active_backend` auto-selects that family (C2).
+- [ ] `create_code_intel_backend(...)` composes a `CodeAgent` whose live `delegate()` returns an available, non-empty `CodeResult` with `token_estimate > 0` (C4).
+- [ ] Any registered sidecar is torn down on `AsyncExitStack` exit; no process or sidecar session survives the module.
+- [ ] Selector unset plus zero signals → `active_backend is None`, no exception (unchanged from 0004 C4).
+- [ ] Selector unset plus more than one signal → `HarnessConfigError` at settings-construction time (C2).
+- [ ] The live smoke module reports **skipped** (not failed) unless exactly one backend is signaled and available.
 - [ ] `ruff`, `replace_optional.py --check` clean.
-```

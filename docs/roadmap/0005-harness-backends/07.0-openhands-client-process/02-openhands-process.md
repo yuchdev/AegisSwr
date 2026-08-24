@@ -10,7 +10,7 @@
 Implement `aegis_swr/openhands/process.py` — `OpenHandsProcess`, the async
 context manager owning the OpenHands sidecar lifecycle (contract C8), mirroring
 `OpenClaudeProcess`'s proven shape (0004 C6) closely. It is the **only** module
-that starts, stops, or health-checks the OpenHands sidecar (C3). It takes
+that starts, stops, or health checks the OpenHands sidecar (C3). It takes
 `OpenHandsSettings` and the `EventBus` and exposes a ready `server_url` inside the
 `async with` block (accessing it before entry raises `RuntimeError`).
 
@@ -359,7 +359,7 @@ class OpenHandsDisconnected(DomainEvent):
   Deviate only where the transport differs (URL/health-check instead of
   gRPC/port, no gRPC channel object).
 - **External mode is the primary path (C8).** OpenHands is typically an
-  already-running container; `auto_start=False` (default) health-checks it and
+  already-running container; `auto_start=False` (default) health checks it and
   never spawns anything. `_enter_external` builds `OpenHandsClient` from settings
   only when none was injected, calls `health_check()` (which never raises and
   never leaks a raw library error — C3), and on `False` raises
@@ -379,7 +379,7 @@ class OpenHandsDisconnected(DomainEvent):
   leaves `__aenter__`. Both are idempotent so overlap with `__aexit__` cannot
   double-cancel or double-terminate. Catch `BaseException` on that guard so
   `CancelledError` is covered; always re-raise.
-- **Readiness probe.** `_await_port_open` performs a cheap TCP connect to the
+- **Readiness probe.** `_await_port_open` performs a cheap TCP connection to the
   resolved loopback host:port in a loop, `asyncio.sleep(_PORT_POLL_INTERVAL_S)`
   between attempts, giving up at `connect_timeout_s` with
   `OpenHandsUnavailableError`. A full `health_check()` may also be used once the
@@ -397,7 +397,7 @@ class OpenHandsDisconnected(DomainEvent):
 - **Forward-declared symbols.** `OpenHandsConnected` / `OpenHandsDisconnected`
   (in `openhands/events.py`, skeleton above) and `OpenHandsUnavailableError`
   (in `openhands/exceptions.py`, subtask 01) are declared by Task 07.0 and
-  imported here; Task 09.0 canonicalises them and must preserve these shapes.
+  imported here; Task 09.0 canonicalizes them and must preserve these shapes.
   Import them; do not redefine.
 - **AsyncExitStack registration (C4, deferred to Task 10.0).** This class does
   **not** register itself. The composition root (Task 10.0) calls
@@ -411,46 +411,29 @@ class OpenHandsDisconnected(DomainEvent):
 
 ## Constraints
 
-- This is the **only** module that starts/stops/health-checks the OpenHands
-  sidecar (C3, C8).
-- `asyncio.create_subprocess_exec`, never `subprocess.Popen` in an async path;
-  `asyncio.sleep` for readiness backoff, never `time.sleep` (C13).
-- Managed mode **always** terminates the subprocess on exit, including the
-  entry-raised-after-start case (C8).
-- `OpenHandsConnected` emitted exactly once on successful entry (both modes);
-  `OpenHandsDisconnected` exactly once on exit (both modes) (C8).
-- External mode starts **no** process and issues **no** `create_subprocess_exec`
-  call.
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- This is the **only** module that starts/stops/health-checks the OpenHands sidecar (C3, C8).
+- `asyncio.create_subprocess_exec`, never `subprocess.Popen` in an async path; `asyncio.sleep` for readiness backoff, never `time.sleep` (C13).
+- Managed mode **always** terminates the subprocess on exit, including the entry-raised-after-start case (C8).
+- `OpenHandsConnected` emitted exactly once on successful entry (both modes); `OpenHandsDisconnected` exactly once on exit (both modes) (C8).
+- External mode starts **no** process and issues **no** `create_subprocess_exec` call.
 - Reading `.server_url` before `__aenter__` raises `RuntimeError`.
-- Managed-mode stderr forwarded at `DEBUG` under `SensitiveFilter`; stdout
-  discarded; no raw payload text is ever logged unredacted (C13).
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None`; `ruff` and `replace_optional.py --check` clean (C13).
+- Managed-mode stderr forwarded at `DEBUG` under `SensitiveFilter`; stdout discarded; no raw payload text is ever logged unredacted (C13).
 
 ## Success criteria
 
 - [ ] Reading `.server_url` before `__aenter__` raises `RuntimeError`.
-- [ ] With `auto_start=False` and a reachable server, `__aenter__` runs a health
-      check, sets `server_url`, and emits exactly one `OpenHandsConnected`
-      tagged `"external"`.
-- [ ] With `auto_start=False` and an unreachable server, `__aenter__` raises
-      `OpenHandsUnavailableError` and emits **no** `OpenHandsConnected`.
+- [ ] With `auto_start=False` and a reachable server, `__aenter__` runs a health check, sets `server_url`, and emits exactly one `OpenHandsConnected` tagged `"external"`.
+- [ ] With `auto_start=False` and an unreachable server, `__aenter__` raises `OpenHandsUnavailableError` and emits **no** `OpenHandsConnected`.
 - [ ] External mode never calls `asyncio.create_subprocess_exec`.
-- [ ] With `auto_start=True`, `__aenter__` spawns via
-      `asyncio.create_subprocess_exec` (stdout `DEVNULL`, stderr piped), waits
-      for the port with `asyncio.sleep` backoff, and emits `OpenHandsConnected`
-      tagged `"managed"` only after the port accepts.
-- [ ] The port never opening within `connect_timeout_s` raises
-      `OpenHandsUnavailableError` **and** the started process is terminated
-      before the exception propagates (verified via a mock/fake process).
-- [ ] `__aexit__` sends SIGTERM, awaits within the grace period, escalates to
-      SIGKILL only if still alive, and reaps the process (no zombie).
-- [ ] `OpenHandsDisconnected` emitted exactly once on exit, including the
-      exception-in-body case; the exception is not suppressed.
-- [ ] An injected mock `OpenHandsClient` is used verbatim (no real client
-      constructed) — the unit-test seam holds.
-- [ ] Managed-mode stderr is drained to `DEBUG` under `SensitiveFilter`; the
-      forwarder is cancelled and awaited with no leaked `CancelledError`.
+- [ ] With `auto_start=True`, `__aenter__` spawns via `asyncio.create_subprocess_exec` (stdout `DEVNULL`, stderr piped), waits for the port with `asyncio.sleep` backoff, and emits `OpenHandsConnected` tagged `"managed"` only after the port accepts.
+- [ ] The port never opening within `connect_timeout_s` raises `OpenHandsUnavailableError` **and** the started process is terminated before the exception propagates (verified via a mock/fake process).
+- [ ] `__aexit__` sends SIGTERM, awaits within the grace period, escalates to `SIGKILL` only if still alive, and reaps the process (no zombie).
+- [ ] `OpenHandsDisconnected` emitted exactly once on exit, including the exception-in-body case; the exception is not suppressed.
+- [ ] An injected mock `OpenHandsClient` is used verbatim (no real client constructed) — the unit-test seam holds.
+- [ ] Managed-mode stderr is drained to `DEBUG` under `SensitiveFilter`; the forwarder is canceled and awaited with no leaked `CancelledError`.
 - [ ] No `subprocess.Popen` and no `time.sleep` anywhere in the module.
 - [ ] `ruff`, `replace_optional.py --check` clean.
-```
+

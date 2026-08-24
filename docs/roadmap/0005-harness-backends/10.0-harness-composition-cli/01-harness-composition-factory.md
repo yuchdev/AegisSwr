@@ -1,4 +1,4 @@
-# 01 - harness/composition.py factory + delete openclaude/composition.py
+# 01 - harness/composition.py factory and delete openclaude/composition.py
 
 **Parent task:** 10.0 Harness Composition Root & CLI
 **State:** ⬜ Not started
@@ -7,7 +7,7 @@
 
 ## Objective
 
-Create `aegis_swr/harness/composition.py` — the generalised C4 composition
+Create `aegis_swr/harness/composition.py` — the generalized C4 composition
 factory — and delete `aegis_swr/openclaude/composition.py`. This is the substance
 of Task 10.0: it is the **one and only** place in the codebase that branches on
 which code-intelligence backend is active. It reads the resolved
@@ -23,13 +23,13 @@ the only one in the codebase permitted to import more than one backend family
 C4 leaves the factory name open: `create_code_intel_backend(...)` **or**
 `build_code_agent(...)` (the 0004 name). **Decision: keep `build_code_agent`.**
 
-| Option | Pros | Cons |
-|--------|------|------|
-| `build_code_agent` (**chosen**) | Describes the actual return type (`CodeAgent`, not a backend); minimises the migration surface to a module-path change (the CLI already imports `build_code_agent`); best serves C4's "moves verbatim" instruction — same name/signature, only the branch body generalises | Diverges from the `plan.md` Architecture diagram / C4 prose, which lead with `create_code_intel_backend` |
-| `create_code_intel_backend` | Matches the plan's leading name; reads as a factory-of-backend | Misdescribes the return (`CodeAgent`, not `CodeIntelBackend`); the `None` path returns a *backend-less* `CodeAgent`, so "create backend" is wrong for that branch; forces a rename of the CLI import for no behavioural gain |
+| Option                          | Pros                                                                                                                                                                                                                                                                       | Cons                                                                                                                                                                                                                         |
+|---------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `build_code_agent` (**chosen**) | Describes the actual return type (`CodeAgent`, not a backend); minimises the migration surface to a module-path change (the CLI already imports `build_code_agent`); best serves C4's "moves verbatim" instruction — same name/signature, only the branch body generalises | Diverges from the `plan.md` Architecture diagram / C4 prose, which lead with `create_code_intel_backend`                                                                                                                     |
+| `create_code_intel_backend`     | Matches the plan's leading name; reads as a factory-of-backend                                                                                                                                                                                                             | Misdescribes the return (`CodeAgent`, not `CodeIntelBackend`); the `None` path returns a *backend-less* `CodeAgent`, so "create backend" is wrong for that branch; forces a rename of the CLI import for no behavioural gain |
 
 The counter-argument (diagram naming) is real but cosmetic; accuracy of the
-return type and a smaller breaking surface win. The one behavioural axis that
+return type and a smaller breaking surface win. The one behavioral axis that
 matters — a single auditable branch — is identical under either name.
 
 ## File: `src/aegis_swr/harness/composition.py`
@@ -212,8 +212,8 @@ and its `grpc_url is not None` branch — has moved verbatim into
   (the C2 truth table) lives in `HarnessSettings` (Task 01.0). This module only
   dispatches on the already-resolved value. `HarnessConfigError` (unset + >1
   signal) has already fired at settings-construction time and never reaches here;
-  `HarnessUnavailableError` (explicit selector + absent signal) is raised here /
-  at health-check time (C2 last row) — the `_build_*` helpers surface it when the
+  `HarnessUnavailableError` (explicit selector plus absent signal) is raised here /
+  at health check time (C2 last row) — the `_build_*` helpers surface it when the
   backend's own settings report the presence signal absent.
 - **The OpenClaude branch is a move, not a rewrite (C4).** Copy the 0004 body —
   including the dry-run `settings.grpc_url` vs entered-`process.grpc_url`
@@ -242,41 +242,24 @@ and its `grpc_url is not None` branch — has moved verbatim into
 
 ## Constraints
 
-- The backend-selection branch appears in **exactly one file** —
-  `harness/composition.py` (generalised C4). Verifiable by grep; no other module
-  branches on `active_backend` or on any per-family presence signal.
-- `harness/composition.py` is the **only** module importing more than one backend
-  family (C3, grep-enforced Task 11.0/13.0); no backend package imports a sibling.
-- `code_intel/backend.py`, `agent.py`, `budget.py` are **not** modified;
-  `CodeResult.token_estimate` keeps its name and `int` type (C9).
-- `openclaude/composition.py` is deleted; its C4 logic is present **verbatim** in
-  `harness/composition.py` (C4).
-- `dry_run` never enters a sidecar and never opens a connection for any backend
-  (C4 / C13); the object graph is still fully constructed and registered.
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` present; loguru + `SensitiveFilter`; no credential/payload text in
-  any log or exception (C13).
-- `ruff`, `replace_optional.py --check` clean on the new file.
-- Every new public/module-level function carries an RST-style docstring (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- The backend-selection branch appears in **exactly one file** — `harness/composition.py` (generalized C4). Verifiable by grep; no other module branches on `active_backend` or on any per-family presence signal.
+- `harness/composition.py` is the **only** module importing more than one backend family (C3, grep-enforced Task 11.0/13.0); no backend package imports a sibling.
+- `code_intel/backend.py`, `agent.py`, `budget.py` are **not** modified; `CodeResult.token_estimate` keeps its name and `int` type (C9).
+- `openclaude/composition.py` is deleted; its C4 logic is present **verbatim** in `harness/composition.py` (C4).
+- `dry_run` never enters a sidecar and never opens a connection for any backend (C4 / C13); the object graph is still fully constructed and registered.
 
 ## Success criteria
 
-- [ ] `src/aegis_swr/harness/composition.py` exists and exports
-      `build_code_agent`.
+- [ ] `src/aegis_swr/harness/composition.py` exists and exports `build_code_agent`.
 - [ ] `src/aegis_swr/openclaude/composition.py` no longer exists.
-- [ ] `build_code_agent` branches over all three backends plus the `None` case;
-      the branch appears in **exactly one file** (grep-verifiable).
-- [ ] `grep -R -E "import (aegis_swr\\.(openclaude|claude_code|openhands))"` shows
-      more than one family imported **only** in `harness/composition.py`.
-- [ ] `active_backend is None` → `CodeAgent(backend=None)`, `agent.available is
-      False`, no exception (C2 row 1 / 0004 parity).
-- [ ] The OpenClaude branch body matches the deleted `openclaude/composition.py`
-      verbatim (diff-verifiable in review), including its dry-run distinction.
-- [ ] Under `dry_run`, no sidecar `__aenter__` is called for `openclaude` or
-      `openhands`, and no `Connected`/`Disconnected` event fires; `claude_code`
-      registers no process either way.
-- [ ] An explicitly-selected backend whose signal is absent surfaces
-      `HarnessUnavailableError` at composition/health-check time (C2 last row).
-- [ ] `code_intel/backend.py`, `agent.py`, `budget.py` are byte-for-byte
-      unchanged (C9).
+- [ ] `build_code_agent` branches over all three backends plus the `None` case; the branch appears in **exactly one file** (grep-verifiable).
+- [ ] `grep -R -E "import (aegis_swr\\.(openclaude|claude_code|openhands))"` shows more than one family imported **only** in `harness/composition.py`.
+- [ ] `active_backend is None` → `CodeAgent(backend=None)`, `agent.available is False`, no exception (C2 row 1 / 0004 parity).
+- [ ] The OpenClaude branch body matches the deleted `openclaude/composition.py` verbatim (diff-verifiable in review), including its dry-run distinction.
+- [ ] Under `dry_run`, no sidecar `__aenter__` is called for `openclaude` or `openhands`, and no `Connected`/`Disconnected` event fires; `claude_code` registers no process either way.
+- [ ] An explicitly-selected backend whose signal is absent surfaces `HarnessUnavailableError` at composition/health-check time (C2 last row).
+- [ ] `code_intel/backend.py`, `agent.py`, `budget.py` are byte-for-byte unchanged (C9).
 - [ ] `ruff`, `replace_optional.py --check` clean.

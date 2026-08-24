@@ -10,7 +10,7 @@
 Implement `aegis_swr/openhands/exceptions.py` — the **canonical home** for the
 three exception types the OpenHands module raises: `OpenHandsConfigError`
 (invalid `OpenHandsSettings`, raised by `config.py`), `OpenHandsUnavailableError`
-(unreachable sidecar / failed health-check / REST/WS transport failure, raised by
+(unreachable sidecar / failed health check / REST/WS transport failure, raised by
 `process.py` and `client.py`), and `PermissionDeniedError` (a non-allowlisted
 sandbox action, raised by `tool.py`). They form three independent hierarchies —
 none subclasses another — so callers catch precisely the failure they mean. No
@@ -168,7 +168,7 @@ class OpenHandsConfigError(ValueError):
 
 ## Migration path (Tasks 06.0/07.0/08.0 forward declarations → canonical)
 
-Mirrors 0004's task 05.0 canonicalisation of `OpenClaudeConfigError` exactly:
+Mirrors 0004's task 05.0 canonicalization of `OpenClaudeConfigError` exactly:
 the forward declaration and the canonical definition are behaviourally identical,
 so `except OpenHands*` sites are unaffected and no caller import path changes.
 
@@ -183,10 +183,10 @@ so `except OpenHands*` sites are unaffected and no caller import path changes.
 2. **`OpenHandsUnavailableError`** — if Task 07.0 (`process.py`/`client.py`)
    forward-declares it before this task lands, it uses the identical
    `(message, server_url=None, *, retriable=True, status_code=None)` signature;
-   canonicalising here replaces that local body with a re-export the same way.
+   canonicalizing here replaces that local body with a re-export the same way.
 3. **`PermissionDeniedError`** — Task 08.0 (`tool.py`) raises it; if 08.0 lands
    first it forward-declares the identical `(action, denied_binary)` shape and is
-   re-pointed at this module on canonicalisation. If this task lands first (its
+   re-pointed at this module on canonicalization. If this task lands first (its
    only hard dependency is Task 06.0), 08.0 simply imports the canonical class
    and no forward declaration is ever needed.
 
@@ -228,37 +228,20 @@ cross-service contract change** and nothing in `aegis_swr/core/`,
 
 ## Constraints
 
-- `from __future__ import annotations` at the top; `Optional[T]` from `typing`,
-  never `T | None`.
-- No OpenHands client library, `grpc`, `httpx`, `websockets`, or `pydantic`
-  import in this file — it is a leaf module that `config.py`, `process.py`,
-  `client.py`, and `tool.py` all import from without creating a cycle (C3).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- No OpenHands client library, `grpc`, `httpx`, `websockets`, or `pydantic` import in this file — it is a leaf module that `config.py`, `process.py`, `client.py`, and `tool.py` all import from without creating a cycle (C3).
 - No `Any` in any signature.
-- `ruff` and `python scripts/replace_optional.py --check` clean; every class has
-  an RST-style docstring.
 
 ## Success criteria
 
-- [ ] Three classes present: `OpenHandsUnavailableError`,
-      `PermissionDeniedError`, `OpenHandsConfigError`.
-- [ ] `OpenHandsUnavailableError` accepts an optional `server_url` and the
-      keyword-only `retriable`/`status_code`, and stores all three.
-- [ ] `PermissionDeniedError` has a class attribute `retriable` equal to `False`
-      and stores `.action` and `.denied_binary`.
-- [ ] `OpenHandsConfigError` subclasses `ValueError`, stores `.field` and
-      `.reason`, and produces the message
-      `f"OpenHandsSettings.{field}: {reason}"` — identical to the Task 06.0
-      forward declaration.
-- [ ] Any module that forward-declared one of these (Task 06.0 `config.py`, and
-      07.0/08.0 if applicable) re-exports it from this module;
-      `aegis_swr.openhands.config.OpenHandsConfigError is
-      aegis_swr.openhands.exceptions.OpenHandsConfigError`.
-- [ ] `OpenHandsConfigError` is **not** a subclass of `HarnessConfigError` or the
-      router's `ConfigValidationError`, and vice versa.
-- [ ] OpenHands' `PermissionDeniedError` is a distinct class from OpenClaude's;
-      neither subclasses the other.
-- [ ] No exception message can contain incident payload, observation text, or a
-      credential (asserted by a unit test constructing each type).
-- [ ] `ruff` and `python scripts/replace_optional.py --check` clean; no OpenHands
-      client library, `grpc`, `httpx`, or `websockets` import pulled in by
-      `import aegis_swr.openhands.exceptions`.
+- [ ] Three classes present: `OpenHandsUnavailableError`, `PermissionDeniedError`, `OpenHandsConfigError`.
+- [ ] `OpenHandsUnavailableError` accepts an optional `server_url` and the keyword-only `retriable`/`status_code`, and stores all three.
+- [ ] `PermissionDeniedError` has a class attribute `retriable` equal to `False` and stores `.action` and `.denied_binary`.
+- [ ] `OpenHandsConfigError` subclasses `ValueError`, stores `.field` and `.reason`, and produces the message `f"OpenHandsSettings.{field}: {reason}"` — identical to the Task 06.0 forward declaration.
+- [ ] Any module that forward-declared one of these (Task 06.0 `config.py`, and 07.0/08.0 if applicable) re-exports it from this module; `aegis_swr.openhands.config.OpenHandsConfigError is aegis_swr.openhands.exceptions.OpenHandsConfigError`.
+- [ ] `OpenHandsConfigError` is **not** a subclass of `HarnessConfigError` or the router's `ConfigValidationError`, and vice versa.
+- [ ] OpenHands' `PermissionDeniedError` is a distinct class from OpenClaude's; neither subclasses the other.
+- [ ] No exception message can contain an incident payload, observation text, or a credential (asserted by a unit test constructing each type).
+- [ ] `ruff` and `python scripts/replace_optional.py --check` clean; no OpenHands client library, `grpc`, `httpx`, or `websockets` import pulled in by `import aegis_swr.openhands.exceptions`.

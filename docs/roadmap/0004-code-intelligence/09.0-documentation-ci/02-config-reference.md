@@ -1,4 +1,4 @@
-# 02 - docs/openclaude-config-reference.md
+# 02 - docs/config/openclaude-config-reference.md
 
 **Parent task:** 09.0 Documentation & CI
 **State:** ⬜ Not started
@@ -7,14 +7,14 @@
 
 ## Objective
 
-Author `docs/openclaude-config-reference.md` — the complete, self-service
+Author `docs/config/openclaude-config-reference.md` — the complete, self-service
 reference for configuring the OpenClaude backend without reading Python source.
 It transcribes the authoritative `OpenClaudeSettings` field table from contract
 C1, gives a worked `openclaude_agent` role YAML example, documents the default
 tool/`Bash` allowlists with a one-line rationale per default, and reproduces the
 full OpenClaude event reference from contract C8.
 
-## File: `docs/openclaude-config-reference.md`
+## File: `docs/config/openclaude-config-reference.md`
 
 Outline (section headings + what each covers):
 
@@ -71,7 +71,7 @@ Reproduce all seven event types — class, `event_type` string, when emitted:
   estimate and is never duplicated across events (C5, C8).
 
 ### 5. Cross-links
-- Link back to `docs/openclaude-setup.md` for install (code span here — the target
+- Link back to `docs/config/openclaude-setup.md` for install (code span here — the target
   is authored in subtask 01 and does not exist until implementation) and to
   [docs/roadmap/0004-code-intelligence/plan.md](/docs/roadmap/0004-code-intelligence/plan.md)
   for the authoritative contracts.
@@ -90,7 +90,7 @@ Reproduce all seven event types — class, `event_type` string, when emitted:
   the plan.md tables.
 
 ## Success criteria
-- [ ] `docs/openclaude-config-reference.md` created with sections 1–5 above.
+- [ ] `docs/config/openclaude-config-reference.md` created with sections 1–5 above.
 - [ ] All eight `OpenClaudeSettings` fields (env var, field, type, default) match C1.
 - [ ] Both allowlist defaults documented with a one-line rationale per entry.
 - [ ] Worked `openclaude_agent` role YAML example included.

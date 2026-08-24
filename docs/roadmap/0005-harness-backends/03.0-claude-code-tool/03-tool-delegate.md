@@ -14,7 +14,7 @@ of `delegate()`: the `CallBudget` pre-check, the one-shot spawn via
 (subtask 02), and assembly of a success `CodeResult` whose `token_estimate` is
 the **real** `usage.input_tokens + usage.output_tokens` sum (C6.2, C9). This
 subtask also **forward-declares** a minimal `ClaudeCodeUnavailableError` for the
-no-`result`/failure paths (canonical home is Task 05.0), and stubs the
+no-`result`/failure paths (canonical home is Task 05.0) and stubs the
 `_dry_run_result` / `_failure` helpers that subtask 04 wires into the ordered
 gates. Structural sibling of `OpenClaudeTool` (0004 Task 04.0), minus the gRPC
 stream loop and permission gate: this backend delegates read-only guarding to the
@@ -272,36 +272,25 @@ class ClaudeCodeTool(CodeIntelBackend):
 
 ## Constraints
 
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None` (C13).
-- Implements the unchanged `CodeIntelBackend` ABC; imports no sibling backend and
-  no `grpc` (C3); `code_intel/` stays untouched.
-- `token_estimate` is the real `usage` sum (C6.2, C9); the field name/type are
-  unchanged; the budget is charged **after** completion only, never pre-charged;
-  failure/dry-run paths charge zero.
-- No tool-side permission gate; read-only enforcement is the CLI allowlist +
-  scratch cwd (C6.3).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- Implements the unchanged `CodeIntelBackend` ABC; imports no sibling backend and no `grpc` (C3); `code_intel/` stays untouched.
+- `token_estimate` is the real `usage` sum (C6.2, C9); the field name/type are unchanged; the budget is charged **after** completion only, never pre-charged; failure/dry-run paths charge zero.
+- No tool-side permission gate; read-only enforcement is the CLI allowlist + scratch cwd (C6.3).
 - Budget pre-check and dry-run make **zero** spawns (asserted in Task 11.0).
-- No task/response/argv/credential text logged or placed on any result/event
-  (C13); `ClaudeCodeUnavailableError` messages are payload-free.
-- No `Any` in any signature; `ruff` and `replace_optional.py --check` clean; RST
-  docstrings on every public class/method (C13).
+- No task/response/argv/credential text logged or placed on any result/event (C13); `ClaudeCodeUnavailableError` messages are payload-free.
+- No `Any` in any signature; `ruff` and `replace_optional.py --check` clean; RST docstrings on every public class/method (C13).
 
 ## Success criteria
 
-- [ ] `ClaudeCodeTool(settings, bus, budget)` constructs with no I/O and touches
-      no budget; it is accepted where a `CodeIntelBackend` is expected.
+- [ ] `ClaudeCodeTool(settings, bus, budget)` constructs with no I/O and touches no budget; it is accepted where a `CodeIntelBackend` is expected.
 - [ ] `name == "claude_code"`; `description` advertises the one-shot CLI backend.
-- [ ] Insufficient budget returns a non-retriable failure and **no** process is
-      spawned (`ClaudeCodeProcess` never entered).
-- [ ] A clean stream (assistant frames + a usage-bearing `result`) returns a
-      success `CodeResult` whose `content` is the accumulated answer.
-- [ ] `token_estimate == usage.input_tokens + usage.output_tokens`, charged to
-      the budget **after** completion (C6.2, C9); the field name/type unchanged.
-- [ ] The pre-check runs before the dry-run branch (over-budget + dry-run still
-      returns the budget failure).
+- [ ] Insufficient budget returns a non-retriable failure and **no** process is spawned (`ClaudeCodeProcess` never entered).
+- [ ] A clean stream (assistant frames + a usage-bearing `result`) returns a success `CodeResult` whose `content` is the accumulated answer.
+- [ ] `token_estimate == usage.input_tokens + usage.output_tokens`, charged to the budget **after** completion (C6.2, C9); the field name/type unchanged.
+- [ ] The pre-check runs before the dry-run branch (over-budget plus dry-run still returns the budget failure).
 - [ ] No tool-side permission/allowlist gate exists in the file.
-- [ ] `ClaudeCodeUnavailableError` is forward-declared here with a payload-free
-      message/`reason` and a `retriable` attribute.
+- [ ] `ClaudeCodeUnavailableError` is forward-declared here with a payload-free message/`reason` and a `retriable` attribute.
 - [ ] No task/response/credential text is logged or emitted (C13).
 - [ ] `ruff` and `replace_optional.py --check` clean; no `Any` in any signature.

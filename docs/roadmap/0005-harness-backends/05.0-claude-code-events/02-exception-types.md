@@ -226,35 +226,20 @@ changes.
 
 ## Constraints
 
-- `from __future__ import annotations` at the top; `Optional[T]` from `typing`,
-  never `T | None` (including subscripts and `Annotated[...]`).
-- No `grpc`, client-library, `pydantic`, or sibling-backend import in this file
-  — it is a leaf module that `config.py`, `process.py`, and `tool.py` all import
-  from without creating a cycle (C3).
-- `ruff` and `replace_optional.py --check` clean; every class has an RST-style
-  docstring.
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- No `grpc`, client-library, `pydantic`, or sibling-backend import in this file — it is a leaf module that `config.py`, `process.py`, and `tool.py` all import from without creating a cycle (C3).
+- `ruff` and `replace_optional.py --check` clean; every class has an RST-style docstring.
 - No `Any` in any signature.
 
 ## Success criteria
 
-- [ ] Three classes present: `ClaudeCodeConfigError`,
-      `ClaudeCodeUnavailableError`, `PermissionDeniedError`.
-- [ ] `ClaudeCodeConfigError` subclasses `ValueError`, stores `.field` and
-      `.reason`, and produces the message
-      `f"ClaudeCodeSettings.{field}: {reason}"` — identical to the Task 02.0
-      forward declaration.
-- [ ] `aegis_swr/claude_code/config.py` re-exports `ClaudeCodeConfigError` from
-      this module; `aegis_swr.claude_code.config.ClaudeCodeConfigError is
-      aegis_swr.claude_code.exceptions.ClaudeCodeConfigError`.
-- [ ] `ClaudeCodeUnavailableError` accepts optional keyword-only `binary` and
-      `reason` and stores them; `reason` accepts only the fixed vocabulary
-      shared with `ClaudeCodeAuthFailed` (documented, not enum-enforced).
-- [ ] `PermissionDeniedError` has a class attribute `retriable == False` and
-      stores `.tool` and `.denied_binary`.
-- [ ] `ClaudeCodeConfigError` is **not** a subclass of the router's
-      `ConfigValidationError` or of `HarnessConfigError`, and vice versa;
-      `ClaudeCodeUnavailableError` does **not** subclass `ClaudeCodeConfigError`.
-- [ ] No exception message can contain incident payload, a credential, or a
-      token (asserted by a unit test constructing each type).
-- [ ] `ruff`, `replace_optional.py --check` clean; no `grpc` or client-library
-      import pulled in by `import aegis_swr.claude_code.exceptions`.
+- [ ] Three classes present: `ClaudeCodeConfigError`, `ClaudeCodeUnavailableError`, `PermissionDeniedError`.
+- [ ] `ClaudeCodeConfigError` subclasses `ValueError`, stores `.field` and `.reason`, and produces the message `f"ClaudeCodeSettings.{field}: {reason}"` — identical to the Task 02.0 forward declaration.
+- [ ] `aegis_swr/claude_code/config.py` re-exports `ClaudeCodeConfigError` from this module; `aegis_swr.claude_code.config.ClaudeCodeConfigError is aegis_swr.claude_code.exceptions.ClaudeCodeConfigError`.
+- [ ] `ClaudeCodeUnavailableError` accepts optional keyword-only `binary` and `reason` and stores them; `reason` accepts only the fixed vocabulary shared with `ClaudeCodeAuthFailed` (documented, not enum-enforced).
+- [ ] `PermissionDeniedError` has a class attribute `retriable == False` and stores `.tool` and `.denied_binary`.
+- [ ] `ClaudeCodeConfigError` is **not** a subclass of the router's `ConfigValidationError` or of `HarnessConfigError`, and vice versa; `ClaudeCodeUnavailableError` does **not** subclass `ClaudeCodeConfigError`.
+- [ ] No exception message can contain an incident payload, a credential, or a token (asserted by a unit test constructing each type).
+- [ ] `ruff`, `replace_optional.py --check` clean; no `grpc` or client-library import pulled in by `import aegis_swr.claude_code.exceptions`.

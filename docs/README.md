@@ -74,6 +74,9 @@ User-facing reference for every CLI option and configuration field, derived from
 | [cli.md](config/cli.md) | Every `aegis` command (`analyze`, `export`, `server`, `config show/set`) with all options, defaults, allowed values, output modes, and exit codes. |
 | [config.md](config/config.md) | The unified `config.json`: analyze keys plus `ingest` / `logging` / `evidence` / `process` sections, nested `core` / `backends` / `sandbox` / `api` runtime config, sources, precedence, and env overrides. |
 | [agents.md](config/agents.md) | Agent consensus weight: how each forensic agent declares its own `default_weight` class property, the two-tier weight precedence, and how the consensus score uses it. |
+| [openclaude-setup.md](config/openclaude-setup.md) | Operator install/setup guide for the OpenClaude gRPC sidecar: external vs managed mode, allowlist launch flags, the user-supplied model contract, and troubleshooting. |
+| [openclaude-config-reference.md](config/openclaude-config-reference.md) | Full `OpenClaudeSettings` field table, allowlist defaults + rationale, the `openclaude_agent` role example, and the OpenClaude event reference. |
+| [harness-selection.md](config/harness-selection.md) | How Aegis SWR picks which Code Intelligence backend (OpenClaude, Claude Code, OpenHands) is active: the selector env var, presence signals, the selection truth table, and the two failure modes. Specified by [Milestone 0005](roadmap/0005-harness-backends/plan.md); not yet implemented. |
 
 ---
 
@@ -84,15 +87,6 @@ User-facing reference for every CLI option and configuration field, derived from
 | [python_coding_standard.md](dev/python_coding_standard.md) | Index and project-specific overrides (start here). |
 | [python_language_rules.md](dev/python_language_rules.md) | §1 Background + §2 Python Language Rules: lint, imports, packages, exceptions, mutable globals, comprehensions, generators, lambdas, type annotations. |
 | [python_style_rules.md](dev/python_style_rules.md) | §3 Python Style Rules: line length, indentation, comments, docstrings, naming, main, function length, type annotation style. §4 Parting Words. |
-
----
-
-## Code Intelligence (`openclaude-*.md`)
-
-| Document | Description |
-|---|---|
-| [openclaude-setup.md](openclaude-setup.md) | Operator install/setup guide for the OpenClaude gRPC sidecar: external vs managed mode, allowlist launch flags, the user-supplied model contract, and troubleshooting. |
-| [openclaude-config-reference.md](openclaude-config-reference.md) | Full `OpenClaudeSettings` field table, allowlist defaults + rationale, the `openclaude_agent` role example, and the OpenClaude event reference. |
 
 ---
 

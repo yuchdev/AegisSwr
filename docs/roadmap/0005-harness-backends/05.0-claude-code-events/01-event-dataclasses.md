@@ -307,45 +307,25 @@ class ClaudeCodeError(DomainEvent):
 
 ## Constraints
 
-- All eight dataclasses subclass `aegis_swr.core.events.DomainEvent` and are
-  `frozen=True, kw_only=True`.
-- Every class has a `ClassVar[str] event_type` set to the exact `claude_code.*`
-  string from the C10 table; `run_id: str` and a UTC `timestamp: datetime`.
-- **No field is typed `Any`**; all fields are `str`, `int`, `bool`, `datetime`,
-  or `Optional[int]`.
-- No raw incident payload, tool arguments, unredacted response text, argv, or
-  credential/token value on any field — only ids, counts, estimates, and short
-  status strings (C10/C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- All eight dataclasses subclass `aegis_swr.core.events.DomainEvent` and are `frozen=True, kw_only=True`.
+- Every class has a `ClassVar[str] event_type` set to the exact `claude_code.*` string from the C10 table; `run_id: str` and a UTC `timestamp: datetime`.
+- **No field is typed `Any`**; all fields are `str`, `int`, `bool`, `datetime`, or `Optional[int]`.
+- No raw incident payload, tool arguments, unredacted response text, argv, or credential/token value on any field — only ids, counts, estimates, and short status strings (C10/C13).
 - `token_estimate` appears on `ClaudeCodeCompleted` only, never duplicated (C10).
-- `ClaudeCodeAuthFailed` carries only the fixed-vocabulary `reason` and the mode
-  name — never a credential (C7).
-- `from __future__ import annotations` at the top; `Optional[T]` from `typing`,
-  never `T | None`; `replace_optional.py --check` clean; `ruff` clean.
-- Imports only `aegis_swr.core.events` from the project (plus stdlib); no
-  sibling backend, `grpc`, or client-library import (C3). Importing
-  `aegis_swr.core` from a backend is permitted — C3 forbids only the reverse.
+- `ClaudeCodeAuthFailed` carries only the fixed-vocabulary `reason` and the mode name — never a credential (C7).
+- Imports only `aegis_swr.core.events` from the project (plus stdlib); no sibling backend, `grpc`, or client-library import (C3). Importing `aegis_swr.core` from a backend is permitted — C3 forbids only the reverse.
 
 ## Success criteria
 
-- [ ] All eight event classes exist with the fields and `event_type` strings
-      above, matching the C10 table exactly, and each subclasses `DomainEvent`.
-- [ ] Every class is `frozen=True` and constructs keyword-only (positional
-      construction raises `TypeError`).
-- [ ] Every instance carries `run_id: str` and a timezone-aware UTC
-      `timestamp: datetime`.
-- [ ] `ClaudeCodeCompleted` is the only class exposing `token_estimate` (and it
-      also carries `input_tokens`, `output_tokens`, and `num_turns`).
-- [ ] `ClaudeCodeAuthFailed` exposes only `reason` (fixed vocabulary) and
-      `auth_mode`; no field can hold a credential or token (asserted by a unit
-      test inspecting field names/types).
-- [ ] No field annotation is `Any`; the only `Optional` fields are `exit_code`
-      and `num_turns`; `ruff` and `replace_optional.py --check` are clean.
-- [ ] No field carries tool arguments, tool output, response text, argv, a raw
-      error message, or a credential (asserted by a unit test inspecting field
-      names/types).
-- [ ] All eight events round-trip through a real `EventBus`
-      publish/subscribe cycle: a `DomainEvent` subscriber receives all eight,
-      and a concrete-subclass subscriber receives just its own, distinguishable
-      by `event.event_type`.
-- [ ] `python -c "import aegis_swr.claude_code.events"` succeeds with no `grpc`
-      or client-library import pulled in.
+- [ ] All eight event classes exist with the fields and `event_type` strings above, matching the C10 table exactly, and each subclasses `DomainEvent`.
+- [ ] Every class is `frozen=True` and constructs keyword-only (positional construction raises `TypeError`).
+- [ ] Every instance carries `run_id: str` and a timezone-aware UTC `timestamp: datetime`.
+- [ ] `ClaudeCodeCompleted` is the only class exposing `token_estimate` (and it also carries `input_tokens`, `output_tokens`, and `num_turns`).
+- [ ] `ClaudeCodeAuthFailed` exposes only `reason` (fixed vocabulary) and `auth_mode`; no field can hold a credential or token (asserted by a unit test inspecting field names/types).
+- [ ] No field annotation is `Any`; the only `Optional` fields are `exit_code` and `num_turns`; `ruff` and `replace_optional.py --check` are clean.
+- [ ] No field carries tool arguments, tool output, response text, argv, a raw error message, or a credential (asserted by a unit test inspecting field names/types).
+- [ ] All eight events round-trip through a real `EventBus` publish/subscribe cycle: a `DomainEvent` subscriber receives all eight, and a concrete-subclass subscriber receives just its own, distinguishable by `event.event_type`.
+- [ ] `python -c "import aegis_swr.claude_code.events"` succeeds with no `grpc` or client-library import pulled in.

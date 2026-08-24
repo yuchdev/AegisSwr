@@ -11,12 +11,12 @@ Create `aegis_swr/harness/exceptions.py`, the leaf module defining the two typed
 errors the C2 truth table distinguishes:
 
 - **`HarnessConfigError`** — a **construction-time**, config-shape ambiguity
-  error (selector unset with more than one presence signal; an unrecognised
+  error (selector unset with more than one presence signal; an unrecognized
   selector value). Raised by `HarnessSettings` (subtasks 01 and 02).
 - **`HarnessUnavailableError`** — a **composition-time** runtime capability
   failure: a backend the operator *explicitly selected* is not
   reachable/enabled (its presence signal is absent). Raised by Task 10.0's
-  composition root / health-check, **not** by `HarnessSettings`.
+  composition root / health check, **not** by `HarnessSettings`.
 
 The two are deliberately **separate hierarchies** — neither subclasses the
 other — so callers catch precisely the failure they mean: a config-shape
@@ -153,20 +153,11 @@ class HarnessUnavailableError(Exception):
 
 ## Success criteria
 
-- [ ] `aegis_swr/harness/exceptions.py` defines `HarnessConfigError` and
-      `HarnessUnavailableError`.
-- [ ] `issubclass(HarnessConfigError, ValueError)` is `True`;
-      `issubclass(HarnessUnavailableError, Exception)` is `True`.
-- [ ] `issubclass(HarnessUnavailableError, HarnessConfigError)` is `False` and
-      `issubclass(HarnessConfigError, HarnessUnavailableError)` is `False`
-      (neither subclasses the other, C2).
-- [ ] `HarnessConfigError("...", signals=frozenset({"openclaude","claude_code"}))`
-      exposes `.reason`, `.signals`, and `.field == "backend"`, and its `str()`
-      contains no variable value.
-- [ ] `HarnessUnavailableError("claude_code")` exposes `.backend ==
-      "claude_code"` and `.signals == frozenset()`, and its `str()` contains no
-      variable value, token, or payload.
-- [ ] The module imports nothing from `aegis_swr.*`, any backend package,
-      `grpc`, `pydantic`, or a client library (leaf-module check).
+- [ ] `aegis_swr/harness/exceptions.py` defines `HarnessConfigError` and `HarnessUnavailableError`.
+- [ ] `issubclass(HarnessConfigError, ValueError)` is `True`; `issubclass(HarnessUnavailableError, Exception)` is `True`.
+- [ ] `issubclass(HarnessUnavailableError, HarnessConfigError)` is `False` and `issubclass(HarnessConfigError, HarnessUnavailableError)` is `False` (neither subclasses the other, C2).
+- [ ] `HarnessConfigError("...", signals=frozenset({"openclaude","claude_code"}))` exposes `.reason`, `.signals`, and `.field == "backend"`, and its `str()` contains no variable value.
+- [ ] `HarnessUnavailableError("claude_code")` exposes `.backend == "claude_code"` and `.signals == frozenset()`, and its `str()` contains no variable value, token, or payload.
+- [ ] The module imports nothing from `aegis_swr.*`, any backend package, `grpc`, `pydantic`, or a client library (leaf-module check).
 - [ ] Both classes and their `__init__` methods have RST-style docstrings.
 - [ ] `scripts/replace_optional.py --check` clean; `ruff` clean.

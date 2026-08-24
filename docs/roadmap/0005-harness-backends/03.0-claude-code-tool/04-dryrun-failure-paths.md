@@ -171,7 +171,7 @@ class ClaudeCodeProcess:
   the stream. Insufficient-budget, dry-run, timeout, non-zero-exit,
   no-result-message, result-error, and the defensive catch-all all charge
   **zero** (C6.5).
-- **Defensive catch-all keeps the never-raise guarantee (C13).** The final
+- **Defensive catch for all exceptions keeps the never-raise guarantee (C13).** The final
   `except Exception` returns a non-retriable `internal_error` failure and is
   covered by a fault-injecting test (mirrors `OpenClaudeTool.delegate`'s final
   arm and its X002 exemption in `pyproject.toml`). No bare `except:`;
@@ -194,44 +194,25 @@ class ClaudeCodeProcess:
 
 ## Constraints
 
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None` (C13).
-- `settings.request_timeout_s` enforced via `asyncio.wait_for`; a timeout reaps
-  the child (no orphan) and returns a retriable failure (C13).
-- Non-zero exit / missing-`result` / result-error / internal-error each return a
-  typed failure charging **zero** tokens; the real `usage` sum is charged only on
-  the clean success path, after completion (C6.2/C6.5/C9).
-- No exception escapes `delegate()`; the final `except Exception` is a resilience
-  boundary; `CancelledError` is not swallowed; no bare `except:` (C13).
-- Every failure marker and log line is payload-free; no task/response/argv/
-  stderr/credential text is logged or placed on a `CodeResult` (C13).
-- Every branch - insufficient-budget, dry-run, clean-success, timeout,
-  nonzero-exit, no-result-message, result-error, internal-error - is a small
-  single-purpose arm, independently testable to satisfy **100% branch coverage on
-  `tool.py`'s `delegate`** (Task 11.0).
-- `ruff` and `replace_optional.py --check` clean; no `Any` in any signature; RST
-  docstrings on every public method (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- `settings.request_timeout_s` enforced via `asyncio.wait_for`; a timeout reaps the child (no orphan) and returns a retriable failure (C13).
+- Non-zero exit / missing-`result` / result-error / internal-error each returns a typed failure charging **zero** tokens; the real `usage` sum is charged only on the clean success path, after completion (C6.2/C6.5/C9).
+- No exception escapes `delegate()`; the final `except Exception` is a resilience boundary; `CancelledError` is not swallowed; no bare `except:` (C13).
+- Every failure marker and log line is payload-free; no task/response/argv/ stderr/credential text is logged or placed on a `CodeResult` (C13).
+- Every branch - insufficient-budget, dry-run, clean-success, timeout, nonzero-exit, no-result-message, result-error, internal-error - is a small single-purpose arm, independently testable to satisfy **100% branch coverage on`tool.py`'s `delegate`** (Task 11.0).
+- `ruff` and `replace_optional.py --check` clean; no `Any` in any signature; RST docstrings on every public method (C13).
 
 ## Success criteria
 
-- [ ] `ctx.dry_run` returns `content == "[dry-run]"`, `token_estimate == 0`, and
-      **no** process is spawned (checked even when budget is ample) (C6.5).
-- [ ] A `request_timeout_s` timeout returns a **retriable** `timeout` failure,
-      charges zero tokens, and leaves no orphaned child (RAII reap on cancel).
-- [ ] A non-zero child exit returns a **non-retriable** `nonzero_exit` failure,
-      zero tokens.
-- [ ] A stream with no terminal `result` message returns a non-retriable
-      `no_result_message` failure, zero tokens.
-- [ ] A `result` message with `is_error` set returns a non-retriable
-      `result_error` failure, zero tokens.
-- [ ] A clean stream charges exactly `usage.input_tokens + usage.output_tokens`
-      **after** completion and returns success with that real `token_estimate`
-      (C6.2, C9).
-- [ ] A fault-injected `_run_once` still yields a typed `internal_error` failure;
-      no exception escapes `delegate()`.
-- [ ] Insufficient-budget, dry-run, and every failure path charge **zero**
-      tokens; the budget is charged only on the clean success path.
-- [ ] No task/response/argv/stderr/credential text reaches any log sink or
-      `CodeResult` on any path (C13).
-- [ ] 100% branch coverage on `tool.py`'s `delegate`; `ruff` and
-      `replace_optional.py --check` clean.
+- [ ] `ctx.dry_run` returns `content == "[dry-run]"`, `token_estimate == 0`, and **no** process is spawned (checked even when budget is ample) (C6.5).
+- [ ] A `request_timeout_s` timeout returns a **retriable** `timeout` failure, charges zero tokens, and leaves no orphaned child (RAII reap on cancel).
+- [ ] A non-zero child exit returns a **non-retriable** `nonzero_exit` failure, zero tokens.
+- [ ] A stream with no terminal `result` message returns a non-retriable `no_result_message` failure, zero tokens.
+- [ ] A `result` message with `is_error` set returns a non-retriable `result_error` failure, zero tokens.
+- [ ] A clean stream charges exactly `usage.input_tokens + usage.output_tokens` **after** completion and returns success with that real `token_estimate` (C6.2, C9).
+- [ ] A fault-injected `_run_once` still yields a typed `internal_error` failure; no exception escapes `delegate()`.
+- [ ] Insufficient-budget, dry-run, and every failure path charge **zero** tokens; the budget is charged only on the clean success path.
+- [ ] No task/response/argv/stderr/credential text reaches any log sink or `CodeResult` on any path (C13).
+- [ ] 100% branch coverage on `tool.py`'s `delegate`; `ruff` and `replace_optional.py --check` clean.

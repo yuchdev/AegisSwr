@@ -105,10 +105,10 @@ class ClaudeCodeUnavailableError(RuntimeError):
 
 ## The two-error distinction (C7)
 
-| Failure | Error type | Raised at | Example |
-|---------|-----------|-----------|---------|
-| Config-shape / ambiguity | `ClaudeCodeConfigError` | settings **construction** (subtask 01) | `auth_mode="subscription"` while `ANTHROPIC_API_KEY` is set; `subscription` + `--bare` |
-| Runtime capability | `ClaudeCodeUnavailableError` | **health-check / composition** (this subtask's `probe_auth`) | stored `claude login` session absent or expired; `CLAUDE_CODE_OAUTH_TOKEN` rejected by the API |
+| Failure                  | Error type                   | Raised at                                                    | Example                                                                                        |
+|--------------------------|------------------------------|--------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| Config-shape / ambiguity | `ClaudeCodeConfigError`      | settings **construction** (subtask 01)                       | `auth_mode="subscription"` while `ANTHROPIC_API_KEY` is set; `subscription` + `--bare`         |
+| Runtime capability       | `ClaudeCodeUnavailableError` | **health-check / composition** (this subtask's `probe_auth`) | stored `claude login` session absent or expired; `CLAUDE_CODE_OAUTH_TOKEN` rejected by the API |
 
 Keeping these separate lets `aegis code-intel check` (Task 10.0) tell an
 operator whether to **fix their configuration** (config error, deterministic,
@@ -164,38 +164,22 @@ which could echo a credential:
 
 ## Constraints
 
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` at the top of every file (C13).
-- `ClaudeCodeUnavailableError` and `ClaudeCodeConfigError` are **distinct** and
-  neither subclasses the other (C7).
-- No credential value (OAuth token, `CLAUDE_CODE_OAUTH_TOKEN`, API key,
-  credential-file contents) or raw `claude` stderr ever reaches the exception
-  message, a log sink, or the `claude_code.auth_failed` payload (C7, C13);
-  `SensitiveFilter` covers `tool.py`'s and `exceptions.py`'s loggers.
-- The probe has its own short timeout and a defined failure path; no bare
-  `except:`; RAII via context managers for the subprocess (inherited from Task
-  03.0's `ClaudeCodeProcess`) (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- `ClaudeCodeUnavailableError` and `ClaudeCodeConfigError` are **distinct** and neither subclasses the other (C7).
+- No credential value (OAuth token, `CLAUDE_CODE_OAUTH_TOKEN`, API key, credential-file contents) or raw `claude` stderr ever reaches the exception message, a log sink, or the `claude_code.auth_failed` payload (C7, C13); `SensitiveFilter` covers `tool.py`'s and `exceptions.py`'s loggers.
+- The probe has its own short timeout and a defined failure path; no bare `except:`; RAII via context managers for the subprocess (inherited from Task 03.0's `ClaudeCodeProcess`) (C13).
 - `asyncio.sleep` for any backoff, never `time.sleep` (C13).
-- This subtask does **not** wire the probe into the CLI — that is Task 10.0's
-  `aegis code-intel check` work; it only defines and exports the method.
+- This subtask does **not** wire the probe into the CLI — that is Task 10.0's `aegis code-intel check` work; it only defines and exports the method.
 
 ## Success criteria
 
-- [ ] `probe_auth()` returns `None` (no raise) when the resolved credential is
-      usable, in every one of `auto` / `api_key` / `subscription`.
-- [ ] `probe_auth()` in `subscription` mode with no `CLAUDE_CODE_OAUTH_TOKEN`
-      and no valid stored `claude login` session raises
-      `ClaudeCodeUnavailableError(reason="no_stored_login")`.
-- [ ] `probe_auth()` with a rejected/expired `CLAUDE_CODE_OAUTH_TOKEN` raises
-      `ClaudeCodeUnavailableError(reason="token_rejected")`.
-- [ ] `ClaudeCodeUnavailableError` is not a subclass of `ClaudeCodeConfigError`
-      and vice versa; both importable from `claude_code/exceptions.py`.
-- [ ] The exception message, every captured `SensitiveFilter` log line, and the
-      `claude_code.auth_failed` event payload contain **no** credential value
-      and **no** raw `claude` stderr — only a closed-set `reason` label.
-- [ ] `probe_auth()` under `--dry-run` returns success without spawning a
-      process.
-- [ ] The probe reuses `ClaudeCodeProcess`'s spawn path (argv-safety, timeout,
-      RAII) rather than constructing a bare subprocess of its own.
-- [ ] `replace_optional.py --check` clean; `ruff` clean; RST docstrings on the
-      new method and exception class.
+- [ ] `probe_auth()` returns `None` (no raise) when the resolved credential is usable, in every one of `auto` / `api_key` / `subscription`.
+- [ ] `probe_auth()` in `subscription` mode with no `CLAUDE_CODE_OAUTH_TOKEN` and no valid stored `claude login` session raises `ClaudeCodeUnavailableError(reason="no_stored_login")`.
+- [ ] `probe_auth()` with a rejected/expired `CLAUDE_CODE_OAUTH_TOKEN` raises `ClaudeCodeUnavailableError(reason="token_rejected")`.
+- [ ] `ClaudeCodeUnavailableError` is not a subclass of `ClaudeCodeConfigError` and vice versa; both importable from `claude_code/exceptions.py`.
+- [ ] The exception message, every captured `SensitiveFilter` log line, and the `claude_code.auth_failed` event payload contain **no** credential value and **no** raw `claude` stderr — only a closed-set `reason` label.
+- [ ] `probe_auth()` under `--dry-run` returns success without spawning a process.
+- [ ] The probe reuses `ClaudeCodeProcess`'s spawn path (argv-safety, timeout, RAII) rather than constructing a bare subprocess of its own.
+- [ ] `replace_optional.py --check` clean; `ruff` clean; RST docstrings on the new method and exception class.

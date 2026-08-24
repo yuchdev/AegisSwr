@@ -12,7 +12,7 @@ Add a **credential-resolution helper** to `claude_code/process.py` that maps a
 validated `auth_mode` onto the concrete credential surface the one-shot
 `claude` subprocess (Task 03.0) will use: which environment it inherits, and
 whether `--bare` is appended to the argv. The helper is the single place that
-translates the operator's `auth_mode` choice into subprocess behaviour, so
+translates the operator's `auth_mode` choice into subprocess behavior, so
 Task 03.0's spawn path calls it once and does not itself branch on auth.
 
 The helper covers all four cases C7 defines:
@@ -20,7 +20,7 @@ The helper covers all four cases C7 defines:
 - **`subscription`** — never `--bare`; if `CLAUDE_CODE_OAUTH_TOKEN` is set, that
   is the credential the subprocess uses (the recommended CI-friendly path);
   otherwise the subprocess relies on a pre-existing `claude login` session in
-  the local credential store, verified by subtask 03's health-check before the
+  the local credential store, verified by subtask 03's health check before the
   first `delegate()`.
 - **`api_key`** — behaves exactly as Task 03.0 built it (the host
   `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN`); `--bare` **may** be appended
@@ -86,13 +86,13 @@ def resolve_credential(settings: ClaudeCodeSettings) -> ResolvedCredential:
     ...
 ```
 
-## Behaviour matrix
+## Behavior matrix
 
-| `auth_mode`    | `--bare`?                     | Credential the subprocess uses                                                                 | `relies_on_stored_login` |
-|----------------|-------------------------------|-------------------------------------------------------------------------------------------------|--------------------------|
-| `auto`         | never (helper adds none)      | whatever the `claude` binary's precedence chain resolves, unexamined                            | `False`                  |
-| `api_key`      | eligible (if bare requested)  | host `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` (Task 03.0 behaviour, unchanged)              | `False`                  |
-| `subscription` | **never** (excluded, C7)      | `CLAUDE_CODE_OAUTH_TOKEN` if set, else a stored `claude login` session in the credential store  | `True` iff token unset   |
+| `auth_mode`    | `--bare`?                    | Credential the subprocess uses                                                                 | `relies_on_stored_login` |
+|----------------|------------------------------|------------------------------------------------------------------------------------------------|--------------------------|
+| `auto`         | never (helper adds none)     | whatever the `claude` binary's precedence chain resolves, unexamined                           | `False`                  |
+| `api_key`      | eligible (if bare requested) | host `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` (Task 03.0 behaviour, unchanged)             | `False`                  |
+| `subscription` | **never** (excluded, C7)     | `CLAUDE_CODE_OAUTH_TOKEN` if set, else a stored `claude login` session in the credential store | `True` iff token unset   |
 
 ## Implementation notes
 
@@ -104,13 +104,13 @@ def resolve_credential(settings: ClaudeCodeSettings) -> ResolvedCredential:
 - **`auto` is a genuine no-op.** In `auto` mode the helper returns
   `ResolvedCredential(mode="auto")` with empty `extra_argv` and empty
   `env_passthrough`: the child simply inherits the parent environment and
-  `claude` decides. This is exactly Task 03.0's existing behaviour, so the
+  `claude` decides. This is exactly Task 03.0's existing behavior, so the
   Task 03.0 acceptance tests continue to pass with the helper in the path.
 - **`subscription` never emits `--bare`** regardless of any bare toggle —
   subtask 01 already rejected the `subscription` + bare combination at
-  construction, so by the time the helper runs the combination is impossible;
+  construction, so by the time the helper runs, the combination is impossible;
   the helper nonetheless unconditionally omits `--bare` in this branch as a
-  defence-in-depth invariant (belt and braces on the C7 rule).
+  defense-in-depth invariant (belt and braces on the C7 rule).
 - **`CLAUDE_CODE_OAUTH_TOKEN` precedence within subscription mode.** When the
   token is set, forward it (`env_passthrough = ("CLAUDE_CODE_OAUTH_TOKEN",)`)
   and set `relies_on_stored_login=False`; the token is the credential Claude
@@ -129,37 +129,20 @@ def resolve_credential(settings: ClaudeCodeSettings) -> ResolvedCredential:
 
 ## Constraints
 
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` at the top of the file (C13).
-- `ResolvedCredential` is `frozen=True` and carries **no** secret field — only
-  names, flags, and the mode label.
-- The helper is pure/deterministic given `settings` + the OAuth-token presence
-  bit; it opens no connection and spawns no process (that is Task 03.0's spawn
-  and subtask 03's probe).
-- Task text (C6 argv-safety) is out of scope here and unchanged — the helper
-  only touches credential argv flags (`--bare`) and env passthrough, never the
-  task payload, which Task 03.0 continues to pass via stdin / temp file.
-- No credential value in any return field, log line, or exception (C13);
-  `SensitiveFilter` covers `process.py`'s logger.
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- `ResolvedCredential` is `frozen=True` and carries **no** secret field — only names, flags, and the mode label.
+- The helper is pure/deterministic given `settings` + the OAuth-token presence bit; it opens no connection and spawns no process (that is Task 03.0's spawn and subtask 03's probe).
+- Task text (C6 argv-safety) is out of scope here and unchanged — the helper only touches credential argv flags (`--bare`) and env passthrough, never the task payload, which Task 03.0 continues to pass via the stdin or temp file.
+- No credential value in any return field, log line, or exception (C13); `SensitiveFilter` covers `process.py`'s logger.
 
 ## Success criteria
 
-- [ ] `resolve_credential(ClaudeCodeSettings(auth_mode="auto"))` returns
-      `extra_argv == ()` and `env_passthrough == ()` — a true no-op preserving
-      Task 03.0 behaviour.
-- [ ] `resolve_credential(ClaudeCodeSettings(auth_mode="subscription"))` with
-      `CLAUDE_CODE_OAUTH_TOKEN` set returns
-      `env_passthrough == ("CLAUDE_CODE_OAUTH_TOKEN",)`,
-      `relies_on_stored_login is False`, and `--bare` **not** in `extra_argv`.
-- [ ] `resolve_credential(ClaudeCodeSettings(auth_mode="subscription"))` with
-      `CLAUDE_CODE_OAUTH_TOKEN` unset returns `relies_on_stored_login is True`,
-      empty `env_passthrough`, and `--bare` **not** in `extra_argv`.
-- [ ] `resolve_credential(ClaudeCodeSettings(auth_mode="api_key"))` permits
-      `--bare` in `extra_argv` when a bare invocation is requested, and never
-      forwards `CLAUDE_CODE_OAUTH_TOKEN`.
-- [ ] No `ResolvedCredential` instance, log line, or exception emitted by the
-      helper contains any credential value (asserted by inspecting fields and a
-      captured `SensitiveFilter` log).
-- [ ] `--bare` is absent from `extra_argv` in **every** `subscription`-mode
-      resolution (C7).
+- [ ] `resolve_credential(ClaudeCodeSettings(auth_mode="auto"))` returns `extra_argv == ()` and `env_passthrough == ()` — a true no-op preserving Task 03.0 behavior.
+- [ ] `resolve_credential(ClaudeCodeSettings(auth_mode="subscription"))` with `CLAUDE_CODE_OAUTH_TOKEN` set returns `env_passthrough == ("CLAUDE_CODE_OAUTH_TOKEN",)`, `relies_on_stored_login is False`, and `--bare` **not** in `extra_argv`.
+- [ ] `resolve_credential(ClaudeCodeSettings(auth_mode="subscription"))` with `CLAUDE_CODE_OAUTH_TOKEN` unset returns `relies_on_stored_login is True`, empty `env_passthrough`, and `--bare` **not** in `extra_argv`.
+- [ ] `resolve_credential(ClaudeCodeSettings(auth_mode="api_key"))` permits `--bare` in `extra_argv` when a bare invocation is requested, and never forwards `CLAUDE_CODE_OAUTH_TOKEN`.
+- [ ] No `ResolvedCredential` instance, log line, or exception emitted by the helper contains any credential value (asserted by inspecting fields and a captured `SensitiveFilter` log).
+- [ ] `--bare` is absent from `extra_argv` in **every** `subscription`-mode resolution (C7).
 - [ ] `replace_optional.py --check` clean; no `Any` in return types.

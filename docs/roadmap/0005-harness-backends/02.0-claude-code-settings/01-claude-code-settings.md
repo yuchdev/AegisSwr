@@ -11,7 +11,7 @@ Create `aegis_swr/claude_code/__init__.py` (empty, versioned) and
 `aegis_swr/claude_code/config.py` containing `ClaudeCodeSettings` — a Pydantic
 `BaseSettings` subclass whose fields are sourced entirely from environment
 variables per milestone contract **C5** and **C6 item 4**. When no env vars are
-set the object must be constructible without error and must produce
+ set, the object must be constructible without error and must produce
 `enabled=False` (backend not configured); any downstream code that receives
 `enabled=False` treats the Claude Code backend as "not registered" without
 raising (mirrors OpenClaude's `grpc_url=None` path).
@@ -288,19 +288,12 @@ class ClaudeCodeSettings(BaseSettings):
 
 ## Success criteria
 
-- [ ] `ClaudeCodeSettings()` with no env vars set produces `enabled=False`,
-      `binary_path="claude"`, `allowed_tools=["Read","Grep","Glob"]`,
-      `max_turns=8`, `request_timeout_s=120`, without raising.
+- [ ] `ClaudeCodeSettings()` with no env vars set produces `enabled=False`, `binary_path="claude"`, `allowed_tools=["Read","Grep","Glob"]`, `max_turns=8`, `request_timeout_s=120`, without raising.
 - [ ] `CLAUDE_CODE_ENABLED=true` yields `enabled=True`.
-- [ ] `CLAUDE_CODE_ALLOWED_TOOLS=Read,Grep` (CSV env) parses to
-      `["Read","Grep"]`.
-- [ ] `ClaudeCodeSettings(allowed_tools=["Read","WriteFile"])` raises
-      `ClaudeCodeConfigError` (`WriteFile` is not a recognised tool name).
-- [ ] `ClaudeCodeSettings(allowed_tools=["Read","Write"])` does not raise but
-      logs a single warning.
+- [ ] `CLAUDE_CODE_ALLOWED_TOOLS=Read,Grep` (CSV env) parses to `["Read","Grep"]`.
+- [ ] `ClaudeCodeSettings(allowed_tools=["Read","WriteFile"])` raises `ClaudeCodeConfigError` (`WriteFile` is not a recognized tool name).
+- [ ] `ClaudeCodeSettings(allowed_tools=["Read","Write"])` does not raise but logs a single warning.
 - [ ] `ClaudeCodeSettings(max_turns=0)` raises `ClaudeCodeConfigError`.
 - [ ] `ClaudeCodeSettings(request_timeout_s=0)` raises `ClaudeCodeConfigError`.
-- [ ] `CLAUDE_CODE_BINARY=""` (empty CI-secret expansion) falls back to
-      `binary_path="claude"` without raising.
-- [ ] `replace_optional.py --check` clean; no `Any` in field types; `ruff`
-      clean.
+- [ ] `CLAUDE_CODE_BINARY=""` (empty CI-secret expansion) falls back to `binary_path="claude"` without raising.
+- [ ] `replace_optional.py --check` clean; no `Any` in field types; `ruff` clean.

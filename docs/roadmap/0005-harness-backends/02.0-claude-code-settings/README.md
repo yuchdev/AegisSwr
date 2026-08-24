@@ -73,10 +73,10 @@ the same object.
 
 ## Subtasks
 
-| # | Document | Status | Blocks |
-|---|----------|--------|--------|
-| 01 | [`ClaudeCodeSettings` class shape](01-claude-code-settings.md) | ⬜ Not started | 02 (this task), 03.0, 05.0 |
-| 02 | [`permission_mode` & disposable `scratch_cwd`](02-permission-mode-scratch-cwd.md) | ⬜ Not started | 03.0 |
+| #  | Document                                                                          | Status         | Blocks                     |
+|----|-----------------------------------------------------------------------------------|----------------|----------------------------|
+| 01 | [`ClaudeCodeSettings` class shape](01-claude-code-settings.md)                    | ⬜ Not started | 02 (this task), 03.0, 05.0 |
+| 02 | [`permission_mode` & disposable `scratch_cwd`](02-permission-mode-scratch-cwd.md) | ⬜ Not started | 03.0                       |
 
 Subtask 01 establishes the class, the CSV env source, the `__init__` unwrap,
 and the `binary_path` / `enabled` / `allowed_tools` / `max_turns` /
@@ -97,27 +97,14 @@ subtasks land in the same `config.py` file.
 
 ## Key constraints
 
-- All new code uses `Optional[T]` from `typing`, never `T | None` — including
-  inside subscripts and `Annotated[...]`; and `from __future__ import
-  annotations` at the top of every file (C13).
-- `ruff` (E,F,I,UP,B,SIM; line length 100) must be clean with zero new
-  `# type: ignore` lines; `python scripts/replace_optional.py --check` clean;
-  no `Any` in field types.
-- Every new public class and function has an RST-style docstring
-  (`:param:`/`:ivar:`/`:return:`).
-- `ClaudeCodeSettings()` with no env vars set must construct without raising and
-  produce `enabled=False` (backend not configured) — presence-signal-as-falsy
-  default (C5).
-- The mandatory-`scratch_cwd` validation must bite **only when `enabled=True`**,
-  so the not-configured object stays constructible (C5).
-- `permission_mode` **rejects** any bypass-permissions value at settings-
-  validation time; no settings value may ever produce
-  `--dangerously-skip-permissions` (C6 item 3).
-- No secret, credential, or incident-payload text ever reaches a log sink or an
-  exception message; validator warnings/errors name only field names and
-  offending non-secret values (C13).
-- No import of `ClaudeCodeSettings` appears in `aegis_swr/core/`,
-  `aegis_swr/views/`, or `aegis_swr/code_intel/` (C3).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- `ClaudeCodeSettings()` with no env vars set must construct without raising and produce `enabled=False` (backend not configured) — presence-signal-as-falsy default (C5).
+- The mandatory-`scratch_cwd` validation must bite **only when `enabled=True`**, so the not-configured object stays constructible (C5).
+- `permission_mode` **rejects** any bypass-permissions value at settings-validation time; no settings value may ever produce `--dangerously-skip-permissions` (C6 item 3).
+- No secret, credential, or incident-payload text ever reaches a log sink or an exception message; validator warnings/errors name only field names and offending non-secret values (C13).
+- No import of `ClaudeCodeSettings` appears in `aegis_swr/core/`, `aegis_swr/views/`, or `aegis_swr/code_intel/` (C3).
 
 ## Files created or modified by this task
 
@@ -125,8 +112,7 @@ subtasks land in the same `config.py` file.
 src/aegis_swr/
 └── claude_code/
     ├── __init__.py        ← NEW (subtask 01, empty)
-    └── config.py          ← NEW (subtask 01 + 02): ClaudeCodeSettings,
-                              ClaudeCodeConfigError (forward-declared)
+    └── config.py          ← NEW (subtask 01 + 02): ClaudeCodeSettings, ClaudeCodeConfigError (forward-declared)
 
 tests/unit/
 └── claude_code/

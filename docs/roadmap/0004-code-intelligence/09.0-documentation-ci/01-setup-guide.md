@@ -1,4 +1,4 @@
-# 01 - docs/openclaude-setup.md
+# 01 - docs/config/openclaude-setup.md
 
 **Parent task:** 09.0 Documentation & CI
 **State:** ⬜ Not started
@@ -7,7 +7,7 @@
 
 ## Objective
 
-Author `docs/openclaude-setup.md` — the operator-facing install and setup guide
+Author `docs/config/openclaude-setup.md` — the operator-facing install and setup guide
 for wiring an OpenClaude sidecar into Aegis SWR. It must let an operator who runs
 a local or self-hosted OpenAI-compatible endpoint stand up code intelligence with
 a single environment variable and zero Python changes (C4), covering both the
@@ -15,7 +15,7 @@ default **external** mode and the **managed** (`auto_start`) mode, the required
 tool/`Bash` allowlist launch flags (C7), and troubleshooting for the two failure
 classes an operator will actually hit: health-check failure and allowlist denial.
 
-## File: `docs/openclaude-setup.md`
+## File: `docs/config/openclaude-setup.md`
 
 Outline (section headings + what each covers):
 
@@ -24,7 +24,7 @@ Outline (section headings + what each covers):
   as a headless gRPC sidecar; Aegis SWR delegates one open-ended task and consumes
   the response stream. Link to
   [docs/roadmap/0004-code-intelligence/plan.md](/docs/roadmap/0004-code-intelligence/plan.md)
-  for the architecture and to `docs/openclaude-config-reference.md` for the full
+  for the architecture and to `docs/config/openclaude-config-reference.md` for the full
   settings table (this cross-link is authored in subtask 02; the target file does
   not exist until implementation, so it is a code span here, not a live link).
 
@@ -106,7 +106,7 @@ Outline (section headings + what each covers):
 - No design in this doc may cause secrets or incident payloads to be logged.
 
 ## Success criteria
-- [ ] `docs/openclaude-setup.md` created with sections 1–6 above.
+- [ ] `docs/config/openclaude-setup.md` created with sections 1–6 above.
 - [ ] External-mode section states the exact allowlist launch flags and the
       `python -m aegis.app --dry-run` verification step.
 - [ ] Managed-mode section documents `OPENCLAUDE_AUTO_START=true` + `OPENCLAUDE_BINARY`.

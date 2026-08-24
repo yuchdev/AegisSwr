@@ -52,11 +52,11 @@ exactly two subtasks: events and exceptions.
 
 ## Forward-declared exceptions this task canonicalises
 
-| Placeholder                    | Forward-declared in (task / file)                                  | Canonicalised here                                              |
-|--------------------------------|--------------------------------------------------------------------|----------------------------------------------------------------|
-| `ClaudeCodeConfigError`        | Task 02.0 `claude_code/config.py` (settings validators)            | `exceptions.py`; `config.py` becomes a re-export alias         |
-| `ClaudeCodeUnavailableError`   | Task 03.0 `claude_code/tool.py` / `process.py`; Task 04.0 `exceptions.py` (auth errors) | `exceptions.py`; upstream modules import from here             |
-| `PermissionDeniedError`        | (new here — no earlier placeholder; mirrors OpenClaude)            | `exceptions.py`                                                 |
+| Placeholder                  | Forward-declared in (task / file)                                                       | Canonicalised here                                     |
+|------------------------------|-----------------------------------------------------------------------------------------|--------------------------------------------------------|
+| `ClaudeCodeConfigError`      | Task 02.0 `claude_code/config.py` (settings validators)                                 | `exceptions.py`; `config.py` becomes a re-export alias |
+| `ClaudeCodeUnavailableError` | Task 03.0 `claude_code/tool.py` / `process.py`; Task 04.0 `exceptions.py` (auth errors) | `exceptions.py`; upstream modules import from here     |
+| `PermissionDeniedError`      | (new here — no earlier placeholder; mirrors OpenClaude)                                 | `exceptions.py`                                        |
 
 The re-export-alias pattern is identical to how `openclaude/config.py`
 re-exports `OpenClaudeConfigError` from `openclaude/exceptions.py`: the
@@ -65,15 +65,15 @@ placeholder body is deleted and replaced with
 so `aegis_swr.claude_code.config.ClaudeCodeConfigError` keeps resolving to the
 same object with no caller changes. The forward declaration and the canonical
 definition are behaviourally identical (same base, same `__init__` signature,
-same formatted message), so every `except ClaudeCodeConfigError` site is
+same-formatted message), so every `except ClaudeCodeConfigError` site is
 unaffected.
 
 ## Subtasks
 
-| # | Document | Status | Blocks |
-|---|----------|--------|--------|
-| 01 | [Eight `claude_code.*` event dataclasses](01-event-dataclasses.md) | ⬜ Not started | none |
-| 02 | [Canonical exception hierarchy](02-exception-types.md) | ⬜ Not started | none |
+| #  | Document                                                           | Status         | Blocks |
+|----|--------------------------------------------------------------------|----------------|--------|
+| 01 | [Eight `claude_code.*` event dataclasses](01-event-dataclasses.md) | ⬜ Not started | none   |
+| 02 | [Canonical exception hierarchy](02-exception-types.md)             | ⬜ Not started | none   |
 
 Both subtasks land in the same package and have no ordering dependency on each
 other: `events.py` imports only `aegis_swr.core.events.DomainEvent`, and
@@ -91,57 +91,33 @@ the milestone dependency graph, 05.0 hangs off 02.0 parallel to the
   03.0 → 04.0 chain (dependency graph) and shares no code with it beyond the
   exception types it here makes canonical.
 - **Blocks:** none. Tasks 03.0 and 04.0 forward-declared their own placeholders
-  and do not hard-block on this task; when 05.0 lands they switch to importing
+  and do not hard-block on this task; when 05.0 lands, they switch to importing
   from `exceptions.py` with no import-path change.
 
 ## Key constraints
 
-- All event classes **subclass `aegis_swr.core.events.DomainEvent`**, are
-  `frozen=True, kw_only=True`, and carry **no `Any` fields**; they round-trip
-  through the existing `EventBus` without error (C10).
-- Every event class carries `run_id: str`, a timezone-aware UTC
-  `timestamp: datetime`, and a `ClassVar[str] event_type` set to the exact
-  `claude_code.*` string from the C10 table.
-- Event payloads never carry raw incident payload, tool arguments, unredacted
-  response text, argv, or any credential/token value — only ids, counts,
-  estimates, and short status strings (C7, C10, C13).
-- `ClaudeCodeCompleted` is the **only** event carrying the token figure; it is
-  never duplicated across events (C10). Its real `usage` breakdown
-  (`input_tokens` / `output_tokens`) lives on that one event alongside the sum.
-- `ClaudeCodeAuthFailed` carries only the failure reason status string
-  (`"ambiguous_credential"` / `"no_stored_login"` / `"token_rejected"`) — never
-  a credential, token, or credential-file path (C7, C10).
-- Two distinct failure surfaces, never conflated (C7): `ClaudeCodeConfigError`
-  (settings-construction, `ValueError` base) vs `ClaudeCodeUnavailableError`
-  (runtime capability, including auth-probe failure). Neither subclasses the
-  other.
-- `Optional[T]` from `typing`, never `T | None` (including subscripts and
-  `Annotated[...]`); `from __future__ import annotations` at the top of every
-  file; `python scripts/replace_optional.py --check` clean; `ruff`
-  (E,F,I,UP,B,SIM; line length 100) clean.
-- Every new public class has an RST-style docstring (`:param:` / `:ivar:` /
-  `:return:`).
-- `events.py` imports **only** `aegis_swr.core.events` from the project (plus
-  stdlib); `exceptions.py` is a pure leaf. Neither imports a sibling backend,
-  `grpc`, or any client library (C3). A backend importing `aegis_swr.core` is
-  permitted; the C3 boundary only forbids the reverse.
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- All event classes **subclass `aegis_swr.core.events.DomainEvent`**, are `frozen=True, kw_only=True`, and carry **no `Any` fields**; they round-trip through the existing `EventBus` without error (C10).
+- Every event class carries `run_id: str`, a timezone-aware UTC `timestamp: datetime`, and a `ClassVar[str] event_type` set to the exact `claude_code.*` string from the C10 table.
+- Event payloads never carry raw incident payload, tool arguments, unredacted response text, argv, or any credential/token value — only ids, counts, estimates, and short status strings (C7, C10, C13).
+- `ClaudeCodeCompleted` is the **only** event carrying the token figure; it is never duplicated across events (C10). Its real `usage` breakdown (`input_tokens` / `output_tokens`) lives on that one event alongside the sum.
+- `ClaudeCodeAuthFailed` carries only the failure reason status string (`"ambiguous_credential"` / `"no_stored_login"` / `"token_rejected"`) — never a credential, token, or credential-file path (C7, C10).
+- Two distinct failure surfaces, never conflated (C7): `ClaudeCodeConfigError` (settings-construction, `ValueError` base) vs `ClaudeCodeUnavailableError` (runtime capability, including auth-probe failure). Neither subclasses the other.
+- `events.py` imports **only** `aegis_swr.core.events` from the project (plus stdlib); `exceptions.py` is a pure leaf. Neither imports a sibling backend, `grpc`, or any client library (C3). A backend importing `aegis_swr.core` is permitted; the C3 boundary only forbids the reverse..
 
 ## Files created or modified by this task
 
 ```
 src/aegis_swr/
 └── claude_code/
-    ├── events.py       ← NEW (subtask 01): eight claude_code.* DomainEvent
-    │                      subclasses; ClaudeCodeCompleted carries real tokens (C9/C10)
-    ├── exceptions.py    ← subtask 02: CANONICAL ClaudeCodeConfigError,
-    │                      ClaudeCodeUnavailableError, PermissionDeniedError
-    │                      (replaces Task 02.0/03.0/04.0 placeholders)
-    └── config.py        ← modified (subtask 02): placeholder ClaudeCodeConfigError
-                           body replaced with a re-export alias (no import-path change)
+    ├── events.py       ← NEW (subtask 01): eight claude_code.* DomainEvent subclasses; ClaudeCodeCompleted carries real tokens (C9/C10)
+    ├── exceptions.py    ← subtask 02: CANONICAL ClaudeCodeConfigError, ClaudeCodeUnavailableError, PermissionDeniedError (replaces Task 02.0/03.0/04.0 placeholders)
+    └── config.py        ← modified (subtask 02): placeholder ClaudeCodeConfigError body replaced with a re-export alias (no import-path change)
 
 tests/unit/claude_code/
-└── test_events.py      ← NEW (Task 11.0, incremental): event field/type/secrecy
-                           assertions + EventBus round-trip
+└── test_events.py      ← NEW (Task 11.0, incremental): event field/type/secrecy assertions + EventBus round-trip
 ```
 
 > `tests/unit/claude_code/test_events.py` is authored under **Task 11.0**

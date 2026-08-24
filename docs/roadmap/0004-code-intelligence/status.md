@@ -592,7 +592,7 @@ is `aegis code-intel check`. See [ADR 0003](/docs/adr/0003-code-intel-compositio
   secret on the role.
 - **README** (subtask 04) gained a discoverable "Code Intelligence (OpenClaude)"
   section naming `OPENCLAUDE_GRPC_URL` as the sole enabler and forward-linking
-  to `docs/openclaude-setup.md`.
+  to `docs/config/openclaude-setup.md`.
 - **No `replace_optional.py` script exists** in this repo (a roadmap C9
   convention); `ruff` (E,F,I,UP,B,SIM) enforces the equivalent and is clean.
 
@@ -717,19 +717,19 @@ reports **4 modules skipped** (never failed/errored); collection is clean. The
 
 | Subtask | Description                              | Done |
 |---------|------------------------------------------|------|
-| 01      | [`docs/openclaude-setup.md`](09.0-documentation-ci/01-setup-guide.md) | ✅   |
-| 02      | [`docs/openclaude-config-reference.md`](09.0-documentation-ci/02-config-reference.md) | ✅   |
+| 01      | [`docs/config/openclaude-setup.md`](09.0-documentation-ci/01-setup-guide.md) | ✅   |
+| 02      | [`docs/config/openclaude-config-reference.md`](09.0-documentation-ci/02-config-reference.md) | ✅   |
 | 03      | [CI `grep` boundary check extension](09.0-documentation-ci/03-ci-boundary-check.md) | ✅   |
 | 04      | [CI coverage gate extension](09.0-documentation-ci/04-ci-coverage-gate.md) | ✅   |
 | 05      | [Milestone closeout + `CHANGELOG.md`](09.0-documentation-ci/05-milestone-closeout.md) | ✅   |
 
 **Delivered:** Documentation and enforced CI gates closing the milestone.
 
-- **Docs:** `docs/openclaude-setup.md` (overview, prerequisites, external +
+- **Docs:** `docs/config/openclaude-setup.md` (overview, prerequisites, external +
   managed modes with the read-only allowlist launch flags, the
   `aegis code-intel check` verification step, the user-supplied-model contract
   callout, and health-check/allowlist troubleshooting) and
-  `docs/openclaude-config-reference.md` (the eight-field `OpenClaudeSettings`
+  `docs/config/openclaude-config-reference.md` (the eight-field `OpenClaudeSettings`
   table from C1, allowlist defaults + per-entry rationale, a worked
   `openclaude_agent` YAML example, and the seven-event C8 reference). Both are
   indexed under the "Code Intelligence" section in `docs/README.md`; the

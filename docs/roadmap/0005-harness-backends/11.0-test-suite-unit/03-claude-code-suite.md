@@ -340,31 +340,31 @@ def test_claude_code_imports_no_grpc_or_openhands_client():
 
 ## Test cases (selected — branch map for `delegate()`)
 
-| Test | Branch / contract verified |
-|------|-----------------------------|
-| `test_delegate_success_returns_text_and_real_tokens` | happy path; `token_estimate` == real `usage` sum (C9) |
-| `test_delegate_budget_insufficient_short_circuits` | budget pre-check false branch; NO subprocess spawned |
-| `test_delegate_dry_run_short_circuits` | dry-run branch; `[dry-run]`, zero tokens, NO subprocess |
-| `test_delegate_tool_call_message_emits_event` | `tool_use` dispatch arm → `ClaudeCodeToolCall` |
-| `test_delegate_tool_result_message_emits_event` | `tool_result` dispatch arm → `ClaudeCodeToolResult` |
-| `test_delegate_permission_denied_non_retriable` | permission-denied arm → `ClaudeCodePermissionDenied`, non-retriable |
-| `test_delegate_nonzero_exit_returns_failure` | non-zero exit / error arm → `ClaudeCodeStreamError`, failure result |
-| `test_delegate_malformed_ndjson_returns_failure` | parse-error arm → handled failure, no exception escapes |
-| `test_delegate_timeout_returns_retriable_failure` | timeout arm → retriable failure |
-| `test_budget_charged_real_usage_after_completion` | budget charged real usage **after** completion, never pre-charged (C9) |
-| `test_task_text_never_in_argv` | **C6 argv-safety**: task text (and distinctive substrings) absent from argv |
-| `test_task_text_travels_via_stdin` | C6: task text on stdin, not argv |
-| `test_subscription_mode_rejects_when_anthropic_api_key_present` | C7: ambiguous-credential rejection at construction |
-| `test_subscription_mode_never_passes_bare` | C7: `--bare` excluded in subscription mode |
-| `test_subscription_mode_uses_oauth_token_when_set` | C7: `CLAUDE_CODE_OAUTH_TOKEN` precedence |
-| `test_subscription_mode_probe_failure_raises_unavailable` | C7: probe failure → `ClaudeCodeUnavailableError` (distinct from config error) |
-| `test_auto_mode_adds_no_extra_validation` | C7: `auto` unchanged from Task 03.0 |
-| `test_no_credential_value_in_logs_or_exceptions` | C7/C13: no credential value in any log / exception / event |
+| Test                                                            | Branch / contract verified                                                    |
+|-----------------------------------------------------------------|-------------------------------------------------------------------------------|
+| `test_delegate_success_returns_text_and_real_tokens`            | happy path; `token_estimate` == real `usage` sum (C9)                         |
+| `test_delegate_budget_insufficient_short_circuits`              | budget pre-check false branch; NO subprocess spawned                          |
+| `test_delegate_dry_run_short_circuits`                          | dry-run branch; `[dry-run]`, zero tokens, NO subprocess                       |
+| `test_delegate_tool_call_message_emits_event`                   | `tool_use` dispatch arm → `ClaudeCodeToolCall`                                |
+| `test_delegate_tool_result_message_emits_event`                 | `tool_result` dispatch arm → `ClaudeCodeToolResult`                           |
+| `test_delegate_permission_denied_non_retriable`                 | permission-denied arm → `ClaudeCodePermissionDenied`, non-retriable           |
+| `test_delegate_nonzero_exit_returns_failure`                    | non-zero exit / error arm → `ClaudeCodeStreamError`, failure result           |
+| `test_delegate_malformed_ndjson_returns_failure`                | parse-error arm → handled failure, no exception escapes                       |
+| `test_delegate_timeout_returns_retriable_failure`               | timeout arm → retriable failure                                               |
+| `test_budget_charged_real_usage_after_completion`               | budget charged real usage **after** completion, never pre-charged (C9)        |
+| `test_task_text_never_in_argv`                                  | **C6 argv-safety**: task text (and distinctive substrings) absent from argv   |
+| `test_task_text_travels_via_stdin`                              | C6: task text on stdin, not argv                                              |
+| `test_subscription_mode_rejects_when_anthropic_api_key_present` | C7: ambiguous-credential rejection at construction                            |
+| `test_subscription_mode_never_passes_bare`                      | C7: `--bare` excluded in subscription mode                                    |
+| `test_subscription_mode_uses_oauth_token_when_set`              | C7: `CLAUDE_CODE_OAUTH_TOKEN` precedence                                      |
+| `test_subscription_mode_probe_failure_raises_unavailable`       | C7: probe failure → `ClaudeCodeUnavailableError` (distinct from config error) |
+| `test_auto_mode_adds_no_extra_validation`                       | C7: `auto` unchanged from Task 03.0                                           |
+| `test_no_credential_value_in_logs_or_exceptions`                | C7/C13: no credential value in any log / exception / event                    |
 
 ## Implementation notes
 
 - `test_process.py` uses one **distinctive** task string containing shell
-  metacharacters, quotes, a fake `secret=`, a newline, unicode, and a flag-like
+  metacharacters, quotes, a fake `secret=`, a newline, Unicode, and a flag-like
   substring (`--allowedTools=Write`). The argv-safety assertion checks the whole
   string **and** each distinctive substring is absent from every argv element,
   and present in `RecordingClaudeProcess.stdin_text`.
@@ -384,37 +384,22 @@ def test_claude_code_imports_no_grpc_or_openhands_client():
 
 ## Constraints
 
-- All tests pass with `CLAUDE_CODE_ENABLED` unset and no `claude` binary on
-  `PATH` — no real subprocess is ever spawned (the fake process comes from
-  `mock_claude_subprocess`).
-- Every collaborator is constructor-injected; `monkeypatch` is used **only** for
-  real env vars (`CLAUDE_CODE_*`, `ANTHROPIC_*`, `CLAUDE_CODE_OAUTH_TOKEN`).
-- Assert on the canonical `ClaudeCodeConfigError` / `ClaudeCodeUnavailableError`
-  types, not Pydantic `ValidationError`; keep the config-shape vs
-  runtime-capability distinction (C7) crisp in every auth test.
-- No credential value, argv secret, or raw response text is asserted against a
-  log sink; the secrecy test proves the negative (C7/C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new unit test has a test-specific docstring (`[Unit]`|`[Mock]`|`[Integration]`|`E2E` / `Scenario` / `Boundaries` / `On failuse`)
+- All tests pass with `CLAUDE_CODE_ENABLED` unset and no `claude` binary on `PATH` — no real subprocess is ever spawned (the fake process comes from `mock_claude_subprocess`).
+- Every collaborator is constructor-injected; `monkeypatch` is used **only** for real env vars (`CLAUDE_CODE_*`, `ANTHROPIC_*`, `CLAUDE_CODE_OAUTH_TOKEN`).
+- Assert on the canonical `ClaudeCodeConfigError` / `ClaudeCodeUnavailableError` types, not Pydantic `ValidationError`; keep the config-shape vs. runtime-capability distinction (C7) crisp in every auth test.
+- No credential value, argv secret, or raw response text is asserted against a log sink; the secrecy test proves the negative (C7/C13).
 - `test_isolation.py` is AST-based (docstring mentions must not trip it).
-- `Optional[T]` from `typing`; `from __future__ import annotations` (C13).
 
 ## Success criteria
 
-- [ ] `test_config.py`: `--dangerously-skip-permissions` / bypass permission
-      modes and a missing `scratch_cwd` each raise `ClaudeCodeConfigError`.
-- [ ] `test_process.py`: the distinctive task string and each distinctive
-      substring are **absent from every argv element** and present in
-      `stdin_text`; argv carries `-p --output-format stream-json`.
-- [ ] `test_tool.py`: `pytest --cov=aegis_swr.claude_code.tool --cov-branch`
-      reports **100%** branch on `delegate()`; budget/dry-run paths spawn no
-      subprocess; `token_estimate` equals the real `usage` sum.
-- [ ] `test_auth_modes.py`: the full C7 matrix passes — subscription rejects a
-      present `ANTHROPIC_API_KEY`/`AUTH_TOKEN` at construction, never passes
-      `--bare`, honours `CLAUDE_CODE_OAUTH_TOKEN`, falls back to a probed stored
-      login, and `auto` adds no extra validation.
-- [ ] `test_no_credential_value_in_logs_or_exceptions` passes for all three
-      credential vars: the sentinel value appears in no log, exception, or event.
-- [ ] `test_events.py`: eight `claude_code.*` classes instantiate, are frozen,
-      carry `run_id`/UTC `timestamp`/`event_type`; only `StreamCompleted` carries
-      the token figure; `auth_failed` carries a reason enum only.
+- [ ] `test_config.py`: `--dangerously-skip-permissions` / bypass permission modes and a missing `scratch_cwd` each raise `ClaudeCodeConfigError`.
+- [ ] `test_process.py`: the distinctive task string and each distinctive substring are **absent from every argv element** and present in `stdin_text`; argv carries `-p --output-format stream-json`.
+- [ ] `test_tool.py`: `pytest --cov=aegis_swr.claude_code.tool --cov-branch` reports **100%** branch on `delegate()`; budget/dry-run paths spawn no subprocess; `token_estimate` equals the real `usage` sum.
+- [ ] `test_auth_modes.py`: the full C7 matrix passes — subscription rejects a present `ANTHROPIC_API_KEY`/`AUTH_TOKEN` at construction, never passes `--bare`, honours `CLAUDE_CODE_OAUTH_TOKEN`, falls back to a probed stored login, and `auto` adds no extra validation.
+- [ ] `test_no_credential_value_in_logs_or_exceptions` passes for all three credential vars: the sentinel value appears in no log, exception, or event.
+- [ ] `test_events.py`: eight `claude_code.*` classes instantiate, are frozen, carry `run_id`/UTC `timestamp`/`event_type`; only `StreamCompleted` carries the token figure; `auth_failed` carries a reason enum only.
 - [ ] `test_isolation.py`: no sibling-backend / grpc / OpenHands-client import.
 - [ ] `ruff`, `replace_optional.py --check` clean.

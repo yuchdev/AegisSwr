@@ -352,16 +352,12 @@ means Docker is unavailable or the sandbox image failed to pull.
 
 ## Constraints
 
-- **This file is the only place the OpenHands HTTP/WS client library may be
-  imported** (C3); enforced by the isolation `grep` CI check and the Task 11.0
-  isolation test.
-- `from __future__ import annotations` at the top; `Optional[T]` from `typing`,
-  never `T | None`, including in subscripts (C13).
-- `health_check()` returns `bool` and **never raises**; `run()` raises
-  `OpenHandsUnavailableError` on transport failure; no raw library exception
-  escapes this file (C3).
-- Async throughout; no blocking transport calls on the event loop; no
-  `time.sleep` (`asyncio.sleep` for any backoff — C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- **This file is the only place the OpenHands HTTP/WS client library may be imported** (C3); enforced by the isolation `grep` CI check and the Task 11.0 isolation test.
+- `health_check()` returns `bool` and **never raises**; `run()` raises `OpenHandsUnavailableError` on transport failure; no raw library exception escapes this file (C3).
+- Async throughout; no blocking transport calls on the event loop; no `time.sleep` (`asyncio.sleep` for any backoff — C13).
 - Task text is sent only in the action message body, never in a URL/query/argv.
 - All public classes/methods carry RST docstrings (`:param:`/`:return:`/`:raises:`).
 - No raw task/response/credential text in any log sink or exception message.
@@ -369,27 +365,16 @@ means Docker is unavailable or the sandbox image failed to pull.
 
 ## Success criteria
 
-- [ ] `aegis_swr/openhands/client.py` defines `OpenHandsClient` and the typed
-      `AgentEvent` / `EventKind` projection; no caller imports the client library
-      or a raw library event object.
-- [ ] The OpenHands HTTP/WS client library is imported in this file only (C3
-      check / isolation test passes).
-- [ ] No session is created in `__init__`; the REST session and Socket.IO client
-      are created on the first `run()` / `health_check()` call.
-- [ ] `from_session(sio, http, settings)` yields a working client whose `run()`
-      streams `AgentEvent`s from a mock session with no live process.
-- [ ] `run(task, run_id)` is an async generator yielding one `AgentEvent` per
-      `oh_event`, stopping after the first `FINISHED` / `ERROR` kind.
-- [ ] `run()` sends the task in the `oh_user_action` body only — the task text
-      never appears in a URL, query string, or argv (asserted in a unit test).
-- [ ] `health_check()` returns `True` on a scripted healthy status within
-      `connect_timeout_s`, and `False` (never raises) on timeout / unreachable /
-      non-healthy status.
-- [ ] `run()` raises `OpenHandsUnavailableError` on a scripted transport failure;
-      a terminal `ERROR` *event* is yielded, not converted to the exception.
+- [ ] `aegis_swr/openhands/client.py` defines `OpenHandsClient` and the typed `AgentEvent` / `EventKind` projection; no caller imports the client library or a raw library event object.
+- [ ] The OpenHands HTTP/WS client library is imported in this file only (C3 check / isolation test passes).
+- [ ] No session is created in `__init__`; the REST session and Socket.IO client are created on the first `run()` / `health_check()` call.
+- [ ] `from_session(sio, http, settings)` yields a working client whose `run()` streams `AgentEvent`s from a mock session with no live process.
+- [ ] `run(task, run_id)` is an async generator yielding one `AgentEvent` per `oh_event`, stopping after the first `FINISHED` / `ERROR` kind.
+- [ ] `run()` sends the task in the `oh_user_action` body only — the task text never appears in a URL, query string, or argv (asserted in a unit test).
+- [ ] `health_check()` returns `True` on a scripted healthy status within `connect_timeout_s`, and `False` (never raises) on timeout / unreachable / non-healthy status.
+- [ ] `run()` raises `OpenHandsUnavailableError` on a scripted transport failure; a terminal `ERROR` *event* is yielded, not converted to the exception.
 - [ ] `close()` is idempotent and safe when nothing was ever opened.
-- [ ] `OpenHandsUnavailableError` is imported from `openhands/exceptions.py`
-      (forward-declared), not redefined in `client.py`.
+- [ ] `OpenHandsUnavailableError` is imported from `openhands/exceptions.py` (forward-declared), not redefined in `client.py`.
 - [ ] No task/response/credential text appears in any log line.
 - [ ] `ruff`, `replace_optional.py --check` clean.
-```
+

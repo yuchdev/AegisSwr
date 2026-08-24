@@ -15,7 +15,7 @@ Create `aegis_swr/openhands/__init__.py` (empty, versioned) and
 `aegis_swr/openhands/config.py` containing `OpenHandsSettings` - a Pydantic
 `BaseSettings` subclass whose fields are sourced entirely from environment
 variables per milestone contracts C5 (settings-shape convention) and C8 item 5
-(the field list). When no env vars are set the object must be constructible
+(the field list). When no env vars are set, the object must be constructible
 without error and must produce `server_url=None` (backend not registered). Any
 downstream code that receives a `None` `server_url` must treat it as "backend
 unavailable" without raising (mirrors OpenClaude's `grpc_url=None` semantics,
@@ -31,14 +31,14 @@ override belongs to subtask 02.
 
 **Fields** (env var → field name → type → default):
 
-| Env var                     | Field                | Type            | Default                                  |
-|-----------------------------|----------------------|-----------------|------------------------------------------|
-| `OPENHANDS_SERVER_URL`      | `server_url`         | `Optional[str]` | `None` (the presence signal, C2/C8)      |
-| `OPENHANDS_RUNTIME`         | `runtime_mode`       | `str`           | `"docker"` (the sandboxed runtime, C8)   |
-| `OPENHANDS_ALLOWED_TOOLS`   | `allowed_tools`      | `list[str]`     | `["read", "grep", "glob", "browse"]` (read-only) |
-| `OPENHANDS_CONNECT_TIMEOUT` | `connect_timeout_s`  | `int`           | `10`                                     |
-| `OPENHANDS_REQUEST_TIMEOUT` | `request_timeout_s`  | `int`           | `120`                                    |
-| `OPENHANDS_AUTO_START`      | `auto_start`         | `bool`          | `False`                                  |
+| Env var                     | Field               | Type            | Default                                          |
+|-----------------------------|---------------------|-----------------|--------------------------------------------------|
+| `OPENHANDS_SERVER_URL`      | `server_url`        | `Optional[str]` | `None` (the presence signal, C2/C8)              |
+| `OPENHANDS_RUNTIME`         | `runtime_mode`      | `str`           | `"docker"` (the sandboxed runtime, C8)           |
+| `OPENHANDS_ALLOWED_TOOLS`   | `allowed_tools`     | `list[str]`     | `["read", "grep", "glob", "browse"]` (read-only) |
+| `OPENHANDS_CONNECT_TIMEOUT` | `connect_timeout_s` | `int`           | `10`                                             |
+| `OPENHANDS_REQUEST_TIMEOUT` | `request_timeout_s` | `int`           | `120`                                            |
+| `OPENHANDS_AUTO_START`      | `auto_start`        | `bool`          | `False`                                          |
 
 ```python
 from __future__ import annotations
@@ -230,7 +230,7 @@ class OpenHandsSettings(BaseSettings):
   coercion rule.
 - `runtime_mode`: must be a member of `_KNOWN_RUNTIMES`. Raise
   `OpenHandsConfigError(field="runtime_mode", reason=...)` for an unknown name.
-  The default `"docker"` is sandboxed; the sandbox-vs-override enforcement is
+  The default `"docker"` is sandboxed; the sandbox vs. override enforcement is
   subtask 02's model-validator, not this field validator.
 - `allowed_tools`: each entry must be in `_KNOWN_TOOLS`. Raise
   `OpenHandsConfigError(field="allowed_tools", reason=...)` for any unknown
@@ -255,37 +255,23 @@ class OpenHandsSettings(BaseSettings):
 
 ## Constraints
 
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` at the top of the file (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
 - No `Any` in field types; `replace_optional.py --check` clean.
-- `OpenHandsConfigError` here is a temporary forward declaration; Task 09.0
-  moves the canonical definition to `openhands/exceptions.py` and replaces this
-  with a re-export alias — no downstream import-path change when 09.0 lands.
-- No secret or payload text in any validator error `reason` or log line — name
-  the field, never the value (C13). `server_url` in particular may carry
-  userinfo/credentials and must never be echoed.
-- No import of the OpenHands client library, `grpc`, or any sibling backend
-  package in this file (C3) — this is configuration only.
+- `OpenHandsConfigError` here is a temporary forward declaration; Task 09.0 moves the canonical definition to `openhands/exceptions.py` and replaces this with a re-export alias — no downstream import-path change when 09.0 lands.
+- No secret or payload text in any validator error `reason` or log line — name the field, never the value (C13). `server_url` in particular may carry userinfo/credentials and must never be echoed.
+- No import of the OpenHands client library, `grpc`, or any sibling backend package in this file (C3) — this is configuration only.
 
 ## Success criteria
 
-- [ ] `OpenHandsSettings()` with no env vars set produces `server_url=None`,
-      `runtime_mode="docker"`, `allowed_tools=["read","grep","glob","browse"]`
-      and all documented defaults without raising.
-- [ ] `OpenHandsSettings(server_url="")` (empty CI-secret expansion) produces
-      `server_url=None`, not an error.
-- [ ] `OpenHandsSettings(server_url="http://localhost:3000")` does not raise and
-      preserves the value.
-- [ ] `OpenHandsSettings(server_url="not-a-url")` raises `OpenHandsConfigError`
-      whose message does not contain the offending value.
-- [ ] `OpenHandsSettings(runtime_mode="podman")` raises `OpenHandsConfigError`
-      (unknown runtime name).
-- [ ] `OpenHandsSettings(allowed_tools=["read","teleport"])` raises
-      `OpenHandsConfigError` because `teleport` is not a recognised tool name.
-- [ ] `OpenHandsSettings(allowed_tools=["read","write"])` does not raise but
-      logs a single warning naming `write`.
-- [ ] `OpenHandsSettings(connect_timeout_s=100, request_timeout_s=10)` raises
-      `OpenHandsConfigError`.
-- [ ] `OPENHANDS_ALLOWED_TOOLS=read,grep,glob` in the environment yields
-      `allowed_tools == ["read","grep","glob"]` (CSV env parsing, C5).
+- [ ] `OpenHandsSettings()` with no env vars set produces `server_url=None`, `runtime_mode="docker"`, `allowed_tools=["read","grep","glob","browse"]` and all documented defaults without raising.
+- [ ] `OpenHandsSettings(server_url="")` (empty CI-secret expansion) produces `server_url=None`, not an error.
+- [ ] `OpenHandsSettings(server_url="http://localhost:3000")` does not raise and preserves the value.
+- [ ] `OpenHandsSettings(server_url="not-a-url")` raises `OpenHandsConfigError` whose message does not contain the offending value.
+- [ ] `OpenHandsSettings(runtime_mode="podman")` raises `OpenHandsConfigError` (unknown runtime name).
+- [ ] `OpenHandsSettings(allowed_tools=["read","teleport"])` raises `OpenHandsConfigError` because `teleport` is not a recognized tool name.
+- [ ] `OpenHandsSettings(allowed_tools=["read","write"])` does not raise but logs a single warning naming `write`.
+- [ ] `OpenHandsSettings(connect_timeout_s=100, request_timeout_s=10)` raises `OpenHandsConfigError`.
+- [ ] `OPENHANDS_ALLOWED_TOOLS=read,grep,glob` in the environment yields `allowed_tools == ["read","grep","glob"]` (CSV env parsing, C5).
 - [ ] `replace_optional.py --check` clean; no `Any` in field types; `ruff` clean.

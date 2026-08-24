@@ -2,7 +2,7 @@
 
 **Parent task:** 12.0 Test Suite — Integration
 **State:** ⬜ Not started
-**Depends on:** none upstream (self-contained infrastructure + tests); exercises 06.0 (`OpenHandsSettings`), 07.0 (`OpenHandsClient`/`process.py`), 08.0 (`OpenHandsTool`), 09.0 (`openhands.*` events) **live**
+**Depends on:** none upstream (self-contained infrastructure and tests); exercises 06.0 (`OpenHandsSettings`), 07.0 (`OpenHandsClient`/`process.py`), 08.0 (`OpenHandsTool`), 09.0 (`openhands.*` events) **live**
 **Blocks:** none
 
 ## Objective
@@ -10,7 +10,7 @@
 Stand up the live OpenHands integration suite and its skip guards, and prove a
 real `OpenHandsTool.delegate()` flows end to end through a running OpenHands
 sidecar over REST/WS to a well-formed `CodeResult`. Two availability conditions
-gate the suite and both must **skip, never fail** when unmet:
+gate the suite, and both must **skip, never fail** when unmet:
 
 1. The `OPENHANDS_SERVER_URL` presence signal must be set (C8) — mirroring
    OpenClaude's URL-presence guard.
@@ -26,7 +26,7 @@ The load-bearing assertion is **sandbox verification**: the suite proves the
 delegated task genuinely executed inside the Docker runtime, not on the host. It
 does so by asking the runtime to report a container-only signal (the presence of
 `/.dockerenv`, which Docker always creates inside a container) and asserting that
-signal is observed **while the same file does not exist on the test host** — so a
+ the signal is observed **while the same file does not exist on the test host** — so a
 pass cannot be explained by the task having run on the host.
 
 ## File: `tests/integration/openhands/conftest.py`
@@ -289,10 +289,10 @@ async def test_completed_event_carries_token_estimate(
   emitted, proving the runtime drove its own tool loop over the stub project
   rather than answering from priors.
 - `test_task_executes_inside_docker_sandbox` — the **sandbox-verification**
-  assertion: the host lacks `/.dockerenv`, yet the runtime reports it present,
+  assertion: the host lacks `/.dockerenv`, yet the runtime reports it presents,
   proving the task executed inside the Docker container, not on the host (C8).
 - `test_completed_event_carries_token_estimate` — exactly one
-  `openhands.completed` event carries the token figure and it is strictly
+  `openhands.completed` event carries the token figure, and it is strictly
   positive (server-reported usage when available, else the boundary estimate, C9).
 
 ## Implementation notes
@@ -300,14 +300,14 @@ async def test_completed_event_carries_token_estimate(
 - The Docker probe deliberately lives in the guard, not the test body: an
   unreachable daemon must skip the whole module, not fail a test mid-run. It uses
   a fixed argv (`docker info`) with a timeout and swallows every failure into a
-  `False` return, so a broken Docker environment cannot crash collection.
-- The suite runs in **external mode** — it health-checks the already-running
+  `False` return, so a broken Docker environment cannot crash a collection.
+- The suite runs in **external mode** — it health checks the already-running
   server at `OPENHANDS_SERVER_URL` rather than launching one — because the
   operator (or the task-13.0 CI job) stands up the sidecar. `OpenHandsProcess`
   and `OpenHandsClient` are entered/closed via `finally` finalizers so no sidecar
   session survives the module.
-- The sandbox-verification test asserts on `result.content` (a stable, model-
-  agnostic sentinel), not on a specific tool-call shape, so it stays robust
+- The sandbox-verification test asserts on `result.content` 
+  (a stable, model-agnostic sentinel), not on a specific tool-call shape, so it stays robust
   across OpenHands runtime versions while still being load-bearing.
 - The `OpenHandsClient` is the only importer of the OpenHands HTTP/WS client
   library (C3); the test imports the tool/client/process public surfaces only.
@@ -316,38 +316,19 @@ async def test_completed_event_carries_token_estimate(
 
 ## Constraints
 
-- **Skip, never fail.** With `OPENHANDS_SERVER_URL` unset or the Docker daemon
-  unreachable, the module reports one clean module-level skip — never a failure,
-  an error, or a collection crash.
-- Tests that run pass with **zero mocks** — a real sidecar, a real sandboxed
-  runtime, and a real model call.
-- No integration run may leave an OpenHands sidecar session alive; the
-  module-scoped process/client fixtures' `finally` finalizers own teardown,
-  including on failure.
-- The stub project is created in a temp dir and mounted into the sandbox; it is
-  **never** the Aegis SWR source tree, and the task is a read-only navigation
-  under the default allowlist and the Docker-sandboxed runtime (no non-sandboxed
-  override, C8).
-- No raw stub content, streamed observation text, or server credential ever
-  reaches a log sink or an event payload (C13); loguru sinks keep
-  `SensitiveFilter`.
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None`; `asyncio.sleep` never `time.sleep`; `ruff` and
-  `replace_optional.py --check` clean.
+- **Skip, never fail.** With `OPENHANDS_SERVER_URL` unset or the Docker daemon unreachable, the module reports one clean module-level skip — never a failure, an error, or a collection crash.
+- Tests that run pass with **zero mocks** — a real sidecar, a real sandboxed runtime, and a real model call.
+- No integration run may leave an OpenHands sidecar session alive; the module-scoped process/client fixtures' `finally` finalizers own teardown, including on failure.
+- The stub project is created in a temp dir and mounted into the sandbox; it is **never** the Aegis SWR source tree, and the task is a read-only navigation under the default allowlist and the Docker-sandboxed runtime (no non-sandboxed override, C8).
+- No raw stub content, streamed observation text, or server credential ever reaches a log sink or an event payload (C13); loguru sinks keep `SensitiveFilter`.
 
 ## Success criteria
 
-- [ ] With `OPENHANDS_SERVER_URL` unset, the suite reports **skipped** (one line
-      per module), never failed.
-- [ ] With the URL set but the Docker daemon unreachable (down / not installed /
-      permission denied / timeout), the suite still reports **skipped**, never
-      failed or errored.
-- [ ] A live `delegate()` returns a `CodeResult` with `available is True`,
-      non-empty `content`, and `token_estimate > 0`.
+- [ ] With `OPENHANDS_SERVER_URL` unset, the suite reports **skipped** (one line per module), never failed.
+- [ ] With the URL set but the Docker daemon unreachable (down / not installed / permission denied / timeout), the suite still reports **skipped**, never failed, or errored.
+- [ ] A live `delegate()` returns a `CodeResult` with `available is True`, non-empty `content`, and `token_estimate > 0`.
 - [ ] At least one `openhands.action` event is emitted (real navigation proven).
-- [ ] Sandbox verification passes: the host lacks `/.dockerenv` but the runtime
-      reports it present, proving in-container execution (C8).
+- [ ] Sandbox verification passes: the host lacks `/.dockerenv` but the runtime reports it presents, proving in-container execution (C8).
 - [ ] Exactly one `openhands.completed` event carries a positive `token_estimate`.
 - [ ] No OpenHands sidecar session survives the run; no credential is logged.
 - [ ] `ruff`, `replace_optional.py --check` clean.
-```

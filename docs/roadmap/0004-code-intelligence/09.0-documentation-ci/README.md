@@ -6,12 +6,12 @@
 ## Scope
 
 Close the milestone with documentation and CI enforcement. Author
-`docs/openclaude-setup.md` (prerequisites and OpenClaude install; external-mode
+`docs/config/openclaude-setup.md` (prerequisites and OpenClaude install; external-mode
 setup with the required allowlist launch flags and `OPENCLAUDE_GRPC_URL`
 verification via `--dry-run`; managed-mode setup; the operator-supplied model
 env vars OpenClaude itself reads, with a pointer to OpenClaude's docs;
 troubleshooting for health-check and allowlist failures) and
-`docs/openclaude-config-reference.md` (the full `OpenClaudeSettings` field table
+`docs/config/openclaude-config-reference.md` (the full `OpenClaudeSettings` field table
 from C1, the `openclaude_agent` role example, allowlist defaults, and the event
 reference from C8).
 
@@ -28,8 +28,8 @@ entry referencing all nine tasks and the supersession of Milestone 0004.
 
 | # | Name | Status | Blocks |
 |---|------|--------|--------|
-| 01 | [`docs/openclaude-setup.md`](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/01-setup-guide.md) | ⬜ Not started | none |
-| 02 | [`docs/openclaude-config-reference.md`](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/02-config-reference.md) | ⬜ Not started | none |
+| 01 | [`docs/config/openclaude-setup.md`](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/01-setup-guide.md) | ⬜ Not started | none |
+| 02 | [`docs/config/openclaude-config-reference.md`](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/02-config-reference.md) | ⬜ Not started | none |
 | 03 | [CI `grep` boundary check extension](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/03-ci-boundary-check.md) | ⬜ Not started | none |
 | 04 | [CI coverage gate extension](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/04-ci-coverage-gate.md) | ⬜ Not started | none |
 | 05 | [Milestone closeout + `CHANGELOG.md`](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/05-milestone-closeout.md) | ⬜ Not started | none |

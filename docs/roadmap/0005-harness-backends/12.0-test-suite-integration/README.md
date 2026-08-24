@@ -38,49 +38,29 @@ shape:
   constructing a tool directly as the per-backend suites do.
 
 These suites are the runtime-quality gate for each new backend: a model or
-sandbox that cannot sustain a real multi-step navigation task surfaces here
+sandbox that cannot sustain a real multistep navigation task surface here
 rather than degrading silently in production.
 
 ## Subtasks
 
-| # | Name | Blocks | Status |
-|---|------|--------|--------|
-| 01 | [`tests/integration/claude_code/` live suite](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/01-claude-code-suite.md) | none | ⬜ Not started |
-| 02 | [`tests/integration/openhands/` live suite](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/02-openhands-suite.md) | none | ⬜ Not started |
-| 03 | [`tests/integration/harness/` selection smoke](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/03-harness-selection-smoke.md) | none | ⬜ Not started |
+| #  | Name                                                                                                                                          | Blocks | Status         |
+|----|-----------------------------------------------------------------------------------------------------------------------------------------------|--------|----------------|
+| 01 | [`tests/integration/claude_code/` live suite](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/01-claude-code-suite.md)        | none   | ⬜ Not started |
+| 02 | [`tests/integration/openhands/` live suite](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/02-openhands-suite.md)            | none   | ⬜ Not started |
+| 03 | [`tests/integration/harness/` selection smoke](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/03-harness-selection-smoke.md) | none   | ⬜ Not started |
 
 ## Key constraints
 
-- **Skip, never fail.** Every guard uses `pytest.skip(..., allow_module_level=True)`
-  so an absent presence signal, missing binary, or unreachable Docker daemon
-  yields exactly **one** clean "skipped" line per module — never a failure, an
-  error, or a collection crash. This is a Global acceptance criterion of the
-  milestone (integration tests are skipped, not failed, when a backend is absent).
-- **Three guard levels for Claude Code.** The base guard checks the
-  `CLAUDE_CODE_ENABLED` presence signal **and** the `claude` binary on `PATH`.
-  The subscription-mode variant adds a **distinct** third-level guard requiring a
-  live `claude login` session or `CLAUDE_CODE_OAUTH_TOKEN`, and additionally
-  skips when an ambiguous `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` is present
-  (which would make `auth_mode="subscription"` reject construction, C7) — so the
-  variant only runs when it can run cleanly.
-- **Docker reachability is a skip predicate, not an assumption.** The OpenHands
-  guard probes the daemon (`docker info` with a timeout) inside a `try` that maps
-  any failure to a skip; an unreachable daemon never crashes collection.
-- **Real backend, zero mocks.** Tests that actually run talk to a real `claude`
-  process / OpenHands sidecar; no integration test leaves a process or sidecar
-  session alive after the module, and no test targets the Aegis SWR source tree.
-- **Real token accounting is asserted for Claude Code.** The live test proves
-  `token_estimate` equals the summed reported `usage`, distinct from the boundary
-  estimate (C9), and that at least one `claude_code.tool_call` event is emitted
-  (real navigation, not an answer from priors).
-- **CI wiring lives in task 13.0.** These modules only *read* the availability
-  signals; the opt-in CI job that sets them (so PRs skip and main is optional,
-  mirroring 0004's Task 09.0) is added in task 13.0.
-- **Cross-cutting (C13):** `from __future__ import annotations`; `Optional[T]`
-  from `typing`, never `T | None`; `asyncio.sleep` never `time.sleep`; RST
-  docstrings on public helpers/fixtures; `ruff` and `replace_optional.py --check`
-  clean on the test tree; loguru sinks keep `SensitiveFilter`; no raw incident
-  payload, argv, response, or credential text is ever logged.
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new unit test has a test-specific docstring (`[Unit]`|`[Mock]`|`[Integration]`|`E2E` / `Scenario` / `Boundaries` / `On failuse`)
+- **Skip, never fail.** Every guard uses `pytest.skip(..., allow_module_level=True)` so an absent presence signal, missing binary, or unreachable Docker daemon yields exactly **one** clean "skipped" line per module — never a failure, an error, or a collection crash. This is a Global acceptance criterion of the milestone (integration tests are skipped, not failed, when a backend is absent).
+- **Three guard levels for Claude Code.** The base guard checks the `CLAUDE_CODE_ENABLED` presence signal **and** the `claude` binary on `PATH`. The subscription-mode variant adds a **distinct** third-level guard requiring a live `claude login` session or `CLAUDE_CODE_OAUTH_TOKEN`, and additionally skips when an ambiguous `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` is present (which would make `auth_mode="subscription"` reject construction, C7) — so the variant only runs when it can run cleanly.
+- **Docker reachability is a skip predicate, not an assumption.** The OpenHands guard probes the daemon (`docker info` with a timeout) inside a `try` that maps any failure to a skip; an unreachable daemon never crashes a collection.
+- **Real backend, zero mocks.** Tests that actually run talk to a real `claude` process / OpenHands sidecar; no integration test leaves a process or sidecar session alive after the module, and no test targets the Aegis SWR source tree.
+- **Real token accounting is asserted for Claude Code.** The live test proves `token_estimate` equals the summed reported `usage`, distinct from the boundary estimate (C9), and that at least one `claude_code.tool_call` event is emitted (real navigation, not an answer from priors).
+- **CI wiring lives in task 13.0.** These modules only *read* the availability signals; the opt-in CI job that sets them (so PRs skip and main is optional, mirroring 0004's Task 09.0) is added in task 13.0.
+- `Loguru` sinks keep `SensitiveFilter`; no raw incident payload, argv, response, or credential text is ever logged.
 
 ## Files
 

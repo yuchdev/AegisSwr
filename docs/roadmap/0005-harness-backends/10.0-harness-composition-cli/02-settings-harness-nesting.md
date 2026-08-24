@@ -1,4 +1,4 @@
-# 02 - Settings.harness nesting (C12 breaking rename)
+# 02 - `Settings.harness` nesting (C12 breaking rename)
 
 **Parent task:** 10.0 Harness Composition Root & CLI
 **State:** ⬜ Not started
@@ -68,8 +68,7 @@ grep that proves the migration is complete.
 
 ## Migration path (every `settings.openclaude` consumer)
 
-Enumerated per C12 ("task 10.0 updates `settings.py`, the CLI subcommand, and any
-tests that read `settings.openclaude`"):
+Enumerated per C12 (task 10.0 updates `settings.py`, the CLI subcommand, and any tests that read `settings.openclaude`):
 
 1. **`src/aegis_swr/config/settings.py`** — the field rename above (this file).
 2. **`src/aegis_swr/cli/commands.py`** — `aegis code-intel check` currently calls
@@ -98,7 +97,7 @@ must return **zero** hits outside `settings.harness.openclaude` /
 The rename is a **Python-attribute** change only. It must **not** change any
 environment-variable name. `OpenClaudeSettings` keeps its own `env_prefix` and
 `OPENCLAUDE_GRPC_URL` presence signal (C5), sourced by the nested settings object
-exactly as before. Therefore an existing `OPENCLAUDE_GRPC_URL`-only deployment
+exactly as before. Therefore, an existing `OPENCLAUDE_GRPC_URL`-only deployment
 still auto-selects OpenClaude with zero further changes (C2 / 0004 closing
 guarantee) — the env surface is untouched; only the in-Python access path moved.
 
@@ -125,34 +124,27 @@ nesting must not shadow them.
 - **Redaction is unchanged but must be confirmed.** `_redact_secrets` recurses
   into nested dicts, so credentials under the new `harness.*` level are still
   redacted; add/keep a `redacted_dump` assertion in Task 11.0 covering a secret
-  nested under `harness.claude_code` (e.g. any token-bearing field) to lock this.
+  nested under `harness.claude_code` (e.g., any token-bearing field) to lock this.
 
 ## Constraints
 
-- `Settings.openclaude` **no longer resolves**; `Settings.harness.openclaude`
-  does (C12).
-- No environment-variable name changes; `OPENCLAUDE_GRPC_URL` (and the other
-  presence signals) behave exactly as before (C2 closing guarantee).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- `Settings.openclaude` **no longer resolves**; `Settings.harness.openclaude`does (C12).
+- No environment-variable name changes; `OPENCLAUDE_GRPC_URL` (and the other presence signals) behave exactly as before (C2 closing guarantee).
 - No compatibility alias/property for the old field name (clean break, C12).
 - No import cycle between `config/settings.py` and `harness/config.py`.
 - `redacted_dump()` still redacts secrets nested under `harness.*` (C13).
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations`; `ruff` / `replace_optional.py --check` clean (C13).
 - No secret value logged or emitted while validating settings (C13).
 
 ## Success criteria
 
-- [ ] `Settings` has a `harness: HarnessSettings` field and **no** standalone
-      `openclaude` field.
-- [ ] `Settings().harness.openclaude` resolves to an `OpenClaudeSettings`;
-      `Settings().openclaude` raises `AttributeError`.
-- [ ] `grep -R "settings\\.openclaude" src/ tests/` returns zero hits after the
-      full task lands (with subtask 04 and Task 11.0).
-- [ ] With only `OPENCLAUDE_GRPC_URL` set, `Settings().harness.active_backend ==
-      "openclaude"` (0004 closing guarantee preserved, C2).
-- [ ] No environment-variable name changed; the per-family presence signals are
-      sourced exactly as before.
+- [ ] `Settings` has a `harness: HarnessSettings` field and **no** standalone `openclaude` field.
+- [ ] `Settings().harness.openclaude` resolves to an `OpenClaudeSettings`; `Settings().openclaude` raises `AttributeError`.
+- [ ] `grep -R "settings\\.openclaude" src/ tests/` returns zero hits after the full task lands (with subtask 04 and Task 11.0).
+- [ ] With only `OPENCLAUDE_GRPC_URL` set, `Settings().harness.active_backend == "openclaude"` (0004 closing guarantee preserved, C2).
+- [ ] No environment-variable name changed; the per-family presence signals are sourced exactly as before.
 - [ ] `redacted_dump()` redacts a secret nested under `harness.*` (C13).
 - [ ] No import cycle; `import aegis_swr.config.settings` succeeds.
-- [ ] `ruff` (incl. `F401` for any now-unused `OpenClaudeSettings` import),
-      `replace_optional.py --check` clean.
+- [ ] `ruff` (incl. `F401` for any now-unused `OpenClaudeSettings` import), `replace_optional.py --check` clean.

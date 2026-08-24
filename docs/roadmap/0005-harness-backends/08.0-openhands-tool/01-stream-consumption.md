@@ -368,43 +368,26 @@ class OpenHandsTool(CodeIntelBackend):
 
 ## Constraints
 
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None`, including in subscripts (C13).
-- No import of the OpenHands client library, `httpx`, `websockets`, or any
-  transport stub in this file (C3); every event type comes from
-  `aegis_swr.openhands.client`.
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- No import of the OpenHands client library, `httpx`, `websockets`, or any transport stub in this file (C3); every event type comes from `aegis_swr.openhands.client`.
 - No `Any` in any signature; `ruff` and `replace_optional.py --check` clean.
-- Event handlers are nested async functions within `_consume_stream`, each
-  handling a single event kind — independently coverable (task 11.0).
-- Counters and `chunks`/`server_usage` are function-local with `nonlocal`
-  bindings; the tool holds no per-call mutable state.
-- No `event.content` / observation output / action arguments / accumulated text
-  reaches any log sink or event payload (C13).
-- Constructor opens no connection, starts no process, and does not touch the
-  budget.
+- Event handlers are nested async functions within `_consume_stream`, each handling a single event kind — independently coverable (task 11.0).
+- Counters and `chunks`/`server_usage` are function-local with `nonlocal` bindings; the tool holds no per-call mutable state.
+- No `event.content` / observation output / action arguments / accumulated text reaches any log sink or event payload (C13).
+- Constructor opens no connection, starts no process, and does not touch the budget.
 
 ## Success criteria
 
-- [ ] `OpenHandsTool(client, settings, bus, budget)` constructs with all four
-      collaborators injected and performs no I/O.
-- [ ] `OpenHandsTool` is a `CodeIntelBackend` accepted anywhere one is expected;
-      `name == "openhands"` and `description` advertises Docker-sandboxed
-      multi-file navigation.
-- [ ] `_consume_stream` calls `self._client.stream(task, str(ctx.run_id))`
-      exactly once and iterates it with `async for`.
-- [ ] `MESSAGE` events with `source == "agent"` are concatenated in order into
-      the result text; other sources are ignored.
-- [ ] `ACTION` and `OBSERVATION` events increment their respective counters and
-      publish exactly one `OpenHandsAction(run_id, action, arg_count)` /
-      `OpenHandsObservation(run_id, observation, result_size)`.
+- [ ] `OpenHandsTool(client, settings, bus, budget)` constructs with all four collaborators injected and performs no I/O.
+- [ ] `OpenHandsTool` is a `CodeIntelBackend` accepted anywhere one is expected; `name == "openhands"` and `description` advertises Docker-sandboxed multi-file navigation.
+- [ ] `_consume_stream` calls `self._client.stream(task, str(ctx.run_id))` exactly once and iterates it with `async for`.
+- [ ] `MESSAGE` events with `source == "agent"` are concatenated in order into the result text; other sources are ignored.
+- [ ] `ACTION` and `OBSERVATION` events increment their respective counters and publish exactly one `OpenHandsAction(run_id, action, arg_count)` / `OpenHandsObservation(run_id, observation, result_size)`.
 - [ ] A total `event_count` is tracked across every event kind.
-- [ ] `FINISH` captures `event.usage` into `server_usage`, appends any final
-      `event.content`, and terminates the loop.
-- [ ] A surfaced non-allowlisted `ACTION` publishes
-      `OpenHandsPermissionDenied(run_id, action)` and raises
-      `OpenHandsPermissionDeniedError`.
-- [ ] No `import` of the OpenHands client library / `httpx` / `websockets`
-      appears in the file (C3 grep check).
-- [ ] No `event.content`, observation output, action arguments, or accumulated
-      text is logged or attached to any event.
+- [ ] `FINISH` captures `event.usage` into `server_usage`, appends any final `event.content`, and terminates the loop.
+- [ ] A surfaced non-allowlisted `ACTION` publishes `OpenHandsPermissionDenied(run_id, action)` and raises `OpenHandsPermissionDeniedError`.
+- [ ] No `import` of the OpenHands client library / `httpx` / `websockets` appears in the file (C3 grep check).
+- [ ] No `event.content`, observation output, action arguments, or accumulated text is logged or attached to any event.
 - [ ] `ruff` and `replace_optional.py --check` clean; no `Any` in any signature.

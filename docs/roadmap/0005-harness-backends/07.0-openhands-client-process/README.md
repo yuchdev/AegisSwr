@@ -38,47 +38,31 @@ exactly once in both modes. The process is registered on the app
 
 ## Subtasks
 
-| # | Name | Status | Blocks |
-|---|------|--------|--------|
-| 01 | [`OpenHandsClient` (sole client-library importer)](01-openhands-client.md) | ⬜ Not started | 02, 08.0 |
-| 02 | [`OpenHandsProcess` sidecar lifecycle](02-openhands-process.md) | ⬜ Not started | 08.0, 10.0 |
+| #  | Name                                                                       | Status         | Blocks     |
+|----|----------------------------------------------------------------------------|----------------|------------|
+| 01 | [`OpenHandsClient` (sole client-library importer)](01-openhands-client.md) | ⬜ Not started | 02, 08.0   |
+| 02 | [`OpenHandsProcess` sidecar lifecycle](02-openhands-process.md)            | ⬜ Not started | 08.0, 10.0 |
 
 ## Key constraints
 
-- The OpenHands HTTP/WS client library is imported in **`client.py` only** (C3);
-  enforced by the per-package isolation `grep` CI check and the pytest isolation
-  test (Task 11.0), mirroring 0004's `openclaude-isolation` job.
-- `OpenHandsProcess` is the **only** module that starts/stops/health-checks the
-  OpenHands sidecar (C3, C8); it is an async context manager with an
-  external-mode and (where applicable) a managed-mode path.
-- `OpenHandsConnected` emitted exactly once per successful `__aenter__`;
-  `OpenHandsDisconnected` exactly once per `__aexit__` — including the
-  entry-raised-after-start case (C8).
-- All subprocess spawns use `asyncio.create_subprocess_exec`, never
-  `subprocess.Popen` in an async path; `asyncio.sleep` for backoff, never
-  `time.sleep` (C13).
-- `health_check()` returns `bool` and never raises; `run()` raises
-  `OpenHandsUnavailableError` on transport failure — no raw client-library
-  exception escapes `client.py` (C3).
-- Session/client injectable via `from_session`; unit tests drive a scripted
-  `oh_event` sequence through a mock session with no live OpenHands process.
-- `OpenHandsUnavailableError`, `OpenHandsConnected`, and `OpenHandsDisconnected`
-  are **forward-declared minimally** here (as OpenClaude's `events.py` /
-  `exceptions.py` were declared ahead of their canonical task); Task 09.0 supplies
-  the canonical versions and must preserve these shapes (C10).
-- No raw incident payload, task text, response text, or credential ever reaches a
-  log sink or exception message; loguru sinks carry `SensitiveFilter` (C13).
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None`; `ruff` and `replace_optional.py --check` clean (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- The OpenHands HTTP/WS client library is imported in **`client.py` only** (C3); enforced by the per-package isolation `grep` CI check and the pytest isolation test (Task 11.0), mirroring 0004's `openclaude-isolation` job.
+- `OpenHandsProcess` is the **only** module that starts/stops/health-checks the OpenHands sidecar (C3, C8); it is an async context manager with an external-mode and (where applicable) a managed-mode path.
+- `OpenHandsConnected` emitted exactly once per successful `__aenter__`; `OpenHandsDisconnected` exactly once per `__aexit__` — including the entry-raised-after-start case (C8).
+- All subprocess spawns use `asyncio.create_subprocess_exec`, never `subprocess.Popen` in an async path; `asyncio.sleep` for backoff, never `time.sleep` (C13).
+- `health_check()` returns `bool` and never raises; `run()` raises `OpenHandsUnavailableError` on transport failure — no raw client-library exception escapes `client.py` (C3).
+- Session/client injectable via `from_session`; unit tests drive a scripted `oh_event` sequence through a mock session with no live OpenHands process.
+- `OpenHandsUnavailableError`, `OpenHandsConnected`, and `OpenHandsDisconnected` are **forward-declared minimally** here (as OpenClaude's `events.py` / `exceptions.py` were declared ahead of their canonical task); Task 09.0 supplies the canonical versions and must preserve these shapes (C10).
+- No raw incident payload, task text, response text, or credential ever reaches a log sink or exception message; loguru sinks carry `SensitiveFilter` (C13).
 
 ## Files
 
 ```
 src/aegis_swr/openhands/
-├── client.py       ← OpenHandsClient: sole OpenHands HTTP/WS client-library importer;
-│                      REST create-conversation + Socket.IO oh_event stream → AgentEvent (subtask 01, C3, C8)
-├── process.py      ← OpenHandsProcess: external/managed sidecar lifecycle;
-│                      Connected/Disconnected exactly once; RAII teardown (subtask 02, C8)
+├── client.py       ← OpenHandsClient: sole OpenHands HTTP/WS client-library importer; REST create-conversation; Socket.IO oh_event stream → AgentEvent (subtask 01, C3, C8)
+├── process.py      ← OpenHandsProcess: external/managed sidecar lifecycle; Connected/Disconnected exactly once; RAII teardown (subtask 02, C8)
 ├── exceptions.py   ← minimal forward-declaration of OpenHandsUnavailableError (canonical: Task 09.0)
 └── events.py       ← minimal forward-declaration of OpenHandsConnected / OpenHandsDisconnected (canonical: Task 09.0)
 ```

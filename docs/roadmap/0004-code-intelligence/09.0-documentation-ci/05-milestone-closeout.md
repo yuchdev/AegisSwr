@@ -51,7 +51,7 @@ is met; record the evidence (test/CI job/command) next to each:
       `process.py`, `events.py`, `exceptions.py`, and `grpc/{client.py,proto/}`.
 - [ ] `aegis/code_intel/` scaffolding exists (`backend.py`, `agent.py`, `budget.py`).
 - [ ] `tests/openclaude/unit/` and `tests/openclaude/integration/` exist.
-- [ ] `docs/openclaude-setup.md` and `docs/openclaude-config-reference.md` exist
+- [ ] `docs/config/openclaude-setup.md` and `docs/config/openclaude-config-reference.md` exist
       and are linked from `docs/README.md`.
 - [ ] `python scripts/check_doc_links.py docs/` passes (zero broken links).
 

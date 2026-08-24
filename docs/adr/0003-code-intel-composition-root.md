@@ -75,7 +75,7 @@ two structural problems introduced during Task 06.0 (App Wiring):
   still the one and only conditional that registers `OpenClaudeTool`.
 - `CodeIntelBackend` is unambiguous and grep-safe: no import-confusion with the
   VCS `CodeBackend` in `backends/base.py`.
-- `docs/openclaude-setup.md` verification step is now `aegis code-intel check`,
+- `docs/config/openclaude-setup.md` verification step is now `aegis code-intel check`,
   matching the real binary operators actually have on `PATH`.
 
 ### Negative
@@ -113,5 +113,5 @@ change does not alter its interface.
 
 - **Roadmap task:** [Milestone 0004 Task 06.0](/docs/roadmap/0004-code-intelligence/06.0-app-wiring/README.md)
 - **Milestone status:** [Milestone 0004 status.md](/docs/roadmap/0004-code-intelligence/status.md)
-- **Setup guide:** [docs/openclaude-setup.md](/docs/openclaude-setup.md)
-- **Config reference:** [docs/openclaude-config-reference.md](/docs/openclaude-config-reference.md)
+- **Setup guide:** [docs/config/openclaude-setup.md](/docs/config/openclaude-setup.md)
+- **Config reference:** [docs/config/openclaude-config-reference.md](/docs/config/openclaude-config-reference.md)

@@ -15,7 +15,7 @@ Provide the injection seams that let the entire multi-backend unit suite run wit
 `AEGIS_CODE_INTEL_BACKEND` unset, all three presence signals unset, and no
 `claude` binary / Docker daemon / OpenHands server available — no real
 subprocess, no socket, no container, no `grpc` import, no OpenHands client
-library import. This generalises 0004's single `mock_grpc_client` seam
+library import. This generalizes 0004's single `mock_grpc_client` seam
 ([0004 07.0/01](/docs/roadmap/0004-code-intelligence/07.0-test-suite-unit/01-conftest-fixtures.md))
 to three backends:
 
@@ -257,20 +257,20 @@ def live_ctx() -> ToolContext:
 
 ## Fixtures provided
 
-| Fixture | Purpose |
-|---------|---------|
-| `mock_claude_subprocess` | Factory: NDJSON line dicts → `RecordingClaudeProcess` replaying `stream-json` on stdout and **recording argv/env/stdin**; no real process spawned |
-| `mock_openhands_client` | Factory: Action/Observation dicts → `AsyncMock` `OpenHandsClient` with an ordered `stream()` async-gen; optional `connect_raises` / `health_result` |
-| `mock_event_bus` | Real `EventBus` + list-collecting subscriber on `bus.captured` |
-| `env_no_signals` | Clears selector + all three signals (C2 row 1) |
-| `env_openclaude_only` | Only `OPENCLAUDE_GRPC_URL` — the 0004 preserved-guarantee case |
-| `env_claude_code_only` | Only `CLAUDE_CODE_ENABLED=true` (single-signal auto-select) |
-| `env_openhands_only` | Only `OPENHANDS_SERVER_URL` (single-signal auto-select) |
-| `env_multiple_signals` | Two signals, selector unset (ambiguity → `HarnessConfigError`) |
-| `claude_code_settings_enabled` | Valid `ClaudeCodeSettings(enabled=True)` |
-| `openhands_settings_enabled` | Valid `OpenHandsSettings(server_url=...)` |
-| `ample_budget` | `CallBudget` that never exhausts |
-| `dry_run_ctx` / `live_ctx` | `ToolContext(dry_run=True)` / `(dry_run=False)` |
+| Fixture                        | Purpose                                                                                                                                             |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `mock_claude_subprocess`       | Factory: NDJSON line dicts → `RecordingClaudeProcess` replaying `stream-json` on stdout and **recording argv/env/stdin**; no real process spawned   |
+| `mock_openhands_client`        | Factory: Action/Observation dicts → `AsyncMock` `OpenHandsClient` with an ordered `stream()` async-gen; optional `connect_raises` / `health_result` |
+| `mock_event_bus`               | Real `EventBus` + list-collecting subscriber on `bus.captured`                                                                                      |
+| `env_no_signals`               | Clears selector + all three signals (C2 row 1)                                                                                                      |
+| `env_openclaude_only`          | Only `OPENCLAUDE_GRPC_URL` — the 0004 preserved-guarantee case                                                                                      |
+| `env_claude_code_only`         | Only `CLAUDE_CODE_ENABLED=true` (single-signal auto-select)                                                                                         |
+| `env_openhands_only`           | Only `OPENHANDS_SERVER_URL` (single-signal auto-select)                                                                                             |
+| `env_multiple_signals`         | Two signals, selector unset (ambiguity → `HarnessConfigError`)                                                                                      |
+| `claude_code_settings_enabled` | Valid `ClaudeCodeSettings(enabled=True)`                                                                                                            |
+| `openhands_settings_enabled`   | Valid `OpenHandsSettings(server_url=...)`                                                                                                           |
+| `ample_budget`                 | `CallBudget` that never exhausts                                                                                                                    |
+| `dry_run_ctx` / `live_ctx`     | `ToolContext(dry_run=True)` / `(dry_run=False)`                                                                                                     |
 
 ## Implementation notes
 
@@ -290,38 +290,21 @@ def live_ctx() -> ToolContext:
 
 ## Constraints
 
-- All unit tests must pass with `AEGIS_CODE_INTEL_BACKEND` unset, all three
-  presence signals unset, and no `claude` binary / Docker / OpenHands server
-  available — these fixtures start no real process, open no socket, and launch no
-  container.
-- `conftest.py` must import **neither** `grpc`/`_pb2` **nor** the OpenHands client
-  library at module scope; the OpenHands seam is an `AsyncMock(spec=OpenHandsClient)`
-  and the Claude Code seam is a plain in-process object (would otherwise break the
-  C3 isolation intent and the no-live-process guarantee).
-- **No `monkeypatch` of module-level globals.** Every subprocess / client /
-  process / bus dependency is constructor-injected. Env-var `monkeypatch` is the
-  only permitted use.
-- Mock NDJSON lines and Action/Observation frames are **plain dicts / strings** —
-  never a real `stream-json` proto or OpenHands SDK object.
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` at the top (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new unit test has a test-specific docstring (`[Unit]`|`[Mock]`|`[Integration]`|`E2E` / `Scenario` / `Boundaries` / `On failuse`)
+- All unit tests must pass with `AEGIS_CODE_INTEL_BACKEND` unset, all three presence signals unset, and no `claude` binary / Docker / OpenHands server available — these fixtures start no real process, open no socket, and launch no container.
+- `conftest.py` must import **neither** `grpc`/`_pb2` **nor** the OpenHands client library at module scope; the OpenHands seam is an `AsyncMock(spec=OpenHandsClient)` and the Claude Code seam is a plain in-process object (would otherwise break the C3 isolation intent and the no-live-process guarantee).
+- **No `monkeypatch` of module-level globals.** Every subprocess / client / process / bus dependency is constructor-injected. Env-var `monkeypatch` is the only permitted use.
+- Mock NDJSON lines and Action/Observation frames are **plain dicts / strings** — never a real `stream-json` proto or OpenHands SDK object.
 
 ## Success criteria
 
-- [ ] `mock_claude_subprocess([...])` returns an object whose `communicate()`
-      replays the scripted NDJSON on stdout and exposes `argv`, `env`, and the
-      recorded `stdin_text`.
-- [ ] `mock_openhands_client([...])` returns an object where
-      `async for e in client.stream(...)` yields the exact dicts in order.
-- [ ] `mock_openhands_client([], connect_raises=exc)` produces a `stream()` whose
-      async-gen raises `exc` on first iteration; `health_result=False` awaits to
-      `False`.
-- [ ] `mock_event_bus.captured` collects every event passed to `bus.emit(...)` in
-      emission order.
-- [ ] `env_openclaude_only` leaves exactly one presence signal set; the other
-      `env_*` fixtures set the scenario they name and clear the rest.
-- [ ] `claude_code_settings_enabled` and `openhands_settings_enabled` construct
-      without raising their backend's config error.
-- [ ] `conftest.py` imports neither `grpc`/`_pb2` nor the OpenHands client library
-      (grep-clean).
+- [ ] `mock_claude_subprocess([...])` returns an object whose `communicate()` replays the scripted NDJSON on stdout and exposes `argv`, `env`, and the recorded `stdin_text`.
+- [ ] `mock_openhands_client([...])` returns an object where `async for e in client.stream(...)` yields the exact dicts in order.
+- [ ] `mock_openhands_client([], connect_raises=exc)` produces a `stream()` whose async-gen raises `exc` on the first iteration; `health_result=False` awaits to `False`.
+- [ ] `mock_event_bus.captured` collects every event passed to `bus.emit(...)` in emission order.
+- [ ] `env_openclaude_only` leaves exactly one presence signal set; the other `env_*` fixtures set the scenario they name and clear the rest.
+- [ ] `claude_code_settings_enabled` and `openhands_settings_enabled` construct without raising their backend's config error.
+- [ ] `conftest.py` imports neither `grpc`/`_pb2` nor the OpenHands client library (grep-clean).
 - [ ] `ruff`, `replace_optional.py --check` clean.

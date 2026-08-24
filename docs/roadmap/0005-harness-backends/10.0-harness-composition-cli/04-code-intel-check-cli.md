@@ -3,7 +3,7 @@
 **Parent task:** 10.0 Harness Composition Root & CLI
 **State:** ⬜ Not started
 **Depends on:** 01 (`harness.composition.build_code_agent`), 02
-(`settings.harness` field); Task 04.0 (Claude Code auth-mode resolution + probe,
+(`settings.harness` field); Task 04.0 (Claude Code auth-mode resolution and probe,
 surfaced through this command per C7)
 **Blocks:** none
 
@@ -18,19 +18,19 @@ reports **which** backend is active — or that the capability is unavailable �
 **every** C2 selection outcome. For the `claude_code` backend it additionally
 reports the resolved auth mode (C4 / C7).
 
-This is the operator-facing smoke test for the generalised composition factory
+This is the operator-facing smoke test for the generalized composition factory
 and the visible surface of the C2 selection contract.
 
 ## Reporting matrix (every C2 outcome must be covered)
 
-| Harness state | `active_backend` | CLI output | Exit |
-|---------------|------------------|------------|------|
-| selector unset, zero signals | `None` | "Code intelligence unavailable (no backend active; no presence signal set)." | 0 |
-| selector unset, exactly one signal | that family | "Code intelligence backend active: `<family>`…" | 0 |
-| selector unset, >1 signal | (raises at `Settings()` construction) | `HarnessConfigError` surfaced as a clear, secret-free error message | non-zero |
-| selector = X, X's signal present | X | "Code intelligence backend active: `X`…" | 0 |
-| selector = X, X's signal absent | (raises at composition) | `HarnessUnavailableError` surfaced as a clear, secret-free error message | non-zero |
-| active = `claude_code` | `claude_code` | "…active: `claude_code` (auth mode: `<auto\|api_key\|subscription>`)…" | 0 |
+| Harness state                      | `active_backend`                      | CLI output                                                                   | Exit     |
+|------------------------------------|---------------------------------------|------------------------------------------------------------------------------|----------|
+| selector unset, zero signals       | `None`                                | "Code intelligence unavailable (no backend active; no presence signal set)." | 0        |
+| selector unset, exactly one signal | that family                           | "Code intelligence backend active: `<family>`…"                              | 0        |
+| selector unset, >1 signal          | (raises at `Settings()` construction) | `HarnessConfigError` surfaced as a clear, secret-free error message          | non-zero |
+| selector = X, X's signal present   | X                                     | "Code intelligence backend active: `X`…"                                     | 0        |
+| selector = X, X's signal absent    | (raises at composition)               | `HarnessUnavailableError` surfaced as a clear, secret-free error message     | non-zero |
+| active = `claude_code`             | `claude_code`                         | "…active: `claude_code` (auth mode: `<auto\|api_key\|subscription>`)…"       | 0        |
 
 `HarnessConfigError` is raised while constructing `Settings()` (C2, Task 01.0),
 so it must be caught around construction, not only around the async run.
@@ -151,7 +151,7 @@ def _active_backend_detail(harness: HarnessSettings, active: str) -> str:
   (Task 04.0) may surface a `ClaudeCodeUnavailableError`; under `--no-dry-run`
   that propagates through `HarnessUnavailableError`-style handling — report the
   failure *reason* enum only (e.g. `no_stored_login`), never the credential.
-- **Dry-run wording generalises.** The 0004 text said "process not started"
+- **Dry-run wording generalizes.** The 0004 text said "process not started"
   (OpenClaude-specific); the new text says "sidecar not started", which is
   accurate for `openclaude`/`openhands` and harmless for `claude_code` (no
   sidecar; its one-shot subprocess is never spawned under dry-run either).
@@ -185,18 +185,12 @@ def _active_backend_detail(harness: HarnessSettings, active: str) -> str:
 
 ## Success criteria
 
-- [ ] `aegis code-intel check` imports the factory from
-      `aegis_swr.harness.composition` and passes `settings.harness`.
-- [ ] Selector unset + zero signals → "unavailable (no backend active…)", exit 0.
-- [ ] Selector unset + exactly one signal → "backend active: `<family>`", exit 0.
-- [ ] `active == "claude_code"` → output includes "auth mode:
-      `<auto|api_key|subscription>`" and **no** token/key value (C7/C13).
-- [ ] Selector unset + >1 signal → `HarnessConfigError` reported clearly, distinct
-      non-zero exit, message carries only field/signal names (C2/C13).
-- [ ] Selector set to a backend whose signal is absent → `HarnessUnavailableError`
-      reported clearly, non-zero exit (C2).
-- [ ] `--dry-run` (default) opens no connection / spawns no process for any
-      backend; `--no-dry-run` exercises the sidecar lifecycle where present.
-- [ ] No OpenClaude-specific text remains; no secret/credential appears in any
-      output path (C13).
+- [ ] `aegis code-intel check` imports the factory from `aegis_swr.harness.composition` and passes `settings.harness`.
+- [ ] Selector unset plus zero signals → unavailable (no backend active…), exit 0.
+- [ ] Selector unset plus exactly one signal → backend active: `<family>`, exit 0.
+- [ ] `active == "claude_code"` → output includes "auth mode: `<auto|api_key|subscription>`" and **no** token/key value (C7/C13).
+- [ ] Selector unset plus more than one signal → `HarnessConfigError` reported clearly, distinct non-zero exit, a message carries only field/signal names (C2/C13).
+- [ ] Selector set to a backend whose signal is absent → `HarnessUnavailableError` reported clearly, non-zero exit (C2).
+- [ ] `--dry-run` (default) opens no connection / spawns no process for any backend; `--no-dry-run` exercises the sidecar lifecycle where present.
+- [ ] No OpenClaude-specific text remains; no secret/credential appears in any output path (C13).
 - [ ] `ruff`, `replace_optional.py --check` clean.

@@ -264,7 +264,7 @@ class OpenHandsError(DomainEvent):
 - **`OpenHandsCompleted` is the sole carrier of `token_estimate`** (C10). No
   action, observation, permission, or error event carries token data, keeping
   telemetry single-sourced. Its `usage_reported` flag records the C9 provenance
-  (server-reported real usage vs boundary estimate) without ever carrying the
+  (server-reported real usage vs. boundary estimate) without ever carrying the
   usage payload itself.
 - **No `auth_failed` event.** Unlike Claude Code (C7), OpenHands has no
   Aegis-owned credential surface — the model credential is the operator's
@@ -277,42 +277,26 @@ class OpenHandsError(DomainEvent):
 
 ## Constraints
 
-- All seven dataclasses are `frozen=True, kw_only=True` and **subclass**
-  `aegis_swr.core.events.DomainEvent`.
-- Every class has a `ClassVar[str] event_type` set to the exact `openhands.*`
-  string from C10; every instance carries `run_id: str` and a timezone-aware UTC
-  `timestamp: datetime`.
-- **No field is typed `Any`**; all fields are `str`, `int`, `bool`, or
-  `datetime`.
-- No raw incident payload, action arguments, sandbox command line, or unredacted
-  observation text on any field — only ids, counts, byte sizes, flags, and short
-  status strings (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- All seven dataclasses are `frozen=True, kw_only=True` and **subclass** `aegis_swr.core.events.DomainEvent`.
+- Every class has a `ClassVar[str] event_type` set to the exact `openhands.*` string from C10; every instance carries `run_id: str` and a timezone-aware UTC `timestamp: datetime`.
+- **No field is typed `Any`**; all fields are `str`, `int`, `bool`, or `datetime`.
+- No raw incident payload, action arguments, sandbox command line, or unredacted observation text on any field — only ids, counts, byte sizes, flags, and short status strings (C13).
 - `token_estimate` appears on `OpenHandsCompleted` only (C10).
 - No `auth_failed` event (n/a per C10).
-- `from __future__ import annotations` at the top; `Optional[T]` from `typing` if
-  any optional field is later added (none needed now); no `T | None`.
-- No OpenHands client library, `grpc`, `httpx`, or `websockets` import in this
-  file (C3).
-- `ruff` and `python scripts/replace_optional.py --check` clean; every public
-  class has an RST-style docstring.
+- No OpenHands client library, `grpc`, `httpx`, or `websockets` import in this file (C3).
+- `ruff` and `python scripts/replace_optional.py --check` clean; every public class has an RST-style docstring.
 
 ## Success criteria
 
-- [ ] All seven event classes exist with the fields and `event_type` strings
-      above, matching the C10 OpenHands column exactly.
-- [ ] Every class subclasses `aegis_swr.core.events.DomainEvent` and is
-      delivered by a real `EventBus` publish/subscribe cycle (a subscriber on
-      `DomainEvent` receives every one; a plain dataclass would not).
-- [ ] Every class is `frozen=True` and constructs keyword-only (positional
-      construction raises `TypeError`).
-- [ ] Every instance carries `run_id: str` and a timezone-aware UTC
-      `timestamp: datetime` (`tzinfo` is not `None`).
-- [ ] `OpenHandsCompleted` is the only class exposing `token_estimate` (and it
-      also carries `usage_reported`, `event_count`, and `truncated`).
+- [ ] All seven event classes exist with the fields and `event_type` strings above, matching the C10 OpenHands column exactly.
+- [ ] Every class subclasses `aegis_swr.core.events.DomainEvent` and is delivered by a real `EventBus` publish/subscribe cycle (a subscriber on `DomainEvent` receives everything; a plain dataclass would not).
+- [ ] Every class is `frozen=True` and constructs keyword-only (positional construction raises `TypeError`).
+- [ ] Every instance carries `run_id: str` and a timezone-aware UTC `timestamp: datetime` (`tzinfo` is not `None`).
+- [ ] `OpenHandsCompleted` is the only class exposing `token_estimate` (and it also carries `usage_reported`, `event_count`, and `truncated`).
 - [ ] No `openhands.auth_failed` event exists (n/a per C10).
-- [ ] No field annotation is `Any`; no field carries action arguments,
-      observation content, a command line, or a raw error message (asserted by a
-      unit test inspecting field names/types).
-- [ ] `python -c "import aegis_swr.openhands.events"` succeeds with no OpenHands
-      client library, `grpc`, `httpx`, or `websockets` pulled in.
+- [ ] No field annotation is `Any`; no field carries action arguments, observation content, a command line, or a raw error message (asserted by a unit test inspecting field names/types).
+- [ ] `python -c "import aegis_swr.openhands.events"` succeeds with no OpenHands client library, `grpc`, `httpx`, or `websockets` pulled in.
 - [ ] `ruff` and `python scripts/replace_optional.py --check` are clean.

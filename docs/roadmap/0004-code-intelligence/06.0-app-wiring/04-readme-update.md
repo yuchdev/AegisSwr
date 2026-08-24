@@ -4,7 +4,7 @@
 **State:** ⬜ Not started
 **Depends on:** 01 (wiring exists), 02 (dry-run behaviour documented), 03
 (`agents.yaml` finalised)
-**Blocks:** none (Task 09.0 writes the full `docs/openclaude-setup.md` this
+**Blocks:** none (Task 09.0 writes the full `docs/config/openclaude-setup.md` this
 section points at)
 
 ## Objective
@@ -13,8 +13,8 @@ Add a short "Code Intelligence (OpenClaude)" section to the top-level
 `README.md` documenting the **minimum enabling environment variable**
 (`OPENCLAUDE_GRPC_URL`) and the recommended external-mode launch command, then
 forward-link to the full setup guide. This is a deliberately **thin pointer**:
-the complete setup/config reference (`docs/openclaude-setup.md`,
-`docs/openclaude-config-reference.md`) is Task 09.0's deliverable. This subtask
+the complete setup/config reference (`docs/config/openclaude-setup.md`,
+`docs/config/openclaude-config-reference.md`) is Task 09.0's deliverable. This subtask
 only ensures a reader landing on the top-level README can discover that code
 intelligence exists, learn the one variable that enables it, and follow a link
 to the details.
@@ -49,7 +49,7 @@ forensic allowlist):
 > OpenClaude's own environment variables. Aegis SWR only needs
 > `OPENCLAUDE_GRPC_URL` to find the running server.
 
-See **[docs/openclaude-setup.md](/docs/openclaude-setup.md)** for the full setup
+See **[docs/config/openclaude-setup.md](/docs/config/openclaude-setup.md)** for the full setup
 guide (managed vs external mode, the tool/Bash allowlists, and the complete
 environment-variable reference).
 ```
@@ -62,7 +62,7 @@ environment-variable reference).
 - Mention only `OPENCLAUDE_GRPC_URL` as the minimum enabler. Reference (do not
   enumerate) OpenClaude's own provider vars (`CLAUDE_CODE_USE_OPENAI`,
   `OPENAI_BASE_URL`, `OPENAI_MODEL`, `OPENAI_API_KEY`) as the operator's concern.
-- The forward link target (`docs/openclaude-setup.md`) is created by Task 09.0;
+- The forward link target (`docs/config/openclaude-setup.md`) is created by Task 09.0;
   it may not exist yet. Note in the PR that this link resolves once 09.0 lands,
   or gate the doc-link check accordingly. (Do not create a stub that Task 09.0
   would have to overwrite unless the repo's `check_doc_links.py` hard-fails on
@@ -88,7 +88,7 @@ environment-variable reference).
       and states that unsetting it disables the capability with no other effect.
 - [ ] The section shows the recommended external-mode launch command.
 - [ ] The section states Aegis SWR does not manage OpenClaude's model/provider.
-- [ ] The section forward-links to `docs/openclaude-setup.md` (Task 09.0) using
+- [ ] The section forward-links to `docs/config/openclaude-setup.md` (Task 09.0) using
       the absolute-from-repo-root convention.
 - [ ] `check_doc_links.py` passes (once the 09.0 target exists, or via an agreed
       placeholder).

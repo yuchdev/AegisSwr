@@ -303,21 +303,21 @@ def test_openhands_imports_no_grpc():
 
 ## Test cases (selected — branch map for `delegate()`)
 
-| Test | Branch / contract verified |
-|------|-----------------------------|
-| `test_delegate_success_accumulates_observations` | happy path: observation stream → concatenated `CodeResult.text`, success |
-| `test_delegate_budget_insufficient_short_circuits` | budget pre-check false branch; `client.stream` never called |
-| `test_delegate_dry_run_short_circuits` | dry-run branch; `[dry-run]`, zero tokens, no network |
-| `test_delegate_action_event_emits_openhands_action` | action dispatch arm → `OpenHandsAction` |
-| `test_delegate_observation_event_emits_openhands_observation` | observation dispatch arm → `OpenHandsObservation` |
-| `test_delegate_permission_denied_non_retriable` | permission-denied arm → `OpenHandsPermissionDenied`, non-retriable |
-| `test_delegate_uses_server_usage_when_reported` | C9: server-reported usage used for `token_estimate` |
-| `test_delegate_falls_back_to_boundary_estimate` | C9: `max(1, len(content)//4)` boundary estimate branch |
-| `test_delegate_stream_error_returns_non_retriable_failure` | terminal error arm → non-retriable failure |
-| `test_delegate_connect_error_returns_retriable_failure` | `OpenHandsUnavailableError` arm → **retriable** failure |
-| `test_budget_charged_after_completion_not_precharged` | C9: charged after completion, never pre-charged |
-| `test_client_is_sole_importer_of_openhands_library` | C3: sole client-library importer |
-| `test_only_client_imports_openhands_library` | C3: AST-confirmed sole importer |
+| Test                                                          | Branch / contract verified                                               |
+|---------------------------------------------------------------|--------------------------------------------------------------------------|
+| `test_delegate_success_accumulates_observations`              | happy path: observation stream → concatenated `CodeResult.text`, success |
+| `test_delegate_budget_insufficient_short_circuits`            | budget pre-check false branch; `client.stream` never called              |
+| `test_delegate_dry_run_short_circuits`                        | dry-run branch; `[dry-run]`, zero tokens, no network                     |
+| `test_delegate_action_event_emits_openhands_action`           | action dispatch arm → `OpenHandsAction`                                  |
+| `test_delegate_observation_event_emits_openhands_observation` | observation dispatch arm → `OpenHandsObservation`                        |
+| `test_delegate_permission_denied_non_retriable`               | permission-denied arm → `OpenHandsPermissionDenied`, non-retriable       |
+| `test_delegate_uses_server_usage_when_reported`               | C9: server-reported usage used for `token_estimate`                      |
+| `test_delegate_falls_back_to_boundary_estimate`               | C9: `max(1, len(content)//4)` boundary estimate branch                   |
+| `test_delegate_stream_error_returns_non_retriable_failure`    | terminal error arm → non-retriable failure                               |
+| `test_delegate_connect_error_returns_retriable_failure`       | `OpenHandsUnavailableError` arm → **retriable** failure                  |
+| `test_budget_charged_after_completion_not_precharged`         | C9: charged after completion, never pre-charged                          |
+| `test_client_is_sole_importer_of_openhands_library`           | C3: sole client-library importer                                         |
+| `test_only_client_imports_openhands_library`                  | C3: AST-confirmed sole importer                                          |
 
 ## Implementation notes
 
@@ -339,35 +339,21 @@ def test_openhands_imports_no_grpc():
 
 ## Constraints
 
-- All tests pass with `OPENHANDS_SERVER_URL` unset and no Docker / OpenHands
-  server available — no real socket opened and no container started.
-- Every collaborator is constructor-injected (`OpenHandsProcess(..., client=...)`,
-  `OpenHandsTool(client=..., settings=..., bus=...)`); `monkeypatch` is used
-  **only** for real `OPENHANDS_*` env vars.
-- Assert on the canonical `OpenHandsConfigError` / `OpenHandsUnavailableError`
-  types, not Pydantic `ValidationError`.
-- No raw observation / response text is asserted against a log sink; the tool must
-  not log unredacted stream content (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new unit test has a test-specific docstring (`[Unit]`|`[Mock]`|`[Integration]`|`E2E` / `Scenario` / `Boundaries` / `On failuse`)
+- All tests pass with `OPENHANDS_SERVER_URL` unset and no Docker / OpenHands server available — no real socket opened and no container started.
+- Every collaborator is constructor-injected (`OpenHandsProcess(..., client=...)`, `OpenHandsTool(client=..., settings=..., bus=...)`); `monkeypatch` is used **only** for real `OPENHANDS_*` env vars.
+- Assert on the canonical `OpenHandsConfigError` / `OpenHandsUnavailableError` types, not Pydantic `ValidationError`.
+- No raw observation / response text is asserted against a log sink; the tool must not log unredacted stream content (C13).
 - `test_isolation.py` is AST-based (docstring mentions must not trip it).
-- `Optional[T]` from `typing`; `from __future__ import annotations` (C13).
 
 ## Success criteria
 
-- [ ] `test_config.py`: the Docker-sandboxed runtime is the default; a
-      non-sandboxed runtime requires an explicit override; a malformed
-      `server_url` raises `OpenHandsConfigError`.
-- [ ] `test_client.py`: scripted events stream in order; `health_check()` returns
-      `False` (does not raise) when unreachable; a connect error surfaces as
-      `OpenHandsUnavailableError`.
-- [ ] `test_process.py`: exactly one `OpenHandsConnected` and one
-      `OpenHandsDisconnected` per cycle; the sidecar is torn down even when
-      `__aenter__` raises after connect.
-- [ ] `test_tool.py`: `pytest --cov=aegis_swr.openhands.tool --cov-branch`
-      reports **100%** branch on `delegate()`; budget/dry-run paths make no
-      network call; both token-accounting branches are covered.
-- [ ] `test_events.py`: seven `openhands.*` classes instantiate, are frozen,
-      carry `run_id`/UTC `timestamp`/`event_type`; only `StreamCompleted` carries
-      the token figure.
-- [ ] `test_isolation.py` / `test_client.py`: `openhands/client.py` is the sole
-      importer of the OpenHands client library; no sibling-backend / grpc import.
+- [ ] `test_config.py`: the Docker-sandboxed runtime is the default; a non-sandboxed runtime requires an explicit override; a malformed `server_url` raises `OpenHandsConfigError`.
+- [ ] `test_client.py`: scripted events stream in order; `health_check()` returns `False` (does not raise) when unreachable; a connection error surfaces as `OpenHandsUnavailableError`.
+- [ ] `test_process.py`: exactly one `OpenHandsConnected` and one `OpenHandsDisconnected` per cycle; the sidecar is torn down even when `__aenter__` raises after connection.
+- [ ] `test_tool.py`: `pytest --cov=aegis_swr.openhands.tool --cov-branch` reports **100%** branch on `delegate()`; budget/dry-run paths make no network call; both token-accounting branches are covered.
+- [ ] `test_events.py`: seven `openhands.*` classes instantiate, are frozen, carry `run_id`/UTC `timestamp`/`event_type`; only `StreamCompleted` carries the token figure.
+- [ ] `test_isolation.py` / `test_client.py`: `openhands/client.py` is the sole importer of the OpenHands client library; no sibling-backend / grpc import.
 - [ ] `ruff`, `replace_optional.py --check` clean.

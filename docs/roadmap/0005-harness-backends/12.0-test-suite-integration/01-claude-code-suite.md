@@ -2,7 +2,7 @@
 
 **Parent task:** 12.0 Test Suite — Integration
 **State:** ⬜ Not started
-**Depends on:** none upstream (this subtask is self-contained infrastructure + tests); exercises 02.0 (`ClaudeCodeSettings`), 03.0 (`ClaudeCodeTool`/`process.py`), 04.0 (`auth_mode` + subscription auth), 05.0 (`claude_code.*` events) **live**
+**Depends on:** none upstream (this subtask is self-contained infrastructure and tests); exercises 02.0 (`ClaudeCodeSettings`), 03.0 (`ClaudeCodeTool`/`process.py`), 04.0 (`auth_mode` + subscription auth), 05.0 (`claude_code.*` events) **live**
 **Blocks:** none
 
 ## Objective
@@ -393,43 +393,22 @@ async def test_subscription_delegate_returns_code_result(
 
 ## Constraints
 
-- **Skip, never fail.** With `CLAUDE_CODE_ENABLED` unset, the `claude` binary
-  absent, or (for the base module) no API credential, the module reports one
-  clean module-level skip. The subscription module additionally skips without a
-  subscription credential and skips when an ambiguous API key is present.
-- Tests that run pass with **zero mocks** — a real `claude` subprocess and a
-  real model call.
-- The one-shot process is reaped on completion; **no `claude` process survives**
-  the module (Claude Code has no persistent sidecar to leak).
-- The task text is passed via stdin/temp file and **never** appears in argv (C6),
-  asserted live against the child process listing.
-- Uses the temp-dir `stub_project` (a uniquely named symbol to *discover*), never
-  the Aegis SWR source tree; runs strictly read-only under an
-  `Read,Grep,Glob`-only allowlist and a disposable `scratch_cwd`.
-- No OAuth token, credentials-file content, or `ANTHROPIC_API_KEY` value ever
-  reaches a log sink, an exception message, or an event payload (C7, C13);
-  loguru sinks keep `SensitiveFilter`.
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None`; `asyncio.sleep` never `time.sleep`; `ruff` and
-  `replace_optional.py --check` clean.
+- **Skip, never fail.** With `CLAUDE_CODE_ENABLED` unset, the `claude` binary absent, or (for the base module) no API credential, the module reports one clean module-level skip. The subscription module additionally skips without a subscription credential and skips when an ambiguous API key is present.
+- Tests that run pass with **zero mocks** — a real `claude` subprocess and a real model call.
+- The one-shot process is reaped on completion; **no `claude` process survives** the module (Claude Code has no persistent sidecar to leak).
+- The task text is passed via the stdin or the temp file and **never** appears in argv (C6), asserted live against the child process listing.
+- Uses the temp-dir `stub_project` (a uniquely named symbol to *discover*), never the Aegis SWR source tree; runs strictly read-only under an `Read,Grep,Glob`-only allowlist and a disposable `scratch_cwd`.
+- No OAuth token, credentials-file content, or `ANTHROPIC_API_KEY` value ever reaches a log sink, an exception message, or an event payload (C7, C13); loguru sinks keep `SensitiveFilter`.
 
 ## Success criteria
 
-- [ ] With `CLAUDE_CODE_ENABLED` unset or the `claude` binary absent, the whole
-      suite reports **skipped** (one line per module), never failed or errored.
-- [ ] The base live module additionally skips (never fails) when no
-      `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` is available.
-- [ ] The subscription module carries a **distinct** third-level guard: it skips
-      when no `claude login` session / `CLAUDE_CODE_OAUTH_TOKEN` is available, and
-      skips when an ambiguous API key is present (C7).
-- [ ] A live `delegate()` returns a `CodeResult` with `available is True`,
-      non-empty `content`, and `token_estimate > 0`.
-- [ ] `token_estimate` equals the real reported `usage` sum from the terminal
-      `result` message and is **not** the `len(content)//4` boundary estimate (C9).
+- [ ] With `CLAUDE_CODE_ENABLED` unset or the `claude` binary absent, the whole suite reports **skipped** (one line per module), never failed, or errored.
+- [ ] The base live module additionally skips (never fails) when no `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` is available.
+- [ ] The subscription module carries a **distinct** third-level guard: it skips when no `claude login` session / `CLAUDE_CODE_OAUTH_TOKEN` is available, and skips when an ambiguous API key is present (C7).
+- [ ] A live `delegate()` returns a `CodeResult` with `available is True`, non-empty `content`, and `token_estimate > 0`.
+- [ ] `token_estimate` equals the real reported `usage` sum from the terminal `result` message and is **not** the `len(content)//4` boundary estimate (C9).
 - [ ] At least one `claude_code.tool_call` event is emitted (real navigation).
 - [ ] The task text never appears in the live child process's argv (C6).
-- [ ] The subscription auth-probe passes for a live login/OAuth credential
-      without raising `ClaudeCodeUnavailableError`, and `--bare` is never passed.
+- [ ] The subscription auth-probe passes for a live login/OAuth credential without raising `ClaudeCodeUnavailableError`, and `--bare` is never passed.
 - [ ] No `claude` process survives the run; no credential value is logged.
 - [ ] `ruff`, `replace_optional.py --check` clean.
-```

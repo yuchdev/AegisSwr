@@ -750,11 +750,14 @@ tests/
     └── openhands/                     ← NEW: live sidecar + Docker; skipped without OPENHANDS_SERVER_URL + Docker
 
 docs/
-├── claude-code-setup.md              ← NEW (mirrors docs/openclaude-setup.md; documents both C7 auth modes and the licensing caveat)
-├── claude-code-config-reference.md   ← NEW (mirrors docs/openclaude-config-reference.md)
-├── openhands-setup.md                ← NEW
-├── openhands-config-reference.md     ← NEW
-└── harness-selection.md              ← NEW: the C2 selection/ambiguity contract for operators
+└── config/                                ← existing category (cli.md, config.md, agents.md); also now
+                                              home to openclaude-setup.md / openclaude-config-reference.md
+                                              (moved here from a bare docs/ location as part of this milestone)
+    ├── claude-code-setup.md              ← NEW (mirrors docs/config/openclaude-setup.md; documents both C7 auth modes and the licensing caveat)
+    ├── claude-code-config-reference.md   ← NEW (mirrors docs/config/openclaude-config-reference.md)
+    ├── openhands-setup.md                ← NEW
+    ├── openhands-config-reference.md     ← NEW
+    └── harness-selection.md              ← NEW: the C2 selection/ambiguity contract for operators
 
 README.md (repo root)                 ← updated: Docker-on-Windows prerequisite; backend selection note
 ```

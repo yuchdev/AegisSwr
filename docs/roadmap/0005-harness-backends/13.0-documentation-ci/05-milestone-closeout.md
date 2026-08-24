@@ -2,7 +2,7 @@
 
 **Parent task:** 13.0 Documentation & CI
 **State:** ⬜ Not started
-**Depends on:** 01, 02, 03, 04 (docs + CI gates in place) and Tasks 01.0–12.0 (all implementation + test tasks delivered).
+**Depends on:** 01, 02, 03, 04 (docs + CI gates in place) and Tasks 01.0–12.0 (all implementation and test tasks delivered).
 **Blocks:** none
 
 ## Objective
@@ -34,12 +34,12 @@ The full list, in [plan.md](/docs/roadmap/0005-harness-backends/plan.md) order:
 - [ ] `openclaude/composition.py` deleted; its C4 logic present verbatim in
       `harness/composition.py` — evidence: Task 10.0 + subtask 04 (job no longer
       references the deleted file).
-- [ ] Selector unset + zero signals → capability unavailable, no exception —
+- [ ] Selector unset plus zero signals → capability unavailable, no exception —
       evidence: Task 11.0 selection-matrix unit test.
-- [ ] Selector unset + exactly one signal → that backend auto-selected;
+- [ ] Selector unset plus exactly one signal → that backend auto-selected;
       `OPENCLAUDE_GRPC_URL`-only deployment needs zero further changes — evidence:
-      Task 11.0 test + `docs/harness-selection.md` §6.
-- [ ] Selector unset + more than one signal → `HarnessConfigError` at
+      Task 11.0 test + `docs/config/harness-selection.md` §6.
+- [ ] Selector unset plus more than one signal → `HarnessConfigError` at
       settings-construction time — evidence: Task 11.0 ambiguity test.
 - [ ] Selector set to a backend whose signal is absent → `HarnessUnavailableError`
       at composition/health-check time — evidence: Task 11.0 test.
@@ -53,22 +53,22 @@ The full list, in [plan.md](/docs/roadmap/0005-harness-backends/plan.md) order:
       `ANTHROPIC_AUTH_TOKEN` present, and never passes `--bare` — evidence: Task
       04.0/11.0 auth-mode matrix (C7).
 - [ ] `auth_mode="subscription"` honours `CLAUDE_CODE_OAUTH_TOKEN` when set, else
-      relies on + health-checks a pre-existing `claude login` before first
+      relies on and health checks a pre-existing `claude login` before first
       `delegate()` — evidence: Task 04.0/11.0 + 12.0 subscription-mode variant.
 - [ ] `auth_mode="auto"` adds no extra validation beyond the `claude` binary's own
-      precedence — Task 03.0 behaviour unchanged when 04.0 is not exercised —
+      precedence — Task 03.0 behavior unchanged when 04.0 is not exercised —
       evidence: Task 11.0 test.
 - [ ] No OAuth token, credential-file content, or `ANTHROPIC_API_KEY` value ever
       reaches a log sink, exception message, or `claude_code.auth_failed` payload —
       evidence: Task 11.0 no-secret-in-logs assertions (C7/C13).
 - [ ] OpenHands runs in the Docker-sandboxed runtime by default; a non-sandboxed
-      runtime requires explicit override — evidence: Task 06.0/11.0 test + the
+      runtime requires explicit override — evidence: Task 06.0/11.0 test plus the
       docs' ADR-required-override note (C8).
 - [ ] `OpenHandsClient` is the only importer of the OpenHands client library —
       evidence: subtask 04 rule 4.
 - [ ] `aegis code-intel check` is backend-agnostic and reports which backend is
       active (or "unavailable") for every selection outcome — evidence: Task
-      10.0/11.0 test + `docs/harness-selection.md` §5.
+      10.0/11.0 test + `docs/config/harness-selection.md` §5.
 - [ ] `agents.yaml` carries `claude_code_agent` and `openhands_agent` roles, each
       `enabled_when` its own presence signal — evidence: Task 10.0 (C11) +
       config-reference docs.
@@ -79,7 +79,7 @@ The full list, in [plan.md](/docs/roadmap/0005-harness-backends/plan.md) order:
       hermetic unit jobs.
 - [ ] Integration tests skipped (not failed) when a signal/binary/Docker is
       absent; subscription-auth variant additionally skipped without a live login /
-      `CLAUDE_CODE_OAUTH_TOKEN` — evidence: subtask 04 integration gating + Task
+      `CLAUDE_CODE_OAUTH_TOKEN` — evidence: subtask 04 integration gating plus Task
       12.0 skip guards.
 - [ ] No raw incident payload, argv, or unredacted response/credential text reaches
       any log sink — evidence: Task 11.0 assertions (C13).
@@ -102,9 +102,9 @@ Also confirm (project-wide mandate, not in [plan.md](/docs/roadmap/0005-harness-
 - [ ] `openclaude/composition.py` is **absent** (deleted, Task 10.0).
 - [ ] `tests/unit/{harness,claude_code,openhands}/` and
       `tests/integration/{claude_code,openhands}/` exist.
-- [ ] `docs/claude-code-setup.md`, `docs/claude-code-config-reference.md`,
-      `docs/openhands-setup.md`, `docs/openhands-config-reference.md`, and
-      `docs/harness-selection.md` exist and are linked from `docs/README.md`.
+- [ ] `docs/config/claude-code-setup.md`, `docs/config/claude-code-config-reference.md`,
+      `docs/config/openhands-setup.md`, `docs/config/openhands-config-reference.md`, and
+      `docs/config/harness-selection.md` exist and are linked from `docs/README.md`.
 - [ ] Root `README.md` carries the Docker-on-Windows line and the
       backend-selection pointer.
 - [ ] `python scripts/check_doc_links.py docs/` passes (zero broken links).
@@ -146,8 +146,8 @@ Add an `[Unreleased]` (or dated milestone) entry that:
 - Records that Milestone 0005 **extends, does not supersede,** Milestone 0004
   (plan.md's opening note): the `CodeIntelBackend` ABC, `CodeAgent`, and
   `CallBudget` stay untouched; OpenClaude is unchanged except that
-  `openclaude/composition.py` is deleted and its logic generalised into
-  `harness/composition.py` (ADR 0004). Summarise, from [status.md](/docs/roadmap/0005-harness-backends/status.md) "Notes &
+  `openclaude/composition.py` is deleted and its logic generalized into
+  `harness/composition.py` (ADR 0004). Summarize, from [status.md](/docs/roadmap/0005-harness-backends/status.md) "Notes &
   decisions", only the accurate record — do not invent detail:
   - Single-active-backend, no fallback chain (user-confirmed); selection via
     `AEGIS_CODE_INTEL_BACKEND` + presence signals, ambiguity is a loud
@@ -193,18 +193,14 @@ Draft skeleton:
   item only).
 - The `CHANGELOG.md` entry must name all 13 tasks and record that 0005 **extends**
   (not supersedes) 0004.
-- Historical record summarised from [status.md](/docs/roadmap/0005-harness-backends/status.md) "Notes & decisions" — no invented
+- Historical record summarized from [status.md](/docs/roadmap/0005-harness-backends/status.md) "Notes & decisions" — no invented
   detail.
 - `python scripts/check_doc_links.py docs/` must pass after any doc/link updates.
 
 ## Success criteria
-- [ ] Every [plan.md](/docs/roadmap/0005-harness-backends/plan.md) Global acceptance criterion confirmed met with recorded
-      evidence (all bullets walked, in order).
+- [ ] Every [plan.md](/docs/roadmap/0005-harness-backends/plan.md) Global acceptance criterion confirmed met with recorded evidence (all bullets walked, in order).
 - [ ] `replace_optional.py --check` and `ruff` confirmed clean.
-- [ ] Structural + docs gates confirmed.
-- [ ] Implementer action item to flip all 13 `status.md` rows **and** every
-      subtask state marker to ✅ is stated.
-- [ ] `CHANGELOG.md` entry names all 13 tasks (01.0–13.0) and records that 0005
-      extends (not supersedes) Milestone 0004, incl. the C12 rename and the C7
-      licensing caveat.
+- [ ] Structural plus docs gates confirmed.
+- [ ] Implementer action item to flip all 13 `status.md` rows **and** every subtask state marker to ✅ is stated.
+- [ ] `CHANGELOG.md` entry names all 13 tasks (01.0–13.0) and records that 0005 extends (not supersedes) Milestone 0004, incl. the C12 rename and the C7 licensing caveat.
 - [ ] No invented historical detail; record matches [status.md](/docs/roadmap/0005-harness-backends/status.md) "Notes & decisions".

@@ -85,31 +85,21 @@ parsed only by `RouterConfig` — they are not routed through LiteLLM;
 
 ## Constraints
 
-- Both stanzas mirror `openclaude_agent`'s shape: `provider`, `model: ~`,
-  `timeout_s`, `enabled_when` — no extra fields (C11).
-- `enabled_when` is tied to each backend's own presence signal:
-  `CLAUDE_CODE_ENABLED` and `OPENHANDS_SERVER_URL` respectively (C11).
+- Both stanzas mirror `openclaude_agent`'s shape: `provider`, `model: ~`, `timeout_s`, `enabled_when` — no extra fields (C11).
+- `enabled_when` is tied to each backend's own presence signal: `CLAUDE_CODE_ENABLED` and `OPENHANDS_SERVER_URL` respectively (C11).
 - `timeout_s` equals the respective `request_timeout_s` default (C11).
 - No `api_key`/secret field on either role (C11 / security rules).
-- The `claude_code_agent` comment names both C7 auth modes and points at
-  `docs/claude-code-setup.md` (Task 13.0), and states `auth_mode` lives in
-  settings, not the YAML.
-- YAML stays valid against the existing schema and `RouterConfig.from_yaml` with
-  each `enabled_when` var both set and unset.
-- All other agent roles unchanged.
+- The `claude_code_agent` comment names both C7 auth modes and points at `docs/claude-code-setup.md` (Task 13.0), and states `auth_mode` lives in settings, not the YAML.
+- YAML stays valid against the existing schema and `RouterConfig.from_yaml` with each `enabled_when` var both set and unset.
+- All other agent roles are unchanged.
 
 ## Success criteria
 
-- [ ] `agents.yaml` contains `claude_code_agent` and `openhands_agent` roles
-      alongside `openclaude_agent`.
-- [ ] Each new role has `provider`, `model: ~`, `timeout_s`, `enabled_when` and
-      no other fields.
-- [ ] `claude_code_agent.enabled_when == CLAUDE_CODE_ENABLED`;
-      `openhands_agent.enabled_when == OPENHANDS_SERVER_URL` (C11).
+- [ ] `agents.yaml` contains `claude_code_agent` and `openhands_agent` roles alongside `openclaude_agent`.
+- [ ] Each new role has `provider`, `model: ~`, `timeout_s`, `enabled_when` and no other fields.
+- [ ] `claude_code_agent.enabled_when == CLAUDE_CODE_ENABLED`; `openhands_agent.enabled_when == OPENHANDS_SERVER_URL` (C11).
 - [ ] Each `timeout_s` equals its backend's `request_timeout_s` default (C11).
-- [ ] The `claude_code_agent` comment names both C7 auth modes, states `auth_mode`
-      lives in `ClaudeCodeSettings` (not the YAML), and links the setup guide.
+- [ ] The `claude_code_agent` comment names both C7 auth modes, states `auth_mode` lives in `ClaudeCodeSettings` (not the YAML), and links the setup guide.
 - [ ] No credential/secret field on either role.
-- [ ] `RouterConfig.from_yaml` parses the file with each `enabled_when` var both
-      set and unset; all other roles unchanged.
+- [ ] `RouterConfig.from_yaml` parses the file with each `enabled_when` var both set and unset; all other roles unchanged.
 - [ ] `yamllint` (if configured) clean.

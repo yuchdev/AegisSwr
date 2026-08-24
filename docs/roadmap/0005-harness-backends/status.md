@@ -285,8 +285,8 @@ Claude Code subscription-mode variant additionally skipped without a live
 
 **Status:** ⬜ Not started
 
-_Per-backend setup + config-reference docs (mirroring `docs/openclaude-setup.md`
-and `docs/openclaude-config-reference.md`), the operator-facing
+_Per-backend setup + config-reference docs (mirroring `docs/config/openclaude-setup.md`
+and `docs/config/openclaude-config-reference.md`), the operator-facing
 `harness-selection.md`, the Docker-on-Windows prerequisite in the root
-`README.md`, the C7 licensing caveat in `docs/claude-code-setup.md`, and CI
+`README.md`, the C7 licensing caveat in `docs/config/claude-code-setup.md`, and CI
 isolation/coverage gate extensions. Closes the milestone._

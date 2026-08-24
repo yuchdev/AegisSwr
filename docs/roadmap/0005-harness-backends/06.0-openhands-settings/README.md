@@ -64,10 +64,10 @@ Consequences relevant to configuration:
 
 ## Subtasks
 
-| # | Document | Status | Blocks |
-|---|----------|--------|--------|
-| 01 | [`OpenHandsSettings` Pydantic class](01-openhands-settings.md) | ⬜ Not started | 02 (this task), 07.0, 08.0, 09.0 |
-| 02 | [Sandbox-runtime enforcement validator](02-sandbox-runtime-validator.md) | ⬜ Not started | 07.0 |
+| #  | Document                                                                 | Status         | Blocks                           |
+|----|--------------------------------------------------------------------------|----------------|----------------------------------|
+| 01 | [`OpenHandsSettings` Pydantic class](01-openhands-settings.md)           | ⬜ Not started | 02 (this task), 07.0, 08.0, 09.0 |
+| 02 | [Sandbox-runtime enforcement validator](02-sandbox-runtime-validator.md) | ⬜ Not started | 07.0                             |
 
 Subtask 01 establishes the class, its six documented fields, and the forward
 declaration of `OpenHandsConfigError`. Subtask 02 depends on subtask 01: it adds
@@ -78,25 +78,12 @@ enforcement (02).
 
 ## Key constraints
 
-- All new code uses `Optional[T]` from `typing`, never `T | None` (including in
-  subscripts and `Annotated[...]`); and `from __future__ import annotations` at
-  the top of every file (C13).
-- `ruff` (E,F,I,UP,B,SIM; line length 100) must be clean with zero new
-  `# type: ignore` lines; `python scripts/replace_optional.py --check` clean.
-- Every new public class and function must have an RST-style docstring
-  (`:param:`/`:ivar:`/`:return:`).
-- `OpenHandsConfigError` forward-declared in subtask 01 must be import-compatible
-  with the canonical definition Task 09.0 places in `openhands/exceptions.py` —
-  downstream code must not require an import-path change when 09.0 lands (the
-  same forward-declaration discipline Milestone 0004 Task 01.0 used for
-  `OpenClaudeConfigError`).
-- No import of `OpenHandsSettings` appears in `aegis_swr/core/`,
-  `aegis_swr/views/`, or `aegis_swr/code_intel/` (C3). `OpenHandsSettings` is
-  composed into `HarnessSettings` via `default_factory` (C5, wired in Task
-  01.0 / 10.0), never read directly by the scaffolding.
-- No secret or incident-payload text (dump/log/stack, `server_url` credentials,
-  any auth material carried in the URL) ever reaches a log sink or an exception
-  message; validators name only the offending field, never its value (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- `OpenHandsConfigError` forward-declared in subtask 01 must be import-compatible with the canonical definition Task 09.0 places in `openhands/exceptions.py` — downstream code must not require an import-path change when 09.0 lands (the same forward-declaration discipline Milestone 0004 Task 01.0 used for `OpenClaudeConfigError`).
+- No import of `OpenHandsSettings` appears in `aegis_swr/core/`, `aegis_swr/views/`, or `aegis_swr/code_intel/` (C3). `OpenHandsSettings` is composed into `HarnessSettings` via `default_factory` (C5, wired in Task 01.0 / 10.0), never read directly by the scaffolding.
+- No secret or incident-payload text (dump/log/stack, `server_url` credentials, any auth material carried in the URL) ever reaches a log sink or an exception message; validators name only the offending field, never its value (C13).
 
 ## Files created or modified by this task
 
@@ -104,12 +91,10 @@ enforcement (02).
 src/aegis_swr/
 └── openhands/
     ├── __init__.py                 ← NEW (subtask 01, empty)
-    └── config.py                   ← NEW (subtask 01: OpenHandsSettings + fields;
-                                        subtask 02: allow_unsandboxed_runtime + enforcement validator)
+    └── config.py                   ← NEW (subtask 01: OpenHandsSettings + fields; subtask 02: allow_unsandboxed_runtime + enforcement validator)
 
 tests/unit/openhands/
-└── test_config.py                  ← NEW: subtask 01 (field/default/CSV/URL) and
-                                        subtask 02 (sandbox-enforcement) acceptance tests
+└── test_config.py                  ← NEW: subtask 01 (field/default/CSV/URL) and subtask 02 (sandbox-enforcement) acceptance tests
 ```
 
 > The `openhands/config.py` `OpenHandsConfigError` forward declaration is

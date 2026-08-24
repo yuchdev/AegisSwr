@@ -166,7 +166,7 @@ aegis code-intel check   # smoke-test the wiring without connecting (dry-run by 
 > OpenClaude's own environment variables. Aegis SWR only needs
 > `OPENCLAUDE_GRPC_URL` to find the running server.
 
-See **[docs/openclaude-setup.md](/docs/openclaude-setup.md)** for the full setup
+See **[docs/config/openclaude-setup.md](/docs/config/openclaude-setup.md)** for the full setup
 guide (managed vs external mode, the tool/Bash allowlists, and the complete
 environment-variable reference).
 

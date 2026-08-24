@@ -7,7 +7,7 @@ backend without reading the Python source. Contracts
 in the milestone plan are authoritative; this document transcribes them. If a
 value here ever disagrees with C1/C8, **C1/C8 win**.
 
-For installation and setup, see the [OpenClaude setup guide](/docs/openclaude-setup.md).
+For installation and setup, see the [OpenClaude setup guide](/docs/config/openclaude-setup.md).
 
 ## 1. `OpenClaudeSettings` fields
 
@@ -121,6 +121,6 @@ estimate; it is never duplicated across events (C5 / C8).
 
 ## 5. Cross-links
 
-- Install and setup: [OpenClaude setup guide](/docs/openclaude-setup.md).
+- Install and setup: [OpenClaude setup guide](/docs/config/openclaude-setup.md).
 - Authoritative contracts and architecture:
   [Milestone 0004 plan](/docs/roadmap/0004-code-intelligence/plan.md).

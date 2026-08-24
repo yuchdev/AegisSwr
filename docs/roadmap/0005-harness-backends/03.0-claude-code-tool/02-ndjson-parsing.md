@@ -1,4 +1,4 @@
-# 02 - NDJSON stream parsing + token accounting
+# 02 - NDJSON stream parsing and token accounting
 
 **Parent task:** 03.0 Claude Code Subprocess Tool
 **State:** ⬜ Not started
@@ -165,29 +165,22 @@ def _extract_usage(frame: dict[str, object]) -> Optional[ClaudeCodeUsage]:
 
 ## Constraints
 
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None` (C13).
-- `parse_stream` and both extractors **never raise** on malformed/partial output;
-  a bad line is skipped (C13).
-- `token_estimate` is derived from real `usage` only - `parse_stream` never
-  falls back to a length estimate for this backend (C6.2, C9); "no usage" is
-  surfaced as `usage=None`, not as a fabricated count.
-- No `content`/line/frame text is logged or emitted; only payload-free counts
-  (C13). No bare `except:`; narrow `ValueError`/`OSError`/`LimitOverrunError`.
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- `parse_stream` and both extractors **never raise** on malformed/partial output; a bad line is skipped (C13).
+- `token_estimate` is derived from real `usage` only - `parse_stream` never falls back to a length estimate for this backend (C6.2, C9); "no usage" is surfaced as `usage=None`, not as a fabricated count.
+- No `content`/line/frame text is logged or emitted; only payload-free counts (C13). No bare `except:`; narrow `ValueError`/`OSError`/`LimitOverrunError`.
 - Dataclasses are `frozen=True, slots=True`; no `Any` in any signature.
-- `ruff` and `replace_optional.py --check` clean; RST docstrings on every public
-  class/function (C13).
+- `ruff` and `replace_optional.py --check` clean; RST docstrings on every public class/function (C13).
 
 ## Success criteria
 
-- [ ] A stream of `system` + N `assistant` frames + a terminal `result` frame
-      returns `content` = the ordered concatenation of assistant text blocks.
-- [ ] `usage.total == usage.input_tokens + usage.output_tokens`, read from the
-      terminal `result` message (C6.2, C9).
+- [ ] A stream of `system` + N `assistant` frames + a terminal `result` frame returns `content` = the ordered concatenation of assistant text blocks.
+- [ ] `usage.total == usage.input_tokens + usage.output_tokens`, read from the terminal `result` message (C6.2, C9).
 - [ ] `is_error` reflects the `result` message's error flag/subtype.
 - [ ] A stream with **no** well-formed `result` message returns `usage is None`.
-- [ ] A malformed / non-JSON line is skipped without raising, and its content is
-      not logged; the surrounding well-formed frames still parse.
+- [ ] A malformed / non-JSON line is skipped without raising, and its content is not logged; the surrounding well-formed frames still parse.
 - [ ] `frame_count` and `assistant_count` reflect the frames observed.
 - [ ] Tool-use / non-text content blocks are ignored by `_extract_assistant_text`.
 - [ ] No `content`/line text reaches any log sink (C13).

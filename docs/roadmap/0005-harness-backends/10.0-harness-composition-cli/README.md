@@ -13,13 +13,13 @@ root and expose the resulting choice through the operator-facing CLI. This is th
 
 Concretely, this task:
 
-1. **Creates `harness/composition.py`** — the generalised C4 composition factory
+1. **Creates `harness/composition.py`** — the generalized C4 composition factory
    that reads `HarnessSettings.active_backend` (resolved per C2 in Task 01.0) and
    is the **one and only** place in the codebase that branches on which backend
    is active. The OpenClaude assembly logic **moves verbatim** out of the deleted
    `openclaude/composition.py`; the Claude Code and OpenHands branches are added
-   alongside it. `harness/composition.py` becomes the only module permitted to
-   import more than one backend family (C3).
+   alongside it. `harness/composition.py` becomes the only module permitted 
+   importing more than one backend family (C3).
 2. **Deletes `openclaude/composition.py`** — its sole purpose (housing the C4
    branch) transfers to `harness/composition.py`; the rest of the `openclaude/`
    package is untouched. Its 0004 composition-root unit tests are re-targeted to
@@ -36,7 +36,7 @@ Concretely, this task:
    backend is active (or "unavailable") for every C2 selection outcome, and for
    `claude_code` additionally reports the resolved auth mode (C7).
 
-This task builds no new backend behaviour — every `delegate()` path, every
+This task builds no new backend behavior — every `delegate()` path, every
 sidecar/subprocess lifecycle, every settings class already exists after Tasks
 01.0–09.0. Task 10.0 only composes and surfaces them.
 
@@ -48,12 +48,12 @@ keeps the migration surface to a module-path change only.
 
 ## Subtasks
 
-| # | Name | Status | Blocks |
-|---|------|--------|--------|
+| #  | Name                                                                                                       | Status         | Blocks            |
+|----|------------------------------------------------------------------------------------------------------------|----------------|-------------------|
 | 01 | [`harness/composition.py` factory + delete `openclaude/composition.py`](01-harness-composition-factory.md) | ⬜ Not started | 02, 04; Task 11.0 |
-| 02 | [`Settings.harness` nesting (C12 breaking rename)](02-settings-harness-nesting.md) | ⬜ Not started | 01, 04; Task 11.0 |
-| 03 | [`agents.yaml` `claude_code_agent` / `openhands_agent` roles](03-agents-yaml-roles.md) | ⬜ Not started | - |
-| 04 | [`aegis code-intel check` backend-agnostic CLI](04-code-intel-check-cli.md) | ⬜ Not started | - |
+| 02 | [`Settings.harness` nesting (C12 breaking rename)](02-settings-harness-nesting.md)                         | ⬜ Not started | 01, 04; Task 11.0 |
+| 03 | [`agents.yaml` `claude_code_agent` / `openhands_agent` roles](03-agents-yaml-roles.md)                     | ⬜ Not started | -                 |
+| 04 | [`aegis code-intel check` backend-agnostic CLI](04-code-intel-check-cli.md)                                | ⬜ Not started | -                 |
 
 **Intra-task ordering.** 02 (the settings rename) lands first or together with
 01, because `harness/composition.py` consumes `HarnessSettings` and the CLI in 04
@@ -64,34 +64,17 @@ order. All four must land together to keep the tree importable (the deletion in
 
 ## Key constraints
 
-- **The backend-selection branch lives in exactly one place** —
-  `build_code_agent` in `harness/composition.py` (generalised C4). No other
-  module branches on which backend is active. Verifiable by grep.
-- **`harness/composition.py` is the only module that imports more than one
-  backend family** (all three: `openclaude`, `claude_code`, `openhands`). No
-  backend package imports a sibling (C3, grep-enforced, Task 11.0/13.0).
-- **`aegis_swr/core/`, `aegis_swr/views/`, and `aegis_swr/code_intel/` import
-  none** of `aegis_swr.openclaude`, `aegis_swr.claude_code`,
-  `aegis_swr.openhands`, or `grpc` (C3).
-- **`code_intel/backend.py`, `agent.py`, `budget.py` stay byte-for-byte
-  unchanged**; `CodeResult.token_estimate` keeps its name and `int` type (C9).
-- The OpenClaude assembly logic in the new factory is the **verbatim** move from
-  the deleted `openclaude/composition.py` — not a rewrite (C4).
-- `dry_run` is **orthogonal** to backend selection: the graph is fully
-  constructed and the backend registered, but no sidecar is entered and no
-  outbound call is made (C4, C13). For `openclaude`/`openhands` this means the
-  sidecar `__aenter__` is skipped; for `claude_code` there is no sidecar to skip.
-- The `Settings.openclaude` → `Settings.harness.openclaude` rename is a
-  **deliberate breaking change** (C12): `settings.py`, the CLI subcommand, and
-  every test reading `settings.openclaude` migrate; `settings.openclaude` no
-  longer resolves afterward.
-- `agents.yaml` roles are inert config parsed only by `RouterConfig`; they carry
-  **no** credentials/secrets (C11 / security rules).
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` in every new file; loguru + `SensitiveFilter` on every sink; no
-  secret/credential/payload text in any log line, exception, or CLI output (C13).
-- `ruff` (E,F,I,UP,B,SIM; line length 100) and `python scripts/replace_optional.py
-  --check` stay clean.
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- **The backend-selection branch lives in exactly one place** — `build_code_agent` in `harness/composition.py` (generalizes C4). No other module branches on which the backend is active. Verifiable by grep.
+- **`harness/composition.py` is the only module that imports more than one backend family** (all three: `openclaude`, `claude_code`, `openhands`). No backend package imports a sibling (C3, grep-enforced, Task 11.0/13.0).
+- **`aegis_swr/core/`, `aegis_swr/views/`, and `aegis_swr/code_intel/` import none** of `aegis_swr.openclaude`, `aegis_swr.claude_code`, `aegis_swr.openhands`, or `grpc` (C3).
+- **`code_intel/backend.py`, `agent.py`, `budget.py` stay byte-for-byte unchanged**; `CodeResult.token_estimate` keeps its name and `int` type (C9).
+- The OpenClaude assembly logic in the new factory is the **verbatim** move from the deleted `openclaude/composition.py` — not a rewrite (C4).
+- `dry_run` is **orthogonal** to backend selection: the graph is fully constructed and the backend registered, but no sidecar is entered and no outbound call is made (C4, C13). For `openclaude`/`openhands` this means the sidecar `__aenter__` is skipped; for `claude_code` there is no sidecar to skip.
+- The `Settings.openclaude` → `Settings.harness.openclaude` rename is a **deliberate breaking change** (C12): `settings.py`, the CLI subcommand, and every test reading `settings.openclaude` migrate; `settings.openclaude` no longer resolves afterward.
+- `agents.yaml` roles are inert config parsed only by `RouterConfig`; they carry **no** credentials/secrets (C11 / security rules).
 
 ## Files
 

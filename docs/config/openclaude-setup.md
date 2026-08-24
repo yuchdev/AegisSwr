@@ -19,7 +19,7 @@ variable is unset, code intelligence is simply unavailable and the rest of the
 pipeline is unaffected.
 
 - Architecture and contracts: [Milestone 0004 plan](/docs/roadmap/0004-code-intelligence/plan.md).
-- Full settings/event reference: [OpenClaude configuration reference](/docs/openclaude-config-reference.md).
+- Full settings/event reference: [OpenClaude configuration reference](/docs/config/openclaude-config-reference.md).
 
 ## 2. Prerequisites
 
@@ -171,5 +171,5 @@ the repository under analysis.
 3. Widening either allowlist requires an explicit settings override **and an
    ADR** (C1 / C7) — do not relax it casually.
 
-See the [configuration reference](/docs/openclaude-config-reference.md) for the
+See the [configuration reference](/docs/config/openclaude-config-reference.md) for the
 complete settings and event tables.

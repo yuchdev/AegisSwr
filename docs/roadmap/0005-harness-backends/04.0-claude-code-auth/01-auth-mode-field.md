@@ -15,7 +15,7 @@ and the two construction-time invariants C7 mandates for it:
 
 1. a **subscription-mode rejection validator** that raises
    `ClaudeCodeConfigError` when `auth_mode="subscription"` and an
-   `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` is present in the environment
+   `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` is present in the environment, 
    the subprocess will inherit; and
 2. the **`--bare` exclusion rule** — subscription mode may never produce a
    `--bare` invocation, so a `bare`-mode request combined with
@@ -23,14 +23,14 @@ and the two construction-time invariants C7 mandates for it:
 
 No existing field, default, or validator of `ClaudeCodeSettings` changes. When
 `auth_mode` is left at its `auto` default the class behaves exactly as Task 02.0
-shipped it — this is the behavioural-freeze guarantee for the default path.
+shipped it — this is the behavioral-freeze guarantee for the default path.
 
 ## File: `claude_code/config.py`
 
 **New field** (env var → field name → type → default):
 
-| Env var                 | Field       | Type                  | Default  |
-|-------------------------|-------------|-----------------------|----------|
+| Env var                 | Field       | Type                                       | Default  |
+|-------------------------|-------------|--------------------------------------------|----------|
 | `CLAUDE_CODE_AUTH_MODE` | `auth_mode` | `Literal["auto","api_key","subscription"]` | `"auto"` |
 
 ```python
@@ -100,7 +100,7 @@ therefore unusable for a login-based deployment," so `--bare` must never be
 emitted in subscription mode.
 
 - If Task 03.0 already introduced a bare-mode toggle on `ClaudeCodeSettings`
-  (e.g. a `bare: bool` field, `CLAUDE_CODE_BARE`, default `False`, added there
+  (e.g., a `bare: bool` field, `CLAUDE_CODE_BARE`, default `False`, added there
   for the "`--bare` MAY be added for reproducibility" api_key case), this
   subtask **only** adds the cross-field check to `_validate_subscription_mode`:
   `auth_mode="subscription"` with the bare toggle `True` raises
@@ -123,7 +123,7 @@ introduce a duplicate bare toggle if one already exists.
   `any(os.environ.get(v) for v in _OUTRANKING_ENV_VARS)` so an unset variable
   and an empty-string variable (`ANTHROPIC_API_KEY=""`, the classic
   unset-CI-secret artifact) are both treated as absent. A stray empty value
-  must not trigger a spurious rejection, and must not be relied on as a working
+  must not trigger a spurious rejection and must not be relied on as a working
   credential either.
 - **Why `model_validator(mode="after")` and not `field_validator`.** The rule
   is cross-cutting: it correlates the `auth_mode` field with the ambient
@@ -150,37 +150,23 @@ introduce a duplicate bare toggle if one already exists.
 
 ## Constraints
 
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` at the top of the file (C13).
-- Purely **additive** to `ClaudeCodeSettings`: no Task 02.0 field, default, or
-  validator is altered; existing Task 02.0 / Task 03.0 unit tests stay green.
-- `ClaudeCodeConfigError` is imported, not redefined; import path is stable
-  across Task 05.0's canonicalisation.
-- The rejection message and any log line never contain a credential value
-  (C13); `SensitiveFilter` still covers the config module's logger.
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- Purely **additive** to `ClaudeCodeSettings`: no Task 02.0 field, default, or validator is altered; existing Task 02.0 / Task 03.0 unit tests stay green.
+- `ClaudeCodeConfigError` is imported, not redefined; the import path is stable across Task 05.0's canonicalization.
+- The rejection message and any log line never contain a credential value (C13); `SensitiveFilter` still covers the config module's logger.
 - No `Any` in the field type; `replace_optional.py --check` clean.
 
 ## Success criteria
 
-- [ ] `ClaudeCodeSettings()` with no `CLAUDE_CODE_AUTH_MODE` set produces
-      `auth_mode == "auto"` and constructs without raising.
-- [ ] `ClaudeCodeSettings(auth_mode="subscription")` with neither
-      `ANTHROPIC_API_KEY` nor `ANTHROPIC_AUTH_TOKEN` set constructs without
-      raising.
-- [ ] `ClaudeCodeSettings(auth_mode="subscription")` with `ANTHROPIC_API_KEY`
-      set (non-empty) raises `ClaudeCodeConfigError`; the exception message
-      names `ANTHROPIC_API_KEY` but contains **no** part of its value.
-- [ ] `ClaudeCodeSettings(auth_mode="subscription")` with `ANTHROPIC_AUTH_TOKEN`
-      set (non-empty) raises `ClaudeCodeConfigError`.
-- [ ] `ClaudeCodeSettings(auth_mode="subscription")` with `ANTHROPIC_API_KEY=""`
-      (empty) constructs without raising (empty == absent).
-- [ ] `ClaudeCodeSettings(auth_mode="subscription")` combined with a `--bare`
-      request raises `ClaudeCodeConfigError` (whether via a bare toggle field
-      or documented as delegated to subtask 02, per the exclusion-rule note).
-- [ ] `ClaudeCodeSettings(auth_mode="api_key")` with `ANTHROPIC_API_KEY` set
-      constructs without raising — the presence check applies only to
-      subscription mode.
-- [ ] `ClaudeCodeSettings(auth_mode="bogus")` raises a validation error
-      (`Literal` rejects the value).
+- [ ] `ClaudeCodeSettings()` with no `CLAUDE_CODE_AUTH_MODE` set produces `auth_mode == "auto"` and constructs without raising.
+- [ ] `ClaudeCodeSettings(auth_mode="subscription")` with neither `ANTHROPIC_API_KEY` nor `ANTHROPIC_AUTH_TOKEN` set constructs without raising.
+- [ ] `ClaudeCodeSettings(auth_mode="subscription")` with `ANTHROPIC_API_KEY` set (non-empty) raises `ClaudeCodeConfigError`; the exception message names `ANTHROPIC_API_KEY` but contains **no** part of its value.
+- [ ] `ClaudeCodeSettings(auth_mode="subscription")` with `ANTHROPIC_AUTH_TOKEN` set (non-empty) raises `ClaudeCodeConfigError`.
+- [ ] `ClaudeCodeSettings(auth_mode="subscription")` with `ANTHROPIC_API_KEY=""` (empty) constructs without raising (empty == absent).
+- [ ] `ClaudeCodeSettings(auth_mode="subscription")` combined with a `--bare` request raises `ClaudeCodeConfigError` (whether via a bare toggle field or documented as delegated to subtask 02, per the exclusion-rule note).
+- [ ] `ClaudeCodeSettings(auth_mode="api_key")` with `ANTHROPIC_API_KEY` set constructs without raising — the presence check applies only to subscription mode.
+- [ ] `ClaudeCodeSettings(auth_mode="bogus")` raises a validation error (`Literal` rejects the value).
 - [ ] All Task 02.0 / Task 03.0 config unit tests remain green (additive-only).
 - [ ] `replace_optional.py --check` clean; no `Any` in field types.

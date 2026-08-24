@@ -226,21 +226,21 @@ class ClaudeCodeProcess:
 - **`-p` + stdin.** `claude -p` (print / non-interactive) reads the prompt from
   stdin when stdin is piped and no positional prompt is given; this is the
   documented headless entry point. Confirm the exact `--allowedTools` join
-  format (comma-joined single token vs repeated flags) and the `--verbose`
+  format (comma-joined single token vs. repeated flags) and the `--verbose`
   requirement against the installed CLI at implementation time and note any
   deviation.
 - **`asyncio.create_subprocess_exec`, never `subprocess.Popen`** on this async
   path (C13). Pass `stdin=PIPE, stdout=PIPE, stderr=PIPE`, `cwd=scratch_cwd`.
   This is the **only** module that spawns the `claude` child (C3).
-- **Scratch cwd is mandatory (C6.3).** `settings.scratch_cwd` (Task 02.0) is the
-  child's cwd so it never inherits an attacker-influenced working directory. The
+- **Scratch `cwd` is mandatory (C6.3).** `settings.scratch_cwd` (Task 02.0) is the
+  child's `cwd`, so it never inherits an attacker-influenced working directory. The
   disposable-temp-file prompt variant, if used, must also live under it and be
   deleted on exit.
 - **Env is inherited unexamined in this task (C6.6 / C7).** No credential env
   scrubbing or injection here; that is Task 04.0. Do not add `--bare`.
 - **RAII / always-terminate.** Every exit path (normal, exception, cancellation)
   reaps the child and drains stderr, mirroring `OpenClaudeProcess`'s
-  always-terminate invariant, so a one-shot spawn never orphans a process.
+  always-terminate invariant, so one-shot spawn never orphans a process.
 - **Forward-declared exceptions.** `ClaudeCodeConfigError` (argv validation) and
   `ClaudeCodeUnavailableError` (subtasks 03-04) are **forward-declared** in this
   package for now, exactly as Milestone 0004's Task 01.0 forward-declared
@@ -250,37 +250,24 @@ class ClaudeCodeProcess:
 
 ## Constraints
 
-- `from __future__ import annotations`; `Optional[T]` from `typing`, never
-  `T | None` (C13).
-- `asyncio.create_subprocess_exec` only; no `subprocess.Popen`, no `os.system`,
-  no shell (`shell=False` semantics) on this path (C13).
-- The task string appears in **no** argv element (C6.1); it is written to stdin
-  (or a disposable scratch temp file) only.
-- No task bytes, response text, argv, or stderr text is logged unredacted;
-  `SensitiveFilter` on every sink; stderr only at DEBUG with the line as a bound
-  argument (C13).
-- No bare `except:`; per-line stderr failures caught narrowly; every exit path
-  reaps the child (SIGTERM -> grace -> SIGKILL) and closes pipes (C13).
+- All new code uses `docs/dev/python_coding_standard.md`.
+- `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
+- Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
+- `asyncio.create_subprocess_exec` only; no `subprocess.Popen`, no `os.system`, no shell (`shell=False` semantics) on this path (C13).
+- The task string appears in **no** argv element (C6.1); it is written to stdin (or a disposable scratch temp file) only.
+- No task bytes, response text, argv, or stderr text is logged unredacted; `SensitiveFilter` on every sink; stderr only at DEBUG with the line as a bound argument (C13).
+- No bare `except:`; per-line stderr failures caught narrowly; every exit path reaps the child (SIGTERM -> grace -> SIGKILL) and closes pipes (C13).
 - No `Any` in any signature; `ruff` and `replace_optional.py --check` clean.
 - Every public class/function has an RST-style docstring (C13).
 
 ## Success criteria
 
-- [ ] `build_argv(settings)` returns `claude -p --output-format stream-json
-      --verbose --allowedTools … --permission-mode … --max-turns …` with the
-      task string absent from every element.
-- [ ] Given a sentinel task, the sentinel substring appears in **no** element of
-      the constructed argv (C6.1, asserted in Task 11.0).
-- [ ] `_validate_argv_token` rejects a leading `-`, a `,`/`=`/whitespace/newline,
-      and any control char; accepts `[A-Za-z0-9._-]+`.
-- [ ] `--dangerously-skip-permissions` is never present in the argv (and cannot
-      be, given Task 02.0's settings rejection) (C6.3).
-- [ ] `ClaudeCodeProcess` spawns via `asyncio.create_subprocess_exec` with
-      `cwd == settings.scratch_cwd`, writes the task to stdin, and closes stdin.
-- [ ] `__aexit__` reaps the child (SIGTERM -> grace -> SIGKILL) and drains
-      stderr on the normal, exception, and cancellation paths; no zombie or
-      leaked pipe remains.
-- [ ] No task/argv/stderr text is logged unredacted; stderr logged only at DEBUG
-      via a bound argument (C13).
+- [ ] `build_argv(settings)` returns `claude -p --output-format stream-json --verbose --allowedTools … --permission-mode … --max-turns …` with the task string absent from every element.
+- [ ] Given a sentinel task, the sentinel substring appears in **no** element of the constructed argv (C6.1, asserted in Task 11.0).
+- [ ] `_validate_argv_token` rejects a leading `-`, a `,`/`=`/whitespace/newline, and any control char; accepts `[A-Za-z0-9._-]+`.
+- [ ] `--dangerously-skip-permissions` is never present in the argv (and cannot be, given Task 02.0's settings rejection) (C6.3).
+- [ ] `ClaudeCodeProcess` spawns via `asyncio.create_subprocess_exec` with `cwd == settings.scratch_cwd`, writes the task to stdin, and closes stdin.
+- [ ] `__aexit__` reaps the child (SIGTERM -> grace -> SIGKILL) and drains stderr on the normal, exception, and cancellation paths; no zombie or leaked pipe remains.
+- [ ] No task/argv/stderr text is logged unredacted; stderr logged only at DEBUG via a bound argument (C13).
 - [ ] No `subprocess.Popen` / `os.system` / shell invocation appears in the file.
 - [ ] `ruff` and `replace_optional.py --check` clean; no `Any` in any signature.
