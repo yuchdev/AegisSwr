@@ -134,4 +134,4 @@ No mock or integration tests required (pure model).
 - [ ] `_SECRET_KEYS` extended so `auth_token` and `client_key` tokens are
       redacted in `redacted_dump()`.
 - [ ] `config.example.json` `backends.log` block matches the table above.
-- [ ] `replace_optional.py --check` clean; all unit tests listed above pass.
+- [ ] `ruff check src/ tests/` - clean; all unit tests listed above pass.

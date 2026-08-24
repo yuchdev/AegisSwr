@@ -258,7 +258,7 @@ class OpenHandsSettings(BaseSettings):
 - All new code uses `docs/dev/python_coding_standard.md`.
 - `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
 - Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
-- No `Any` in field types; `replace_optional.py --check` clean.
+- No `Any` in field types; `ruff check src/ tests/` - clean.
 - `OpenHandsConfigError` here is a temporary forward declaration; Task 09.0 moves the canonical definition to `openhands/exceptions.py` and replaces this with a re-export alias — no downstream import-path change when 09.0 lands.
 - No secret or payload text in any validator error `reason` or log line — name the field, never the value (C13). `server_url` in particular may carry userinfo/credentials and must never be echoed.
 - No import of the OpenHands client library, `grpc`, or any sibling backend package in this file (C3) — this is configuration only.
@@ -274,4 +274,4 @@ class OpenHandsSettings(BaseSettings):
 - [ ] `OpenHandsSettings(allowed_tools=["read","write"])` does not raise but logs a single warning naming `write`.
 - [ ] `OpenHandsSettings(connect_timeout_s=100, request_timeout_s=10)` raises `OpenHandsConfigError`.
 - [ ] `OPENHANDS_ALLOWED_TOOLS=read,grep,glob` in the environment yields `allowed_tools == ["read","grep","glob"]` (CSV env parsing, C5).
-- [ ] `replace_optional.py --check` clean; no `Any` in field types; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean; no `Any` in field types.

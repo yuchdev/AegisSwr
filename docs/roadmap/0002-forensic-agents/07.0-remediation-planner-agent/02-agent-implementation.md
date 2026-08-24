@@ -94,7 +94,7 @@ report's `total_input_tokens` / `total_output_tokens` fields.
 ## Constraints
 
 - `Optional[T]` from `typing`; never `T | None`.
-- `replace_optional.py --check` clean; no bare `except:`.
+- `ruff check src/ tests/` - clean; no bare `except:`.
 - Incident payload fields (`raw_text_excerpt`, raw stack frames, log lines) must
   not appear in the messages list or in any log statement. Use `loguru` with
   `SensitiveFilter`; log only the `incident_id` and `confidence_score`.

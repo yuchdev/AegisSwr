@@ -15,13 +15,7 @@ link to the specific file when citing a rule in a PR or review.
 The guide above is the baseline. Aegis SWR adds the following mandatory rules
 on top (enforced by the `post_edit_format` hook and CI gates):
 
-- **`Optional[T]` always** - never `T | None`, including inside subscripts and
-  `Annotated[...]`. Enforced by `scripts/replace_optional.py --check`.
 - **Public APIs must be fully annotated.** Unannotated public symbols are a CI failure.
-- **ruff** (`select = E,F,I,UP,B,SIM`, line length 100) is the linter and
-  formatter (`ruff format`). No Black, no Prettier.
-- **`SensitiveFilter`** must be applied to every logger. Never log secrets,
-  raw incident payloads, or stack traces that embed them.
-- **RAII via context managers** for all subprocess/socket/file resources. No
-  bare `except:`.
+- **`SensitiveFilter`** must be applied to every logger. Never log secrets, raw incident payloads, or stack traces that embed them.
+- **RAII via context managers** for all subprocess/socket/file resources. No bare `except:`.
 - **No `print`** for diagnostics in product code - use `loguru`.

@@ -150,4 +150,4 @@ async def _delegate(self, task: str, ctx: CodeContext) -> CodeResult:
 - [ ] A stream of only `TEXT_CHUNK` + `DONE` returns the joined text with zero
       tool counts.
 - [ ] No `msg.content` or accumulated content is logged.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

@@ -7,12 +7,12 @@ Updated as each task lands.
 
 | Task | Name                                          | Status         | Tests |
 |------|-----------------------------------------------|----------------|-------|
-| 01.0 | Harness Settings & Selection Contract         | ⬜ Not started | —     |
-| 02.0 | Claude Code Settings & Config                 | ⬜ Not started | —     |
+| 01.0 | Harness Settings & Selection Contract         | ✅ Complete    | `tests/unit/harness/test_exceptions.py`, `tests/unit/harness/test_config.py` |
+| 02.0 | Claude Code Settings & Config                 | ✅ Complete    | `tests/unit/claude_code/test_config.py` |
 | 03.0 | Claude Code Subprocess Tool                   | ⬜ Not started | —     |
 | 04.0 | Claude Code Subscription/Login Authentication | ⬜ Not started | —     |
 | 05.0 | Claude Code Events & Exceptions               | ⬜ Not started | —     |
-| 06.0 | OpenHands Settings & Config                   | ⬜ Not started | —     |
+| 06.0 | OpenHands Settings & Config                   | ✅ Complete    | `tests/unit/openhands/test_config.py` |
 | 07.0 | OpenHands Client & Process Lifecycle          | ⬜ Not started | —     |
 | 08.0 | OpenHands Tool Implementor                    | ⬜ Not started | —     |
 | 09.0 | OpenHands Events & Exceptions                 | ⬜ Not started | —     |
@@ -23,12 +23,19 @@ Updated as each task lands.
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
-**Current gate status:** **not started.** This milestone extends Milestone 0004
-(OpenClaude Integration) in its final, post-remediation state (see
-[ADR 0003](/docs/adr/0003-code-intel-composition-root.md)). No `src/` work has
-begun; the full task → subtask decomposition below is now complete (matching
-how 0004 was decomposed before implementation), but every subtask remains
-`⬜ Not started` until `python-expert`/`testing-expert` pick up implementation.
+**Current gate status:** **in progress — the configuration layer is complete.**
+This milestone extends Milestone 0004 (OpenClaude Integration) in its final,
+post-remediation state (see
+[ADR 0003](/docs/adr/0003-code-intel-composition-root.md)). The full task →
+subtask decomposition is complete, and **all three configuration-category tasks
+(01.0, 02.0, 06.0) have landed in `src/`** — `harness/`, `claude_code/`, and
+`openhands/` now exist as settings-only packages with the C2 selection contract
+fully implemented and tested. The remaining ten tasks (the runtime tools,
+lifecycle, events, composition root, and docs) are still `⬜ Not started`.
+
+Suite at the close of the configuration layer: **1148 passed, 4 skipped, 90.20%
+total coverage** (`uv run pytest -q --cov=aegis_swr`); ruff clean; custom flake8
+X-rules clean.
 
 **Design decision of record:** the composition-root generalisation (moving the
 C4 branch out of `openclaude/composition.py` into a neutral `harness/` package)
@@ -123,11 +130,22 @@ which directly extends [ADR 0003](/docs/adr/0003-code-intel-composition-root.md)
   only (the product is Windows-only per `../CLAUDE.md`); flagged for the root
   `README.md` system-requirements area in task 13.0.
 
+- **C3 was amended to allowlist `harness/config.py` (2026-08-24, Task 01.0).**
+  C3 originally named `harness/composition.py` as the *only* module permitted to
+  import more than one backend family, which C1's nested-settings requirement
+  makes impossible — `HarnessSettings` cannot compose three families without
+  importing three settings classes. The boundary that actually matters is
+  *runtime* isolation, so `harness/config.py` is now permitted **settings-class
+  imports only** (no tool/process/client, hence no `grpc` and no OpenHands client
+  library). Task 13.0's CI grep check must encode that distinction rather than a
+  blanket single-module rule. See the inline amendment note in plan.md C3.
+
 ## Decomposition tree
 
 Full task → subtask decomposition is complete (mirroring how Milestone 0004 was
-decomposed before implementation). No `src/` work has begun on any task — every
-task README and subtask file below is at planning granularity only, all states
+decomposed before implementation). Tasks 01.0, 02.0 and 06.0 are implemented in
+`src/`; the remaining ten task READMEs and their subtask files are at planning
+granularity only, all states
 `⬜ Not started`.
 
 ```
@@ -170,22 +188,93 @@ _Filled in as tasks complete. "Done" tracks implementation, not spec-writing._
 
 ### Task 01.0 — Harness Settings & Selection Contract
 
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-24) — all three subtasks.
 
-_Delivers `harness/config.py` (`HarnessSettings`: selector + nested per-family
-settings, C1) and `harness/exceptions.py` (`HarnessConfigError`,
-`HarnessUnavailableError`). Implements the C2 selection/ambiguity resolution at
-settings-construction time. Foundation every other task depends on for settings
-shape._
+_Delivered `harness/exceptions.py` (`HarnessConfigError`, a `ValueError` for
+construction-time config-shape ambiguity; `HarnessUnavailableError`, a plain
+`Exception` for composition-time capability failure — deliberately separate
+hierarchies, `typing`-only leaf module) and `harness/config.py` (`HarnessBackend`
+str-enum; `HarnessSettings` composing the `AEGIS_CODE_INTEL_BACKEND` selector with
+all three nested per-family settings via `default_factory`, plus the
+`presence_signals` / `active_backend` properties and the ambiguity
+`model_validator` implementing the full C2 truth table)._
+
+**Implementation decisions of record:**
+
+- **Subtasks were implemented in dependency order 03 → 01 → 02, not table
+  order.** Subtask 03's `Blocks` column names 01 and 02 (`config.py` imports the
+  exception types), so building the leaf first avoided writing and then
+  discarding a forward-declared placeholder.
+- **`harness/__init__.py` re-exports only the `typing`-only exception types**, and
+  deliberately not `HarnessSettings` (which would pull `pydantic` into the package
+  namespace) — mirroring how `openclaude/__init__.py` withholds
+  `OpenClaudeTool`/`Process`/`GrpcClient` to keep `grpc` out (C3). Subtask 01's
+  spec previously said "empty, versioned"; that wording was corrected to match
+  this established package convention.
+- **Contract C3 was amended** (see plan.md C3's inline amendment note): its
+  original text named `harness/composition.py` as the *only* module permitted to
+  import more than one backend family, which C1's own nested-settings requirement
+  contradicts. `harness/config.py` is now explicitly allowlisted for
+  **settings-class imports only** — no runtime/tool/process/client imports, so no
+  `grpc` or client library enters the shared namespace. Task 13.0's CI grep check
+  must encode that distinction.
+- **`active_backend` returns a bare family `str`**, never the `HarnessBackend`
+  member, and `presence_signals` is the single source of truth read off the
+  already-constructed nested settings objects — never re-derived from
+  `os.environ`.
+- **`HarnessUnavailableError` is never raised by `HarnessSettings`.** Per C2 the
+  set-selector-with-absent-signal case does not raise at construction; it is
+  Task 10.0's composition-time concern.
+
+**Tests:** `tests/unit/harness/test_exceptions.py` (10) and
+`tests/unit/harness/test_config.py` (33) — all five C2 truth-table rows including
+the `OPENCLAUDE_GRPC_URL`-only Milestone 0004 backward-compatibility guarantee, a
+multi-signal ambiguity case involving the boolean `claude_code` signal, an
+all-three-signals case, C13 payload-freedom assertions, an AST leaf-module
+import-purity scan, and AST C3 guards (no `core`/`views`/`code_intel` import of
+`harness.config`; no backend package importing a sibling). Coverage:
+`harness/exceptions.py` 100%, `harness/config.py` 94.57%, `harness/__init__.py`
+100%.
+
+**Reviews:** `subtask-verifier` PASS on subtask 02, PARTIAL→resolved on 01 and 03
+(both deviations fixed). `feature-reviewer` **LGTM**, no blocking issues.
+`security-auditor` gate **PASS**, no CRITICAL/HIGH — threat model at
+[docs/security/2026-08-24-harness-code-intel-config.md](/docs/security/2026-08-24-harness-code-intel-config.md).
 
 ### Task 02.0 — Claude Code Settings & Config
 
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-24) — both subtasks. Implemented ahead of its
+own loop iteration, as a scoped decision during Task 01.0: `HarnessSettings`
+composes `ClaudeCodeSettings` by `default_factory`, and the full class was built
+rather than a stub so the C2 selection logic could be exercised against real
+objects.
 
-_Delivers `claude_code/config.py` (`ClaudeCodeSettings`, C5/C6): binary path,
-read-only `allowed_tools`, non-bypassing `permission_mode`, `max_turns`,
-`request_timeout_s`, mandatory disposable `scratch_cwd`, and the
-`CLAUDE_CODE_ENABLED` presence signal. Rejects `--dangerously-skip-permissions`._
+_Delivered `claude_code/config.py` (`ClaudeCodeSettings`, C5/C6): `binary_path`,
+the `CLAUDE_CODE_ENABLED` presence signal, read-only `allowed_tools`
+(`Read,Grep,Glob`; `Write`/`Edit` warn), `max_turns`, `request_timeout_s`,
+non-bypassing `permission_mode`, and the mandatory-when-enabled disposable
+`scratch_cwd`. Mirrors `OpenClaudeSettings`' proven machinery per C5 — per-family
+`env_prefix`, a CSV `EnvSettingsSource` subclass, `mode="before"` coercion
+validators, and the `ValidationError`-unwrap in `__init__`. `ClaudeCodeConfigError`
+is forward-declared here; Task 05.0 supplies the canonical definition in
+`claude_code/exceptions.py` via a re-export alias with no import-path change.
+`auth_mode` is deliberately absent — Task 04.0 extends this class additively._
+
+**Security-review fixes applied in-task:** the `scratch_cwd` validator's three
+error reasons no longer interpolate the resolved absolute path (it can carry the
+home directory and username), matching the value-free style of the repo-root
+branch and the C13 field-names-only rule; and `enabled` gained a `mode="before"`
+coercion so an empty/whitespace value — an unset CI secret expands to `""` —
+falls back to `False` instead of raising a raw pydantic `bool_parsing` error.
+That second fix is load-bearing beyond availability: `CLAUDE_CODE_ENABLED` is the
+C2 presence signal `HarnessSettings` reads, so an empty value previously broke the
+contract that a zero-config `HarnessSettings()` always constructs.
+
+**Tests:** `tests/unit/claude_code/test_config.py` (32) — defaults, empty-env
+coercion, CSV env parsing, the full bypass-permission reject matrix (including the
+bare `bypass` spelling and mixed casing), the `scratch_cwd` validation matrix, and
+regression tests for both security fixes. Coverage: `claude_code/config.py`
+93.67%.
 
 ### Task 03.0 — Claude Code Subprocess Tool
 
@@ -222,11 +311,45 @@ config/unavailable/permission/auth errors)._
 
 ### Task 06.0 — OpenHands Settings & Config
 
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-24) — both subtasks. Implemented ahead of its own
+loop iteration for the same reason as Task 02.0: `HarnessSettings` composes
+`OpenHandsSettings` by `default_factory`, so the real class was built rather than
+a stub.
 
-_Delivers `openhands/config.py` (`OpenHandsSettings`, C5/C8): `server_url`
-presence signal, Docker-sandboxed runtime mode by default, allowlist, timeouts,
-`auto_start`._
+_Delivered `openhands/config.py` (`OpenHandsSettings`, C5/C8): the
+`OPENHANDS_SERVER_URL` presence signal, `runtime_mode` defaulting to the
+Docker-sandboxed runtime, `allowed_tools`, `connect_timeout_s`,
+`request_timeout_s`, `auto_start`, and the subtask-02
+`allow_unsandboxed_runtime` override. Mirrors `OpenClaudeSettings`' machinery per
+C5. `OpenHandsConfigError` is forward-declared here; Task 09.0 supplies the
+canonical definition in `openhands/exceptions.py`._
+
+**Two deliberate divergences from the OpenClaude template, both recorded so later
+tasks don't "correct" them:**
+
+- **`server_url` requires an `http(s)://` scheme** — the inverse of
+  `OpenClaudeSettings.grpc_url`, which rejects a scheme and wants bare
+  `host[:port]`. OpenHands is REST/WS, not gRPC.
+- **`runtime_mode` needs an explicit `validation_alias="OPENHANDS_RUNTIME"`**,
+  because Pydantic's `env_prefix` would otherwise derive `OPENHANDS_RUNTIME_MODE`
+  — not the variable name C8 specifies.
+
+**C8 sandbox posture:** enforced by a cross-field `model_validator(mode="after")`
+rather than a field default alone, so it fires even when `runtime_mode` arrives
+via the environment. A non-sandboxed runtime requires both an explicit runtime
+value *and* `allow_unsandboxed_runtime=True`, and logs a loud warning when
+overridden; relaxing this permanently requires an ADR per C8.
+
+**Security-review fix applied in-task:** `auto_start` and
+`allow_unsandboxed_runtime` gained `mode="before"` coercion so an empty/whitespace
+env value (unset CI secret) falls back to `False` rather than raising a raw
+pydantic `bool_parsing` error. The fail-safe direction is preserved — an empty
+value can never flip the sandbox override permissive.
+
+**Tests:** `tests/unit/openhands/test_config.py` (28) — defaults, empty-env→`None`
+coercion, scheme-required URL validation, CSV env parsing, the full
+sandbox-enforcement matrix from both the constructor and env paths, and regression
+tests for the bool-coercion fix. Coverage: `openhands/config.py` 96.43%.
 
 ### Task 07.0 — OpenHands Client & Process Lifecycle
 

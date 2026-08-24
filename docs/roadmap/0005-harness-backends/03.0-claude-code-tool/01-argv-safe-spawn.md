@@ -257,7 +257,7 @@ class ClaudeCodeProcess:
 - The task string appears in **no** argv element (C6.1); it is written to stdin (or a disposable scratch temp file) only.
 - No task bytes, response text, argv, or stderr text is logged unredacted; `SensitiveFilter` on every sink; stderr only at DEBUG with the line as a bound argument (C13).
 - No bare `except:`; per-line stderr failures caught narrowly; every exit path reaps the child (SIGTERM -> grace -> SIGKILL) and closes pipes (C13).
-- No `Any` in any signature; `ruff` and `replace_optional.py --check` clean.
+- No `Any` in any signature; `ruff check src/ tests/` - clean.
 - Every public class/function has an RST-style docstring (C13).
 
 ## Success criteria
@@ -270,4 +270,4 @@ class ClaudeCodeProcess:
 - [ ] `__aexit__` reaps the child (SIGTERM -> grace -> SIGKILL) and drains stderr on the normal, exception, and cancellation paths; no zombie or leaked pipe remains.
 - [ ] No task/argv/stderr text is logged unredacted; stderr logged only at DEBUG via a bound argument (C13).
 - [ ] No `subprocess.Popen` / `os.system` / shell invocation appears in the file.
-- [ ] `ruff` and `replace_optional.py --check` clean; no `Any` in any signature.
+- [ ] `ruff check src/ tests/` - clean; no `Any` in any signature.

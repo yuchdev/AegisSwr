@@ -130,4 +130,4 @@ def _is_allowlisted(self, command: str) -> bool:
 - [ ] A command that cannot be reduced to a bare binary is denied.
 - [ ] The deny path performs zero `CallBudget` mutations.
 - [ ] No frame content / tool output is logged or placed on an event.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

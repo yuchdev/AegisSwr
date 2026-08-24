@@ -353,9 +353,25 @@ signals seen — **never** any secret or payload text (C13).
   **none** of `aegis_swr.openclaude`, `aegis_swr.claude_code`,
   `aegis_swr.openhands`, `grpc`, the OpenHands client library, or any generated
   stubs. The backend is injected, never imported by the scaffolding.
-- **`aegis_swr/harness/composition.py` is the only module permitted to import
-  more than one backend family** (all three). No backend package imports a
-  sibling backend package.
+- **Only the two `aegis_swr/harness/` modules named here may import more than one
+  backend family** (all three); no backend package imports a sibling backend
+  package.
+  - `harness/composition.py` — imports each family's **runtime** classes (tool,
+    process, client) to assemble the selected stack (C4).
+  - `harness/config.py` — imports each family's **settings class only**, because
+    C1 requires `HarnessSettings` to nest all three via `default_factory`. This
+    is a settings-shape dependency, not a runtime one: it must pull in no tool,
+    process, or client module, and therefore no `grpc`, no OpenHands client
+    library, and no generated stubs.
+
+  > **Amended 2026-08-24 (Task 01.0).** The original wording named
+  > `composition.py` as the *only* such module, which C1's own nested-settings
+  > requirement contradicts — `HarnessSettings` cannot compose three families
+  > without importing three settings classes. The boundary that actually matters
+  > is *runtime* isolation (keeping backend client libraries out of the shared
+  > namespace), and that still holds. Task 13.0's CI grep check must allowlist
+  > `harness/config.py` for settings-class imports while continuing to reject any
+  > runtime-class or client-library import there.
 - Within each backend package the 0004 sub-boundaries hold: `grpc`/`_pb2` only
   in `openclaude/grpc/client.py`; the OpenHands client library only in
   `openhands/client.py`; each backend's subprocess/sidecar owned solely by that

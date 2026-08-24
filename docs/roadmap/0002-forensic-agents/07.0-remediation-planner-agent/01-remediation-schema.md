@@ -65,8 +65,7 @@ This field is `None` on HITL outcomes (never populated by `_hitl_node`) and
 - All optional fields use `Optional[T]` imported from `typing`; never `T | None`.
 - `list[RemediationStep]` uses `Field(default_factory=list)` only where the
   field has a default; here `steps` is required (no default).
-- `replace_optional.py --check` must pass; the validator method is annotated
-  `-> RemediationPlan` and uses `@model_validator(mode="after")`.
+- the validator method is annotated `-> RemediationPlan` and uses `@model_validator(mode="after")`.
 - The `rollback` field is a plain `str` (not `Optional[str]`) - every step must
   supply one. This is a deliberate design choice that prevents silent omissions.
 - RST-style docstrings (`:ivar:`, `:type:`) on both new models and on the
@@ -103,5 +102,5 @@ This field is `None` on HITL outcomes (never populated by `_hitl_node`) and
       contiguous 1-based ordering.
 - [ ] `confidence < 0.70` on `RemediationPlan` forces `requires_human_approval=True`.
 - [ ] All seven unit tests above pass.
-- [ ] `replace_optional.py --check` clean on `core/schemas.py`.
+- [ ] `ruff check src/ tests/` - clean on `core/schemas.py`.
 - [ ] `ruff` clean (no unused imports introduced).

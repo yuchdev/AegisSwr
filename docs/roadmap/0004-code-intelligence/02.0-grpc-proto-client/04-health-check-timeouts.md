@@ -117,7 +117,7 @@ class OpenClaudeGrpcClient:  # methods appended to the subtask-03 definition
   not redefined.
 - `asyncio.sleep` for any backoff, never `time.sleep` (C9).
 - `from __future__ import annotations`; `Optional[T]` from `typing`; `ruff`
-  and `replace_optional.py --check` clean; zero new `# type: ignore` (C9).
+  and `ruff check src/ tests/` - clean; zero new `# type: ignore` (C9).
 - No raw payload/response text in any log sink or exception message.
 
 ## Success criteria
@@ -135,4 +135,4 @@ class OpenClaudeGrpcClient:  # methods appended to the subtask-03 definition
 - [ ] No `grpc` exception type escapes `client.py`; `OpenClaudeUnavailableError`
       is imported from `aegis.openclaude.exceptions`, not redefined.
 - [ ] No probe prompt or response text appears in any log line.
-- [ ] `ruff`, `replace_optional.py --check` all clean.
+- [ ] `ruff check src/ tests/` - clean.

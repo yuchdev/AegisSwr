@@ -158,4 +158,4 @@ an empty list when no candidates are found. Must be independently unit-testable.
 - [ ] Pre-check candidates are merged into `output.wait_chain` when the LLM
       returns an empty list.
 - [ ] `_extract_wait_chain_candidates` is a standalone, pure function.
-- [ ] `replace_optional.py --check` clean; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean.

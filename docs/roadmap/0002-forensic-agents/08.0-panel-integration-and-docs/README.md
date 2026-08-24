@@ -74,9 +74,3 @@ milestone exit unconditionally.
 escalation logic. Subtask 04 requires an `incident-analyst` pass confirming that
 the HITL path remains always reachable and that the remediation planner is
 skipped when HITL fires.
-
-**`Optional[T]`, never `T | None`.** All configuration models and any test
-code produced in this task must use `Optional[T]` from `typing`. Run
-`python scripts/replace_optional.py --check` before closing subtask 04.
-
-**`replace_optional.py --check` and ruff.** All new test files must pass both checks.

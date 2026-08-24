@@ -55,7 +55,7 @@ full step record is recoverable from the stored report as well as live.
 
 - **Thin transport / Factory-Strategy**: routes assemble sources + backends via
   the existing factories and call the orchestrator; no business logic in routes.
-- **Typing**: full annotations, `replace_optional.py --check` clean, always `Optional[T]`.
+- **Typing**: full annotations, `ruff check src/ tests/` - clean, always `Optional[T]`.
 - **Error handling**: every external call has a defined failure path; domain
   exceptions map to HTTP status via centralised handlers; no bare `except:`.
 - **Security**: treat every uploaded payload as hostile - size caps, content
@@ -97,7 +97,7 @@ full step record is recoverable from the stored report as well as live.
 ```
 
 **Definition of done for the milestone:** 01-11 satisfied and green under
-`poetry run pytest tests/unit/ tests/integration/ -q`; `replace_optional.py --check` clean;
+`poetry run pytest tests/unit/ tests/integration/ -q`; `ruff check src/ tests/` - clean;
 `ruff` clean; `aegis server` boots a working app; the OpenAPI artifact and API
 reference are refreshed. When all land, flip the `8 REST API Layer` status row
 from ⬜ Not started to ✅ Complete.

@@ -331,4 +331,4 @@ async def test_completed_event_carries_token_estimate(
 - [ ] Sandbox verification passes: the host lacks `/.dockerenv` but the runtime reports it presents, proving in-container execution (C8).
 - [ ] Exactly one `openhands.completed` event carries a positive `token_estimate`.
 - [ ] No OpenHands sidecar session survives the run; no credential is logged.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

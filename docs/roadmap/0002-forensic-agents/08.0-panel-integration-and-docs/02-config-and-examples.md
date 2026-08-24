@@ -263,5 +263,5 @@ skeptic=0.15).
       `per_fault_class` for all ten classes.
 - [ ] `.env.example` is checked; a note is added if no new env keys are required.
 - [ ] All four round-trip tests pass.
-- [ ] `python scripts/replace_optional.py --check` and `ruff check` pass on `test_agents_config_roundtrip.py`.
+- [ ] `ruff check src/ tests/` - clean.
 - [ ] No existing test is weakened or deleted to achieve a green run.

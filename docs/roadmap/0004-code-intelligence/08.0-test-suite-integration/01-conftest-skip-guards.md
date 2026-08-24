@@ -201,4 +201,4 @@ infrastructure. Its behavior is validated indirectly by subtasks 02–05:
       PID/process-table check in subtask 02).
 - [ ] `live_grpc_client` connects to the managed process and is closed on teardown.
 - [ ] `stub_project` is created under a temp dir and is never the repo source tree.
-- [ ] `ruff` and `replace_optional.py --check` are clean on the file.
+- [ ] `ruff check src/ tests/` - clean on the file.

@@ -119,4 +119,4 @@ async def test_read_only_task_succeeds(
 - [ ] The deny path leaves budget accounting intact (non-retriable failure, no crash).
 - [ ] Tests report **skipped** (not failed) when the binary or signal is absent.
 - [ ] No OpenClaude process survives the run.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

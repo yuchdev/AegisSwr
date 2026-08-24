@@ -111,7 +111,7 @@ per Task 04.0 subtask 04 (return `[dry-run]`/`0` before `client.query`).
 - The dry-run branch keeps the backend **registered** so the composition path
   (settings → client → tool → `CodeAgent`) is exercised end to end.
 - `Optional[T]` from `typing`; `from __future__ import annotations`;
-  `ruff` / `replace_optional.py --check` clean (C9).
+  `ruff` / `ruff check src/ tests/` - clean (C9).
 - No raw payload / unredacted response text logged; the `[dry-run]` result
   carries no incident text (C9).
 
@@ -130,4 +130,4 @@ per Task 04.0 subtask 04 (return `[dry-run]`/`0` before `client.query`).
       `CodeResult(content startswith "[dry-run]", token_estimate == 0)`.
 - [ ] `python -m aegis.app --dry-run` with no env vars set returns a
       backend-less `CodeAgent` (`agent.available is False`) and exits cleanly.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

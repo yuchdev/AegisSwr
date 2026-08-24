@@ -172,8 +172,7 @@ Each debate specialist mirrors the existing `OSKernelOutput` shape (a list of
 
 ### C7 - Cross-cutting project invariants (inherited from 0001)
 
-- `Optional[T]` from `typing`, never `T | None` (run `scripts/replace_optional.py --check`).
-- `replace_optional.py --check` clean; `ruff` clean.
+- `ruff check src/ tests/` - clean.
 - Mandatory `cache_control: {"type": "ephemeral"}` on every system prompt block
   (handled by `_BaseAIBackend`; agents pass the system prompt through).
 - **Untrusted payload text** (stack frames, log lines, register values) flows

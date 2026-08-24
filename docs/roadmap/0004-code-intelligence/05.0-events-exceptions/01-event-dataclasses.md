@@ -229,7 +229,7 @@ class OpenClaudeStreamError:
   field - only ids, counts, estimates, and short status strings (C9).
 - `token_estimate` appears on `OpenClaudeStreamCompleted` only (C8).
 - `from __future__ import annotations` at the top; `Optional[T]` from `typing`
-  if any optional field is later added (none needed now); `replace_optional.py --check` clean.
+  if any optional field is later added (none needed now); `ruff check src/ tests/` - clean.
 - No `grpc` or `litellm` import in this file (C3).
 
 ## Success criteria
@@ -242,8 +242,7 @@ class OpenClaudeStreamError:
       `timestamp: datetime`.
 - [ ] `OpenClaudeStreamCompleted` is the only class exposing `token_estimate`
       (and it also carries `frame_count` and `truncated`).
-- [ ] No field annotation is `Any`; `ruff` and
-      `replace_optional.py --check` are clean.
+- [ ] No field annotation is `Any`; `ruff check src/ tests/` - clean.
 - [ ] No field carries tool arguments, tool output, response text, or a raw
       error message (asserted by a unit test inspecting field names/types).
 - [ ] `python -c "import aegis.openclaude.events"` succeeds with no `grpc`

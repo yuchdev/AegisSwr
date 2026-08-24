@@ -356,4 +356,4 @@ def test_openhands_imports_no_grpc():
 - [ ] `test_tool.py`: `pytest --cov=aegis_swr.openhands.tool --cov-branch` reports **100%** branch on `delegate()`; budget/dry-run paths make no network call; both token-accounting branches are covered.
 - [ ] `test_events.py`: seven `openhands.*` classes instantiate, are frozen, carry `run_id`/UTC `timestamp`/`event_type`; only `StreamCompleted` carries the token figure.
 - [ ] `test_isolation.py` / `test_client.py`: `openhands/client.py` is the sole importer of the OpenHands client library; no sibling-backend / grpc import.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

@@ -170,4 +170,4 @@ ssl_context.load_cert_chain(
 - [ ] Auth token never appears in log output.
 - [ ] TLS cert loading conditional on settings fields.
 - [ ] All unit tests pass with zero real network calls.
-- [ ] `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

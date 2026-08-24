@@ -165,4 +165,4 @@ in an `ssl.SSLContext` created from `fluent_tls_ca_cert` and optionally
 - [ ] Max-events hard cap enforced with a warning log.
 - [ ] TLS conditional on settings fields.
 - [ ] All unit tests pass with zero real network calls.
-- [ ] `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

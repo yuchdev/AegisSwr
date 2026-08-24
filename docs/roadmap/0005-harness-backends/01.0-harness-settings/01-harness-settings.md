@@ -7,7 +7,7 @@
 
 ## Objective
 
-Create `aegis_swr/harness/__init__.py` (empty, versioned) and
+Create `aegis_swr/harness/__init__.py` and
 `aegis_swr/harness/config.py` containing `HarnessSettings` — a Pydantic
 `BaseSettings` subclass that composes the `AEGIS_CODE_INTEL_BACKEND` selector
 field with one nested per-family settings sub-object, per milestone contract
@@ -175,22 +175,20 @@ class HarnessSettings(BaseSettings):
 
 ## Constraints
 
-- `Optional[T]` from `typing`, never `T | None` (including in subscripts and
-  `Annotated[...]`); `from __future__ import annotations` at the top of the file
-  (C13). `scripts/replace_optional.py --check` clean.
-- No `Any` in field *types* (the `**values: Any` on `__init__` mirrors
-  `OpenClaudeSettings` and is permitted); no new `# type: ignore`.
-- `HarnessConfigError` is imported from `harness/exceptions.py` (subtask 03) —
-  not redefined here. `HarnessSettings` never imports `harness/composition.py`
-  (it does not exist yet) and is not imported by `aegis_swr/core/`,
-  `aegis_swr/views/`, or `aegis_swr/code_intel/` (C3).
-- This subtask adds **no** selection resolution or ambiguity check — that is
-  subtask 02. Construction of `HarnessSettings()` with any combination of
-  presence signals must not raise here (the ambiguity raise arrives with 02).
+- No `Any` in field *types* (the `**values: Any` on `__init__` mirrors `OpenClaudeSettings` and is permitted); no new `# type: ignore`.
+- `HarnessConfigError` is imported from `harness/exceptions.py` (subtask 03) — not redefined here. `HarnessSettings` never imports `harness/composition.py` (it does not exist yet) and is not imported by `aegis_swr/core/`, `aegis_swr/views/`, or `aegis_swr/code_intel/` (C3).
+- This subtask adds **no** selection resolution or ambiguity check — that is subtask 02. Construction of `HarnessSettings()` with any combination of presence signals must not raise here (the ambiguity raise arrives with 02).
 
 ## Success criteria
 
-- [ ] `aegis_swr/harness/__init__.py` exists (empty) and `aegis_swr/harness/config.py` defines `HarnessBackend` and `HarnessSettings`.
+- [ ] `aegis_swr/harness/__init__.py` exists and `aegis_swr/harness/config.py` defines `HarnessBackend` and `HarnessSettings`.
+- [ ] `harness/__init__.py` re-exports **only** dependency-free types — the `typing`-only
+      `HarnessConfigError` / `HarnessUnavailableError` from subtask 03 — and deliberately does
+      **not** re-export `HarnessSettings` (which would pull `pydantic` into the package
+      namespace) nor anything from the Task 10.0 composition root. This mirrors
+      `openclaude/__init__.py`, which re-exports its payload-free event/exception types while
+      explicitly withholding `OpenClaudeTool`/`OpenClaudeProcess`/`OpenClaudeGrpcClient` to keep
+      `grpc` out of the namespace (C3).
 - [ ] `HarnessSettings()` with no env vars set constructs without raising; `backend is None` and each nested settings object holds its family defaults (`openclaude.grpc_url is None`, `claude_code.enabled is False`, `openhands.server_url is None`).
 - [ ] `HarnessSettings(backend="openclaude")` constructs with `backend is HarnessBackend.OPENCLAUDE`.
 - [ ] `AEGIS_CODE_INTEL_BACKEND=""` (empty) resolves to `backend is None` (auto-select), not a validation error.
@@ -198,4 +196,4 @@ class HarnessSettings(BaseSettings):
 - [ ] Each nested sub-object is sourced from its own family's env vars only — e.g. `OPENCLAUDE_GRPC_URL=localhost:50051` sets `settings.openclaude.grpc_url == "localhost:50051"` and leaves `claude_code` / `openhands` at defaults.
 - [ ] `HarnessSettings` reads no environment variable other than `AEGIS_CODE_INTEL_BACKEND` (verified by asserting nested-family values come only through their own settings classes).
 - [ ] No import of `HarnessSettings` appears in `aegis_swr/core/`, `aegis_swr/views/`, or `aegis_swr/code_intel/` (C3).
-- [ ] `scripts/replace_optional.py --check` clean; `ruff` clean; no `Any` in field types.
+- [ ] `ruff check src/ tests/` - clean; no `Any` in field types.

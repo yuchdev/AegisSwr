@@ -209,4 +209,4 @@ def _truncate(self, content: str) -> tuple[str, bool]:
 - [ ] No exception escapes `run()`; a fault-injected `_delegate` still yields a
       typed failure.
 - [ ] 100% branch coverage on `tool.py`; `ruff` and
-      `replace_optional.py --check` clean.
+      `ruff check src/ tests/` - clean.

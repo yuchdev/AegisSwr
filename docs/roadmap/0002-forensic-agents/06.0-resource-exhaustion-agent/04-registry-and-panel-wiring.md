@@ -107,7 +107,7 @@ enforces the skeptic-last invariant as a safety net.
 - No circular imports: `registry.py` imports from `forensic/`; `forensic/`
   must not import from `registry.py`.
 - `Optional[T]` from `typing`; never `T | None`.
-- `replace_optional.py --check` clean after the change.
+- `ruff check src/ tests/` - clean after the change.
 - `ruff` clean; line length 100.
 - Unknown keys in panel config are silently dropped by `create_agent_panel`
   (C4 invariant); this subtask does not change that behavior.
@@ -122,4 +122,4 @@ enforces the skeptic-last invariant as a safety net.
       `stack_overflow`, and `deadlock` fault classes.
 - [ ] `create_agent_panel(…, fault_class=FaultClass.RESOURCE_EXHAUSTION)`
       returns a panel containing a `ResourceExhaustionAgent` instance.
-- [ ] `replace_optional.py --check` clean; `ruff` clean; no import cycles.
+- [ ] `ruff check src/ tests/` - clean; no import cycles.

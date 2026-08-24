@@ -89,4 +89,3 @@ behavior.
 - [ ] Orchestrator builds debate nodes from `create_agent_panel`; skeptic terminal.
 - [ ] Default config reproduces the 0001 node chain, routing, and convergence.
 - [ ] Enabling a specialist adds a debate node and a turn in history.
-- [ ] All orchestrator tests pass; `python scripts/replace_optional.py --check` clean.

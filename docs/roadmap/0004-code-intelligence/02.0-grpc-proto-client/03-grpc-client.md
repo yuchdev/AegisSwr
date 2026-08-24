@@ -281,4 +281,4 @@ launch flags above don't match `settings.allowed_tools` /
 - [ ] `query(prompt, run_id)` is an async generator yielding one `AgentFrame`
       per `AgentMessage`, stopping after the first `DONE` / `ERROR`.
 - [ ] `close()` is idempotent and safe when the channel was never opened.
-- [ ] `ruff`, `replace_optional.py --check` all clean.
+- [ ] `ruff check src/ tests/` - clean.

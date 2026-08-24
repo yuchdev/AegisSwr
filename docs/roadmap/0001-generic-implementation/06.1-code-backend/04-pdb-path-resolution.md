@@ -148,4 +148,4 @@ raise CodeBackendError(
 - [ ] `pdb_search_dirs` searched only when steps 1 and 2 find nothing.
 - [ ] `CodeBackendError` raised with an informative message when nothing found.
 - [ ] All 10 unit tests above pass with no real `.pdb` files required.
-- [ ] `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

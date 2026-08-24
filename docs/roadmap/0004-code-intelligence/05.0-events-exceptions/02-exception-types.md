@@ -156,7 +156,7 @@ touched (C3).
 - No `grpc`, `litellm`, or `pydantic` import in this file - it is a leaf module
   that `config.py`, `process.py`, `grpc/client.py`, and `tool.py` all import
   from without creating a cycle.
-- `ruff` and `replace_optional.py --check` clean; every class
+- `ruff check src/ tests/` - clean; every class
   has an RST-style docstring.
 - No `Any` in any signature.
 
@@ -177,5 +177,5 @@ touched (C3).
 - [ ] `OpenClaudeUnavailableError` accepts an optional `grpc_url` and stores it.
 - [ ] No exception message can contain incident payload (asserted by a unit
       test constructing each type).
-- [ ] `ruff`, `replace_optional.py --check` clean; no `grpc`
+- [ ] `ruff check src/ tests/` - clean; no `grpc`
       import pulled in by `import aegis.openclaude.exceptions`.

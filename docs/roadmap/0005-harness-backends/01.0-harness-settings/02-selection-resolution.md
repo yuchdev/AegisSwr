@@ -142,16 +142,9 @@ class HarnessSettings(BaseSettings):
 
 ## Constraints
 
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` (C13). `scripts/replace_optional.py --check` clean.
-- Only `HarnessSettings` in `harness/config.py` changes; no new module. The
-  `HarnessUnavailableError` type is **not** raised anywhere in this task — it is
-  raised by Task 10.0's composition root only.
-- `active_backend` returns a plain `str` family name (or `None`), not a
-  `HarnessBackend` member, so Task 10.0's composition branch can compare against
-  the bare family strings without importing the enum.
-- No secret or payload text in any exception message or log line produced by the
-  resolution logic (C13).
+- Only `HarnessSettings` in `harness/config.py` changes; no new module. The `HarnessUnavailableError` type is **not** raised anywhere in this task — it is raised by Task 10.0's composition root only.
+- `active_backend` returns a plain `str` family name (or `None`), not a `HarnessBackend` member, so Task 10.0's composition branch can compare against the bare family strings without importing the enum.
+- No secret or payload text in any exception message or log line produced by the resolution logic (C13).
 
 ## Success criteria
 
@@ -164,4 +157,4 @@ class HarnessSettings(BaseSettings):
 - [ ] Selector set to one family while a *different* family's signal is the only one present → `active_backend` returns the *selected* family (selector wins), no `HarnessConfigError`.
 - [ ] `presence_signals` returns exactly the set of families whose signal is set, computed off the nested settings objects (no `os.environ` read).
 - [ ] `active_backend` returns a `str` (or `None`), never a `HarnessBackend` member.
-- [ ] `scripts/replace_optional.py --check` clean; `ruff` clean; the full C2 truth table is covered by `tests/unit/harness/test_config.py`.
+- [ ] `ruff check src/ tests/` - clean; the full C2 truth table is covered by `tests/unit/harness/test_config.py`.

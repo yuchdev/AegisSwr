@@ -46,14 +46,9 @@ All backends communicate via `CrashReportEntity` (TypedDict in `core/data_schema
 
 `config/app_config.py` defines a single `ConfigOption` schema that drives both CLI (argparse) and GUI (PySide6 dynamic form generation). Config persists to `~/.crash_analyzer_config.json`.
 
-### GUI
-
-`gui/` uses PySide6. Long-running backend operations run in `gui/worker.py` (threading helper). The config form in `gui/widgets/config_form.py` is generated dynamically from `ConfigOption`.
-
 ## Key Conventions
 
 - **RAII via context managers**: subprocess and socket resources are always managed with `with` blocks.
 - **SensitiveFilter**: applied to all loggers to redact API keys from log output.
 - **`SourceCollection`** (`core/data_sources.py`): container passed through the pipeline that holds the dump, symbol path, and optional log source.
 - **Actions** (`actions/`): thin CLI action handlers that assemble sources and backends then call the orchestrator - keep business logic out of these.
-- **Optional type annotations**: always write `Optional[T]` (imported from `typing`), never the `T | None` shorthand - including inside subscripts (`Optional[list[Path]]`, `dict[str, Optional[str]]`) and `Annotated[...]`. The codemod `scripts/replace_optional.py` rewrites any `T | None` to `Optional[T]` and ensures the `from typing import Optional` import; run it (or `--check`) to enforce this.

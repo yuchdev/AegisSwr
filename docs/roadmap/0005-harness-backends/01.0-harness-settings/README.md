@@ -58,9 +58,9 @@ sub-settings class MUST mirror `OpenClaudeSettings`' proven shape (C5).
 
 | #  | Document                                                       | Status         | Blocks                                        |
 |----|----------------------------------------------------------------|----------------|-----------------------------------------------|
-| 01 | [`HarnessSettings` class shape](01-harness-settings.md)        | ⬜ Not started | 02 (this task); 02.0, 06.0, 10.0 (downstream) |
-| 02 | [Selection & ambiguity resolution](02-selection-resolution.md) | ⬜ Not started | 10.0 (downstream)                             |
-| 03 | [`harness/exceptions.py`](03-harness-exceptions.md)            | ⬜ Not started | 01, 02 (this task); 10.0 (downstream)         |
+| 01 | [`HarnessSettings` class shape](01-harness-settings.md)        | ✅ Complete    | 02 (this task); 02.0, 06.0, 10.0 (downstream) |
+| 02 | [Selection & ambiguity resolution](02-selection-resolution.md) | ✅ Complete    | 10.0 (downstream)                             |
+| 03 | [`harness/exceptions.py`](03-harness-exceptions.md)            | ✅ Complete    | 01, 02 (this task); 10.0 (downstream)         |
 
 Subtask 03 (the exception leaf module) has no dependencies and should land
 first or atomically with the others — subtasks 01 and 02 both import from it.

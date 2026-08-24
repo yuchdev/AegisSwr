@@ -51,17 +51,11 @@ deleted to achieve green.
 **Commands (all must exit 0):**
 
 ```
-python scripts/replace_optional.py --check src/aegis_swr/
-ruff check src/aegis_swr/ tests/
+ruff check src/ tests/
 ruff format --check src/aegis_swr/ tests/
 ```
 
 **Pass criteria:**
-- `python scripts/replace_optional.py --check` is clean across the full `src/aegis_swr/` tree
-  including all new `agents/base/`, `agents/forensic/`, and `agents/synthesis/`
-  modules.
-- `replace_optional.py --check` finds no `T | None` shorthand in any new or
-  modified file.
 - `ruff check` is clean (no warnings suppressed for new files).
 - `ruff format --check` reports no formatting drift.
 
@@ -191,8 +185,6 @@ may proceed.
 
 - [ ] `poetry run pytest tests/unit/ tests/integration/` exits 0 with zero
       failures; coverage on `src/aegis_swr/agents/` does not decrease.
-- [ ] `python scripts/replace_optional.py --check src/aegis_swr/` exits 0.
-- [ ] `python scripts/replace_optional.py --check src/aegis_swr/` exits 0.
 - [ ] `ruff check src/aegis_swr/ tests/` exits 0.
 - [ ] `ruff format --check src/aegis_swr/ tests/` exits 0.
 - [ ] Ground-truth run result recorded in subtask 05 as-built notes (or marked

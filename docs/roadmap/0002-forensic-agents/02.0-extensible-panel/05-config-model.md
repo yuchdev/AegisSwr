@@ -79,4 +79,3 @@ specialist panel example.
 - [ ] `AgentPanelSettings` exists and is reachable from `Settings`.
 - [ ] `config.yaml` and `agents.example.json` carry the panel + weight blocks with
       legacy defaults.
-- [ ] Settings tests pass; `python scripts/replace_optional.py --check` clean.

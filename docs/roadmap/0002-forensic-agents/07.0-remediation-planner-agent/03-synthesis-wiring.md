@@ -90,7 +90,7 @@ skeptic confirmation, labelled `"Remediation Planner Agent"`.
   continue, `remediation_plan` stays `None`.
 - `report.model_copy(update=...)` is the correct Pydantic v2 pattern for
   producing an updated immutable copy; do not mutate the report in place.
-- `Optional[T]`, `replace_optional.py --check`, `ruff` clean.
+- `ruff check src/ tests/` - clean.
 - No raw incident payload in any log statement emitted by the synthesizer path.
 
 ## Success criteria

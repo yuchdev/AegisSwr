@@ -88,8 +88,7 @@ The full list, in [plan.md](/docs/roadmap/0005-harness-backends/plan.md) order:
 - [ ] `ruff` clean; per-backend unit coverage ≥ 90%; 100% branch on each new
       tool's `delegate` — evidence: subtask 04 coverage gates + `ruff check`.
 
-Also confirm (project-wide mandate, not in [plan.md](/docs/roadmap/0005-harness-backends/plan.md)'s list but required by
-`../CLAUDE.md`): `python scripts/replace_optional.py --check` clean.
+Also confirm (project-wide mandate, not in [plan.md](/docs/roadmap/0005-harness-backends/plan.md)'s list but required by `../CLAUDE.md`)
 
 ### 2. Structural / docs gates
 
@@ -199,7 +198,7 @@ Draft skeleton:
 
 ## Success criteria
 - [ ] Every [plan.md](/docs/roadmap/0005-harness-backends/plan.md) Global acceptance criterion confirmed met with recorded evidence (all bullets walked, in order).
-- [ ] `replace_optional.py --check` and `ruff` confirmed clean.
+- [ ] `ruff check src/ tests/` - clean.
 - [ ] Structural plus docs gates confirmed.
 - [ ] Implementer action item to flip all 13 `status.md` rows **and** every subtask state marker to ✅ is stated.
 - [ ] `CHANGELOG.md` entry names all 13 tasks (01.0–13.0) and records that 0005 extends (not supersedes) Milestone 0004, incl. the C12 rename and the C7 licensing caveat.

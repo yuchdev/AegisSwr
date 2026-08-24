@@ -192,4 +192,4 @@ class ClaudeCodeSettings(BaseSettings):  # ← same class as subtask 01; fields 
       `ClaudeCodeConfigError`.
 - [ ] `CLAUDE_CODE_SCRATCH_CWD=""` (empty CI-secret expansion) coerces to
       `None`; with `enabled=False` it does not raise.
-- [ ] `replace_optional.py --check` clean; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean.

@@ -402,4 +402,4 @@ def test_claude_code_imports_no_grpc_or_openhands_client():
 - [ ] `test_no_credential_value_in_logs_or_exceptions` passes for all three credential vars: the sentinel value appears in no log, exception, or event.
 - [ ] `test_events.py`: eight `claude_code.*` classes instantiate, are frozen, carry `run_id`/UTC `timestamp`/`event_type`; only `StreamCompleted` carries the token figure; `auth_failed` carries a reason enum only.
 - [ ] `test_isolation.py`: no sibling-backend / grpc / OpenHands-client import.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

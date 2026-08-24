@@ -98,4 +98,3 @@ class AgentPanelSettings(BaseSettings):
       ordered, instantiated panel.
 - [ ] Default panel reproduces the legacy four-agent chain; skeptic always last.
 - [ ] Synthesis agents and unknown keys are excluded gracefully.
-- [ ] All registry tests pass; `python scripts/replace_optional.py --check` clean.

@@ -287,7 +287,7 @@ class OpenHandsError(DomainEvent):
 - `token_estimate` appears on `OpenHandsCompleted` only (C10).
 - No `auth_failed` event (n/a per C10).
 - No OpenHands client library, `grpc`, `httpx`, or `websockets` import in this file (C3).
-- `ruff` and `python scripts/replace_optional.py --check` clean; every public class has an RST-style docstring.
+- `ruff` clean; every public class has an RST-style docstring.
 
 ## Success criteria
 
@@ -299,4 +299,4 @@ class OpenHandsError(DomainEvent):
 - [ ] No `openhands.auth_failed` event exists (n/a per C10).
 - [ ] No field annotation is `Any`; no field carries action arguments, observation content, a command line, or a raw error message (asserted by a unit test inspecting field names/types).
 - [ ] `python -c "import aegis_swr.openhands.events"` succeeds with no OpenHands client library, `grpc`, `httpx`, or `websockets` pulled in.
-- [ ] `ruff` and `python scripts/replace_optional.py --check` are clean.
+- [ ] `ruff check src/ tests/` - clean.

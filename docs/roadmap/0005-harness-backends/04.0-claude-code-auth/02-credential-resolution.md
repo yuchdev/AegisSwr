@@ -145,4 +145,4 @@ def resolve_credential(settings: ClaudeCodeSettings) -> ResolvedCredential:
 - [ ] `resolve_credential(ClaudeCodeSettings(auth_mode="api_key"))` permits `--bare` in `extra_argv` when a bare invocation is requested, and never forwards `CLAUDE_CODE_OAUTH_TOKEN`.
 - [ ] No `ResolvedCredential` instance, log line, or exception emitted by the helper contains any credential value (asserted by inspecting fields and a captured `SensitiveFilter` log).
 - [ ] `--bare` is absent from `extra_argv` in **every** `subscription`-mode resolution (C7).
-- [ ] `replace_optional.py --check` clean; no `Any` in return types.
+- [ ] `ruff check src/ tests/` - clean; no `Any` in return types.

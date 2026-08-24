@@ -182,4 +182,4 @@ skipping the unparseable record.
 - [ ] `to_log_line` output is parseable by `_parse_timestamp` for all standard
       timestamp formats.
 - [ ] All unit tests above pass with zero network calls.
-- [ ] `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

@@ -237,4 +237,4 @@ def test_multiple_signals_raise_harness_config_error(monkeypatch: pytest.MonkeyP
 - [ ] Selector unset plus zero signals → `active_backend is None`, no exception (unchanged from 0004 C4).
 - [ ] Selector unset plus more than one signal → `HarnessConfigError` at settings-construction time (C2).
 - [ ] The live smoke module reports **skipped** (not failed) unless exactly one backend is signaled and available.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

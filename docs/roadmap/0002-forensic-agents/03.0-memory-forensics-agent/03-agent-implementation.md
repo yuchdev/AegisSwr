@@ -87,9 +87,7 @@ Follow the `os_kernel.py` pattern precisely:
 
 ## Constraints
 
-- `Optional[T]` from `typing`; never `T | None` - enforced by
-  `scripts/replace_optional.py --check`.
-- `replace_optional.py --check` clean; `ruff` clean; line length 100.
+- `ruff check src/ tests/` - clean.
 - The regex for fill-pattern detection must be compiled at module level (not
   inside the hot path) using `re.compile`.
 - Untrusted payload text (stack frames, raw excerpt) must not be passed to a
@@ -113,4 +111,4 @@ Follow the `os_kernel.py` pattern precisely:
       containing `0xBAADF00D` before the LLM call is invoked.
 - [ ] Merged `corruption_signatures` never loses pre-check entries even when the
       LLM returns an empty list.
-- [ ] `replace_optional.py --check` clean; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean.

@@ -244,8 +244,6 @@ Task 06.0). `scripts/postinstall_openclaude.py` is a best-effort, never-raising 
   pydantic-derived names and swallowed operator config.
 - **CSV env parsing.** A custom `_CsvEnvSettingsSource` (+ a `mode="before"` validator) lets the `list[str]`
   fields accept comma-separated env values; pydantic-settings v2 otherwise expects JSON.
-- **`scripts/replace_optional.py` is absent** from the repo (stale `CLAUDE.md` reference; the Stop hook does
-  not invoke it); the `Optional[T]` convention was enforced by grep instead.
 
 **Review:** feature-reviewer **LGTM**; security-auditor **PASS_WITH_FOLLOWUP** (no CRITICAL). Applied hardening:
 `grpc_url` regex `\Z`-anchored (rejects trailing-newline smuggling), postinstall also swallows `OSError`
@@ -593,8 +591,6 @@ is `aegis code-intel check`. See [ADR 0003](/docs/adr/0003-code-intel-compositio
 - **README** (subtask 04) gained a discoverable "Code Intelligence (OpenClaude)"
   section naming `OPENCLAUDE_GRPC_URL` as the sole enabler and forward-linking
   to `docs/config/openclaude-setup.md`.
-- **No `replace_optional.py` script exists** in this repo (a roadmap C9
-  convention); `ruff` (E,F,I,UP,B,SIM) enforces the equivalent and is clean.
 
 **Test coverage:** `tests/unit/test_app.py` (8 tests) — full-suite unit
 coverage of the composition root across all three paths (unavailable / dry-run /
@@ -775,8 +771,6 @@ reports **4 modules skipped** (never failed/errored); collection is clean. The
   allowlist denial is non-corrupting and non-raising ✓; token charged
   post-completion ✓; `ruff` clean ✓; `tool.py` 100% branch ✓; proto stubs
   committed and reproducible via `uv run python scripts/proto_gen.py` ✓.
-  (`replace_optional.py` is a roadmap convention with no script in this repo;
-  `ruff`'s `UP` rules enforce the equivalent and are clean.)
 
 **Test coverage:** enforced in CI — ≥90% on the OpenClaude/code_intel/app modules
 (currently 95.53%) and 100% branch on `tool.py`.

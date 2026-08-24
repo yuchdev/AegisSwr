@@ -54,4 +54,4 @@ depends on all three; 05 can land alongside 03; 06 gates the task.
   debate node and keeps the `_route_after_skeptic` conditional edges.
 - **Synthesis agents are not voters** and are never returned by
   `create_agent_panel` (Task 07.0 wires the planner into the synthesizer path).
-- `ruff`, `replace_optional.py --check`, `Optional[T]` clean.
+- `ruff check src/ tests/` - clean.

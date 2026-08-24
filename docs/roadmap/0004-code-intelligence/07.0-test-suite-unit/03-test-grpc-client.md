@@ -118,4 +118,4 @@ async def test_close_shuts_down_channel(fake_channel_factory):
       `test_query_raises_unavailable_error_on_unavailable` assert
       `OpenClaudeUnavailableError` (not a raw gRPC error) is raised.
 - [ ] No `grpc` / `_pb2` import anywhere in the file.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

@@ -49,7 +49,7 @@ part of "Agent output models").
 - All list fields use `Field(default_factory=list)`.
 - `confidence_score` has no default - callers must supply it; Pydantic will
   raise `ValidationError` if omitted, which is the intended guard.
-- `replace_optional.py --check` clean; `ruff` clean.
+- `ruff check src/ tests/` - clean.
 - No changes to `Hypothesis`, `OSKernelOutput`, or any existing model.
 
 ## Tests
@@ -72,5 +72,5 @@ part of "Agent output models").
       fields documented above at their documented types and defaults.
 - [ ] The class has a complete RST-style docstring covering all five fields.
 - [ ] All four unit tests above pass.
-- [ ] `replace_optional.py --check` clean on `src/`; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean on `src/`; `ruff` clean.
 - [ ] No existing schema tests are broken.

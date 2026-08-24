@@ -122,4 +122,4 @@ def test_no_event_has_any_typed_field():
 - [ ] `test_only_stream_completed_carries_token_estimate` asserts the other six
       classes have no `token_estimate` field.
 - [ ] No `grpc` / `_pb2` import in this file.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

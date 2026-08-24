@@ -63,7 +63,7 @@ CLI, and logging architecture - lives in
 
 - `poetry install` completes with no errors.
 - `python -c "from aegis_swr.core.schemas import RCAReport; print('ok')"` succeeds.
-- `python scripts/replace_optional.py --check` passes clean.
+- `ruff check src/ tests/` - clean.
 - `pytest tests/unit/test_schemas.py` passes (basic Pydantic model creation and serialization tests).
 
 ---
@@ -471,7 +471,7 @@ streaming work the same way they do for the direct providers in 3.1.
 ### Success Criteria
 
 - Ground truth eval: ≥8 of 10 PASS; token benchmark average ≤12,000 tokens.
-- `python scripts/replace_optional.py --check` passes; `pytest tests/unit/` ≥90% line coverage on `core/` and `agents/`.
+- `pytest tests/unit/` ≥90% line coverage on `core/` and `agents/`.
 - `docker-compose up` starts a fully operational local stack.
 
 ---

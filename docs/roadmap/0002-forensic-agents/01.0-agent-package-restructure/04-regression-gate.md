@@ -16,9 +16,9 @@ and lint are clean, and both old and new import paths resolve.
    the task (478+ passing, 3 skipped per 0001 status). No new failures, no
    weakened/`xfail`'d tests.
 2. **Integration suite:** `poetry run pytest tests/integration/ -q` - unchanged.
-3. **Types:** `python scripts/replace_optional.py --check` - clean.
+3. **Types:** All new code uses `docs/dev/python_coding_standard.md`.
 4. **Lint/format:** `ruff check src/ tests/` and `ruff format --check src/ tests/`.
-5. **Optional convention:** `python scripts/replace_optional.py --check`.
+5. **Conventions:** All new code uses `docs/dev/python_coding_standard.md`.
 6. **Import matrix** (new `test_agents_package.py` from subtasks 02–03):
    - new `agents.base` path,
    - top-level `agents` re-export,
@@ -34,6 +34,6 @@ and lint are clean, and both old and new import paths resolve.
 
 - [ ] `pytest tests/unit/` and `tests/integration/` green with the same counts as
       the pre-task baseline.
-- [ ] `ruff` clean; `replace_optional.py --check` clean.
+- [ ] `ruff` clean; `ruff check src/ tests/` - clean.
 - [ ] The import-matrix tests pass.
 - [ ] `status.md` Task 01.0 row flipped to ✅ with the test list.

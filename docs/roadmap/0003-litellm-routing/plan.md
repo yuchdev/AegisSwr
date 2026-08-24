@@ -213,4 +213,4 @@ docs/
 - [ ] Adding a new model in `agents.yaml` requires zero Python changes
 - [ ] `RouterConfig.from_yaml()` on the existing `agents.yaml` does not raise
 - [ ] All new public classes and functions have docstrings
-- [ ] `ruff`, `replace_optional.py --check` all clean
+- [ ] `ruff check src/ tests/` - clean

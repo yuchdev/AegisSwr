@@ -75,8 +75,8 @@ the same object.
 
 | #  | Document                                                                          | Status         | Blocks                     |
 |----|-----------------------------------------------------------------------------------|----------------|----------------------------|
-| 01 | [`ClaudeCodeSettings` class shape](01-claude-code-settings.md)                    | ⬜ Not started | 02 (this task), 03.0, 05.0 |
-| 02 | [`permission_mode` & disposable `scratch_cwd`](02-permission-mode-scratch-cwd.md) | ⬜ Not started | 03.0                       |
+| 01 | [`ClaudeCodeSettings` class shape](01-claude-code-settings.md)                    | ✅ Complete    | 02 (this task), 03.0, 05.0 |
+| 02 | [`permission_mode` & disposable `scratch_cwd`](02-permission-mode-scratch-cwd.md) | ✅ Complete    | 03.0                       |
 
 Subtask 01 establishes the class, the CSV env source, the `__init__` unwrap,
 and the `binary_path` / `enabled` / `allowed_tools` / `max_turns` /

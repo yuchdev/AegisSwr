@@ -44,8 +44,7 @@ of 01, 02, 03, and 04.
 
 ## Key constraints
 
-- `Optional[T]` from `typing`; never `T | None` (enforced by `scripts/replace_optional.py --check`).
-- `ruff` must be clean after every subtask.
+- `ruff check src/ tests/` - clean.
 - The fill-pattern pre-check must never pass raw stack text to a shell, SQL,
   or unsanitised sink - regex scanning only, results stored in `corruption_signatures`.
 - `display_name = "Memory Forensics Agent"` must equal the `AgentTurn.agent`

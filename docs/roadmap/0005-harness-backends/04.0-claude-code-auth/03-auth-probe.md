@@ -182,4 +182,4 @@ which could echo a credential:
 - [ ] The exception message, every captured `SensitiveFilter` log line, and the `claude_code.auth_failed` event payload contain **no** credential value and **no** raw `claude` stderr — only a closed-set `reason` label.
 - [ ] `probe_auth()` under `--dry-run` returns success without spawning a process.
 - [ ] The probe reuses `ClaudeCodeProcess`'s spawn path (argv-safety, timeout, RAII) rather than constructing a bare subprocess of its own.
-- [ ] `replace_optional.py --check` clean; `ruff` clean; RST docstrings on the new method and exception class.
+- [ ] `ruff check src/ tests/` - clean; RST docstrings on the new method and exception class.

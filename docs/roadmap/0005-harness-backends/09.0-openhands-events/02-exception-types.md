@@ -244,4 +244,4 @@ cross-service contract change** and nothing in `aegis_swr/core/`,
 - [ ] `OpenHandsConfigError` is **not** a subclass of `HarnessConfigError` or the router's `ConfigValidationError`, and vice versa.
 - [ ] OpenHands' `PermissionDeniedError` is a distinct class from OpenClaude's; neither subclasses the other.
 - [ ] No exception message can contain an incident payload, observation text, or a credential (asserted by a unit test constructing each type).
-- [ ] `ruff` and `python scripts/replace_optional.py --check` clean; no OpenHands client library, `grpc`, `httpx`, or `websockets` import pulled in by `import aegis_swr.openhands.exceptions`.
+- [ ] `ruff check src/ tests/` - clean; no OpenHands client library, `grpc`, `httpx`, or `websockets` import pulled in by `import aegis_swr.openhands.exceptions`.

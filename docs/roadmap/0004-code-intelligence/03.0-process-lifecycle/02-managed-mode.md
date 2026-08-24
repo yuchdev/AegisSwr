@@ -129,7 +129,7 @@ class OpenClaudeProcess:
 - Allowlist flags derived from `settings`, never from `os.environ` directly
   (C1, C7).
 - `Optional[T]` from `typing`; `from __future__ import annotations` (C9).
-- `ruff`, `replace_optional.py --check` clean.
+- `ruff check src/ tests/` - clean.
 
 ## Success criteria
 
@@ -147,4 +147,4 @@ class OpenClaudeProcess:
       zombie).
 - [ ] `OpenClaudeDisconnected` emitted exactly once on exit.
 - [ ] No `subprocess.Popen` and no `time.sleep` anywhere in the module.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

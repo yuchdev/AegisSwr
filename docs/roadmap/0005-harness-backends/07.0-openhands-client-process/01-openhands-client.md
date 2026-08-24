@@ -361,7 +361,7 @@ means Docker is unavailable or the sandbox image failed to pull.
 - Task text is sent only in the action message body, never in a URL/query/argv.
 - All public classes/methods carry RST docstrings (`:param:`/`:return:`/`:raises:`).
 - No raw task/response/credential text in any log sink or exception message.
-- `ruff` and `replace_optional.py --check` clean.
+- `ruff check src/ tests/` - clean.
 
 ## Success criteria
 
@@ -376,5 +376,5 @@ means Docker is unavailable or the sandbox image failed to pull.
 - [ ] `close()` is idempotent and safe when nothing was ever opened.
 - [ ] `OpenHandsUnavailableError` is imported from `openhands/exceptions.py` (forward-declared), not redefined in `client.py`.
 - [ ] No task/response/credential text appears in any log line.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.
 

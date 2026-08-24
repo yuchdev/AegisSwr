@@ -143,12 +143,8 @@ class HarnessUnavailableError(Exception):
 
 ## Constraints
 
-- `Optional[T]` from `typing`, never `T | None`; `from __future__ import
-  annotations` (C13). `scripts/replace_optional.py --check` clean.
-- No import of any `aegis_swr` module, backend package, `grpc`, `pydantic`, or a
-  client library — leaf module only.
-- Neither exception subclasses the other (C2). No exception message or attribute
-  ever formats a variable value, credential, or dump/log/stack text (C13).
+- No import of any `aegis_swr` module, backend package, `grpc`, `pydantic`, or a client library — leaf module only.
+- Neither exception subclasses the other (C2). No exception message or attribute ever formats a variable value, credential, or dump/log/stack text (C13).
 - Every public class and its `__init__` carries an RST-style docstring.
 
 ## Success criteria
@@ -160,4 +156,4 @@ class HarnessUnavailableError(Exception):
 - [ ] `HarnessUnavailableError("claude_code")` exposes `.backend == "claude_code"` and `.signals == frozenset()`, and its `str()` contains no variable value, token, or payload.
 - [ ] The module imports nothing from `aegis_swr.*`, any backend package, `grpc`, `pydantic`, or a client library (leaf-module check).
 - [ ] Both classes and their `__init__` methods have RST-style docstrings.
-- [ ] `scripts/replace_optional.py --check` clean; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean.

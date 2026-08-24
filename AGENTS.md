@@ -21,18 +21,11 @@ and confidential.
 > Note: the product's internal analysis agents (`src/aegis_swr/agents/`) are
 > NOT the same as this `.claude/` dev fleet. Never conflate them.
 
-## 2. Coding conventions agents must honour
+## 2. Coding conventions agents must honor
 
 - **Language/stack**: Python 3.12, uv, FastAPI, Typer, Pydantic v2,
   LangGraph, SQLAlchemy/asyncpg (Postgres), SQLite, Qdrant, boto3/S3,
   anthropic + openai SDKs, loguru.
-- **Typing**: full annotations; **full annotations are required**. Always
-  `Optional[T]` (import from `typing`) - never `T | None`, including in
-  subscripts and `Annotated[...]`. Enforce with
-  `python scripts/replace_optional.py --check`.
-- **Lint/format**: ruff (`select = E,F,I,UP,B,SIM`, line length 100).
-  `ruff format` is the formatter (no Black/Prettier). The post-edit hook formats
-  automatically.
 - **Error handling**: every external call (debugger subprocess, AI backend, DB,
   S3, Qdrant) gets a timeout and a defined failure path. RAII via context
   managers for all subprocess/socket/file resources. No bare `except:`.

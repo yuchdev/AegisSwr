@@ -176,5 +176,5 @@ class OpenClaudeTool(CodeBackend):
 - [ ] `run`, `_delegate`, `_is_allowlisted`, `_truncate`, `_failure`,
       `_success` exist with the signatures above and `...` bodies.
 - [ ] No `import grpc` / `_pb2` import appears in the file (C3 grep check).
-- [ ] `ruff` and `replace_optional.py --check` are clean; no
+- [ ] `ruff check src/ tests/` - clean; no
       `Any` in any signature.

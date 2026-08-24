@@ -186,4 +186,4 @@ The multi-service service list is resolved as:
 - [ ] `FileLogAdapter` and `FluentAdapter` inherit the default without override.
 - [ ] `DataAdapter.process` calls `query_window_multi` when a services list is
       available.
-- [ ] All unit tests above pass; `replace_optional.py --check` clean.
+- [ ] All unit tests above pass; `ruff check src/ tests/` - clean.

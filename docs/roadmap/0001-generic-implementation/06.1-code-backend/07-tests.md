@@ -434,5 +434,4 @@ poetry run pytest tests/unit/test_pdbstr_wrapper.py \
 - [ ] CLI option tests all pass.
 - [ ] Integration test `test_analyze_pdb_provider_non_windows_fails_open` passes
       when `AEGIS_INTEGRATION_TESTS=1`.
-- [ ] `replace_optional.py --check` passes on all new test files.
-- [ ] `ruff check` passes on all new test files.
+- [ ] `ruff check src/ tests/` - clean.

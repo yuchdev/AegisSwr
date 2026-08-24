@@ -307,4 +307,4 @@ def live_ctx() -> ToolContext:
 - [ ] `env_openclaude_only` leaves exactly one presence signal set; the other `env_*` fixtures set the scenario they name and clear the rest.
 - [ ] `claude_code_settings_enabled` and `openhands_settings_enabled` construct without raising their backend's config error.
 - [ ] `conftest.py` imports neither `grpc`/`_pb2` nor the OpenHands client library (grep-clean).
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

@@ -163,4 +163,4 @@ _WRAPPER_IS_WIN = "aegis_swr.backends.code.pdbstr_wrapper._is_windows"
 - [ ] `subprocess.run` is always called with list-form argv and `shell=False`.
 - [ ] stderr truncated to 200 chars in error messages.
 - [ ] All unit tests above pass with zero real subprocess calls.
-- [ ] `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

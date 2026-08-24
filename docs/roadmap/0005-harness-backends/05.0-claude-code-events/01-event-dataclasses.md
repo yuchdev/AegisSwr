@@ -325,7 +325,7 @@ class ClaudeCodeError(DomainEvent):
 - [ ] Every instance carries `run_id: str` and a timezone-aware UTC `timestamp: datetime`.
 - [ ] `ClaudeCodeCompleted` is the only class exposing `token_estimate` (and it also carries `input_tokens`, `output_tokens`, and `num_turns`).
 - [ ] `ClaudeCodeAuthFailed` exposes only `reason` (fixed vocabulary) and `auth_mode`; no field can hold a credential or token (asserted by a unit test inspecting field names/types).
-- [ ] No field annotation is `Any`; the only `Optional` fields are `exit_code` and `num_turns`; `ruff` and `replace_optional.py --check` are clean.
+- [ ] No field annotation is `Any`; the only `Optional` fields are `exit_code` and `num_turns`; `ruff check src/ tests/` - clean.
 - [ ] No field carries tool arguments, tool output, response text, argv, a raw error message, or a credential (asserted by a unit test inspecting field names/types).
 - [ ] All eight events round-trip through a real `EventBus` publish/subscribe cycle: a `DomainEvent` subscriber receives all eight, and a concrete-subclass subscriber receives just its own, distinguishable by `event.event_type`.
 - [ ] `python -c "import aegis_swr.claude_code.events"` succeeds with no `grpc` or client-library import pulled in.

@@ -31,7 +31,7 @@ and time window - across multiple subsystems simultaneously.
 
 ## Key constraints (inherited from the project)
 
-- `replace_optional.py --check` clean; `Optional[T]` not `T | None`.
+- `ruff check src/ tests/` - clean; `Optional[T]` not `T | None`.
 - No bare `except:`; every network call has a timeout and a defined failure path.
 - `SensitiveFilter` must cover any credential that appears in Fluent connection
   settings (auth tokens, TLS key paths).

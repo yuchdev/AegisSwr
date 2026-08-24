@@ -106,7 +106,7 @@ async def test_no_process_survives_session(stub_project: Path):
   the child PID is captured inside the block before exit.
 - `from __future__ import annotations`; `Optional[T]`, never `T | None`;
   `asyncio.sleep` (never `time.sleep`) if any polling is needed; `ruff`
-  and `replace_optional.py --check` clean.
+  and `ruff check src/ tests/` - clean.
 
 ## Success criteria
 
@@ -117,4 +117,4 @@ async def test_no_process_survives_session(stub_project: Path):
 - [ ] `OpenClaudeDisconnected` asserted emitted **exactly once** per exit.
 - [ ] A PID/process-table check confirms **no** OpenClaude process survives.
 - [ ] All tests report **skipped** (not failed) when the binary or signal is absent.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

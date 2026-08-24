@@ -134,7 +134,7 @@ Define in `tests/conftest.py` (or a `tests/unit/conftest.py`):
 ## Constraints
 
 - No real AI, network, or filesystem calls. All external I/O mocked.
-- `Optional[T]`; `replace_optional.py --check`; `ruff` clean.
+- `ruff check src/ tests/` - clean.
 - No test may weaken, `xfail`, or delete an existing passing test.
 - The Stop hook runs `tests/unit/` automatically; integration tests under
   `tests/integration/` are run separately.
@@ -148,6 +148,6 @@ Define in `tests/conftest.py` (or a `tests/unit/conftest.py`):
 - [ ] Registry tests (subtask 04) in `test_agent_registry.py` pass.
 - [ ] Integration tests in `test_concurrency_analyst_pipeline.py` pass with
       mocked externals.
-- [ ] `replace_optional.py --check` clean; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean.
 - [ ] No existing passing tests are broken.
 - [ ] Coverage on `agents/forensic/concurrency_analyst.py` is 90% or above.

@@ -60,9 +60,8 @@ that break because of the move.
 
 ## Tests
 
-No new tests in this subtask. The gate is that `pytest tests/unit/ -q` and
-`python scripts/replace_optional.py --check` is unaffected **after** subtask 02 repoints the consumers. Within
-this subtask, verify imports resolve in isolation:
+No new tests in this subtask. The gate is that `pytest tests/unit/ -q` is unaffected **after** subtask 02 repoints the consumers. 
+Within this subtask, verify imports resolve in isolation:
 
 ```
 python -c "from aegis_swr.agents.base import OSKernelAgent, CodeAnalystAgent, LogHistorianAgent, SkepticAgent, BaseAgent; print('ok')"

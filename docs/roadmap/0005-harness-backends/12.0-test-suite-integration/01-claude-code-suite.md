@@ -411,4 +411,4 @@ async def test_subscription_delegate_returns_code_result(
 - [ ] The task text never appears in the live child process's argv (C6).
 - [ ] The subscription auth-probe passes for a live login/OAuth credential without raising `ClaudeCodeUnavailableError`, and `--bare` is never passed.
 - [ ] No `claude` process survives the run; no credential value is logged.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

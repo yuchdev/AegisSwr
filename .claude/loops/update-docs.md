@@ -293,7 +293,7 @@ Brief the `python-expert` agent with:
 - The list of files and line numbers to fix.
 - The old anchor/text and its replacement.
 - The instruction: "Update the reference text only. Do not change logic,
-  signatures, or surrounding comments. Keep `ruff` and `replace_optional.py --check` clean after edits."
+  signatures, or surrounding comments. Keep `ruff check src/ tests/` - clean after edits."
 
 Both buckets may be delegated **in parallel** when the file sets do not overlap.
 

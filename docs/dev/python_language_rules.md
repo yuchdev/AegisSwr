@@ -47,7 +47,7 @@ Tooling must be configured and kept up to date per project; an overly strict or 
 
 Every project must run:
 
-- **`ruff`**, for linting and formatting (`ruff check`, `ruff format`). Start from a template `ruff.toml` and adjust `select`/`ignore` and `line-length` for the project - see this repository's own configuration (`.claude/CLAUDE.md`: `select = E,F,I,UP,B,SIM`, line length 100, `ruff format` as the sole formatter) as one worked example.
+- **`ruff`**, for linting and formatting (`ruff check`, `ruff format`). Start from a template `ruff.toml` and adjust `select`/`ignore` and `line-length` for the project - see this repository's own configuration (`.claude/CLAUDE.md`: `ruff.toml`, `ruff format` as the sole formatter) as one worked example.
 - **`mypy`**, for static type checking, configured from a template `mypy.ini`. Run it in CI; do not merge a change that introduces a new `mypy` error.
 - **`Flake8`**, only for project-specific rules `ruff` does not implement as a built-in check (e.g. a bespoke plugin package such as `src/flake8_project_rules/`). Do not use `Flake8` to re-implement checks `ruff` already performs - that just produces duplicate or conflicting diagnostics.
 

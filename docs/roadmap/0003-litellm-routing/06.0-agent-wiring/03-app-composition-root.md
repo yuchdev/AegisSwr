@@ -72,4 +72,3 @@ except ConfigValidationError as exc:
 - [ ] `ConfigValidationError` surfaces as a clean startup error, not an
       unhandled exception.
 - [ ] `--dry-run` wires `NullClient` instead of `LiteLLMClient`.
-- [ ] `replace_optional.py --check` passes on updated `app.py`.

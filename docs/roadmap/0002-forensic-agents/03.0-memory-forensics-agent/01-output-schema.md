@@ -36,7 +36,7 @@ All `Optional[str]` fields use `Optional[str]` imported from `typing`.
 ## Constraints
 
 - `Optional[T]` from `typing`; never `T | None`.
-- `replace_optional.py --check` clean after the change.
+- `ruff check src/ tests/` - clean after the change.
 - `ruff` clean; line length 100.
 - The RST-style docstring on `MemoryForensicsOutput` must document every field
   with `:ivar:` / `:type:` entries, matching the style of `OSKernelOutput`.
@@ -63,4 +63,4 @@ In `tests/unit/test_schemas.py`:
 - [ ] All four fields have correct types and defaults as specified above.
 - [ ] RST docstring covers every field.
 - [ ] All four unit tests pass.
-- [ ] `replace_optional.py --check` clean; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean.

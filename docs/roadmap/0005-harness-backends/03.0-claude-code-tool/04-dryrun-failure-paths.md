@@ -202,7 +202,7 @@ class ClaudeCodeProcess:
 - No exception escapes `delegate()`; the final `except Exception` is a resilience boundary; `CancelledError` is not swallowed; no bare `except:` (C13).
 - Every failure marker and log line is payload-free; no task/response/argv/ stderr/credential text is logged or placed on a `CodeResult` (C13).
 - Every branch - insufficient-budget, dry-run, clean-success, timeout, nonzero-exit, no-result-message, result-error, internal-error - is a small single-purpose arm, independently testable to satisfy **100% branch coverage on`tool.py`'s `delegate`** (Task 11.0).
-- `ruff` and `replace_optional.py --check` clean; no `Any` in any signature; RST docstrings on every public method (C13).
+- `ruff check src/ tests/` - clean; no `Any` in any signature; RST docstrings on every public method (C13).
 
 ## Success criteria
 
@@ -215,4 +215,4 @@ class ClaudeCodeProcess:
 - [ ] A fault-injected `_run_once` still yields a typed `internal_error` failure; no exception escapes `delegate()`.
 - [ ] Insufficient-budget, dry-run, and every failure path charge **zero** tokens; the budget is charged only on the clean success path.
 - [ ] No task/response/argv/stderr/credential text reaches any log sink or `CodeResult` on any path (C13).
-- [ ] 100% branch coverage on `tool.py`'s `delegate`; `ruff` and `replace_optional.py --check` clean.
+- [ ] 100% branch coverage on `tool.py`'s `delegate`; `ruff check src/ tests/` - clean.

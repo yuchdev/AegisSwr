@@ -157,8 +157,7 @@ against the Aegis lifecycle, and emits a structured review with a single
    logs or responses
 3. **Domain accuracy** - correct lifecycle state transitions, Factory-Strategy
    contract, valid `RCAReport`/`SkepticVerdict` shapes
-4. **Conventions** - `Optional[T]`, `ruff`, `replace_optional.py --check`, docstrings on public APIs,
-   commit message format
+4. **Conventions** - `ruff check src/ tests/` - clean
 5. **Test coverage** - does the change ship with meaningful tests?
 
 ### Output format (always this shape)

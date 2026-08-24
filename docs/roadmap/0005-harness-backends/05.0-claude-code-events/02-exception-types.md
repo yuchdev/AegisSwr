@@ -230,7 +230,7 @@ changes.
 - `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
 - Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
 - No `grpc`, client-library, `pydantic`, or sibling-backend import in this file — it is a leaf module that `config.py`, `process.py`, and `tool.py` all import from without creating a cycle (C3).
-- `ruff` and `replace_optional.py --check` clean; every class has an RST-style docstring.
+- `ruff check src/ tests/` - clean; every class has an RST-style docstring.
 - No `Any` in any signature.
 
 ## Success criteria
@@ -242,4 +242,4 @@ changes.
 - [ ] `PermissionDeniedError` has a class attribute `retriable == False` and stores `.tool` and `.denied_binary`.
 - [ ] `ClaudeCodeConfigError` is **not** a subclass of the router's `ConfigValidationError` or of `HarnessConfigError`, and vice versa; `ClaudeCodeUnavailableError` does **not** subclass `ClaudeCodeConfigError`.
 - [ ] No exception message can contain an incident payload, a credential, or a token (asserted by a unit test constructing each type).
-- [ ] `ruff`, `replace_optional.py --check` clean; no `grpc` or client-library import pulled in by `import aegis_swr.claude_code.exceptions`.
+- [ ] `ruff check src/ tests/` - clean; no `grpc` or client-library import pulled in by `import aegis_swr.claude_code.exceptions`.

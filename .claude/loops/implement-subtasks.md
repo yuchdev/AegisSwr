@@ -169,10 +169,10 @@ reverse. (Routine, unambiguous implementation does **not** pause - only genuine 
 ### Step 5 - verification gate
 
 Run **only this subtask's** verification, not the whole suite: scope `pytest` to the
-subtask's own test file(s) and use `-q` (capture the summary line, not per-test `-v` output),
-plus `python scripts/replace_optional.py --check`. Do **not** pipe full pytest output into context -
-a green run is one summary line; on failure, tail only the failing assertions. The full suite
-runs once at task completion (Step 7), and the Stop hook gates the session end regardless.
+subtask's own test file(s) and use `-q` (capture the summary line, not per-test `-v` output). 
+Do **not** pipe full pytest output into context - a green run is one summary line; on failure, 
+tail only the failing assertions. The full suite runs once at task completion (Step 7), 
+and the Stop hook gates the session end regardless.
 
 On failure:
 

@@ -172,7 +172,7 @@ def _extract_usage(frame: dict[str, object]) -> Optional[ClaudeCodeUsage]:
 - `token_estimate` is derived from real `usage` only - `parse_stream` never falls back to a length estimate for this backend (C6.2, C9); "no usage" is surfaced as `usage=None`, not as a fabricated count.
 - No `content`/line/frame text is logged or emitted; only payload-free counts (C13). No bare `except:`; narrow `ValueError`/`OSError`/`LimitOverrunError`.
 - Dataclasses are `frozen=True, slots=True`; no `Any` in any signature.
-- `ruff` and `replace_optional.py --check` clean; RST docstrings on every public class/function (C13).
+- `ruff check src/ tests/` - clean; RST docstrings on every public class/function (C13).
 
 ## Success criteria
 
@@ -184,4 +184,4 @@ def _extract_usage(frame: dict[str, object]) -> Optional[ClaudeCodeUsage]:
 - [ ] `frame_count` and `assistant_count` reflect the frames observed.
 - [ ] Tool-use / non-text content blocks are ignored by `_extract_assistant_text`.
 - [ ] No `content`/line text reaches any log sink (C13).
-- [ ] `ruff` and `replace_optional.py --check` clean; no `Any` in any signature.
+- [ ] `ruff check src/ tests/` - clean; no `Any` in any signature.

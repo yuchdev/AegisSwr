@@ -135,7 +135,7 @@ taxonomy table inside `aegis/openclaude/`.
 - The re-export list and `__all__` contain all seven events and all three
   exceptions, and nothing `grpc`-bound.
 - `ruff` (`F401` re-export handled via `__all__`)
-  and `replace_optional.py --check` clean.
+  and `ruff check src/ tests/` - clean.
 - The taxonomy doc edit adds only the seven C8 rows; it does not alter the
   `router.*` rows.
 
@@ -153,4 +153,4 @@ taxonomy table inside `aegis/openclaude/`.
       publish/subscribe cycle and are distinguishable by `event.event_type`.
 - [ ] The event-taxonomy registry documentation lists all seven `openclaude.*`
       rows alongside the `router.*` rows, matching the C8 table.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

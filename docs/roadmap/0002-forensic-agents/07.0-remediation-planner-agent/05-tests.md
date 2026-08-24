@@ -112,7 +112,7 @@ All integration tests use mocked AI and storage backends (no live LLM or DB).
   pre-built `RemediationPlan` fixture.
 - Test fixtures for `RemediationPlan` and `RCAReport` must use `Optional[T]`
   types consistently (no `T | None` in test helper code).
-- `replace_optional.py --check` clean on all new test files (test files are included in
+- `ruff check src/ tests/` - clean on all new test files (test files are included in
   the project typing conventions).
 - `ruff` clean; no unused imports.
 

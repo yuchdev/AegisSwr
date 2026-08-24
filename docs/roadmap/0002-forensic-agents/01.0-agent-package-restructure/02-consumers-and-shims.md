@@ -87,4 +87,3 @@ from aegis_swr.agents.base.os_kernel import OSKernelAgent  # noqa: F401  (back-c
 - [ ] `core/orchestrator.py` imports the four agents from `aegis_swr.agents.base`.
 - [ ] No remaining references to the old submodule import paths in `src/`/`tests/`
       (except intentional shims).
-- [ ] `pytest tests/unit/ -q` fully green; `python scripts/replace_optional.py --check` clean.

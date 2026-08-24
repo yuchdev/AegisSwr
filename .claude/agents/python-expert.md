@@ -25,8 +25,7 @@ You work on implementing Aegis SWR features and turn agreed designs into working
 
 ### Typing
 
-Full annotations, full annotations required. Always `Optional[T]` (import from `typing`), never `T | None` - including in subscripts and `Annotated[...]`. Run `python scripts/replace_optional.py --check` if unsure.
-
+Full annotations, full annotations required. Always `Optional[T]` (import from `typing`), never `T | None` - including in subscripts and `Annotated[...]`. 
 
 ### Style
 

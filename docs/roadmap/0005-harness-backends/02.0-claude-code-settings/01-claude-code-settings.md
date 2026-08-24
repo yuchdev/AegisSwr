@@ -277,7 +277,7 @@ class ClaudeCodeSettings(BaseSettings):
 - `Optional[T]` from `typing`, never `T | None`; `from __future__ import
   annotations` at the top of the file (C13).
 - No `Any` in field types (the `Any` import is only for `__init__(**values)` and
-  the env-source override signature); `replace_optional.py --check` clean.
+  the env-source override signature); `ruff check src/ tests/` - clean.
 - `ClaudeCodeConfigError` here is a temporary forward declaration; Task 05.0
   moves the canonical definition to `exceptions.py` and replaces this with a
   re-export alias — no downstream import-path changes when 05.0 lands.
@@ -296,4 +296,4 @@ class ClaudeCodeSettings(BaseSettings):
 - [ ] `ClaudeCodeSettings(max_turns=0)` raises `ClaudeCodeConfigError`.
 - [ ] `ClaudeCodeSettings(request_timeout_s=0)` raises `ClaudeCodeConfigError`.
 - [ ] `CLAUDE_CODE_BINARY=""` (empty CI-secret expansion) falls back to `binary_path="claude"` without raising.
-- [ ] `replace_optional.py --check` clean; no `Any` in field types; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean; `ruff` clean.

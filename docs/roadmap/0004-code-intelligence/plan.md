@@ -359,21 +359,14 @@ estimate; it is never duplicated across events.
 
 ### C9 — Cross-cutting conventions (inherited from 0001 to 0003)
 
-- `Optional[T]` from `typing`, never `T | None` (including in subscripts and
-  `Annotated[...]`).
 - `from __future__ import annotations` in every new file.
-- `ruff` and `replace_optional.py --check` must stay clean.
+- `ruff check src/ tests/` - clean.
 - Every new public class/function has an RST-style docstring.
 - No `grpc` import in `aegis/core/`, `aegis/ui/`, or `aegis/code_intel/`.
-- `--dry-run` short-circuits `OpenClaudeTool` to a `[dry-run]` result with zero
-  tokens, without opening a gRPC connection.
+- `--dry-run` short-circuits `OpenClaudeTool` to a `[dry-run]` result with zero tokens, without opening a gRPC connection.
 - `asyncio.sleep` for backoff — never `time.sleep`.
-- Loguru with `SensitiveFilter` on every sink; no raw incident payload text
-  (dump/log/stack) is ever logged, and the streamed response is never logged
-  unredacted.
-- Generated proto files (`_pb2.py`, `_pb2_grpc.py`) are committed under
-  `aegis/openclaude/grpc/proto/`, regenerated via a `Makefile` target, and
-  committed without extra typing-only exclusions.
+- Loguru with `SensitiveFilter` on every sink; no raw incident payload text (dump/log/stack) is ever logged, and the streamed response is never logged unredacted.
+- Generated proto files (`_pb2.py`, `_pb2_grpc.py`) are committed under `aegis/openclaude/grpc/proto/`, regenerated via a `Makefile` target, and committed without extra typing-only exclusions.
 
 ---
 
@@ -481,6 +474,6 @@ scripts/proto_gen.py                    ← NEW: proto stub regeneration script
       — zero Python changes
 - [ ] No raw incident payload or unredacted response text reaches any log sink
 - [ ] All new public classes and functions have RST docstrings
-- [ ] `ruff`, `replace_optional.py --check` all clean
+- [ ] `ruff check src/ tests/` - clean
 - [ ] Coverage: ≥ 90% overall unit; 100% on `tool.py`
 - [ ] Proto schema is committed; `uv run python scripts/proto_gen.py` reproduces identical output

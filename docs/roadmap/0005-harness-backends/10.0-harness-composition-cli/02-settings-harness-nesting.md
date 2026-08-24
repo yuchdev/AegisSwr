@@ -147,4 +147,3 @@ nesting must not shadow them.
 - [ ] No environment-variable name changed; the per-family presence signals are sourced exactly as before.
 - [ ] `redacted_dump()` redacts a secret nested under `harness.*` (C13).
 - [ ] No import cycle; `import aegis_swr.config.settings` succeeds.
-- [ ] `ruff` (incl. `F401` for any now-unused `OpenClaudeSettings` import), `replace_optional.py --check` clean.

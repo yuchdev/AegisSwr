@@ -336,4 +336,4 @@ def _success(
 - [ ] `OpenHandsUnavailableError` with `retriable=True` returns a retriable failure; with `retriable=False` returns non-retriable — both emit `OpenHandsStreamError` and charge zero.
 - [ ] `OpenHandsStreamCompleted` is the only event carrying `token_estimate`.
 - [ ] No exception escapes `delegate()`; a fault-injected `_consume_stream` still yields a typed failure.
-- [ ] 100% branch coverage on `tool.py`; `ruff` and `replace_optional.py --check` clean.
+- [ ] 100% branch coverage on `tool.py`; `ruff check src/ tests/` - clean.

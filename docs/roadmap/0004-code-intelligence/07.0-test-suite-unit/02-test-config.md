@@ -125,4 +125,4 @@ def test_role_without_enabled_when_always_included(monkeypatch, tmp_path):
 - [ ] `test_enabled_when_present_env_includes_role` asserts the role is present
       with `provider == "openclaude"`.
 - [ ] No `grpc` / `_pb2` import in this file.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

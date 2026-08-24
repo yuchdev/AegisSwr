@@ -52,4 +52,4 @@ For each agent in `aegis/core/agents/`:
 - [ ] All concrete agents call `self.reason(messages, run_id)` not a backend.
 - [ ] Each agent exposes a `role` property returning the correct role string.
 - [ ] Existing agent unit tests pass (fixtures updated to mock ModelRouter).
-- [ ] `replace_optional.py --check` passes on all updated files.
+- [ ] `ruff check src/ tests/` - clean.

@@ -324,4 +324,4 @@ included in that document.
 - [ ] `blame` returns per-line blame for `VERCTRL=git`; `[]` for others.
 - [ ] Constructor raises `CodeBackendError` on non-Windows.
 - [ ] Both git helpers fail open (no exception propagation).
-- [ ] `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

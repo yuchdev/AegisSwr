@@ -160,10 +160,7 @@ test coverage summary per task)._
   importable.
 - Full unit suite green: **833 passed** (was 828 pre-task), 89.27% coverage.
   Integration suite: 27 passed, 7 skipped (unchanged).
-- `ruff check` / `ruff format --check` clean; no `T | None` shorthand
-  introduced. Code-review agent pass: no issues, no circular-import risk.
-  (`scripts/replace_optional.py` is a fleet convention not vendored in this
-  repo; the `Optional[T]` invariant was verified by grep instead.)
+- `ruff check` / `ruff format --check` clean.
 
 ### Task 02.0 - Extensible Panel (✅ 2026-07-10, superset)
 

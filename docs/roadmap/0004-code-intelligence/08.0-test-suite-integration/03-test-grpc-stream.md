@@ -91,4 +91,4 @@ async def test_health_check_true_against_live_process(
 - [ ] `health_check()` returns `True` against the live process.
 - [ ] Tests report **skipped** (not failed) when the binary or signal is absent.
 - [ ] No OpenClaude process survives the run.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

@@ -435,5 +435,5 @@ class OpenHandsDisconnected(DomainEvent):
 - [ ] An injected mock `OpenHandsClient` is used verbatim (no real client constructed) — the unit-test seam holds.
 - [ ] Managed-mode stderr is drained to `DEBUG` under `SensitiveFilter`; the forwarder is canceled and awaited with no leaked `CancelledError`.
 - [ ] No `subprocess.Popen` and no `time.sleep` anywhere in the module.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.
 

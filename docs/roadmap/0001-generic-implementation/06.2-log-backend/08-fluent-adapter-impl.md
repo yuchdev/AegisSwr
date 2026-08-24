@@ -186,4 +186,4 @@ def _validate_fluent_settings(settings: LogBackendSettings):
 - [ ] Fail-open: all `LogBackendError` subclasses return `[]` with a `WARNING` log.
 - [ ] No raw network exceptions escape `query_window`.
 - [ ] `query_window_multi` batch override implemented if Q4 confirms server support.
-- [ ] All unit tests above pass; `replace_optional.py --check` clean.
+- [ ] All unit tests above pass; `ruff check src/ tests/` - clean.

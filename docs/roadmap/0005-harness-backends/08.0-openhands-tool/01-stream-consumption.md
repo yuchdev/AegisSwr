@@ -372,7 +372,7 @@ class OpenHandsTool(CodeIntelBackend):
 - `ruff` (`ruff.toml`) clean with zero new `# type: ignore`.
 - Every new public class and function has an RST-style docstring (`:param:`/`:ivar:`/`:return:`).
 - No import of the OpenHands client library, `httpx`, `websockets`, or any transport stub in this file (C3); every event type comes from `aegis_swr.openhands.client`.
-- No `Any` in any signature; `ruff` and `replace_optional.py --check` clean.
+- No `Any` in any signature; `ruff check src/ tests/` - clean.
 - Event handlers are nested async functions within `_consume_stream`, each handling a single event kind — independently coverable (task 11.0).
 - Counters and `chunks`/`server_usage` are function-local with `nonlocal` bindings; the tool holds no per-call mutable state.
 - No `event.content` / observation output / action arguments / accumulated text reaches any log sink or event payload (C13).
@@ -390,4 +390,4 @@ class OpenHandsTool(CodeIntelBackend):
 - [ ] A surfaced non-allowlisted `ACTION` publishes `OpenHandsPermissionDenied(run_id, action)` and raises `OpenHandsPermissionDeniedError`.
 - [ ] No `import` of the OpenHands client library / `httpx` / `websockets` appears in the file (C3 grep check).
 - [ ] No `event.content`, observation output, action arguments, or accumulated text is logged or attached to any event.
-- [ ] `ruff` and `replace_optional.py --check` clean; no `Any` in any signature.
+- [ ] `ruff check src/ tests/` - clean; no `Any` in any signature.

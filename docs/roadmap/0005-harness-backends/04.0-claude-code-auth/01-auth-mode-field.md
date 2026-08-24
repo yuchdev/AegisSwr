@@ -156,7 +156,7 @@ introduce a duplicate bare toggle if one already exists.
 - Purely **additive** to `ClaudeCodeSettings`: no Task 02.0 field, default, or validator is altered; existing Task 02.0 / Task 03.0 unit tests stay green.
 - `ClaudeCodeConfigError` is imported, not redefined; the import path is stable across Task 05.0's canonicalization.
 - The rejection message and any log line never contain a credential value (C13); `SensitiveFilter` still covers the config module's logger.
-- No `Any` in the field type; `replace_optional.py --check` clean.
+- No `Any` in the field type; `ruff check src/ tests/` - clean.
 
 ## Success criteria
 
@@ -169,4 +169,4 @@ introduce a duplicate bare toggle if one already exists.
 - [ ] `ClaudeCodeSettings(auth_mode="api_key")` with `ANTHROPIC_API_KEY` set constructs without raising — the presence check applies only to subscription mode.
 - [ ] `ClaudeCodeSettings(auth_mode="bogus")` raises a validation error (`Literal` rejects the value).
 - [ ] All Task 02.0 / Task 03.0 config unit tests remain green (additive-only).
-- [ ] `replace_optional.py --check` clean; no `Any` in field types.
+- [ ] `ruff check src/ tests/` - clean.

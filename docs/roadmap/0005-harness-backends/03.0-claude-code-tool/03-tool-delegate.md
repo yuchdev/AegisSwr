@@ -280,7 +280,7 @@ class ClaudeCodeTool(CodeIntelBackend):
 - No tool-side permission gate; read-only enforcement is the CLI allowlist + scratch cwd (C6.3).
 - Budget pre-check and dry-run make **zero** spawns (asserted in Task 11.0).
 - No task/response/argv/credential text logged or placed on any result/event (C13); `ClaudeCodeUnavailableError` messages are payload-free.
-- No `Any` in any signature; `ruff` and `replace_optional.py --check` clean; RST docstrings on every public class/method (C13).
+- No `Any` in any signature; `ruff check src/ tests/` - clean; RST docstrings on every public class/method (C13).
 
 ## Success criteria
 
@@ -293,4 +293,4 @@ class ClaudeCodeTool(CodeIntelBackend):
 - [ ] No tool-side permission/allowlist gate exists in the file.
 - [ ] `ClaudeCodeUnavailableError` is forward-declared here with a payload-free message/`reason` and a `retriable` attribute.
 - [ ] No task/response/credential text is logged or emitted (C13).
-- [ ] `ruff` and `replace_optional.py --check` clean; no `Any` in any signature.
+- [ ] `ruff check src/ tests/` - clean; no `Any` in any signature.

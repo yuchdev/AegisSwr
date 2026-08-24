@@ -85,7 +85,6 @@ from aegis_swr.agents.forensic import ConcurrencyAnalystAgent
   `core.schemas` and `agents.base` only.
 - `create_agent_panel` must degrade gracefully (warning, not raise) if a key
   in a per-fault panel list is absent from `AGENT_REGISTRY`.
-- `Optional[T]`, `replace_optional.py --check`, `ruff` clean throughout all touched files.
 - No change to `AGENT_REGISTRY` ordering for existing base agents.
 
 ## Tests
@@ -116,4 +115,4 @@ These tests belong to subtask 05. They are listed here for traceability:
       `ConcurrencyAnalystAgent`.
 - [ ] Default panel (no fault-class override) is unchanged from the legacy
       four-agent chain.
-- [ ] `replace_optional.py --check` clean; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean.

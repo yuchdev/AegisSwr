@@ -117,4 +117,4 @@ async def test_at_least_one_tool_call_emitted(
 - [ ] The run uses a non-dry-run context with sufficient budget.
 - [ ] Tests report **skipped** (not failed) when the binary or signal is absent.
 - [ ] No OpenClaude process survives the run.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

@@ -175,4 +175,3 @@ the hardcoded defaults).
 - [ ] `test_specialist_panel_includes_correct_agents` passes for all parametrized
       fault classes, with `skeptic` always last.
 - [ ] No existing test is weakened or deleted to achieve a green run.
-- [ ] `python scripts/replace_optional.py --check` and `ruff check` pass on `test_weight_audit.py`.

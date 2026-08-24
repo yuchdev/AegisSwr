@@ -62,7 +62,7 @@ is the canonical form. The base agents (`os_kernel`, `code_analyst`,
 - No import cycle: `registry.py` imports `MemoryForensicsAgent` from
   `agents.forensic.memory_forensics`; the forensic subpackage must not import
   from `registry.py`.
-- `Optional[T]` from `typing`; `replace_optional.py --check` clean; `ruff` clean.
+- `Optional[T]` from `typing`; `ruff check src/ tests/` - clean.
 - Unknown keys in config panel lists are silently dropped by `create_agent_panel`
   (already guaranteed by the C4 implementation); this subtask does not need to
   add new guard logic.
@@ -93,4 +93,4 @@ In `tests/unit/test_agent_registry.py` (extend the file from Task 02.0):
 - [ ] Default panel (no fault class) is unchanged - four base agents only.
 - [ ] `agents.example.json` panel arrays updated for the three fault classes.
 - [ ] All five registry tests pass.
-- [ ] `replace_optional.py --check` clean; `ruff` clean.
+- [ ] `ruff check src/ tests/` - clean.

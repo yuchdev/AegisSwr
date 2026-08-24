@@ -50,4 +50,4 @@ carries tool-call and stream-frame counts for observability.
 - 100% branch coverage required on this file (task 07.0); no unhandled
   exceptions escape `run()`.
 - `Optional[T]`, `from __future__ import annotations`, `ruff` /
-  `replace_optional.py --check` clean; no unredacted response text logged (C9).
+  `ruff check src/ tests/` - clean; no unredacted response text logged (C9).

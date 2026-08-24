@@ -181,7 +181,7 @@ def _active_backend_detail(harness: HarnessSettings, active: str) -> str:
   secret-free messages with distinct exit codes (C2/C13).
 - `Optional[T]` from `typing`; `from __future__ import annotations`; loguru +
   `SensitiveFilter`; no secret/credential/payload text in output or logs (C13).
-- `ruff`, `replace_optional.py --check` clean.
+- `ruff check src/ tests/` - clean.
 
 ## Success criteria
 
@@ -193,4 +193,4 @@ def _active_backend_detail(harness: HarnessSettings, active: str) -> str:
 - [ ] Selector set to a backend whose signal is absent → `HarnessUnavailableError` reported clearly, non-zero exit (C2).
 - [ ] `--dry-run` (default) opens no connection / spawns no process for any backend; `--no-dry-run` exercises the sidecar lifecycle where present.
 - [ ] No OpenClaude-specific text remains; no secret/credential appears in any output path (C13).
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

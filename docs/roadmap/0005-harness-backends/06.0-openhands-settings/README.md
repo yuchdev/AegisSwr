@@ -66,8 +66,8 @@ Consequences relevant to configuration:
 
 | #  | Document                                                                 | Status         | Blocks                           |
 |----|--------------------------------------------------------------------------|----------------|----------------------------------|
-| 01 | [`OpenHandsSettings` Pydantic class](01-openhands-settings.md)           | ⬜ Not started | 02 (this task), 07.0, 08.0, 09.0 |
-| 02 | [Sandbox-runtime enforcement validator](02-sandbox-runtime-validator.md) | ⬜ Not started | 07.0                             |
+| 01 | [`OpenHandsSettings` Pydantic class](01-openhands-settings.md)           | ✅ Complete    | 02 (this task), 07.0, 08.0, 09.0 |
+| 02 | [Sandbox-runtime enforcement validator](02-sandbox-runtime-validator.md) | ✅ Complete    | 07.0                             |
 
 Subtask 01 establishes the class, its six documented fields, and the forward
 declaration of `OpenHandsConfigError`. Subtask 02 depends on subtask 01: it adds

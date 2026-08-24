@@ -262,4 +262,4 @@ and its `grpc_url is not None` branch — has moved verbatim into
 - [ ] Under `dry_run`, no sidecar `__aenter__` is called for `openclaude` or `openhands`, and no `Connected`/`Disconnected` event fires; `claude_code` registers no process either way.
 - [ ] An explicitly-selected backend whose signal is absent surfaces `HarnessUnavailableError` at composition/health-check time (C2 last row).
 - [ ] `code_intel/backend.py`, `agent.py`, `budget.py` are byte-for-byte unchanged (C9).
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

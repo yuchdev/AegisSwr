@@ -244,4 +244,4 @@ def test_core_views_code_intel_import_no_backend():
 - [ ] `test_composition.py` covers all five C4 assembly outcomes plus the dry-run orthogonality path.
 - [ ] `test_isolation.py` passes AST-based (not grep) and would **fail** if any backend package imported a sibling or a second family were imported outside `harness/composition.py`.
 - [ ] No `grpc` / `_pb2` / OpenHands-client import in any file of this suite.
-- [ ] `ruff`, `replace_optional.py --check` clean.
+- [ ] `ruff check src/ tests/` - clean.

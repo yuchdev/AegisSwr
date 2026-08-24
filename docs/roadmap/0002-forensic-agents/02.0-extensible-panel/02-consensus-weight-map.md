@@ -103,4 +103,3 @@ four-key tuple. Implements contract **C3**. Default weights must reproduce the
 - [ ] `ConsensusEvaluator.calculate` iterates the weight map and excludes
       `remediation_planner`.
 - [ ] All five new tests pass; existing consensus tests pass unchanged.
-- [ ] `python scripts/replace_optional.py --check` clean.

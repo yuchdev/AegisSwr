@@ -26,11 +26,8 @@ and confidential.
 - **Language/stack**: Python 3.12, uv, FastAPI, Typer, Pydantic v2,
   LangGraph, SQLAlchemy/asyncpg (Postgres), SQLite, Qdrant, boto3/S3,
   anthropic + openai SDKs, loguru.
-- **Typing**: full annotations; **full annotations are required**. Always
-  `Optional[T]` (import from `typing`) - never `T | None`, including in
-  subscripts and `Annotated[...]`. Enforce with
-  `python scripts/replace_optional.py --check`.
-- **Lint/format**: ruff (`select = E,F,I,UP,B,SIM`, line length 100).
+- **Typing**: All new code uses `docs/dev/python_coding_standard.md`
+- **Lint/format**: ruff (`ruff.toml`).
   `ruff format` is the formatter (no Black/Prettier). The post-edit hook formats
   automatically.
 - **Error handling**: every external call (debugger subprocess, AI backend, DB,
