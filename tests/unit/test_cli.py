@@ -250,7 +250,7 @@ def test_repo_flag_enables_git_code_backend(tmp_path: Path):
 
     with (
         mock.patch(_MOCK_RUN, mock_run),
-        mock.patch("aegis_swr.backends.code.create_code_backend", _capture_code),
+        mock.patch("aegis_swr.cli.commands.create_code_backend", _capture_code),
     ):
         result = runner.invoke(
             app,
@@ -404,7 +404,7 @@ def test_config_file_sets_defaults(tmp_path: Path):
 
     with (
         mock.patch(_MOCK_RUN, mock_run),
-        mock.patch("aegis_swr.backends.ai.create_ai_backend") as mock_ai,
+        mock.patch("aegis_swr.cli.commands.create_ai_backend") as mock_ai,
     ):
         mock_ai.return_value = mock.MagicMock()
         mock_ai.return_value.model_name = "test"
@@ -489,7 +489,7 @@ def test_cli_flag_overrides_config_file(tmp_path: Path):
 
     with (
         mock.patch(_MOCK_RUN, mock_run),
-        mock.patch("aegis_swr.backends.ai.create_ai_backend") as mock_ai,
+        mock.patch("aegis_swr.cli.commands.create_ai_backend") as mock_ai,
     ):
         mock_ai.return_value = mock.MagicMock()
         mock_ai.return_value.model_name = "test"
@@ -1208,7 +1208,7 @@ def test_cli_ai_bedrock_sets_provider(tmp_path: Path):
 
     with (
         mock.patch(_MOCK_RUN, mock_run),
-        mock.patch("aegis_swr.backends.ai.create_ai_backend", side_effect=_capture_factory),
+        mock.patch("aegis_swr.cli.commands.create_ai_backend", side_effect=_capture_factory),
     ):
         result = runner.invoke(
             app,

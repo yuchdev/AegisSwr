@@ -90,13 +90,13 @@ over the other candidates.
 
 #### Alternatives considered
 
-| Candidate | Licence | Process model | Sandbox | Non-interactive maturity | Verdict |
-|-----------|---------|---------------|---------|--------------------------|---------|
-| **OpenHands** | Apache-2.0 | REST/WS sidecar (Action/Observation event stream) | **Docker by default** | Good (headless server mode) | **Chosen** — sandbox matches the hostile-payload posture; LiteLLM-internal echoes 0003 |
-| **Claude Code (`claude` CLI)** | Proprietary (Anthropic) | One-shot subprocess (`-p … --output-format stream-json`) | None (host permissions) | Good (`-p` non-interactive mode is first-class) | **Adopted as its own backend** — this is the "stock Claude Code" 0004 named; real token accounting is a genuine gain, but no sandbox |
-| Aider | Apache-2.0 | In-process / subprocess | None | Weaker read-only tool allowlisting; less mature non-interactive mode | Rejected — no sandbox, weaker read-only guarantees |
-| Goose | Apache-2.0 | Subprocess | Limited | Interactive-first design | Rejected — interactive-first; a poor fit for Aegis SWR's non-interactive pipeline |
-| SWE-agent | MIT | Subprocess/harness | Container-capable | Narrower benchmark focus, smaller ecosystem | Rejected — narrower scope and smaller ecosystem than OpenHands |
+| Candidate                      | Licence                 | Process model                                            | Sandbox                 | Non-interactive maturity                                             | Verdict                                                                                                                              |
+|--------------------------------|-------------------------|----------------------------------------------------------|-------------------------|----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| **OpenHands**                  | Apache-2.0              | REST/WS sidecar (Action/Observation event stream)        | **Docker by default**   | Good (headless server mode)                                          | **Chosen** — sandbox matches the hostile-payload posture; LiteLLM-internal echoes 0003                                               |
+| **Claude Code (`claude` CLI)** | Proprietary (Anthropic) | One-shot subprocess (`-p … --output-format stream-json`) | None (host permissions) | Good (`-p` non-interactive mode is first-class)                      | **Adopted as its own backend** — this is the "stock Claude Code" 0004 named; real token accounting is a genuine gain, but no sandbox |
+| Aider                          | Apache-2.0              | In-process / subprocess                                  | None                    | Weaker read-only tool allowlisting; less mature non-interactive mode | Rejected — no sandbox, weaker read-only guarantees                                                                                   |
+| Goose                          | Apache-2.0              | Subprocess                                               | Limited                 | Interactive-first design                                             | Rejected — interactive-first; a poor fit for Aegis SWR's non-interactive pipeline                                                    |
+| SWE-agent                      | MIT                     | Subprocess/harness                                       | Container-capable       | Narrower benchmark focus, smaller ecosystem                          | Rejected — narrower scope and smaller ecosystem than OpenHands                                                                       |
 
 ### What this milestone deliberately does *not* do
 
@@ -172,21 +172,21 @@ modes); `openhands/process.py` owns the OpenHands sidecar lifecycle.
 
 ## Tasks
 
-| Task | Name                                          | Category       | Output                                                                                                        |
-|------|------------------------------------------------|----------------|--------------------------------------------------------------------------------------------------------------|
-| 01.0 | Harness Settings & Selection Contract         | configuration  | `harness/config.py`, `harness/exceptions.py` — `HarnessSettings`, selector + presence-signal resolution (C1, C2) |
-| 02.0 | Claude Code Settings & Config                 | configuration  | `claude_code/config.py` — `ClaudeCodeSettings` (binary, allowlist, permission mode, scratch cwd, `CLAUDE_CODE_ENABLED`) |
-| 03.0 | Claude Code Subprocess Tool                   | infrastructure | `claude_code/tool.py`, `claude_code/process.py` — one-shot `claude -p … --output-format stream-json`; argv-safety; NDJSON parse; real token accounting (C6, C9) |
-| 04.0 | Claude Code Subscription/Login Authentication | configuration  | `claude_code/config.py` `auth_mode` field + validation; `claude_code/exceptions.py` auth errors; auth-probe health-check in `claude_code/tool.py` / `process.py` (C7) |
-| 05.0 | Claude Code Events & Exceptions               | infrastructure | `claude_code/events.py`, `claude_code/exceptions.py` — frozen `DomainEvent` taxonomy + typed errors (C10)     |
-| 06.0 | OpenHands Settings & Config                   | configuration  | `openhands/config.py` — `OpenHandsSettings` (server URL, runtime/sandbox mode, allowlist, timeouts) (C5, C8) |
-| 07.0 | OpenHands Client & Process Lifecycle          | infrastructure | `openhands/client.py`, `openhands/process.py` — sole importer of the OpenHands client; sidecar lifecycle (C8) |
-| 08.0 | OpenHands Tool Implementor                    | infrastructure | `openhands/tool.py` — the `CodeIntelBackend`; Action/Observation stream → `CodeResult`; budget, dry-run (C8, C9) |
-| 09.0 | OpenHands Events & Exceptions                 | infrastructure | `openhands/events.py`, `openhands/exceptions.py` — frozen `DomainEvent` taxonomy + typed errors (C10)         |
+| Task | Name                                          | Category       | Output                                                                                                                                                                                                          |
+|------|-----------------------------------------------|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 01.0 | Harness Settings & Selection Contract         | configuration  | `harness/config.py`, `harness/exceptions.py` — `HarnessSettings`, selector + presence-signal resolution (C1, C2)                                                                                                |
+| 02.0 | Claude Code Settings & Config                 | configuration  | `claude_code/config.py` — `ClaudeCodeSettings` (binary, allowlist, permission mode, scratch cwd, `CLAUDE_CODE_ENABLED`)                                                                                         |
+| 03.0 | Claude Code Subprocess Tool                   | infrastructure | `claude_code/tool.py`, `claude_code/process.py` — one-shot `claude -p … --output-format stream-json`; argv-safety; NDJSON parse; real token accounting (C6, C9)                                                 |
+| 04.0 | Claude Code Subscription/Login Authentication | configuration  | `claude_code/config.py` `auth_mode` field + validation; `claude_code/exceptions.py` auth errors; auth-probe health-check in `claude_code/tool.py` / `process.py` (C7)                                           |
+| 05.0 | Claude Code Events & Exceptions               | infrastructure | `claude_code/events.py`, `claude_code/exceptions.py` — frozen `DomainEvent` taxonomy + typed errors (C10)                                                                                                       |
+| 06.0 | OpenHands Settings & Config                   | configuration  | `openhands/config.py` — `OpenHandsSettings` (server URL, runtime/sandbox mode, allowlist, timeouts) (C5, C8)                                                                                                    |
+| 07.0 | OpenHands Client & Process Lifecycle          | infrastructure | `openhands/client.py`, `openhands/process.py` — sole importer of the OpenHands client; sidecar lifecycle (C8)                                                                                                   |
+| 08.0 | OpenHands Tool Implementor                    | infrastructure | `openhands/tool.py` — the `CodeIntelBackend`; Action/Observation stream → `CodeResult`; budget, dry-run (C8, C9)                                                                                                |
+| 09.0 | OpenHands Events & Exceptions                 | infrastructure | `openhands/events.py`, `openhands/exceptions.py` — frozen `DomainEvent` taxonomy + typed errors (C10)                                                                                                           |
 | 10.0 | Harness Composition Root & CLI                | integration    | `harness/composition.py`; delete `openclaude/composition.py`; backend-agnostic `aegis code-intel check`; `agents.yaml` `claude_code_agent` / `openhands_agent` roles; `Settings.harness` nesting (C4, C11, C12) |
-| 11.0 | Test Suite — Unit                             | testing        | Per-backend mock suites; per-package isolation grep tests; selection-ambiguity tests; auth-mode tests (C2, C7) |
-| 12.0 | Test Suite — Integration                      | testing        | Live per-backend suites, skipped by default, gated on presence signal + binary/Docker availability           |
-| 13.0 | Documentation & CI                             | documentation  | Per-backend setup + config-reference docs; CI isolation/coverage gate extensions; milestone closeout         |
+| 11.0 | Test Suite — Unit                             | testing        | Per-backend mock suites; per-package isolation grep tests; selection-ambiguity tests; auth-mode tests (C2, C7)                                                                                                  |
+| 12.0 | Test Suite — Integration                      | testing        | Live per-backend suites, skipped by default, gated on presence signal + binary/Docker availability                                                                                                              |
+| 13.0 | Documentation & CI                            | documentation  | Per-backend setup + config-reference docs; CI isolation/coverage gate extensions; milestone closeout                                                                                                            |
 
 **Sequencing.** 01.0 is the foundation — it fixes the settings shape and the
 selection/ambiguity contract every other task depends on. Once 01.0 lands, the
@@ -585,7 +585,7 @@ charge semantics are unchanged; only the charged figure's provenance improves.
 
 Each new backend defines its own frozen event dataclasses **subclassing the live
 `aegis_swr.core.events.DomainEvent`** (the shape 0004 actually shipped — see
-0004 status.md Task 05.0, not the stale plain-dataclass/`event_type`-string spec
+0004 [status.md](/docs/roadmap/0004-code-intelligence/status.md) Task 05.0, not the stale plain-dataclass/`event_type`-string spec
 text), carrying `run_id`, a UTC `timestamp`, and a `ClassVar[str] event_type`
 sentinel. The taxonomy mirrors OpenClaude's C8 in shape:
 

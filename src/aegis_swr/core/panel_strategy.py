@@ -2,7 +2,7 @@
 
 Team formation happens *before* the orchestrator builds anything: a strategy
 inspects the incident brief (or a user-supplied explicit selection) and produces
-the list of :class:`~aegis_swr.agents.base.AgentSpec` objects that
+the list of :class:`~aegis_swr.core.schemas.AgentSpec` objects that
 ``agents/panel.py`` then instantiates and validates.
 
 Two concrete strategies ship today:
@@ -27,10 +27,10 @@ from typing import Any, Optional
 
 from loguru import logger
 
-from aegis_swr.agents.base import AgentSpec
 from aegis_swr.agents.registry import AGENT_REGISTRY
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.fault_codes import FaultClass
+from aegis_swr.core.schemas import AgentSpec
 
 
 class PanelSelectionStrategy(ABC):

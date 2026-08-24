@@ -34,7 +34,7 @@ from pathlib import Path
 import pytest
 
 from flake8_project_rules.rules import RuleViolation, check_tree
-from tests.flake8_lint.config import active_rule_codes, allow_noqa
+from tests.flake8_lint.config import active_rule_codes, allow_noqa, is_noqa_allowed_for_file
 
 SAMPLES_DIR = Path(__file__).parent / "samples"
 
@@ -296,3 +296,133 @@ def test_config_selection_is_consistent_with_rule_table():
     active = active_rule_codes(list(RULE_SAMPLES))
     assert set(active).issubset(set(RULE_SAMPLES))
     assert active == [code for code in RULE_SAMPLES if code in set(active)]
+
+
+def test_is_noqa_allowed_default(monkeypatch):
+    """
+    [Unit] config: when both lists are empty and allow_noqa is true, noqa is allowed anywhere.
+
+    Scenario:
+        Given a configuration with allow_noqa=True, noqa_allowed=[], and noqa_forbidden=[]
+        When checking whether noqa is permitted for files in the project
+        Then is_noqa_allowed_for_file returns True for any file.
+
+    Boundaries:
+        - Input: mock config dictionary via monkeypatch
+        - Real: tests.flake8_lint.config.is_noqa_allowed_for_file
+
+    On failure, first check:
+        - That empty noqa_allowed and noqa_forbidden default to allowing all files
+        - That allow_noqa defaults to True
+    """
+    monkeypatch.setattr(
+        "tests.flake8_lint.config.load_config",
+        lambda: {"allow_noqa": True, "noqa_allowed": [], "noqa_forbidden": []},
+    )
+    assert is_noqa_allowed_for_file("src/aegis_swr/core/events.py") is True
+    assert is_noqa_allowed_for_file("tests/unit/test_cli.py") is True
+
+
+def test_is_noqa_allowed_whitelist(monkeypatch):
+    """
+    [Unit] config: when noqa_allowed is non-empty, unlisted files cannot suppress via noqa.
+
+    Scenario:
+        Given a configuration with allow_noqa=True and noqa_allowed restricting to a specific directory
+        When checking whether noqa is permitted for listed and unlisted files
+        Then is_noqa_allowed_for_file returns True only for matching files and False for unlisted files.
+
+    Boundaries:
+        - Input: mock config dictionary via monkeypatch with noqa_allowed set
+        - Real: tests.flake8_lint.config.is_noqa_allowed_for_file
+
+    On failure, first check:
+        - That noqa_allowed whitelist filters out non-matching paths
+        - That directory prefix matching works correctly
+    """
+    monkeypatch.setattr(
+        "tests.flake8_lint.config.load_config",
+        lambda: {
+            "allow_noqa": True,
+            "noqa_allowed": ["src/aegis_swr/core/"],
+            "noqa_forbidden": [],
+        },
+    )
+    assert is_noqa_allowed_for_file("src/aegis_swr/core/events.py") is True
+    assert is_noqa_allowed_for_file("src/aegis_swr/cli/commands.py") is False
+
+
+def test_is_noqa_allowed_blacklist_wins(monkeypatch):
+    """
+    [Unit] config: entries in noqa_forbidden take precedence over noqa_allowed.
+
+    Scenario:
+        Given a configuration with a broad noqa_allowed and a specific file in noqa_forbidden
+        When checking whether noqa is permitted for the forbidden file vs other allowed files
+        Then is_noqa_allowed_for_file returns False for the forbidden file and True for allowed files.
+
+    Boundaries:
+        - Input: mock config dictionary via monkeypatch with overlapping allowed and forbidden paths
+        - Real: tests.flake8_lint.config.is_noqa_allowed_for_file
+
+    On failure, first check:
+        - That noqa_forbidden takes precedence over noqa_allowed
+        - That un-blacklisted files in the whitelist remain allowed
+    """
+    monkeypatch.setattr(
+        "tests.flake8_lint.config.load_config",
+        lambda: {
+            "allow_noqa": True,
+            "noqa_allowed": ["src/aegis_swr/"],
+            "noqa_forbidden": ["src/aegis_swr/core/events.py"],
+        },
+    )
+    assert is_noqa_allowed_for_file("src/aegis_swr/cli/commands.py") is True
+    assert is_noqa_allowed_for_file("src/aegis_swr/core/events.py") is False
+
+
+def test_is_noqa_allowed_global_false_overrides_all(monkeypatch):
+    """
+    [Unit] config: when allow_noqa = false, noqa is forbidden regardless of whitelist.
+
+    Scenario:
+        Given a configuration with allow_noqa=False and files in noqa_allowed
+        When checking whether noqa is permitted for any file
+        Then is_noqa_allowed_for_file returns False for all files.
+
+    Boundaries:
+        - Input: mock config dictionary via monkeypatch with allow_noqa=False
+        - Real: tests.flake8_lint.config.is_noqa_allowed_for_file
+
+    On failure, first check:
+        - That allow_noqa=False overrides any noqa_allowed configuration
+    """
+    monkeypatch.setattr(
+        "tests.flake8_lint.config.load_config",
+        lambda: {
+            "allow_noqa": False,
+            "noqa_allowed": ["src/aegis_swr/core/events.py"],
+            "noqa_forbidden": [],
+        },
+    )
+    assert is_noqa_allowed_for_file("src/aegis_swr/core/events.py") is False
+
+
+def test_is_noqa_allowed_synthetic_path():
+    """
+    [Unit] config: synthetic paths default to allowed when global switch is true.
+
+    Scenario:
+        Given synthetic paths such as <stdin> or <noqa-test>
+        When is_noqa_allowed_for_file evaluates them
+        Then it returns True without error.
+
+    Boundaries:
+        - Input: string paths enclosed in angle brackets
+        - Real: tests.flake8_lint.config.is_noqa_allowed_for_file
+
+    On failure, first check:
+        - That angle-bracketed synthetic paths are handled gracefully
+    """
+    assert is_noqa_allowed_for_file("<stdin>") is True
+    assert is_noqa_allowed_for_file("<noqa-test>") is True

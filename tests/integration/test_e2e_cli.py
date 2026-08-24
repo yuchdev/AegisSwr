@@ -306,7 +306,7 @@ def test_e2e_config_roundtrip(tmp_path: Path):
         return _make_report()
 
     with mock.patch(_MOCK_RUN, _capturing_run):
-        with mock.patch("aegis_swr.backends.ai.create_ai_backend") as mock_ai:
+        with mock.patch("aegis_swr.cli.commands.create_ai_backend") as mock_ai:
             mock_ai.return_value = mock.MagicMock()
             mock_ai.return_value.model_name = "test"
             runner.invoke(

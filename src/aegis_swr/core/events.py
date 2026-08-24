@@ -154,6 +154,7 @@ class EventBus:
     """
 
     def __init__(self):
+        """Initialise with no subscribers registered."""
         self._subscribers: dict[type[DomainEvent], list[Subscriber]] = {}
 
     def subscribe(
@@ -168,6 +169,7 @@ class EventBus:
         self._subscribers.setdefault(event_type, []).append(callback)
 
         def _unsubscribe():
+            """Remove *callback* from *event_type*'s subscriber list, if still present."""
             try:
                 self._subscribers[event_type].remove(callback)
             except (KeyError, ValueError):
@@ -184,5 +186,5 @@ class EventBus:
             for callback in list(self._subscribers.get(event_type, [])):
                 try:
                     callback(event)
-                except Exception:
+                except Exception:  # noqa: X002 - a broken subscriber must never abort the investigation
                     logger.exception("Subscriber {} raised for {}", callback, event_type)

@@ -10,15 +10,24 @@ from __future__ import annotations
 
 import asyncio
 import json
+from contextlib import AsyncExitStack
 from pathlib import Path
 from typing import Annotated, Any, NoReturn, Optional
+from uuid import uuid4
 
 import click
 import typer
 from loguru import logger
 from rich.console import Console
+from rich.table import Table
 from typer.core import TyperGroup
 
+from aegis_swr.agents.registry import AGENT_REGISTRY
+from aegis_swr.backends.ai import create_ai_backend
+from aegis_swr.backends.code import create_code_backend
+from aegis_swr.backends.debug import create_debug_backend
+from aegis_swr.backends.log import create_log_backend
+from aegis_swr.backends.storage import create_storage_backends
 from aegis_swr.cli.aegis_logging import configure_logging
 from aegis_swr.cli.config import (
     DEFAULT_CONFIG_PATH,
@@ -27,10 +36,13 @@ from aegis_swr.cli.config import (
     load_analyze_config,
     save_analyze_config,
 )
-from aegis_swr.cli.formatters import json_formatter, rich_formatter, stream_and_display
-from aegis_swr.config.settings import CONFIG_DIR
+from aegis_swr.cli.formatters import json_formatter, make_console, rich_formatter, stream_and_display
+from aegis_swr.config.settings import CONFIG_DIR, Settings
+from aegis_swr.core.events import EventBus
 from aegis_swr.core.exceptions import PlatformNotSupportedError
-from aegis_swr.core.schemas import RCAReport
+from aegis_swr.core.orchestrator import Orchestrator
+from aegis_swr.core.schemas import AgentSpec, IncidentMode, IncidentSource, RCAReport
+from aegis_swr.openclaude.composition import build_code_agent
 
 console = Console()
 
@@ -353,7 +365,6 @@ def analyze(  # noqa: PLR0913
 
     # Build IncidentSource. The code backend reads metadata["repo_path"]; the log
     # backend reads metadata["service"] (Data Adapter stages 8 and 4).
-    from aegis_swr.core.schemas import IncidentMode, IncidentSource
 
     metadata: dict[str, str] = {}
     if config.repo:
@@ -378,8 +389,6 @@ def analyze(  # noqa: PLR0913
     )
 
     # Build settings overrides for engine and AI provider.
-    from aegis_swr.config.settings import Settings
-
     settings = Settings()
     # Settings() always reads from the default config path. When --config points
     # to a custom file, apply its backends.ai.provider so it takes effect.
@@ -418,11 +427,6 @@ def analyze(  # noqa: PLR0913
     explicit_specs = _resolve_explicit_specs(agent, settings)
 
     # Create backends.
-    from aegis_swr.backends.ai import create_ai_backend
-    from aegis_swr.backends.code import create_code_backend
-    from aegis_swr.backends.debug import create_debug_backend
-    from aegis_swr.backends.log import create_log_backend
-    from aegis_swr.backends.storage import create_storage_backends
 
     ai_backend = create_ai_backend(settings.backends.ai)
     relational, object_store = create_storage_backends(settings.backends.storage)
@@ -441,8 +445,6 @@ def analyze(  # noqa: PLR0913
         log_backend = create_log_backend(settings.backends.log)
     except (NotImplementedError, ValueError) as exc:
         typer.echo(f"Warning: log backend unavailable ({exc})", err=True)
-
-    from aegis_swr.core.orchestrator import Orchestrator
 
     orch = Orchestrator(
         settings=settings,
@@ -464,8 +466,6 @@ def analyze(  # noqa: PLR0913
     else:
         # For json / json-full output, stream the live display to stderr so
         # stdout carries only the machine-readable payload.
-        from aegis_swr.cli.formatters import make_console
-
         stream_con = make_console(stderr=(fmt in ("json", "json-full")))
         report = asyncio.run(
             stream_and_display(
@@ -596,7 +596,6 @@ def _report_file_path(settings: object, incident_id: str) -> Optional[Path]:
     Other backends (sqlite / s3 / postgres) have no single result file, so the
     caller falls back to naming the store instead.
     """
-    from aegis_swr.config.settings import Settings
 
     assert isinstance(settings, Settings)
     storage = settings.backends.storage
@@ -607,7 +606,6 @@ def _report_file_path(settings: object, incident_id: str) -> Optional[Path]:
 
 def _apply_store_config(settings: object, store: str, value: str):
     """Map --store-config value to the correct StorageSettings field"""
-    from aegis_swr.config.settings import Settings
 
     assert isinstance(settings, Settings)
     if store == "filesystem":
@@ -639,9 +637,8 @@ def _parse_agent_specs(raw_agents: list[str]) -> list[Any]:
     Malformed input raises a clean CLI error rather than a traceback.
 
     :param raw_agents: The raw ``--agent`` strings collected from the CLI.
-    :return: One :class:`~aegis_swr.agents.base.AgentSpec` per value.
+    :return: One :class:`~aegis_swr.core.schemas.AgentSpec` per value.
     """
-    from aegis_swr.agents.base import AgentSpec
 
     specs: list[Any] = []
     for raw in raw_agents:
@@ -682,7 +679,6 @@ def _resolve_explicit_specs(agent: Optional[list[str]], settings: object) -> Opt
     :param settings: The resolved :class:`~aegis_swr.config.settings.Settings`.
     :return: The explicit specs, or ``None`` to auto-select.
     """
-    from aegis_swr.config.settings import Settings
 
     assert isinstance(settings, Settings)
     if agent:
@@ -705,8 +701,6 @@ def export(
     to_config: Annotated[Optional[str], typer.Option("--to-config", help="Destination config value.")] = None,
 ):
     """Migrate reports between storage backends"""
-    from aegis_swr.backends.storage import create_storage_backends
-    from aegis_swr.config.settings import Settings
 
     async def _run() -> int:
         """Copy reports from the source store into the destination store."""
@@ -766,7 +760,6 @@ def server(
 @config_app.command("show")
 def config_show():
     """Print resolved config.json + env overrides (secrets redacted)"""
-    from aegis_swr.config.settings import Settings
 
     settings = Settings()
     typer.echo(json.dumps(settings.redacted_dump(), indent=2))
@@ -817,11 +810,6 @@ def agents_list():
     the default priority (from a default-constructed ``AgentSpec``), and the
     human-facing display name.
     """
-    from rich.table import Table
-
-    from aegis_swr.agents.base import AgentSpec
-    from aegis_swr.agents.registry import AGENT_REGISTRY
-
     table = Table(title="Registered forensic agents")
     table.add_column("agent_key", style="bold cyan", no_wrap=True)
     table.add_column("category")
@@ -866,12 +854,6 @@ def code_intel_check(
     criteria); pass ``--no-dry-run`` to additionally health-check (external mode)
     or start (managed mode) the sidecar and tear it down again.
     """
-    from contextlib import AsyncExitStack
-    from uuid import uuid4
-
-    from aegis_swr.config.settings import Settings
-    from aegis_swr.core.events import EventBus
-    from aegis_swr.openclaude.composition import build_code_agent
 
     settings = Settings()
     bus = EventBus()

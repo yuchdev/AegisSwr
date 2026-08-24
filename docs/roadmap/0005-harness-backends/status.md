@@ -6,29 +6,29 @@ Updated as each task lands.
 ## Current status
 
 | Task | Name                                          | Status         | Tests |
-|------|------------------------------------------------|----------------|-------|
-| 01.0 | Harness Settings & Selection Contract         | ⬜ Not started | — |
-| 02.0 | Claude Code Settings & Config                 | ⬜ Not started | — |
-| 03.0 | Claude Code Subprocess Tool                   | ⬜ Not started | — |
-| 04.0 | Claude Code Subscription/Login Authentication | ⬜ Not started | — |
-| 05.0 | Claude Code Events & Exceptions               | ⬜ Not started | — |
-| 06.0 | OpenHands Settings & Config                   | ⬜ Not started | — |
-| 07.0 | OpenHands Client & Process Lifecycle          | ⬜ Not started | — |
-| 08.0 | OpenHands Tool Implementor                    | ⬜ Not started | — |
-| 09.0 | OpenHands Events & Exceptions                 | ⬜ Not started | — |
-| 10.0 | Harness Composition Root & CLI                | ⬜ Not started | — |
-| 11.0 | Test Suite — Unit                             | ⬜ Not started | — |
-| 12.0 | Test Suite — Integration                      | ⬜ Not started | — |
-| 13.0 | Documentation & CI                            | ⬜ Not started | — |
+|------|-----------------------------------------------|----------------|-------|
+| 01.0 | Harness Settings & Selection Contract         | ⬜ Not started | —     |
+| 02.0 | Claude Code Settings & Config                 | ⬜ Not started | —     |
+| 03.0 | Claude Code Subprocess Tool                   | ⬜ Not started | —     |
+| 04.0 | Claude Code Subscription/Login Authentication | ⬜ Not started | —     |
+| 05.0 | Claude Code Events & Exceptions               | ⬜ Not started | —     |
+| 06.0 | OpenHands Settings & Config                   | ⬜ Not started | —     |
+| 07.0 | OpenHands Client & Process Lifecycle          | ⬜ Not started | —     |
+| 08.0 | OpenHands Tool Implementor                    | ⬜ Not started | —     |
+| 09.0 | OpenHands Events & Exceptions                 | ⬜ Not started | —     |
+| 10.0 | Harness Composition Root & CLI                | ⬜ Not started | —     |
+| 11.0 | Test Suite — Unit                             | ⬜ Not started | —     |
+| 12.0 | Test Suite — Integration                      | ⬜ Not started | —     |
+| 13.0 | Documentation & CI                            | ⬜ Not started | —     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
 **Current gate status:** **not started.** This milestone extends Milestone 0004
 (OpenClaude Integration) in its final, post-remediation state (see
 [ADR 0003](/docs/adr/0003-code-intel-composition-root.md)). No `src/` work has
-begun; this milestone is at the task-level planning granularity only — full
-task → subtask decomposition is a later pass (matching how 0004 was decomposed
-before implementation).
+begun; the full task → subtask decomposition below is now complete (matching
+how 0004 was decomposed before implementation), but every subtask remains
+`⬜ Not started` until `python-expert`/`testing-expert` pick up implementation.
 
 **Design decision of record:** the composition-root generalisation (moving the
 C4 branch out of `openclaude/composition.py` into a neutral `harness/` package)
@@ -52,7 +52,7 @@ which directly extends [ADR 0003](/docs/adr/0003-code-intel-composition-root.md)
   — an echo of Milestone 0003 — and Docker-sandboxed by default, which fits Aegis
   SWR's "treat every incident payload as hostile" posture better than a
   host-permission subprocess). Aider / Goose / SWE-agent were considered and
-  rejected (see plan.md's "Alternatives considered" table).
+  rejected (see [plan.md](/docs/roadmap/0005-harness-backends/plan.md)'s "Alternatives considered" table).
 
 - **Single-active-backend, no fallback chain (user-confirmed).** Generalises
   0004's C4 ("no sibling backends to fall back to"). `AEGIS_CODE_INTEL_BACKEND`
@@ -60,7 +60,7 @@ which directly extends [ADR 0003](/docs/adr/0003-code-intel-composition-root.md)
   auto-selects; more than one signal is a **loud** `HarnessConfigError` at
   settings-construction time (never a silent pick); an explicitly-selected
   backend whose signal is absent is a `HarnessUnavailableError` at
-  composition/health-check time. See plan.md C2 for the full truth table.
+  composition/health-check time. See [plan.md](/docs/roadmap/0005-harness-backends/plan.md) C2 for the full truth table.
 
 - **0004's closing guarantee is preserved.** An existing
   `OPENCLAUDE_GRPC_URL`-only deployment (selector unset, exactly one signal)
@@ -110,7 +110,7 @@ which directly extends [ADR 0003](/docs/adr/0003-code-intel-composition-root.md)
     flag this and recommend confirming with Anthropic before production use;
     `auth_mode` therefore defaults to `auto` and ships `subscription` as
     opt-in only.
-  - See plan.md C7 for the full contract (the `auth_mode` field, the
+  - See [plan.md](/docs/roadmap/0005-harness-backends/plan.md) C7 for the full contract (the `auth_mode` field, the
     settings-construction-time rejection of an ambiguous `ANTHROPIC_API_KEY` +
     `subscription` combination, and the startup auth-probe).
 
@@ -123,28 +123,46 @@ which directly extends [ADR 0003](/docs/adr/0003-code-intel-composition-root.md)
   only (the product is Windows-only per `../CLAUDE.md`); flagged for the root
   `README.md` system-requirements area in task 13.0.
 
-## Decomposition tree (planned)
+## Decomposition tree
 
-Full task → subtask decomposition is a later pass. The task-level shape is:
+Full task → subtask decomposition is complete (mirroring how Milestone 0004 was
+decomposed before implementation). No `src/` work has begun on any task — every
+task README and subtask file below is at planning granularity only, all states
+`⬜ Not started`.
 
 ```
 docs/roadmap/0005-harness-backends/
-├── plan.md                          ← milestone spec (13 tasks, contracts C1–C13)
-├── status.md                        ← this tracker
-├── 01.0-harness-settings/           (planned)   ← configuration (C1, C2)
-├── 02.0-claude-code-settings/       (planned)   ← configuration (C5, C6)
-├── 03.0-claude-code-tool/           (planned)   ← infrastructure (argv-safety, NDJSON, real tokens)
-├── 04.0-claude-code-auth/           (planned)   ← configuration (C7: subscription login vs API key)
-├── 05.0-claude-code-events/         (planned)   ← infrastructure (C10)
-├── 06.0-openhands-settings/         (planned)   ← configuration (C5, C8)
-├── 07.0-openhands-client-process/   (planned)   ← infrastructure (sidecar lifecycle)
-├── 08.0-openhands-tool/             (planned)   ← infrastructure (CodeIntelBackend impl)
-├── 09.0-openhands-events/           (planned)   ← infrastructure (C10)
-├── 10.0-harness-composition-cli/    (planned)   ← integration (C4, C11, C12; deletes openclaude/composition.py)
-├── 11.0-test-suite-unit/            (planned)   ← testing (unit)
-├── 12.0-test-suite-integration/     (planned)   ← testing (integration)
-└── 13.0-documentation-ci/           (planned)   ← documentation & closeout
+├── plan.md                                                                        ← milestone spec (13 tasks, contracts C1–C13)
+├── status.md                                                                      ← this tracker
+├── 01.0-harness-settings/           README.md (3 subtasks)                        ← configuration (C1, C2)
+├── 02.0-claude-code-settings/       README.md (2 subtasks)                        ← configuration (C5, C6)
+├── 03.0-claude-code-tool/           README.md (4 subtasks)                        ← infrastructure (argv-safety, NDJSON, real tokens)
+├── 04.0-claude-code-auth/           README.md (3 subtasks)                        ← configuration (C7: subscription login vs API key)
+├── 05.0-claude-code-events/         README.md (2 subtasks)                        ← infrastructure (C10)
+├── 06.0-openhands-settings/         README.md (2 subtasks)                        ← configuration (C5, C8)
+├── 07.0-openhands-client-process/   README.md (2 subtasks)                        ← infrastructure (sidecar lifecycle)
+├── 08.0-openhands-tool/             README.md (2 subtasks)                        ← infrastructure (CodeIntelBackend impl)
+├── 09.0-openhands-events/           README.md (2 subtasks)                        ← infrastructure (C10)
+├── 10.0-harness-composition-cli/    README.md (4 subtasks)                        ← integration (C4, C11, C12; deletes openclaude/composition.py)
+├── 11.0-test-suite-unit/            README.md (4 subtasks)                        ← testing (unit)
+├── 12.0-test-suite-integration/     README.md (3 subtasks)                        ← testing (integration)
+└── 13.0-documentation-ci/           README.md (5 subtasks)                        ← documentation & closeout
 ```
+
+Per-task READMEs:
+[01.0](/docs/roadmap/0005-harness-backends/01.0-harness-settings/README.md) ·
+[02.0](/docs/roadmap/0005-harness-backends/02.0-claude-code-settings/README.md) ·
+[03.0](/docs/roadmap/0005-harness-backends/03.0-claude-code-tool/README.md) ·
+[04.0](/docs/roadmap/0005-harness-backends/04.0-claude-code-auth/README.md) ·
+[05.0](/docs/roadmap/0005-harness-backends/05.0-claude-code-events/README.md) ·
+[06.0](/docs/roadmap/0005-harness-backends/06.0-openhands-settings/README.md) ·
+[07.0](/docs/roadmap/0005-harness-backends/07.0-openhands-client-process/README.md) ·
+[08.0](/docs/roadmap/0005-harness-backends/08.0-openhands-tool/README.md) ·
+[09.0](/docs/roadmap/0005-harness-backends/09.0-openhands-events/README.md) ·
+[10.0](/docs/roadmap/0005-harness-backends/10.0-harness-composition-cli/README.md) ·
+[11.0](/docs/roadmap/0005-harness-backends/11.0-test-suite-unit/README.md) ·
+[12.0](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/README.md) ·
+[13.0](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/README.md)
 
 ## Per-task detail
 

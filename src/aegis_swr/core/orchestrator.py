@@ -9,7 +9,7 @@ either the output synthesizer or the HITL handler.
 The Orchestrator is a pure container/driver - it never chooses the panel. Team
 formation happens up front: the incident brief is extracted directly, a
 :class:`~aegis_swr.core.panel_strategy.PanelResolver` turns it (plus any explicit
-config/CLI selection) into :class:`~aegis_swr.agents.base.AgentSpec` objects,
+config/CLI selection) into :class:`~aegis_swr.core.schemas.AgentSpec` objects,
 and :func:`~aegis_swr.agents.panel.resolve_panel` instantiates the live panel the
 graph is then built from.
 """
@@ -24,7 +24,7 @@ from typing import Any, Optional
 from langgraph.graph import END, START, StateGraph
 from loguru import logger
 
-from aegis_swr.agents.base import AgentSpec, BaseAgent, LogHistorianAgent
+from aegis_swr.agents.base import BaseAgent, LogHistorianAgent
 from aegis_swr.agents.panel import resolve_consensus_weights, resolve_panel
 from aegis_swr.agents.synthesis.remediation_planner import RemediationPlannerAgent
 from aegis_swr.backends.base import (
@@ -55,6 +55,7 @@ from aegis_swr.core.exceptions import AegisSWRError, RelationalStoreError, Vecto
 from aegis_swr.core.panel_strategy import PanelResolver
 from aegis_swr.core.schemas import (
     AgentRole,
+    AgentSpec,
     AgentTurn,
     ConfidenceLevel,
     HITLRequest,

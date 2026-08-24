@@ -19,12 +19,12 @@ from __future__ import annotations
 
 from loguru import logger
 
-from aegis_swr.agents.base import AgentSpec, BaseAgent
+from aegis_swr.agents.base import BaseAgent
 from aegis_swr.agents.registry import UnknownAgentError, create_agent
 from aegis_swr.backends.base import AIAPIBackend
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.exceptions import AegisSWRError
-from aegis_swr.core.schemas import AgentRole
+from aegis_swr.core.schemas import AgentRole, AgentSpec
 
 
 class PanelResolutionError(AegisSWRError):

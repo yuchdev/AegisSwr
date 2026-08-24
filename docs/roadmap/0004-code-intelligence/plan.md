@@ -142,17 +142,17 @@ that starts, stops, or health-checks the OpenClaude Node.js subprocess.
 
 ## Tasks
 
-| Task | Name                          | Category       | Output                                                                              |
-|------|-------------------------------|----------------|-------------------------------------------------------------------------------------|
-| 01.0 | OpenClaude Settings & Config  | configuration  | `config.py`, `agents.yaml` `openclaude_agent` role, env-var contract                |
-| 02.0 | gRPC Proto & Client           | infrastructure | `grpc/proto/`, `grpc/client.py` — stub, stream adapter, mock-friendly interface     |
-| 03.0 | Process Lifecycle Manager     | infrastructure | `process.py` — start/stop/health, async context manager, EventBus emissions         |
-| 04.0 | OpenClaudeTool Implementor    | infrastructure | `tool.py` — the sole `CodeBackend`; budget enforcement, tool allowlist, dry-run     |
-| 05.0 | Event Types & Exceptions      | infrastructure | `events.py`, `exceptions.py` — typed frozen dataclasses, EventBus integration       |
-| 06.0 | App Wiring & agents.yaml      | integration    | `code_intel/` scaffolding + `app.py` composition root; backend registration; dry-run |
-| 07.0 | Test Suite — Unit             | testing        | All `tests/openclaude/unit/`; mock gRPC client; 100% branch on `tool.py`            |
-| 08.0 | Test Suite — Integration      | testing        | All `tests/openclaude/integration/`; live OpenClaude process; skipped when absent   |
-| 09.0 | Documentation & CI            | documentation  | Setup guide, config reference, CI additions, milestone closeout                     |
+| Task | Name                         | Category       | Output                                                                               |
+|------|------------------------------|----------------|--------------------------------------------------------------------------------------|
+| 01.0 | OpenClaude Settings & Config | configuration  | `config.py`, `agents.yaml` `openclaude_agent` role, env-var contract                 |
+| 02.0 | gRPC Proto & Client          | infrastructure | `grpc/proto/`, `grpc/client.py` — stub, stream adapter, mock-friendly interface      |
+| 03.0 | Process Lifecycle Manager    | infrastructure | `process.py` — start/stop/health, async context manager, EventBus emissions          |
+| 04.0 | OpenClaudeTool Implementor   | infrastructure | `tool.py` — the sole `CodeBackend`; budget enforcement, tool allowlist, dry-run      |
+| 05.0 | Event Types & Exceptions     | infrastructure | `events.py`, `exceptions.py` — typed frozen dataclasses, EventBus integration        |
+| 06.0 | App Wiring & agents.yaml     | integration    | `code_intel/` scaffolding + `app.py` composition root; backend registration; dry-run |
+| 07.0 | Test Suite — Unit            | testing        | All `tests/openclaude/unit/`; mock gRPC client; 100% branch on `tool.py`             |
+| 08.0 | Test Suite — Integration     | testing        | All `tests/openclaude/integration/`; live OpenClaude process; skipped when absent    |
+| 09.0 | Documentation & CI           | documentation  | Setup guide, config reference, CI additions, milestone closeout                      |
 
 Tasks 01.0 → 02.0 → 03.0 are sequential foundations. Task 04.0 depends on 02.0
 and 03.0. Task 05.0 depends on 01.0 and can be written alongside 02.0. Task
@@ -243,14 +243,14 @@ a run id and returns a **stream of agent-message frames**. Each frame carries a
 message type, a `content` string (text chunk, tool-call JSON, tool output, or
 error message), and an optional `tool` name. The frame types are:
 
-| Frame type      | Meaning                                             |
-|-----------------|-----------------------------------------------------|
-| `TEXT_CHUNK`    | Incremental response text                           |
-| `TOOL_CALL`     | Tool invocation (`tool` name + args JSON in content) |
-| `TOOL_RESULT`   | Tool output                                         |
-| `PERMISSION_REQ`| Requires confirmation before proceeding             |
-| `DONE`          | Terminal frame; carries the full response text      |
-| `ERROR`         | Terminal error frame                                |
+| Frame type       | Meaning                                              |
+|------------------|------------------------------------------------------|
+| `TEXT_CHUNK`     | Incremental response text                            |
+| `TOOL_CALL`      | Tool invocation (`tool` name + args JSON in content) |
+| `TOOL_RESULT`    | Tool output                                          |
+| `PERMISSION_REQ` | Requires confirmation before proceeding              |
+| `DONE`           | Terminal frame; carries the full response text       |
+| `ERROR`          | Terminal error frame                                 |
 
 `OpenClaudeGrpcClient` consumes the stream and produces a single text result:
 the concatenation of all `TEXT_CHUNK` content up to `DONE`. `TOOL_CALL` and
@@ -357,7 +357,7 @@ sentinel.
 `OpenClaudeStreamCompleted` is the only event carrying the boundary token
 estimate; it is never duplicated across events.
 
-### C9 — Cross-cutting conventions (inherited from 0001–0003)
+### C9 — Cross-cutting conventions (inherited from 0001 to 0003)
 
 - `Optional[T]` from `typing`, never `T | None` (including in subscripts and
   `Annotated[...]`).

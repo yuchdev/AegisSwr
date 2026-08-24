@@ -30,7 +30,11 @@ from typing import Union
 import pytest
 
 from flake8_project_rules.plugin import ProjectRulesPlugin
-from tests.flake8_lint.config import active_rule_codes, allow_noqa, configured_directories
+from tests.flake8_lint.config import (
+    active_rule_codes,
+    configured_directories,
+    is_noqa_allowed_for_file,
+)
 
 PROJECT_ROOT = Path(__file__).parents[2]
 
@@ -199,12 +203,12 @@ def _iter_python_files() -> Iterable[Path]:
 def _run_plugin(path: Path) -> list[tuple[int, int, str]]:
     """Run the Flake8 plugin over *path* and return ``(line, col, message)`` tuples.
 
-    Honours ``[tool.flake8_lint_tests] allow_noqa``: when the config disables
-    it, every violation is reported regardless of any ``# noqa`` comment.
+    Honours granular ``noqa_allowed`` and ``noqa_forbidden`` from pyproject.toml
+    as resolved by :func:`is_noqa_allowed_for_file`.
     """
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(path))
-    plugin = ProjectRulesPlugin(tree, str(path), apply_noqa=allow_noqa())
+    plugin = ProjectRulesPlugin(tree, str(path), apply_noqa=is_noqa_allowed_for_file(path))
     return [(lineno, col, text) for (lineno, col, text, _type) in plugin.run()]
 
 

@@ -25,6 +25,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
+from aegis_swr.core.schemas import AgentSpec
 from aegis_swr.openclaude.config import OpenClaudeSettings
 
 """Canonical config directory - the single home of ``config.json`` (this
@@ -565,12 +566,11 @@ class PanelRuntimeSettings(BaseSettings):
 
     :ivar mode: ``"auto"`` (auto-select) or ``"explicit"`` (use :attr:`explicit`).
     :ivar explicit: The per-run agent specs, deserialized into validated
-        :class:`~aegis_swr.agents.base.AgentSpec` instances. Stored under an
-        ``Any`` element annotation so the concrete ``AgentSpec`` type (which lives
-        in ``agents.base``, a module that itself imports :class:`Settings`) need
-        not be imported at module-load time; the ``mode="before"`` validator
-        performs the lazy import and coercion, and the default empty list never
-        triggers it.
+        :class:`~aegis_swr.core.schemas.AgentSpec` instances. Stored under an
+        ``Any`` element annotation (rather than ``list[AgentSpec]`` directly) so
+        raw dicts from ``config.json`` / env / kwargs are accepted as-is; the
+        ``mode="before"`` validator below normalizes them into real
+        ``AgentSpec`` instances.
     """
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -584,17 +584,9 @@ class PanelRuntimeSettings(BaseSettings):
     def _coerce_specs(cls, value: Any) -> list[Any]:
         """Coerce raw ``explicit`` entries into validated ``AgentSpec`` objects.
 
-        ``agents.base`` imports :class:`Settings`, so importing ``AgentSpec`` at
-        the top of this module would form a circular import. The import is
-        therefore deferred to this validator, which only runs when non-default
-        ``explicit`` data is supplied (config.json / env / kwargs) - by which
-        point both modules are fully loaded.
-
         :param value: The raw ``explicit`` value (list of dicts or specs).
         :return: A list of validated ``AgentSpec`` instances.
         """
-        from aegis_swr.agents.base import AgentSpec
-
         specs: list[Any] = []
         for item in value or []:
             specs.append(item if isinstance(item, AgentSpec) else AgentSpec.model_validate(item))

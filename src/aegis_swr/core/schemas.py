@@ -259,6 +259,39 @@ class DebugExtractionResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Agent turn types
 # ---------------------------------------------------------------------------
+class AgentSpec(BaseModel):
+    """
+    Per-incident configuration for a single agent in a resolved panel.
+
+    An :class:`AgentSpec` captures what varies *per invocation* about an agent -
+    as opposed to the class-level :class:`ClassVar` descriptors on
+    :class:`~aegis_swr.agents.base.base.BaseAgent`, which describe what the agent
+    inherently *is*. A panel-selection strategy produces these specs and the
+    registry consumes them to instantiate the concrete agents for a run.
+
+    :ivar agent_key: Canonical identifier of the agent this spec configures
+        (matches :attr:`~aegis_swr.agents.base.base.BaseAgent.agent_key`).
+    :type agent_key: str
+    :ivar priority: Relative ordering of the agent within the panel, constrained
+        to the inclusive range 1-5 (higher speaks earlier). Defaults to ``3``.
+        Priority controls *debate/speaking order only*; it no longer contributes
+        to consensus weight.
+    :type priority: int
+    :ivar weight: Explicit consensus-weight override for this incident. When
+        ``None`` the agent's own intrinsic
+        :attr:`~aegis_swr.agents.base.base.BaseAgent.default_weight` class
+        property is used instead.
+    :type weight: Optional[float]
+    :ivar enabled: Whether this agent participates in the resolved panel.
+    :type enabled: bool
+    """
+
+    agent_key: str
+    priority: int = Field(ge=1, le=5, default=3)
+    weight: Optional[float] = None
+    enabled: bool = True
+
+
 class Hypothesis(BaseModel):
     """
     Represents a hypothesis regarding the root cause of an issue.

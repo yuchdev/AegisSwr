@@ -11,7 +11,6 @@ built on top of this module.
 from __future__ import annotations
 
 from aegis_swr.agents.base import (
-    AgentSpec,
     BaseAgent,
     CodeAnalystAgent,
     LogHistorianAgent,
@@ -26,6 +25,7 @@ from aegis_swr.agents.synthesis.remediation_planner import RemediationPlannerAge
 from aegis_swr.backends.base import AIAPIBackend
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.exceptions import AegisSWRError
+from aegis_swr.core.schemas import AgentSpec
 
 
 class UnknownAgentError(AegisSWRError):

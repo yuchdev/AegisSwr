@@ -3,49 +3,15 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Literal, Optional
 
-from pydantic import BaseModel, Field
-
 from aegis_swr.backends.base import AIAPIBackend
 from aegis_swr.config.settings import Settings
 from aegis_swr.core.fault_codes import FaultClass
-from aegis_swr.core.schemas import AgentRole, AgentTurn, Hypothesis, InvestigationState
+from aegis_swr.core.schemas import AgentRole, AgentSpec, AgentTurn, Hypothesis, InvestigationState
 
 # Broad taxonomy bucket an agent belongs to. Declared as a module-level alias
 # (rather than an inline ``Literal[...]`` annotation) so ``UP037`` does not strip
 # the quotes off the string members under ``from __future__ import annotations``.
 AgentCategory = Literal["base", "forensic", "synthesis"]
-
-
-class AgentSpec(BaseModel):
-    """
-    Per-incident configuration for a single agent in a resolved panel.
-
-    An :class:`AgentSpec` captures what varies *per invocation* about an agent -
-    as opposed to the class-level :class:`ClassVar` descriptors on
-    :class:`BaseAgent`, which describe what the agent inherently *is*. A
-    panel-selection strategy produces these specs and the registry consumes them
-    to instantiate the concrete agents for a run.
-
-    :ivar agent_key: Canonical identifier of the agent this spec configures
-        (matches :attr:`BaseAgent.agent_key`).
-    :type agent_key: str
-    :ivar priority: Relative ordering of the agent within the panel, constrained
-        to the inclusive range 1-5 (higher speaks earlier). Defaults to ``3``.
-        Priority controls *debate/speaking order only*; it no longer contributes
-        to consensus weight.
-    :type priority: int
-    :ivar weight: Explicit consensus-weight override for this incident. When
-        ``None`` the agent's own intrinsic :attr:`BaseAgent.default_weight`
-        class property is used instead.
-    :type weight: Optional[float]
-    :ivar enabled: Whether this agent participates in the resolved panel.
-    :type enabled: bool
-    """
-
-    agent_key: str
-    priority: int = Field(ge=1, le=5, default=3)
-    weight: Optional[float] = None
-    enabled: bool = True
 
 
 class BaseAgent(ABC):
