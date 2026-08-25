@@ -63,3 +63,27 @@ agents:
     model: ~                    # YAML null - Aegis SWR resolves no LiteLLM model
     timeout_s: 120              # matches OpenClaudeSettings.request_timeout_s default (C1)
     enabled_when: OPENCLAUDE_GRPC_URL   # role inactive when the var is unset
+
+  claude_code_agent:
+    provider: claude_code       # not routed through LiteLLM; see RouterConfig
+    # Model + credentials are Claude Code's / the operator's concern. Two
+    # authentication modes exist (C7): `api_key` (ANTHROPIC_API_KEY /
+    # ANTHROPIC_AUTH_TOKEN) and `subscription` (a `claude login` session or a
+    # CLAUDE_CODE_OAUTH_TOKEN minted by `claude setup-token`). The mode is chosen
+    # by ClaudeCodeSettings.auth_mode (CLAUDE_CODE_AUTH_MODE), NOT here - it lives
+    # in the backend settings, exactly as OpenClaude's model env vars do. See
+    # docs/config/claude-code-setup.md (Task 13.0) for both modes and the
+    # subscription licensing caveat.
+    model: ~                    # YAML null - Aegis SWR resolves no LiteLLM model
+    timeout_s: 120              # matches ClaudeCodeSettings.request_timeout_s default (C6)
+    enabled_when: CLAUDE_CODE_ENABLED   # explicit opt-in; PATH presence is NOT a signal (C6)
+
+  openhands_agent:
+    provider: openhands         # not routed through LiteLLM; see RouterConfig
+    # Model selection is OpenHands' / the operator's concern via its own LiteLLM
+    # configuration. Aegis SWR never resolves a model for this role. The runtime
+    # is Docker-sandboxed by default (C8). See docs/config/openhands-setup.md
+    # (Task 13.0).
+    model: ~                    # YAML null - Aegis SWR resolves no LiteLLM model
+    timeout_s: 120              # matches OpenHandsSettings.request_timeout_s default (C8)
+    enabled_when: OPENHANDS_SERVER_URL   # role inactive when the URL is unset

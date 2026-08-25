@@ -425,13 +425,13 @@ def test_settings_composition_defaults_no_env():
 
     Boundaries: exercises settings composition wiring.
 
-    On failure, first check: ``settings.openclaude`` must be an ``OpenClaudeSettings``
-    with ``grpc_url`` ``None``.
+    On failure, first check: ``settings.harness.openclaude`` must be an
+    ``OpenClaudeSettings`` with ``grpc_url`` ``None``.
     """
 
     settings = Settings()
-    assert isinstance(settings.openclaude, OpenClaudeSettings)
-    assert settings.openclaude.grpc_url is None
+    assert isinstance(settings.harness.openclaude, OpenClaudeSettings)
+    assert settings.harness.openclaude.grpc_url is None
 
 
 def test_settings_composition_reads_flat_env(monkeypatch: pytest.MonkeyPatch):
@@ -441,12 +441,12 @@ def test_settings_composition_reads_flat_env(monkeypatch: pytest.MonkeyPatch):
 
     Boundaries: exercises env-through-composition wiring.
 
-    On failure, first check: ``settings.openclaude.grpc_url`` must equal the env value.
+    On failure, first check: ``settings.harness.openclaude.grpc_url`` must equal the env value.
     """
 
     monkeypatch.setenv("OPENCLAUDE_GRPC_URL", "localhost:50051")
     settings = Settings()
-    assert settings.openclaude.grpc_url == "localhost:50051"
+    assert settings.harness.openclaude.grpc_url == "localhost:50051"
 
 
 def test_settings_composition_leaves_siblings_intact():

@@ -42,7 +42,9 @@ from aegis_swr.core.events import EventBus
 from aegis_swr.core.exceptions import PlatformNotSupportedError
 from aegis_swr.core.orchestrator import Orchestrator
 from aegis_swr.core.schemas import AgentSpec, IncidentMode, IncidentSource, RCAReport
-from aegis_swr.openclaude.composition import build_code_agent
+from aegis_swr.harness.composition import build_code_agent
+from aegis_swr.harness.config import HarnessSettings
+from aegis_swr.harness.exceptions import HarnessConfigError, HarnessUnavailableError
 
 console = Console()
 
@@ -834,35 +836,46 @@ def code_intel_check(
         bool,
         typer.Option(
             "--dry-run/--no-dry-run",
-            help="Exercise the wiring only: build and register the backend without "
-            "entering the OpenClaude process (no health check, no managed spawn) "
-            "or opening any gRPC connection.",
+            help="Exercise the wiring only: build and register the active backend "
+            "without entering any sidecar (no health check, no managed spawn) or "
+            "opening any connection. --no-dry-run additionally health-checks / "
+            "starts the active backend and tears it down again.",
         ),
     ] = True,
 ):
-    """Verify the optional OpenClaude code-intelligence wiring.
+    """Verify the optional, backend-agnostic code-intelligence wiring.
 
-    This is the operator-facing smoke test for the composition factory
-    (:func:`aegis_swr.openclaude.composition.build_code_agent`). It replaces the
-    former standalone ``python -m aegis_swr.app`` entry point, folding that
-    capability into the ``aegis`` CLI so there is a single composition surface.
+    Operator-facing smoke test for the harness composition factory
+    (:func:`aegis_swr.harness.composition.build_code_agent`). It reports **which**
+    backend is active - ``openclaude``, ``claude_code`` (with its resolved C7
+    auth mode), or ``openhands`` - or that the capability is unavailable, for
+    every C2 selection outcome.
 
-    With ``OPENCLAUDE_GRPC_URL`` unset it reports the capability as unavailable
-    and exits ``0``. With it set, ``--dry-run`` (the default) builds and
-    registers the full OpenClaude object graph **without** entering the process
-    or opening any gRPC connection (contract C6 / the dry-run acceptance
-    criteria); pass ``--no-dry-run`` to additionally health-check (external mode)
-    or start (managed mode) the sidecar and tear it down again.
+    Selection is resolved at settings-construction time (C2): more than one
+    presence signal with no explicit selector raises
+    :class:`~aegis_swr.harness.exceptions.HarnessConfigError` here; an
+    explicitly-selected backend whose signal is absent raises
+    :class:`~aegis_swr.harness.exceptions.HarnessUnavailableError` at composition
+    time. With ``--dry-run`` (the default) the active backend's object graph is
+    built and registered but no sidecar is entered and no connection/spawn occurs
+    (C4/C13); ``--no-dry-run`` additionally exercises the sidecar lifecycle where
+    the backend has one.
     """
+    try:
+        settings = Settings()  # C2 ambiguity (unset + >1 signal) raises here
+    except HarnessConfigError as exc:
+        # exc carries only field/backend/signal names, never secrets (C2/C13).
+        console.print(f"[red]Code-intelligence configuration error[/red]: {exc}")
+        raise typer.Exit(code=2) from exc
 
-    settings = Settings()
     bus = EventBus()
+    active = settings.harness.active_backend
 
     async def _run() -> bool:
-        """Build the code agent and run the one-shot delegation probe."""
+        """Build the code agent and confirm the active backend registered."""
         async with AsyncExitStack() as stack:
             agent = await build_code_agent(
-                settings.openclaude,
+                settings.harness,
                 bus,
                 stack,
                 run_id=str(uuid4()),
@@ -870,12 +883,36 @@ def code_intel_check(
             )
             return agent.available
 
-    available = asyncio.run(_run())
-    if available:
-        # Parentheses, not brackets: rich would parse a ``[...]`` suffix as markup.
-        suffix = " (dry-run: process not started)" if dry_run else ""
-        console.print(f"[green]Code intelligence backend registered (OpenClaude){suffix}.[/green]")
-    else:
+    try:
+        available = asyncio.run(_run())
+    except HarnessUnavailableError as exc:
         console.print(
-            "[yellow]Code intelligence unavailable[/yellow] (OPENCLAUDE_GRPC_URL unset; no backend registered)."
+            f"[red]Code intelligence unavailable[/red]: selected backend "
+            f"'{active}' is not reachable/enabled ({exc})."
         )
+        raise typer.Exit(code=1) from exc
+
+    if available and active is not None:
+        suffix = " (dry-run: sidecar not started)" if dry_run else ""
+        detail = _active_backend_detail(settings.harness, active)
+        # Parentheses, not brackets: rich would parse a ``[...]`` suffix as markup.
+        console.print(f"[green]Code intelligence backend active: {active}{detail}{suffix}.[/green]")
+    else:
+        console.print("[yellow]Code intelligence unavailable[/yellow] " "(no backend active; no presence signal set).")
+
+
+def _active_backend_detail(harness: HarnessSettings, active: str) -> str:
+    """Return a short, secret-free parenthetical detail for the active backend.
+
+    For ``claude_code`` this reports the resolved C7 auth mode
+    (``auto`` | ``api_key`` | ``subscription``); other backends add no detail.
+    The auth **mode** is a non-secret enum - no token, key, or credential-file
+    content is ever included (C7/C13).
+
+    :param harness: The composed ``settings.harness`` sub-settings.
+    :param active: The resolved active backend family name.
+    :return: A parenthetical string (possibly empty) to append to the status line.
+    """
+    if active == "claude_code":
+        return f" (auth mode: {harness.claude_code.auth_mode})"
+    return ""

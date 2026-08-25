@@ -83,6 +83,40 @@ def test_no_env_constructs_with_defaults():
     assert settings.presence_signals == frozenset()
 
 
+@pytest.mark.parametrize(
+    "blank_var",
+    [
+        "OPENHANDS_RUNTIME",
+        "OPENHANDS_CONNECT_TIMEOUT",
+        "OPENHANDS_REQUEST_TIMEOUT",
+        "OPENHANDS_ALLOWED_TOOLS",
+    ],
+)
+def test_empty_openhands_env_does_not_break_zero_config(monkeypatch: pytest.MonkeyPatch, blank_var: str):
+    """[Unit] config: an empty OPENHANDS_* secret still yields a zero-config HarnessSettings.
+
+    Scenario: a single ``OPENHANDS_*`` env var is set to ``""`` (an unset CI secret
+    expanding to the empty string) with nothing else configured -> ``HarnessSettings()``
+    still constructs and reports no active backend.
+
+    Boundaries: the transitive regression guard for the empty-env-coercion defect -
+    ``HarnessSettings`` composes ``OpenHandsSettings`` via ``default_factory``, so a raw
+    pydantic ValidationError inside the nested object would crash the zero-config
+    invariant (contracts C1/C2/C5). An empty ``OPENHANDS_*`` value is not a presence
+    signal, so no backend activates.
+
+    On failure, first check: the corresponding ``OpenHandsSettings`` mode="before" empty
+    -value coercer (runtime_mode/connect_timeout_s/request_timeout_s/allowed_tools).
+    """
+    monkeypatch.setenv(blank_var, "")
+
+    settings = HarnessSettings()
+
+    assert settings.active_backend is None
+    assert settings.presence_signals == frozenset()
+    assert settings.openhands.server_url is None
+
+
 def test_explicit_backend_kwarg_parses_to_enum():
     """[Unit] config: An explicit backend kwarg parses to the HarnessBackend member.
 

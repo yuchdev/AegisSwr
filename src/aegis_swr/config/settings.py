@@ -26,7 +26,7 @@ from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 from aegis_swr.core.schemas import AgentSpec
-from aegis_swr.openclaude.config import OpenClaudeSettings
+from aegis_swr.harness.config import HarnessSettings
 
 """Canonical config directory - the single home of ``config.json`` (this
 module's runtime settings). It is the *same* path the CLI reads and writes, and
@@ -688,7 +688,9 @@ class Settings(BaseSettings):
     sandbox: SandboxSettings = Field(default_factory=SandboxSettings)
     api: APISettings = Field(default_factory=APISettings)
     panel: PanelRuntimeSettings = Field(default_factory=PanelRuntimeSettings)
-    openclaude: OpenClaudeSettings = Field(default_factory=OpenClaudeSettings)
+    # C12: the standalone `openclaude` field is REMOVED; OpenClaude settings now
+    # live at `settings.harness.openclaude`, alongside `.claude_code` / `.openhands`.
+    harness: HarnessSettings = Field(default_factory=HarnessSettings)
 
     def redacted_dump(self) -> dict[str, Any]:
         """Return the settings dict with secret values replaced by '***'"""
