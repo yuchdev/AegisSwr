@@ -482,3 +482,237 @@ def test_override_inert_when_runtime_sandboxed():
         logger.remove(sink_id)
     assert settings.runtime_mode == "docker"
     assert records == []
+
+
+# --- Empty-env coercion (unset-CI-secret ``""``) ----------------------------
+
+
+@pytest.mark.parametrize("blank", ["", "   ", "\t"])
+def test_runtime_mode_empty_env_falls_back_to_docker(monkeypatch: pytest.MonkeyPatch, blank: str):
+    """[Unit] openhands config: an empty OPENHANDS_RUNTIME resolves to the docker default.
+
+    Scenario: ``OPENHANDS_RUNTIME`` is set to an empty/whitespace-only string (an unset
+    CI secret expanding to ``""``).
+
+    Boundaries: regression guard - a blank runtime must never raise the unknown-runtime
+    error and must resolve to the sandboxed Docker default (C8 fail-safe direction).
+
+    On failure, first check: the ``_coerce_runtime_mode`` mode="before" validator must
+    coerce the blank value to ``"docker"``.
+    """
+    monkeypatch.setenv("OPENHANDS_RUNTIME", blank)
+    settings = OpenHandsSettings()
+    assert settings.runtime_mode == "docker"
+    assert settings.runtime_mode in {"docker", "remote"}  # sandboxed set (C8)
+
+
+def test_runtime_mode_empty_env_selects_sandboxed_runtime(monkeypatch: pytest.MonkeyPatch):
+    """[Unit] openhands config: OPENHANDS_RUNTIME="" resolves to a sandboxed runtime (C8).
+
+    Scenario: ``OPENHANDS_RUNTIME`` is empty while ``allow_unsandboxed_runtime`` is at its
+    default (``False``) - the enforcement validator would reject any non-sandboxed value.
+
+    Boundaries: explicit C8 fail-safe assertion - an empty runtime must never resolve to
+    the unsandboxed ``local`` runtime, and construction must not raise.
+
+    On failure, first check: the empty value must coerce to ``"docker"`` (Docker-sandboxed)
+    and pass the sandbox-enforcement model-validator without an override.
+    """
+    monkeypatch.setenv("OPENHANDS_RUNTIME", "")
+    settings = OpenHandsSettings()
+    assert settings.runtime_mode == "docker"
+    assert settings.runtime_mode != "local"
+    assert settings.allow_unsandboxed_runtime is False
+
+
+def test_runtime_mode_blank_string_direct_falls_back_to_docker():
+    """[Unit] openhands config: a whitespace-only runtime_mode kwarg falls back to docker.
+
+    Scenario: ``runtime_mode`` is passed as a whitespace-only string to the constructor.
+
+    Boundaries: exercises the coercion validator directly (the constructor path).
+
+    On failure, first check: ``_coerce_runtime_mode`` must return ``"docker"`` for a blank
+    string.
+    """
+    assert OpenHandsSettings(runtime_mode="   ").runtime_mode == "docker"
+
+
+@pytest.mark.parametrize("blank", ["", "   ", "\t"])
+def test_connect_timeout_empty_env_falls_back_to_default(monkeypatch: pytest.MonkeyPatch, blank: str):
+    """[Unit] openhands config: an empty OPENHANDS_CONNECT_TIMEOUT resolves to the default.
+
+    Scenario: ``OPENHANDS_CONNECT_TIMEOUT`` is an empty/whitespace-only string.
+
+    Boundaries: regression guard - a blank int must never raise the raw pydantic
+    ``int_parsing`` ValidationError that ``__init__`` does not unwrap.
+
+    On failure, first check: the ``_coerce_connect_timeout`` mode="before" validator must
+    coerce the blank value to ``10``.
+    """
+    monkeypatch.setenv("OPENHANDS_CONNECT_TIMEOUT", blank)
+    assert OpenHandsSettings().connect_timeout_s == 10
+
+
+@pytest.mark.parametrize("blank", ["", "   ", "\t"])
+def test_request_timeout_empty_env_falls_back_to_default(monkeypatch: pytest.MonkeyPatch, blank: str):
+    """[Unit] openhands config: an empty OPENHANDS_REQUEST_TIMEOUT resolves to the default.
+
+    Scenario: ``OPENHANDS_REQUEST_TIMEOUT`` is an empty/whitespace-only string.
+
+    Boundaries: regression guard - a blank int must never raise the raw pydantic
+    ``int_parsing`` ValidationError.
+
+    On failure, first check: the ``_coerce_request_timeout`` mode="before" validator must
+    coerce the blank value to ``120``.
+    """
+    monkeypatch.setenv("OPENHANDS_REQUEST_TIMEOUT", blank)
+    assert OpenHandsSettings().request_timeout_s == 120
+
+
+def test_timeouts_blank_string_direct_fall_back_to_defaults():
+    """[Unit] openhands config: whitespace-only timeout kwargs fall back to defaults.
+
+    Scenario: both timeout fields are passed as whitespace-only strings to the constructor.
+
+    Boundaries: exercises the coercion validators directly via the constructor path.
+
+    On failure, first check: the mode="before" coercers must return the documented
+    defaults (10 and 120) for a blank string.
+    """
+    settings = OpenHandsSettings(connect_timeout_s="  ", request_timeout_s="\t")
+    assert settings.connect_timeout_s == 10
+    assert settings.request_timeout_s == 120
+
+
+@pytest.mark.parametrize("blank", ["", "   ", "\t"])
+def test_allowed_tools_empty_env_falls_back_to_default(monkeypatch: pytest.MonkeyPatch, blank: str):
+    """[Unit] openhands config: an empty OPENHANDS_ALLOWED_TOOLS resolves to the default set.
+
+    Scenario: ``OPENHANDS_ALLOWED_TOOLS`` is an empty/whitespace-only string.
+
+    Boundaries: regression guard for the fail-open defect - a blank allowlist must coerce
+    to the read-only default set, never an empty list that would widen tool access.
+
+    On failure, first check: the ``_CsvEnvSettingsSource`` empty-value branch must return
+    the read-only default.
+    """
+    monkeypatch.setenv("OPENHANDS_ALLOWED_TOOLS", blank)
+    assert OpenHandsSettings().allowed_tools == ["read", "grep", "glob", "browse"]
+
+
+def test_allowed_tools_blank_string_direct_falls_back_to_default():
+    """[Unit] openhands config: a whitespace-only allowed_tools kwarg falls back to default.
+
+    Scenario: ``allowed_tools`` is passed as a whitespace-only string to the constructor.
+
+    Boundaries: exercises the ``_coerce_csv_lists`` empty-string branch directly.
+
+    On failure, first check: the coercer must return the read-only default set, not ``[]``.
+    """
+    assert OpenHandsSettings(allowed_tools="   ").allowed_tools == ["read", "grep", "glob", "browse"]
+
+
+def test_allowed_tools_explicit_empty_list_rejected():
+    """[Unit] openhands config: an explicit empty allowed_tools list is rejected (fail closed).
+
+    Scenario: ``allowed_tools=[]`` is passed explicitly to the constructor.
+
+    Boundaries: exercises the empty-allowlist guard - an explicit empty list must fail
+    closed, mirroring claude_code FIX 6, not silently widen tool access.
+
+    On failure, first check: ``_validate_allowed_tools`` must raise ``OpenHandsConfigError``
+    on the ``allowed_tools`` field for an empty list.
+    """
+    with pytest.raises(OpenHandsConfigError) as exc:
+        OpenHandsSettings(allowed_tools=[])
+    assert exc.value.field == "allowed_tools"
+
+
+# --- max_response_tokens (Task 08.0 additive field, mirrors OpenClaude C5) ---
+
+
+def test_max_response_tokens_default_no_env():
+    """[Unit] openhands config: max_response_tokens defaults to 4096 with no env.
+
+    Scenario: settings are constructed with no ``OPENHANDS_MAX_TOKENS`` set.
+
+    Boundaries: exercises the default hoisted to ``_DEFAULT_MAX_RESPONSE_TOKENS``.
+
+    On failure, first check: the field must default to ``4096``, matching
+    ``OpenClaudeSettings.max_response_tokens``.
+    """
+    assert OpenHandsSettings().max_response_tokens == 4096
+
+
+def test_max_response_tokens_reads_documented_env(monkeypatch: pytest.MonkeyPatch):
+    """[Unit] openhands config: OPENHANDS_MAX_TOKENS populates max_response_tokens.
+
+    Scenario: ``OPENHANDS_MAX_TOKENS`` is set to a valid in-range value.
+
+    Boundaries: exercises the documented env alias.
+
+    On failure, first check: the field must reflect the env value.
+    """
+    monkeypatch.setenv("OPENHANDS_MAX_TOKENS", "8192")
+    assert OpenHandsSettings().max_response_tokens == 8192
+
+
+@pytest.mark.parametrize("blank", ["", "   ", "\t"])
+def test_max_response_tokens_empty_env_falls_back_to_default(monkeypatch: pytest.MonkeyPatch, blank: str):
+    """[Unit] openhands config: an empty OPENHANDS_MAX_TOKENS resolves to the default.
+
+    Scenario: ``OPENHANDS_MAX_TOKENS`` is an empty/whitespace-only string (an unset CI
+    secret expanding to ``""``).
+
+    Boundaries: regression guard for the eight-instance empty-env defect - a blank int
+    must never raise the raw pydantic ``int_parsing`` ValidationError that ``__init__``
+    does not unwrap.
+
+    On failure, first check: the ``_coerce_max_response_tokens`` mode="before" validator
+    must coerce the blank value to ``4096``.
+    """
+    monkeypatch.setenv("OPENHANDS_MAX_TOKENS", blank)
+    assert OpenHandsSettings().max_response_tokens == 4096
+
+
+def test_max_response_tokens_blank_string_direct_falls_back_to_default():
+    """[Unit] openhands config: a whitespace-only max_response_tokens kwarg uses the default.
+
+    Scenario: ``max_response_tokens`` is passed as a whitespace-only string to the
+    constructor.
+
+    Boundaries: exercises the ``_coerce_max_response_tokens`` empty-string branch directly.
+
+    On failure, first check: the coercer must return ``4096`` for a blank string.
+    """
+    assert OpenHandsSettings(max_response_tokens="  ").max_response_tokens == 4096
+
+
+@pytest.mark.parametrize("bad", [255, 65537, 0])
+def test_max_response_tokens_out_of_range_rejected(bad: int):
+    """[Unit] openhands config: an out-of-range max_response_tokens is rejected.
+
+    Scenario: ``max_response_tokens`` is set below 256 or above 65536.
+
+    Boundaries: exercises the ``[256, 65536]`` range validator, mirroring OpenClaude.
+
+    On failure, first check: construction must raise ``OpenHandsConfigError`` on the
+    ``max_response_tokens`` field.
+    """
+    with pytest.raises(OpenHandsConfigError) as exc:
+        OpenHandsSettings(max_response_tokens=bad)
+    assert exc.value.field == "max_response_tokens"
+
+
+def test_max_response_tokens_range_boundaries_accepted():
+    """[Unit] openhands config: the 256 and 65536 boundaries are accepted.
+
+    Scenario: ``max_response_tokens`` is set to each inclusive boundary.
+
+    Boundaries: exercises the accept path at both ends of the ``[256, 65536]`` range.
+
+    On failure, first check: both boundary values must construct and round-trip.
+    """
+    assert OpenHandsSettings(max_response_tokens=256).max_response_tokens == 256
+    assert OpenHandsSettings(max_response_tokens=65536).max_response_tokens == 65536

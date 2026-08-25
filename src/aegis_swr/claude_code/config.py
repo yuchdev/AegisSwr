@@ -13,18 +13,17 @@ the ``allowed_tools`` read-only default, the ``permission_mode`` bypass rejectio
 and the mandatory disposable ``scratch_cwd`` are the *only* settings-time guards
 standing in for the sandbox this backend lacks (C6 item 3).
 
-:class:`ClaudeCodeConfigError` is **forward-declared** here (a same-named
-placeholder). Task 05.0 supplies the canonical definition in
-``aegis_swr/claude_code/exceptions.py`` and replaces this placeholder with a
-re-export alias so ``aegis_swr.claude_code.config.ClaudeCodeConfigError`` keeps
-resolving to the same object with no downstream import-path change.
+:class:`ClaudeCodeConfigError` is re-exported from
+``aegis_swr.claude_code.exceptions`` (its canonical home as of Task 05.0) so
+existing imports of ``aegis_swr.claude_code.config.ClaudeCodeConfigError``
+continue to resolve to the same object with no downstream import-path change.
 """
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from loguru import logger
 from pydantic import Field, ValidationError, field_validator, model_validator
@@ -36,7 +35,22 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
+from aegis_swr.claude_code.exceptions import ClaudeCodeConfigError as ClaudeCodeConfigError
+
 _CSV_LIST_FIELDS: frozenset[str] = frozenset({"allowed_tools"})
+
+#: Authentication-mode vocabulary (C7). Defined as a module-level alias (rather
+#: than an inline ``Literal[...]`` annotation) so ``UP037`` does not strip the
+#: quotes from its string members - the same idiom as ``PanelMode`` /
+#: ``AgentCategory`` elsewhere in the codebase.
+AuthMode = Literal["auto", "api_key", "subscription"]
+
+#: Environment variables that outrank a Claude.ai subscription login in the
+#: credential precedence chain Claude Code itself applies (C7 ranks 2-3): their
+#: mere non-empty presence would silently displace an ``auth_mode="subscription"``
+#: choice. Ordered high-to-low so the rejection message names the *first* one it
+#: finds. Their **values** are never read - only their presence (C7/C13).
+_OUTRANKING_ENV_VARS: tuple[str, ...] = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY")
 
 #: Canonical Claude Code tool names accepted in ``allowed_tools`` (same set as
 #: OpenClaude's C1 tool vocabulary).
@@ -78,29 +92,15 @@ _BYPASS_PERMISSION_VALUES: frozenset[str] = frozenset(
     }
 )
 
-
-class ClaudeCodeConfigError(ValueError):
-    """Raised when :class:`ClaudeCodeSettings` receives an invalid value.
-
-    Forward declaration only. The canonical definition is moved to
-    ``aegis_swr/claude_code/exceptions.py`` in Task 05.0; this placeholder is
-    then replaced by a re-export alias so
-    ``aegis_swr.claude_code.config.ClaudeCodeConfigError`` keeps resolving to the
-    same object with **no** downstream import-path change (exactly as
-    ``OpenClaudeConfigError`` was handled in Milestone 0004).
-
-    :param field: Name of the offending field.
-    :param reason: Human-readable explanation of the violation. Must never
-        contain a secret, credential, or incident-payload value (C13).
-    :ivar field: The offending field name.
-    :ivar reason: The violation explanation.
-    """
-
-    def __init__(self, field: str, reason: str):
-        """Record the offending *field* and payload-free *reason* on the error."""
-        self.field = field
-        self.reason = reason
-        super().__init__(f"ClaudeCodeSettings.{field}: {reason}")
+#: Field defaults, hoisted to module constants so the fail-safe value an
+#: empty/whitespace env var (an unset CI secret expanding to ``""``) falls back to
+#: is defined in exactly one place, shared by the field declaration and its
+#: ``mode="before"`` empty-value coercer.
+_DEFAULT_ALLOWED_TOOLS: tuple[str, ...] = ("Read", "Grep", "Glob")
+_DEFAULT_MAX_TURNS: int = 8
+_DEFAULT_REQUEST_TIMEOUT_S: int = 120
+_DEFAULT_PERMISSION_MODE: str = "default"
+_DEFAULT_AUTH_MODE: AuthMode = "auto"
 
 
 def _split_csv(value: object) -> object:
@@ -154,8 +154,17 @@ class _CsvEnvSettingsSource(EnvSettingsSource):
         value: Any,
         value_is_complex: bool,
     ) -> Any:
-        """Split comma-separated env values for list fields, else defer to the base."""
+        """Split comma-separated env values for list fields, else defer to the base.
+
+        An empty/whitespace-only ``CLAUDE_CODE_ALLOWED_TOOLS`` (an unset CI secret
+        expanding to ``""``) coerces to the read-only default set rather than an
+        empty list, so it neither crashes construction nor trips the
+        empty-allowlist rejection (which would fail OPEN by omitting
+        ``--allowedTools`` - see :meth:`ClaudeCodeSettings._validate_allowed_tools`).
+        """
         if field_name in _CSV_LIST_FIELDS and isinstance(value, str):
+            if not value.strip():
+                return list(_DEFAULT_ALLOWED_TOOLS)
             return _split_csv(value)
         return super().prepare_field_value(field_name, field, value, value_is_complex)
 
@@ -188,17 +197,38 @@ class ClaudeCodeSettings(BaseSettings):
     :ivar scratch_cwd: Disposable working directory for the one-shot ``claude``
         process. Mandatory when ``enabled`` is ``True``; must be creatable,
         writable, and not the repository root or an ancestor of it.
+    :ivar auth_mode: Which credential surface the one-shot ``claude`` subprocess
+        must use (C7). ``"auto"`` (the **default**) defers entirely to the
+        ``claude`` binary's own precedence chain and adds no Aegis-side
+        validation - Task 03.0 behaviour is preserved bit-for-bit. ``"api_key"``
+        uses the host ``ANTHROPIC_API_KEY`` / ``ANTHROPIC_AUTH_TOKEN`` (``--bare``
+        eligible). ``"subscription"`` uses a Claude.ai login (OAuth) and is
+        rejected at construction if an API-key credential is present in the
+        inherited environment (it would silently outrank the login) or if a
+        ``--bare`` invocation is requested. The ``"auto"`` default is a **design
+        constraint driven by the open licensing caveat** (C7): ``subscription``
+        mode is opt-in only and must not be recommended as the default automation
+        path until confirmed with Anthropic (see Task 13.0's setup guide).
+    :ivar bare: When ``True`` the credential resolver may append ``--bare`` to the
+        ``claude`` argv for reproducibility - permitted only in ``"api_key"`` mode
+        (C7). ``--bare`` reads no OAuth/login credential, so combining it with **any
+        non-**``api_key`` mode is rejected at construction (fail loud rather than
+        silently drop the flag): ``auth_mode="subscription"`` via
+        :meth:`_validate_subscription_mode` and the default ``auth_mode="auto"`` via
+        :meth:`_validate_bare_requires_api_key`. Defaults to ``False``.
     """
 
     model_config = SettingsConfigDict(env_prefix="CLAUDE_CODE_", populate_by_name=True)
 
     binary_path: str = Field(default="claude", validation_alias="CLAUDE_CODE_BINARY")
     enabled: bool = False
-    allowed_tools: list[str] = ["Read", "Grep", "Glob"]
-    max_turns: int = 8
-    request_timeout_s: int = Field(default=120, validation_alias="CLAUDE_CODE_REQUEST_TIMEOUT")
-    permission_mode: str = "default"
+    allowed_tools: list[str] = Field(default_factory=lambda: list(_DEFAULT_ALLOWED_TOOLS))
+    max_turns: int = _DEFAULT_MAX_TURNS
+    request_timeout_s: int = Field(default=_DEFAULT_REQUEST_TIMEOUT_S, validation_alias="CLAUDE_CODE_REQUEST_TIMEOUT")
+    permission_mode: str = _DEFAULT_PERMISSION_MODE
     scratch_cwd: Optional[Path] = None
+    auth_mode: AuthMode = _DEFAULT_AUTH_MODE
+    bare: bool = False
 
     def __init__(self, **values: Any):
         """Construct the settings, surfacing :class:`ClaudeCodeConfigError` directly.
@@ -277,30 +307,146 @@ class ClaudeCodeSettings(BaseSettings):
             return False
         return v
 
+    @field_validator("bare", mode="before")
+    @classmethod
+    def _coerce_bare(cls, v: object) -> object:
+        """Treat an empty/whitespace-only ``bare`` value as the default (``False``).
+
+        An unset environment variable or CI secret expands to ``""`` (e.g.
+        ``CLAUDE_CODE_BARE: ${{ secrets.MISSING }}``), which pydantic would
+        otherwise reject with a raw ``bool_parsing`` error. An empty value must
+        fall back to the fail-safe default (``--bare`` off) and must never resolve
+        to ``True``. Non-empty strings and non-``str`` values pass through to
+        pydantic's bool parsing.
+
+        :param v: The raw ``bare`` value.
+        :return: ``False`` for an empty/whitespace string, else ``v`` unchanged.
+        """
+        if isinstance(v, str) and not v.strip():
+            return False
+        return v
+
+    @field_validator("max_turns", mode="before")
+    @classmethod
+    def _coerce_max_turns(cls, v: object) -> object:
+        """Treat an empty/whitespace-only ``max_turns`` value as the default.
+
+        An unset ``CLAUDE_CODE_MAX_TURNS`` expands to ``""``; without this coercer
+        pydantic raises a raw ``int_parsing`` ``ValidationError`` that ``__init__``
+        does not unwrap, crashing a partially-configured (e.g. CI) construction. A
+        blank value falls back to the fail-safe default; a non-empty non-integer
+        still fails loud through pydantic's int parsing.
+
+        :param v: The raw ``max_turns`` value.
+        :return: The default for a blank string, else ``v`` unchanged.
+        """
+        if isinstance(v, str) and not v.strip():
+            return _DEFAULT_MAX_TURNS
+        return v
+
+    @field_validator("request_timeout_s", mode="before")
+    @classmethod
+    def _coerce_request_timeout(cls, v: object) -> object:
+        """Treat an empty/whitespace-only ``request_timeout_s`` value as the default.
+
+        An unset ``CLAUDE_CODE_REQUEST_TIMEOUT`` expands to ``""``; without this
+        coercer pydantic raises a raw ``int_parsing`` ``ValidationError`` that
+        ``__init__`` does not unwrap, crashing construction. A blank value falls
+        back to the fail-safe default; a non-empty non-integer still fails loud.
+
+        :param v: The raw ``request_timeout_s`` value.
+        :return: The default for a blank string, else ``v`` unchanged.
+        """
+        if isinstance(v, str) and not v.strip():
+            return _DEFAULT_REQUEST_TIMEOUT_S
+        return v
+
+    @field_validator("permission_mode", mode="before")
+    @classmethod
+    def _coerce_permission_mode(cls, v: object) -> object:
+        """Treat an empty/whitespace-only ``permission_mode`` value as the default.
+
+        An unset ``CLAUDE_CODE_PERMISSION_MODE`` expands to ``""``; without this
+        coercer the ``permission_mode`` validator rejects the blank value as an
+        "unknown mode", crashing a partially-configured construction. A blank value
+        falls back to the fail-safe non-bypassing default ``"default"``; any
+        non-empty value still flows through the bypass/unknown-mode rejection.
+
+        :param v: The raw ``permission_mode`` value.
+        :return: ``"default"`` for a blank string, else ``v`` unchanged.
+        """
+        if isinstance(v, str) and not v.strip():
+            return _DEFAULT_PERMISSION_MODE
+        return v
+
+    @field_validator("auth_mode", mode="before")
+    @classmethod
+    def _coerce_auth_mode(cls, v: object) -> object:
+        """Treat an empty/whitespace-only ``auth_mode`` value as the default (``auto``).
+
+        An unset ``CLAUDE_CODE_AUTH_MODE`` expands to ``""`` (e.g.
+        ``CLAUDE_CODE_AUTH_MODE: ${{ secrets.MISSING }}``); without this coercer the
+        ``Literal`` type raises a raw ``literal_error`` ``ValidationError`` that
+        ``__init__`` does not unwrap, crashing a zero-/partial-config construction
+        (re-review MEDIUM). A blank value falls back to the licensing-driven default
+        ``"auto"`` - which fails **closed** (it never selects ``subscription`` and
+        disables no guard). Non-empty strings pass through to the ``Literal`` check.
+
+        :param v: The raw ``auth_mode`` value.
+        :return: ``"auto"`` for a blank string, else ``v`` unchanged.
+        """
+        if isinstance(v, str) and not v.strip():
+            return _DEFAULT_AUTH_MODE
+        return v
+
     @field_validator("allowed_tools", mode="before")
     @classmethod
     def _coerce_csv_lists(cls, v: object) -> object:
         """Accept a comma-separated string for ``allowed_tools`` passed in code.
 
         The env-var path is handled by :class:`_CsvEnvSettingsSource`; this covers
-        callers passing a raw string directly to the constructor. Lists pass
-        through untouched.
+        callers passing a raw string directly to the constructor. An
+        empty/whitespace-only string (the unset-CI-secret artifact) coerces to the
+        read-only default set, mirroring :class:`_CsvEnvSettingsSource`, so a blank
+        value falls back to the safe default rather than an empty allowlist. Lists
+        (including an explicit empty ``[]``) pass through untouched - an explicit
+        empty list is rejected by :meth:`_validate_allowed_tools` (fail closed).
 
         :param v: The raw ``allowed_tools`` value.
-        :return: A split list for a ``str`` input, else ``v`` unchanged.
+        :return: The default list for a blank string, a split list for a non-empty
+            string, else ``v`` unchanged.
         """
+        if isinstance(v, str) and not v.strip():
+            return list(_DEFAULT_ALLOWED_TOOLS)
         return _split_csv(v)
 
     @field_validator("allowed_tools")
     @classmethod
     def _validate_allowed_tools(cls, v: list[str]) -> list[str]:
-        """Reject unknown Claude Code tool names; warn on write-capable tools.
+        """Reject an empty or unknown allowlist; warn on write-capable tools.
+
+        An **explicit empty** ``allowed_tools`` is rejected (fail closed): an empty
+        list makes :func:`aegis_swr.claude_code.process.build_argv` omit
+        ``--allowedTools`` entirely, which grants the ``claude`` CLI *unrestricted*
+        tool access - the inverse of the C6.3 read-only guard (fails OPEN). An
+        empty allowlist is therefore a construction error, not a silently-permissive
+        default. (An empty/whitespace *string* value - the unset-CI-secret artifact -
+        is coerced to the read-only default upstream and never reaches this check.)
 
         :param v: The parsed list of tool names.
         :return: The validated list, unchanged.
-        :raises ClaudeCodeConfigError: When any name is not a recognized Claude
-            Code tool.
+        :raises ClaudeCodeConfigError: When the list is empty, or when any name is
+            not a recognized Claude Code tool.
         """
+        if not v:
+            raise ClaudeCodeConfigError(
+                field="allowed_tools",
+                reason=(
+                    "must grant at least one read-only tool; an empty allowlist "
+                    "omits --allowedTools and grants the claude CLI unrestricted "
+                    "tool access (fails open - the inverse of the read-only guard)"
+                ),
+            )
         unknown = [tool for tool in v if tool not in _KNOWN_TOOLS]
         if unknown:
             raise ClaudeCodeConfigError(
@@ -453,4 +599,94 @@ class ClaudeCodeSettings(BaseSettings):
                 reason="must not be the repository root or an ancestor of it",
             )
 
+        return self
+
+    @model_validator(mode="after")
+    def _validate_subscription_mode(self) -> ClaudeCodeSettings:
+        """Reject a ``subscription`` config that cannot honour the operator's choice (C7).
+
+        Runs meaningfully only when ``auth_mode == "subscription"``; for ``"auto"``
+        and ``"api_key"`` it inspects **no** environment and returns ``self``
+        immediately (the behavioural-freeze guarantee for the default path). In
+        subscription mode it enforces the two C7 construction-time invariants:
+
+        * an outranking API-key credential (:data:`_OUTRANKING_ENV_VARS`) must not
+          be present in the inherited environment - either would silently outrank
+          the subscription login (C7 precedence ranks 2-3) and defeat the explicit
+          choice; and
+        * ``--bare`` must not be requested (``bare=True``) - bare mode never reads
+          OAuth/login credentials at all (C7), so it is unusable for a login-based
+          deployment.
+
+        Presence is tested as *set and non-empty* (``os.environ`` read exactly
+        once): an unset variable and an empty-string variable
+        (``ANTHROPIC_API_KEY=""``, the classic unset-CI-secret artifact) are both
+        treated as **absent** so a stray empty value triggers no spurious
+        rejection. The exception message names **only** the offending env-var or
+        field name - never a credential value (C7/C13).
+
+        :return: ``self`` when the subscription configuration is internally
+            consistent (or when ``auth_mode`` is not ``"subscription"``).
+        :raises ClaudeCodeConfigError: on an outranking credential present in the
+            environment, or a ``subscription`` + ``--bare`` combination.
+        """
+        if self.auth_mode != "subscription":
+            return self
+
+        if self.bare:
+            raise ClaudeCodeConfigError(
+                field="auth_mode",
+                reason=(
+                    "auth_mode='subscription' is incompatible with a --bare invocation; "
+                    "bare mode never reads OAuth/login credentials (C7). "
+                    "Unset bare or use auth_mode='api_key'."
+                ),
+            )
+
+        present = next((name for name in _OUTRANKING_ENV_VARS if os.environ.get(name, "").strip()), None)
+        if present is not None:
+            raise ClaudeCodeConfigError(
+                field="auth_mode",
+                reason=(
+                    f"auth_mode='subscription' but {present} is set in the environment; "
+                    "it would silently outrank the subscription login (C7 precedence). "
+                    "Unset it or use auth_mode='api_key'."
+                ),
+            )
+
+        return self
+
+    @model_validator(mode="after")
+    def _validate_bare_requires_api_key(self) -> ClaudeCodeSettings:
+        """Reject ``bare=True`` outside ``api_key`` mode - fail loud, never silent (C7).
+
+        ``--bare`` is documented as permitted **only** in ``api_key`` mode: it reads
+        no OAuth/login credential, so it is meaningless in ``subscription`` mode and
+        a no-op in ``auto`` mode. Yet under the default ``auth_mode="auto"`` a
+        ``bare=True`` request was previously accepted silently and then silently
+        dropped by :func:`aegis_swr.claude_code.process.resolve_credential` (which
+        appends ``--bare`` only in ``api_key`` mode) - the exact silent-ignore class
+        C7 exists to eliminate. This validator makes every non-``api_key`` + ``bare``
+        combination a loud construction error, consistent with how this codebase
+        treats every other misconfiguration.
+
+        The ``subscription`` + ``bare`` case is also rejected here, but redundantly:
+        :meth:`_validate_subscription_mode` runs first and rejects it with a
+        subscription-specific message, so this validator's raise is reached only for
+        the ``auto`` (and any future non-``api_key``) mode.
+
+        :return: ``self`` when ``bare`` is unset or ``auth_mode`` is ``"api_key"``.
+        :raises ClaudeCodeConfigError: When ``bare=True`` and ``auth_mode`` is not
+            ``"api_key"``.
+        """
+        if self.bare and self.auth_mode != "api_key":
+            raise ClaudeCodeConfigError(
+                field="bare",
+                reason=(
+                    f"bare=True is permitted only in auth_mode='api_key' (C7); got "
+                    f"auth_mode='{self.auth_mode}'. --bare reads no OAuth/login "
+                    "credential, so it is meaningless outside api_key mode. Set "
+                    "auth_mode='api_key' or unset bare."
+                ),
+            )
         return self

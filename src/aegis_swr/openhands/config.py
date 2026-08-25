@@ -9,11 +9,10 @@ contracts C5 and C8). It mirrors the proven shape of
 ``__init__``, and presence-signal-as-``None``-default so an absent variable means
 "backend not configured" rather than a construction crash.
 
-:class:`OpenHandsConfigError` is **forward-declared here** so Task 06.0 can raise
-without depending on Task 09.0. When Task 09.0 lands
-``aegis_swr/openhands/exceptions.py``, this class is replaced by a re-export
-alias and the import path ``aegis_swr.openhands.config.OpenHandsConfigError``
-keeps resolving to the same object with no downstream change - exactly the
+:class:`OpenHandsConfigError` is re-exported from
+``aegis_swr.openhands.exceptions`` (its canonical home as of Task 09.0) so
+existing imports of ``aegis_swr.openhands.config.OpenHandsConfigError`` continue
+to resolve to the same object with no downstream import-path change - exactly the
 forward-declaration discipline ``aegis_swr/openclaude/config.py`` used for
 ``OpenClaudeConfigError``.
 """
@@ -33,6 +32,8 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
+from aegis_swr.openhands.exceptions import OpenHandsConfigError as OpenHandsConfigError
+
 _CSV_LIST_FIELDS: frozenset[str] = frozenset({"allowed_tools"})
 
 # Runtime modes. Docker is the sandboxed default; ``local`` runs on the host with
@@ -45,29 +46,15 @@ _KNOWN_RUNTIMES: frozenset[str] = _SANDBOXED_RUNTIMES | _UNSANDBOXED_RUNTIMES
 _KNOWN_TOOLS: frozenset[str] = frozenset({"read", "grep", "glob", "browse", "think", "edit", "write", "run"})
 _WRITE_CAPABLE_TOOLS: frozenset[str] = frozenset({"edit", "write", "run"})
 
-
-class OpenHandsConfigError(ValueError):
-    """Raised when :class:`OpenHandsSettings` receives an invalid value.
-
-    Formally moved to ``aegis_swr/openhands/exceptions.py`` in Task 09.0. This
-    forward declaration is kept here so Task 06.0 can raise without depending on
-    09.0; when 09.0 lands, this class is replaced by a re-export alias and the
-    import path ``aegis_swr.openhands.config.OpenHandsConfigError`` keeps
-    resolving to the same object (mirrors ``OpenClaudeConfigError``).
-
-    :param field: Name of the offending field.
-    :param reason: Human-readable explanation of the violation - never the
-        offending value, so no ``server_url`` credential or payload text leaks
-        into logs or tracebacks (C13).
-    :ivar field: The offending field name.
-    :ivar reason: The payload-free violation explanation.
-    """
-
-    def __init__(self, field: str, reason: str):
-        """Record the offending *field* and payload-free *reason* on the error."""
-        self.field = field
-        self.reason = reason
-        super().__init__(f"OpenHandsSettings.{field}: {reason}")
+#: Field defaults, hoisted to module constants so the fail-safe value an
+#: empty/whitespace env var (an unset CI secret expanding to ``""``) falls back to
+#: is defined in exactly one place, shared by the field declaration and its
+#: ``mode="before"`` empty-value coercer. Mirrors ``claude_code/config.py``.
+_DEFAULT_RUNTIME_MODE: str = "docker"
+_DEFAULT_ALLOWED_TOOLS: tuple[str, ...] = ("read", "grep", "glob", "browse")
+_DEFAULT_CONNECT_TIMEOUT_S: int = 10
+_DEFAULT_REQUEST_TIMEOUT_S: int = 120
+_DEFAULT_MAX_RESPONSE_TOKENS: int = 4096
 
 
 def _split_csv(value: object) -> object:
@@ -104,13 +91,22 @@ class _CsvEnvSettingsSource(EnvSettingsSource):
     ) -> Any:
         """Split comma-separated env values for list fields, else defer to base.
 
+        An empty/whitespace-only ``OPENHANDS_ALLOWED_TOOLS`` (an unset CI secret
+        expanding to ``""``) coerces to the read-only default set rather than an
+        empty list, so it neither crashes construction nor trips the
+        empty-allowlist rejection (which would fail OPEN by widening the runtime's
+        tool access - see :meth:`OpenHandsSettings._validate_allowed_tools`).
+
         :param field_name: Name of the field being sourced.
         :param field: Pydantic field metadata.
         :param value: Raw environment value.
         :param value_is_complex: Whether pydantic considers the value complex.
-        :return: A split list for CSV fields, otherwise the base decoding.
+        :return: A split list for CSV fields, the read-only default for a blank
+            value, otherwise the base decoding.
         """
         if field_name in _CSV_LIST_FIELDS and isinstance(value, str):
+            if not value.strip():
+                return list(_DEFAULT_ALLOWED_TOOLS)
             return _split_csv(value)
         return super().prepare_field_value(field_name, field, value, value_is_complex)
 
@@ -127,6 +123,10 @@ class OpenHandsSettings(BaseSettings):
         sandbox-enforcement model-validator.
     :ivar allowed_tools: OpenHands action/tool names the runtime is permitted to
         use. Defaults to a read-only forensic set; write-capable tools warn.
+    :ivar max_response_tokens: Hard cap on the accumulated response length, in
+        boundary tokens; the tool truncates at this cap and pre-checks the budget
+        against ``max_response_tokens // 4`` (C5). Mirrors
+        :attr:`~aegis_swr.openclaude.config.OpenClaudeSettings.max_response_tokens`.
     :ivar connect_timeout_s: REST/WS connect timeout, in seconds.
     :ivar request_timeout_s: Per-request stream deadline, in seconds.
     :ivar auto_start: Whether the composition root starts the sidecar itself
@@ -141,10 +141,11 @@ class OpenHandsSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="OPENHANDS_", populate_by_name=True)
 
     server_url: Optional[str] = None
-    runtime_mode: str = Field(default="docker", validation_alias="OPENHANDS_RUNTIME")
-    allowed_tools: list[str] = ["read", "grep", "glob", "browse"]
-    connect_timeout_s: int = Field(default=10, validation_alias="OPENHANDS_CONNECT_TIMEOUT")
-    request_timeout_s: int = Field(default=120, validation_alias="OPENHANDS_REQUEST_TIMEOUT")
+    runtime_mode: str = Field(default=_DEFAULT_RUNTIME_MODE, validation_alias="OPENHANDS_RUNTIME")
+    allowed_tools: list[str] = Field(default_factory=lambda: list(_DEFAULT_ALLOWED_TOOLS))
+    max_response_tokens: int = Field(default=_DEFAULT_MAX_RESPONSE_TOKENS, validation_alias="OPENHANDS_MAX_TOKENS")
+    connect_timeout_s: int = Field(default=_DEFAULT_CONNECT_TIMEOUT_S, validation_alias="OPENHANDS_CONNECT_TIMEOUT")
+    request_timeout_s: int = Field(default=_DEFAULT_REQUEST_TIMEOUT_S, validation_alias="OPENHANDS_REQUEST_TIMEOUT")
     auto_start: bool = False
     allow_unsandboxed_runtime: bool = Field(default=False, validation_alias="OPENHANDS_ALLOW_UNSANDBOXED")
 
@@ -212,18 +213,106 @@ class OpenHandsSettings(BaseSettings):
             return False
         return v
 
+    @field_validator("runtime_mode", mode="before")
+    @classmethod
+    def _coerce_runtime_mode(cls, v: object) -> object:
+        """Treat an empty/whitespace-only ``runtime_mode`` value as the default.
+
+        An unset ``OPENHANDS_RUNTIME`` env var or CI secret expands to ``""``
+        (e.g. ``OPENHANDS_RUNTIME: ${{ secrets.MISSING }}``); without this coercer
+        :meth:`_validate_runtime_mode` rejects the blank value as an "unknown
+        runtime", crashing a zero-/partial-config construction. A blank value
+        falls back to the fail-safe default ``"docker"`` - the **Docker-sandboxed**
+        runtime (C8) - so an empty value never selects a non-sandboxed runtime.
+        Non-empty strings and non-``str`` values pass through to the membership and
+        sandbox-enforcement validators unchanged.
+
+        :param v: The raw ``runtime_mode`` value.
+        :return: ``"docker"`` for a blank string, else *v* unchanged.
+        """
+        if isinstance(v, str) and not v.strip():
+            return _DEFAULT_RUNTIME_MODE
+        return v
+
+    @field_validator("max_response_tokens", mode="before")
+    @classmethod
+    def _coerce_max_response_tokens(cls, v: object) -> object:
+        """Treat an empty/whitespace-only ``max_response_tokens`` value as the default.
+
+        An unset ``OPENHANDS_MAX_TOKENS`` env var or CI secret expands to ``""``
+        (e.g. ``OPENHANDS_MAX_TOKENS: ${{ secrets.MISSING }}``); without this
+        coercer pydantic raises a raw ``int_parsing`` ``ValidationError`` that
+        ``__init__`` does not unwrap, crashing construction and (via the
+        ``HarnessSettings`` ``default_factory``) the zero-config
+        ``HarnessSettings()`` invariant (C1/C2/C5). A blank value falls back to the
+        fail-safe default; a non-empty non-integer still fails loud through
+        pydantic's int parsing.
+
+        :param v: The raw ``max_response_tokens`` value.
+        :return: The default for a blank string, else *v* unchanged.
+        """
+        if isinstance(v, str) and not v.strip():
+            return _DEFAULT_MAX_RESPONSE_TOKENS
+        return v
+
+    @field_validator("connect_timeout_s", mode="before")
+    @classmethod
+    def _coerce_connect_timeout(cls, v: object) -> object:
+        """Treat an empty/whitespace-only ``connect_timeout_s`` value as the default.
+
+        An unset ``OPENHANDS_CONNECT_TIMEOUT`` expands to ``""``; without this
+        coercer pydantic raises a raw ``int_parsing`` ``ValidationError`` that
+        ``__init__`` does not unwrap, crashing construction - and, because
+        ``HarnessSettings`` composes ``OpenHandsSettings`` via ``default_factory``,
+        that propagates and breaks the zero-config ``HarnessSettings()`` invariant
+        (contracts C1/C2/C5). A blank value falls back to the fail-safe default; a
+        non-empty non-integer still fails loud through pydantic's int parsing.
+
+        :param v: The raw ``connect_timeout_s`` value.
+        :return: The default for a blank string, else *v* unchanged.
+        """
+        if isinstance(v, str) and not v.strip():
+            return _DEFAULT_CONNECT_TIMEOUT_S
+        return v
+
+    @field_validator("request_timeout_s", mode="before")
+    @classmethod
+    def _coerce_request_timeout(cls, v: object) -> object:
+        """Treat an empty/whitespace-only ``request_timeout_s`` value as the default.
+
+        An unset ``OPENHANDS_REQUEST_TIMEOUT`` expands to ``""``; without this
+        coercer pydantic raises a raw ``int_parsing`` ``ValidationError`` that
+        ``__init__`` does not unwrap, crashing construction and (via the
+        ``HarnessSettings`` ``default_factory``) the zero-config
+        ``HarnessSettings()`` invariant (C1/C2/C5). A blank value falls back to the
+        fail-safe default; a non-empty non-integer still fails loud.
+
+        :param v: The raw ``request_timeout_s`` value.
+        :return: The default for a blank string, else *v* unchanged.
+        """
+        if isinstance(v, str) and not v.strip():
+            return _DEFAULT_REQUEST_TIMEOUT_S
+        return v
+
     @field_validator("allowed_tools", mode="before")
     @classmethod
     def _coerce_csv_lists(cls, v: object) -> object:
         """Accept a comma-separated string for the CSV list field passed in code.
 
         The env-var path is handled by :class:`_CsvEnvSettingsSource`; this
-        covers callers passing a raw string directly to the constructor. Lists
-        pass through untouched.
+        covers callers passing a raw string directly to the constructor. An
+        empty/whitespace-only string (the unset-CI-secret artifact) coerces to the
+        read-only default set, mirroring :class:`_CsvEnvSettingsSource`, so a blank
+        value falls back to the safe default rather than an empty allowlist. Lists
+        (including an explicit empty ``[]``) pass through untouched - an explicit
+        empty list is rejected by :meth:`_validate_allowed_tools` (fail closed).
 
         :param v: The raw ``allowed_tools`` value.
-        :return: A split list when *v* is a string, else *v* unchanged.
+        :return: The default list for a blank string, a split list for a non-empty
+            string, else *v* unchanged.
         """
+        if isinstance(v, str) and not v.strip():
+            return list(_DEFAULT_ALLOWED_TOOLS)
         return _split_csv(v)
 
     @field_validator("server_url")
@@ -282,12 +371,30 @@ class OpenHandsSettings(BaseSettings):
     @field_validator("allowed_tools")
     @classmethod
     def _validate_allowed_tools(cls, v: list[str]) -> list[str]:
-        """Reject unknown OpenHands tool names; warn on write-capable tools.
+        """Reject an empty or unknown allowlist; warn on write-capable tools.
+
+        An **explicit empty** ``allowed_tools`` is rejected (fail closed):
+        mirroring ``claude_code`` FIX 6, an empty list would omit the tool
+        allowlist and grant the runtime *unrestricted* tool access - the inverse
+        of the read-only forensic guard (fails OPEN). An empty allowlist is
+        therefore a construction error, not a silently-permissive default. (An
+        empty/whitespace *string* value - the unset-CI-secret artifact - is
+        coerced to the read-only default upstream and never reaches this check.)
 
         :param v: The list of requested tool names.
         :return: The validated tool list.
-        :raises OpenHandsConfigError: when any name is not in ``_KNOWN_TOOLS``.
+        :raises OpenHandsConfigError: when the list is empty, or when any name is
+            not in ``_KNOWN_TOOLS``.
         """
+        if not v:
+            raise OpenHandsConfigError(
+                field="allowed_tools",
+                reason=(
+                    "must grant at least one read-only tool; an empty allowlist "
+                    "widens the runtime's tool access (fails open - the inverse "
+                    "of the read-only forensic guard)"
+                ),
+            )
         unknown = [tool for tool in v if tool not in _KNOWN_TOOLS]
         if unknown:
             raise OpenHandsConfigError(
@@ -299,6 +406,22 @@ class OpenHandsSettings(BaseSettings):
             logger.warning(
                 "OpenHands allowed_tools grants write-capable tool(s) {}; " "read-only forensic mode is compromised",
                 write_capable,
+            )
+        return v
+
+    @field_validator("max_response_tokens")
+    @classmethod
+    def _validate_max_response_tokens(cls, v: int) -> int:
+        """Enforce the ``[256, 65536]`` range, mirroring ``OpenClaudeSettings`` (C5).
+
+        :param v: The raw ``max_response_tokens`` value.
+        :return: The validated response-token cap.
+        :raises OpenHandsConfigError: when *v* is outside ``[256, 65536]``.
+        """
+        if not 256 <= v <= 65536:
+            raise OpenHandsConfigError(
+                field="max_response_tokens",
+                reason="must be within [256, 65536]",
             )
         return v
 

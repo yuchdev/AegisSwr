@@ -24,11 +24,37 @@ LOG_FILENAME = "aegis-swr.log"
 #   * ``Bearer <token>`` - the live HTTP ``Authorization: Bearer <token>`` header
 #     form, where ``Bearer`` is followed by whitespace (no ``=``/``:``). The
 #     optional ``authorization`` prefix is consumed so the whole header redacts.
-#   * Anthropic / OpenAI raw secret-key shapes.
+#   * Any ``*AUTH_TOKEN`` / ``*OAUTH_TOKEN`` assignment - covers
+#     ``ANTHROPIC_AUTH_TOKEN`` (a generic gateway bearer whose value need NOT be
+#     ``sk-``-shaped, so the value clauses below would miss it) and
+#     ``CLAUDE_CODE_OAUTH_TOKEN`` (the Claude Code subscription-login credential
+#     minted by ``claude setup-token``). Deliberately generalised rather than an
+#     explicit name list so a future ``*_AUTH_TOKEN`` variable is covered on
+#     arrival. Added 2026-08-24 per the Task 04.0 threat model
+#     (docs/security/2026-08-24-claude-code-auth.md, Finding 3): the Claude Code
+#     backend drains subprocess stderr to the DEBUG log relying on this filter.
+#
+#     The prefix is ``(?:[A-Z0-9]+_)*`` and NOT ``[A-Z0-9_]*`` - this is a
+#     ReDoS fix, do not "simplify" it back. Because ``_`` is excluded from the
+#     character class, every repetition must end at a ``_``, so the prefix
+#     cannot overlap the ``O?AUTH_TOKEN`` literal and the match is unambiguous
+#     (linear). The original ``[A-Z0-9_]*`` form was quadratic: it took 11.6 s
+#     on a 20 kB line and ~1.5 s on an adversarial near-miss, versus <1.3 ms
+#     here. That mattered because ``_sensitive_filter`` runs synchronously on
+#     every loguru record with no ``enqueue=True``, and one of its inputs is
+#     attacker-influenced subprocess stderr - so a quadratic clause stalls the
+#     asyncio event loop (CWE-1333 / CWE-400).
+#
+#     A possessive ``[A-Z0-9_]*+`` is NOT a valid fix either: it consumes the
+#     whole variable name (``_`` is in the class) and cannot give any back, so
+#     ``O?AUTH_TOKEN`` never matches and redaction silently stops working.
+#   * Anthropic / OpenAI raw secret-key shapes. Note ``sk-ant-`` already covers
+#     the ``sk-ant-oat01-`` / ``sk-ant-ort01-`` OAuth token shapes by prefix.
 _REDACT_RE = re.compile(
     r"(authorization\s*[=:]\s*)?bearer\s+\S+"
     r"|(ANTHROPIC_API_KEY|OPENAI_API_KEY|AWS_BEARER_TOKEN_BEDROCK|api[_-]?key|"
     r"bearer|authorization)\s*[=:]\s*\S+"
+    r"|\b(?:[A-Z0-9]+_)*O?AUTH_TOKEN\s*[=:]\s*\S+"
     r"|sk-ant-[A-Za-z0-9_-]+"
     r"|sk-[A-Za-z0-9_-]{10,}",
     re.IGNORECASE,
@@ -113,9 +139,7 @@ def _register_elk_sink(level: str, *, elk_url: Optional[str]) -> bool:
     return False
 
 
-def _register_fluent_sink(
-    level: str, *, fluent_host: Optional[str], fluent_port: Optional[int]
-) -> bool:
+def _register_fluent_sink(level: str, *, fluent_host: Optional[str], fluent_port: Optional[int]) -> bool:
     """Extension seam for the Fluentd / Fluent Bit application-log sink.
 
     Not yet implemented (plan Part III - Phase E): returns ``False`` so the caller

@@ -83,7 +83,10 @@ exclude = [
     "tests/flake8_lint/samples/",
     "src/aegis_swr/openclaude/grpc/client.py",
     "src/aegis_swr/openclaude/tool.py",
-    "src/aegis_swr/openclaude/grpc/proto/"
+    "src/aegis_swr/openclaude/grpc/proto/",
+    "src/aegis_swr/openhands/client.py",
+    "src/aegis_swr/openhands/tool.py",
+    "src/aegis_swr/claude_code/tool.py"
 ]
 
 select = ["X001", "X002", "X004", "X005", "X006", "X007", "X008", "X009", "X010", "X011", "X012"]

@@ -7,6 +7,7 @@ request/response bodies must never reach the console at Aegis's INFO level.
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -393,6 +394,101 @@ def test_redact_re_covers_bearer_and_legacy_forms(
 
     if must_keep is not None:
         assert result == input_text, f"Benign prose was mutated: original={input_text!r}, result={result!r}"
+
+
+@pytest.mark.parametrize(
+    "input_text, must_redact, must_keep",
+    [
+        # CLAUDE_CODE_OAUTH_TOKEN in the env-assignment ``=`` form with a value
+        # that is NOT ``sk-``-shaped, so the value-shape clauses would miss it -
+        # the keyword clause must catch it (Task 04.0 threat model, Finding 3).
+        (
+            "CLAUDE_CODE_OAUTH_TOKEN=opaque-oauth-value-abcDEF123",
+            "opaque-oauth-value-abcDEF123",
+            None,
+        ),
+        # CLAUDE_CODE_OAUTH_TOKEN in the config-style ``: `` form.
+        (
+            "CLAUDE_CODE_OAUTH_TOKEN: opaque-non-sk-value-0000",
+            "opaque-non-sk-value-0000",
+            None,
+        ),
+        # ANTHROPIC_AUTH_TOKEN (a generic gateway bearer, value NOT ``sk-``-shaped)
+        # in the ``=`` form - the exact gap Finding 3 called out.
+        (
+            "ANTHROPIC_AUTH_TOKEN=gateway-proxy-bearer-not-sk-shaped",
+            "gateway-proxy-bearer-not-sk-shaped",
+            None,
+        ),
+        # ANTHROPIC_AUTH_TOKEN in the ``: `` form.
+        (
+            "ANTHROPIC_AUTH_TOKEN: gateway-proxy-bearer-9f8e7d",
+            "gateway-proxy-bearer-9f8e7d",
+            None,
+        ),
+        # No-false-positive: prose mentioning "auth_token" without an assignment
+        # must be left entirely untouched (no over-redaction).
+        (
+            "The stored auth_token was refreshed during the login handshake.",
+            None,
+            "The stored auth_token was refreshed during the login handshake.",
+        ),
+    ],
+)
+def test_redact_re_covers_claude_code_auth_token_forms(
+    input_text: str,
+    must_redact: Optional[str],
+    must_keep: Optional[str],
+):
+    """[Unit] logging: the redaction regex masks Claude Code auth-token assignments.
+
+    Scenario: parametrized inputs covering ``CLAUDE_CODE_OAUTH_TOKEN`` and
+    ``ANTHROPIC_AUTH_TOKEN`` in both the ``=`` and ``: `` assignment forms
+    (including non-``sk-``-shaped values), plus benign prose that merely mentions
+    ``auth_token``.
+
+    Boundaries: exercises the ``_REDACT_RE`` pattern directly (Task 04.0 threat
+    model Finding 3); no logging sink is configured.
+
+    On failure, first check: each ``*AUTH_TOKEN``/``*OAUTH_TOKEN`` assignment value
+    must be redacted regardless of value shape, while prose mentioning
+    ``auth_token`` (with no assignment) must be left untouched.
+    """
+    result = _REDACT_RE.sub("[REDACTED]", input_text)
+
+    if must_redact is not None:
+        assert must_redact not in result, f"Secret {must_redact!r} survived redaction in {result!r}"
+        assert "[REDACTED]" in result, f"Expected [REDACTED] marker in result {result!r}"
+
+    if must_keep is not None:
+        assert result == input_text, f"Benign prose was mutated: original={input_text!r}, result={result!r}"
+
+
+def test_redact_re_redos_wall_clock_bound():
+    """[Unit] logging: _REDACT_RE stays linear on adversarial input (ReDoS guard, FIX 7).
+
+    Scenario: three adversarial inputs are redacted - a 20 000-char run of ``A``, a
+    4 000x ``A_`` run, and the near-miss ``A_``*4000 + ``AUTH_TOKE`` (a long
+    ``[A-Z0-9_]`` prefix that almost, but never, completes the ``*AUTH_TOKEN``
+    clause) - the exact shapes that made the pre-fix quadratic clause take 11.6 s.
+
+    Boundaries: exercises ``_REDACT_RE.sub`` directly under a hard wall-clock bound;
+    no logging sink is configured. ``_sensitive_filter`` runs synchronously on every
+    loguru record (no ``enqueue=True``) over attacker-influenced subprocess stderr,
+    so a super-linear clause would stall the asyncio event loop (CWE-1333/CWE-400).
+
+    On failure, first check: the ``(?:[A-Z0-9]+_)*O?AUTH_TOKEN`` prefix was
+    "simplified" back to a backtracking form (e.g. ``[A-Z0-9_]*``); redaction is
+    currently ~5 ms, so anything near 200 ms means the linear property regressed.
+    """
+    payloads = ["A" * 20000, "A_" * 4000, "A_" * 4000 + "AUTH_TOKE"]
+
+    start = time.perf_counter()
+    for text in payloads:
+        _REDACT_RE.sub("[REDACTED]", text)
+    elapsed = time.perf_counter() - start
+
+    assert elapsed < 0.2, f"redaction took {elapsed:.3f}s; the ReDoS-safe _REDACT_RE prefix regressed"
 
 
 def test_file_sink_is_delayed_until_first_record(tmp_path: Path):

@@ -535,3 +535,129 @@ def test_scratch_cwd_env_string_parsed(monkeypatch: pytest.MonkeyPatch, tmp_path
     settings = ClaudeCodeSettings()
     assert settings.enabled is True
     assert settings.scratch_cwd == scratch
+
+
+# --- Empty-env coercion audit (FIX 5) ---------------------------------------
+
+
+def test_auth_mode_empty_env_falls_back_to_auto(monkeypatch: pytest.MonkeyPatch):
+    """[Unit] claude_code config: an empty CLAUDE_CODE_AUTH_MODE falls back to auto.
+
+    Scenario: ``CLAUDE_CODE_AUTH_MODE`` is set to an empty string (an unset CI
+    secret expanding to ``""``).
+
+    Boundaries: regression guard for FIX 5 - the ``Literal`` field would otherwise
+    raise a raw ``literal_error`` ``ValidationError`` that ``__init__`` does not
+    unwrap, crashing a zero-/partial-config construction.
+
+    On failure, first check: ``_coerce_auth_mode`` must coerce the blank value to
+    the licensing-driven default ``"auto"`` without raising.
+    """
+    monkeypatch.setenv("CLAUDE_CODE_AUTH_MODE", "")
+    settings = ClaudeCodeSettings()
+    assert settings.auth_mode == "auto"
+
+
+def test_auth_mode_whitespace_direct_falls_back_to_auto():
+    """[Unit] claude_code config: a whitespace-only auth_mode coerces to auto (FIX 5).
+
+    Scenario: ``auth_mode="   "`` is passed directly to the constructor.
+
+    Boundaries: the fail-safe direction of the ``_coerce_auth_mode`` before-validator.
+
+    On failure, first check: ``auth_mode`` must be ``"auto"`` for a blank value.
+    """
+    settings = ClaudeCodeSettings(auth_mode="   ")
+    assert settings.auth_mode == "auto"
+
+
+def test_max_turns_empty_env_falls_back_to_default(monkeypatch: pytest.MonkeyPatch):
+    """[Unit] claude_code config: an empty CLAUDE_CODE_MAX_TURNS falls back to default.
+
+    Scenario: ``CLAUDE_CODE_MAX_TURNS`` is set to an empty string.
+
+    Boundaries: FIX 5 audit - an empty int value must not raise a raw
+    ``int_parsing`` ``ValidationError`` at construction.
+
+    On failure, first check: ``max_turns`` must fall back to the default ``8``.
+    """
+    monkeypatch.setenv("CLAUDE_CODE_MAX_TURNS", "")
+    settings = ClaudeCodeSettings()
+    assert settings.max_turns == 8
+
+
+def test_request_timeout_empty_env_falls_back_to_default(monkeypatch: pytest.MonkeyPatch):
+    """[Unit] claude_code config: an empty CLAUDE_CODE_REQUEST_TIMEOUT falls back.
+
+    Scenario: ``CLAUDE_CODE_REQUEST_TIMEOUT`` is set to an empty string.
+
+    Boundaries: FIX 5 audit - an empty int value must not crash construction.
+
+    On failure, first check: ``request_timeout_s`` must fall back to ``120``.
+    """
+    monkeypatch.setenv("CLAUDE_CODE_REQUEST_TIMEOUT", "")
+    settings = ClaudeCodeSettings()
+    assert settings.request_timeout_s == 120
+
+
+def test_permission_mode_empty_env_falls_back_to_default(monkeypatch: pytest.MonkeyPatch):
+    """[Unit] claude_code config: an empty CLAUDE_CODE_PERMISSION_MODE falls back.
+
+    Scenario: ``CLAUDE_CODE_PERMISSION_MODE`` is set to an empty string.
+
+    Boundaries: FIX 5 audit - an empty value must not be rejected as an "unknown
+    mode" and crash construction.
+
+    On failure, first check: ``permission_mode`` must fall back to the fail-safe
+    non-bypassing default ``"default"``.
+    """
+    monkeypatch.setenv("CLAUDE_CODE_PERMISSION_MODE", "")
+    settings = ClaudeCodeSettings()
+    assert settings.permission_mode == "default"
+
+
+def test_allowed_tools_empty_env_falls_back_to_default(monkeypatch: pytest.MonkeyPatch):
+    """[Unit] claude_code config: an empty CLAUDE_CODE_ALLOWED_TOOLS falls back (FIX 6).
+
+    Scenario: ``CLAUDE_CODE_ALLOWED_TOOLS`` is set to an empty string.
+
+    Boundaries: the empty-secret artifact must fall back to the read-only default
+    rather than an empty list (which the FIX 6 guard rejects) or a crash.
+
+    On failure, first check: ``allowed_tools`` must equal the read-only default set
+    ``["Read", "Grep", "Glob"]``.
+    """
+    monkeypatch.setenv("CLAUDE_CODE_ALLOWED_TOOLS", "")
+    settings = ClaudeCodeSettings()
+    assert settings.allowed_tools == ["Read", "Grep", "Glob"]
+
+
+def test_allowed_tools_empty_string_direct_falls_back_to_default():
+    """[Unit] claude_code config: a blank allowed_tools string coerces to default (FIX 6).
+
+    Scenario: ``allowed_tools="  "`` is passed directly to the constructor.
+
+    Boundaries: the direct-construction blank path mirrors the env path.
+
+    On failure, first check: a blank string must coerce to the read-only default,
+    not an empty allowlist.
+    """
+    settings = ClaudeCodeSettings(allowed_tools="  ")
+    assert settings.allowed_tools == ["Read", "Grep", "Glob"]
+
+
+def test_allowed_tools_explicit_empty_list_rejected():
+    """[Unit] claude_code config: an explicit empty allowed_tools list is rejected (FIX 6).
+
+    Scenario: ``allowed_tools=[]`` is passed directly to the constructor.
+
+    Boundaries: the fail-closed guard - an explicit empty allowlist is a
+    construction error, never a silently-permissive default.
+
+    On failure, first check: a ``ClaudeCodeConfigError`` for the ``allowed_tools``
+    field must be raised (an empty allowlist omits ``--allowedTools`` and grants
+    unrestricted access).
+    """
+    with pytest.raises(ClaudeCodeConfigError) as exc:
+        ClaudeCodeSettings(allowed_tools=[])
+    assert exc.value.field == "allowed_tools"
