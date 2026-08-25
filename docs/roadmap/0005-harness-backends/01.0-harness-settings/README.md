@@ -1,7 +1,7 @@
 # Task 01.0 — Harness Settings & Selection Contract
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Scope
 

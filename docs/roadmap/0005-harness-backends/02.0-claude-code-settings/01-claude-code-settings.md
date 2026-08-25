@@ -1,7 +1,7 @@
 # 01 - `ClaudeCodeSettings` class shape
 
 **Parent task:** 02.0 Claude Code Settings & Config
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** none
 **Blocks:** 02 (this task), 03.0, 05.0 (downstream tasks)
 

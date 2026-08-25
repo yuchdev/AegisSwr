@@ -1,7 +1,7 @@
 # Task 12.0 — Test Suite — Integration
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-25) — all three subtasks; skip cleanly in this environment
 
 ## Scope
 
@@ -45,9 +45,9 @@ rather than degrading silently in production.
 
 | #  | Name                                                                                                                                          | Blocks | Status         |
 |----|-----------------------------------------------------------------------------------------------------------------------------------------------|--------|----------------|
-| 01 | [`tests/integration/claude_code/` live suite](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/01-claude-code-suite.md)        | none   | ⬜ Not started |
-| 02 | [`tests/integration/openhands/` live suite](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/02-openhands-suite.md)            | none   | ⬜ Not started |
-| 03 | [`tests/integration/harness/` selection smoke](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/03-harness-selection-smoke.md) | none   | ⬜ Not started |
+| 01 | [`tests/integration/claude_code/` live suite](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/01-claude-code-suite.md)        | none   | ✅ Complete    |
+| 02 | [`tests/integration/openhands/` live suite](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/02-openhands-suite.md)            | none   | ✅ Complete    |
+| 03 | [`tests/integration/harness/` selection smoke](/docs/roadmap/0005-harness-backends/12.0-test-suite-integration/03-harness-selection-smoke.md) | none   | ✅ Complete    |
 
 ## Key constraints
 

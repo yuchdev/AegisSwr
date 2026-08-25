@@ -1,7 +1,7 @@
 # Task 13.0 — Documentation & CI
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-25) — all five subtasks
 
 ## Scope
 
@@ -33,11 +33,11 @@ tasks (and their subtasks) to ✅ in `status.md`.
 
 | #  | Name                                                                                                                                                              | Status         | Blocks |
 |----|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|--------|
-| 01 | [Claude Code docs (`claude-code-setup.md` + `claude-code-config-reference.md`)](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/01-claude-code-docs.md) | ⬜ Not started | none   |
-| 02 | [OpenHands docs (`openhands-setup.md` + `openhands-config-reference.md`)](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/02-openhands-docs.md)         | ⬜ Not started | none   |
-| 03 | [`harness-selection.md` + root `README.md` update](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/03-harness-selection-readme.md)                      | ⬜ Not started | none   |
-| 04 | [CI isolation + coverage gate extensions](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/04-ci-isolation-coverage.md)                                  | ⬜ Not started | none   |
-| 05 | [Milestone closeout + Global acceptance criteria walk](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/05-milestone-closeout.md)                        | ⬜ Not started | none   |
+| 01 | [Claude Code docs (`claude-code-setup.md` + `claude-code-config-reference.md`)](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/01-claude-code-docs.md) | ✅ Complete    | none   |
+| 02 | [OpenHands docs (`openhands-setup.md` + `openhands-config-reference.md`)](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/02-openhands-docs.md)         | ✅ Complete    | none   |
+| 03 | [`harness-selection.md` + root `README.md` update](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/03-harness-selection-readme.md)                      | ✅ Complete    | none   |
+| 04 | [CI isolation + coverage gate extensions](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/04-ci-isolation-coverage.md)                                  | ✅ Complete    | none   |
+| 05 | [Milestone closeout + Global acceptance criteria walk](/docs/roadmap/0005-harness-backends/13.0-documentation-ci/05-milestone-closeout.md)                        | ✅ Complete    | none   |
 
 ## Key constraints
 

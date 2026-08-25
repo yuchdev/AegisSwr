@@ -1,7 +1,7 @@
 # 02 - `Settings.harness` nesting (C12 breaking rename)
 
 **Parent task:** 10.0 Harness Composition Root & CLI
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** Task 01.0 (`HarnessSettings` exists in `harness/config.py`, with
 the nested `openclaude` / `claude_code` / `openhands` sub-settings and the C2
 `active_backend` resolution)

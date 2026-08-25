@@ -1,7 +1,7 @@
 # 02 - Selection & ambiguity resolution
 
 **Parent task:** 01.0 Harness Settings & Selection Contract
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01 (`HarnessSettings` class shape), 03 (`harness/exceptions.py`)
 **Blocks:** 10.0 (Harness Composition Root reads `active_backend`)
 

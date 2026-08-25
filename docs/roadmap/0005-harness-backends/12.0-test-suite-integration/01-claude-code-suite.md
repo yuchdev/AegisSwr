@@ -1,7 +1,7 @@
 # 01 - `tests/integration/claude_code/` live suite
 
 **Parent task:** 12.0 Test Suite — Integration
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** none upstream (this subtask is self-contained infrastructure and tests); exercises 02.0 (`ClaudeCodeSettings`), 03.0 (`ClaudeCodeTool`/`process.py`), 04.0 (`auth_mode` + subscription auth), 05.0 (`claude_code.*` events) **live**
 **Blocks:** none
 

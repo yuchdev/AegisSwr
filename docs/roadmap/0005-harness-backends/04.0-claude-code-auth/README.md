@@ -1,7 +1,7 @@
 # Task 04.0 — Claude Code Subscription/Login Authentication
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-24) — all three subtasks; security gate PASS
 
 ## Scope
 
@@ -81,9 +81,9 @@ milestone does not resolve** (C7, "Licensing caveat"):
 
 | #  | Document                                                                               | State          | Blocks                                                            |
 |----|----------------------------------------------------------------------------------------|----------------|-------------------------------------------------------------------|
-| 01 | [`auth_mode` field + subscription-mode rejection validator](01-auth-mode-field.md)     | ⬜ Not started | 02, 03                                                            |
-| 02 | [Credential-resolution helper (`process.py` / `tool.py`)](02-credential-resolution.md) | ⬜ Not started | 03                                                                |
-| 03 | [Startup auth-probe + `ClaudeCodeUnavailableError` distinction](03-auth-probe.md)      | ⬜ Not started | 05.0 (canonical `exceptions.py`), 10.0 (`aegis code-intel check`) |
+| 01 | [`auth_mode` field + subscription-mode rejection validator](01-auth-mode-field.md)     | ✅ Complete    | 02, 03                                                            |
+| 02 | [Credential-resolution helper (`process.py` / `tool.py`)](02-credential-resolution.md) | ✅ Complete    | 03                                                                |
+| 03 | [Startup auth-probe + `ClaudeCodeUnavailableError` distinction](03-auth-probe.md)      | ✅ Complete    | 05.0 (canonical `exceptions.py`), 10.0 (`aegis code-intel check`) |
 
 Subtask 01 lands first (it fixes the `auth_mode` field shape and the two
 construction-time rejections). Subtask 02 consumes the resolved `auth_mode` to

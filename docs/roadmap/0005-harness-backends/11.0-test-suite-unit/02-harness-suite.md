@@ -1,7 +1,7 @@
 # 02 - `tests/unit/harness/` suite
 
 **Parent task:** 11.0 Test Suite — Unit
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01 (shared fixtures), 01.0 (`HarnessSettings`,
 `HarnessConfigError`, `HarnessUnavailableError`), 10.0
 (`harness/composition.py` — `create_code_intel_backend`; the deleted

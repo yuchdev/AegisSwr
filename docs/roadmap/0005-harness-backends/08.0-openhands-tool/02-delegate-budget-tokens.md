@@ -1,7 +1,7 @@
 # 02 - `delegate()`: budget pre-check, token-estimate resolution, dry-run, truncation
 
 **Parent task:** 08.0 OpenHands Tool Implementor
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01
 **Blocks:** 09.0, 11.0
 

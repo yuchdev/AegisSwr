@@ -1,7 +1,7 @@
 # Task 07.0 — OpenHands Client & Process Lifecycle
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-25) — both subtasks
 
 ## Scope
 
@@ -40,8 +40,8 @@ exactly once in both modes. The process is registered on the app
 
 | #  | Name                                                                       | Status         | Blocks     |
 |----|----------------------------------------------------------------------------|----------------|------------|
-| 01 | [`OpenHandsClient` (sole client-library importer)](01-openhands-client.md) | ⬜ Not started | 02, 08.0   |
-| 02 | [`OpenHandsProcess` sidecar lifecycle](02-openhands-process.md)            | ⬜ Not started | 08.0, 10.0 |
+| 01 | [`OpenHandsClient` (sole client-library importer)](01-openhands-client.md) | ✅ Complete    | 02, 08.0   |
+| 02 | [`OpenHandsProcess` sidecar lifecycle](02-openhands-process.md)            | ✅ Complete    | 08.0, 10.0 |
 
 ## Key constraints
 

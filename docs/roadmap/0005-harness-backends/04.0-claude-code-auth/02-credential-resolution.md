@@ -1,7 +1,7 @@
 # 02 - Credential-resolution helper (`process.py` / `tool.py`)
 
 **Parent task:** 04.0 Claude Code Subscription/Login Authentication
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01 (`auth_mode` field + validators), Task 03.0 (the subprocess
 env/argv construction this helper feeds)
 **Blocks:** 03 (the auth-probe verifies the credential this helper resolves)

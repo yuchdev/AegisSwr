@@ -15,7 +15,7 @@ Mermaid diagrams live in `adr/assets/`.
 | [0001-new-ui-rich-based-design.md](adr/0001-new-ui-rich-based-design.md) | Implemented | WarRoomView three-pane terminal UI: Evidence Stream (left), Forensic Agents (right-top), Investigation Process (right-bottom). Animation, event→widget mapping, post-conclusion transition, Rich API inventory. |
 | [0002-agent-weight-as-property.md](adr/0002-agent-weight-as-property.md) | Accepted | Consensus weight declared as a `ClassVar` on each agent class, not in an external config file; eliminates double-roster maintenance and enables per-agent defaults with a two-tier override. |
 | [0003-code-intel-composition-root.md](adr/0003-code-intel-composition-root.md) | Accepted | Code-intelligence composition root moved to `openclaude/composition.py` and exposed via `aegis code-intel check`; `CodeBackend` renamed to `CodeIntelBackend`; orphan `app.py` deleted. |
-| [0004-harness-composition-generalization.md](adr/0004-harness-composition-generalization.md) | Proposed | Composition root generalised out of `openclaude/` into a neutral `harness/` package for multi-backend Code Intelligence (OpenClaude + Claude Code + OpenHands); single-active-backend selection with loud ambiguity error; `Settings.openclaude` → `Settings.harness.openclaude`. Extends ADR 0003. |
+| [0004-harness-composition-generalization.md](adr/0004-harness-composition-generalization.md) | Implemented | Composition root generalised out of `openclaude/` into a neutral `harness/` package for multi-backend Code Intelligence (OpenClaude + Claude Code + OpenHands); single-active-backend selection with loud ambiguity error; `Settings.openclaude` → `Settings.harness.openclaude`. Extends ADR 0003. |
 | [template.md](adr/template.md) | - | Blank MADR template; use `/adr-write <title>` to scaffold a new record. |
 
 ---
@@ -47,7 +47,7 @@ Development timeline, per-phase task briefs, and live progress tracking.
 | [0003-litellm-routing/plan.md](/docs/roadmap/0003-litellm-routing/plan.md)                   | LiteLLM routing task brief.                                                                                                                                                                                                          |
 | [0004-code-intelligence/plan.md](/docs/roadmap/0004-code-intelligence/plan.md)               | OpenClaude integration: the central Code Intelligence mechanism (supersedes the bespoke Milestone 0004 design).                                                                                                                      |
 | [0005-harness-backends/plan.md](/docs/roadmap/0005-harness-backends/plan.md)                 | Code Intelligence harness & multi-backend support: generalises the single-backend subsystem into a neutral `harness/` selection layer and adds Claude Code (`claude` CLI) and OpenHands (Docker-sandboxed) backends. Extends Milestone 0004. |
-| [0005-harness-backends/status.md](/docs/roadmap/0005-harness-backends/status.md)             | Live tracker for Milestone 0005 (Harness & multi-backend): **not started**; task-level plan only, records the "no documented second backend" research finding and the single-active-backend selection decision. |
+| [0005-harness-backends/status.md](/docs/roadmap/0005-harness-backends/status.md)             | Live tracker for Milestone 0005 (Harness & multi-backend): **complete** (2026-08-25), all 13 tasks. Per-task decisions of record, the three backends' contrasting sandbox/token/auth postures, two security threat models, and the open items carried forward. |
 
 ---
 
@@ -76,7 +76,11 @@ User-facing reference for every CLI option and configuration field, derived from
 | [agents.md](config/agents.md) | Agent consensus weight: how each forensic agent declares its own `default_weight` class property, the two-tier weight precedence, and how the consensus score uses it. |
 | [openclaude-setup.md](config/openclaude-setup.md) | Operator install/setup guide for the OpenClaude gRPC sidecar: external vs managed mode, allowlist launch flags, the user-supplied model contract, and troubleshooting. |
 | [openclaude-config-reference.md](config/openclaude-config-reference.md) | Full `OpenClaudeSettings` field table, allowlist defaults + rationale, the `openclaude_agent` role example, and the OpenClaude event reference. |
-| [harness-selection.md](config/harness-selection.md) | How Aegis SWR picks which Code Intelligence backend (OpenClaude, Claude Code, OpenHands) is active: the selector env var, presence signals, the selection truth table, and the two failure modes. Specified by [Milestone 0005](roadmap/0005-harness-backends/plan.md); not yet implemented. |
+| [claude-code-setup.md](config/claude-code-setup.md) | Operator install/setup guide for the Claude Code (`claude` CLI) backend: enabling the backend, the `scratch_cwd` requirement, both C7 auth modes, the C7 licensing caveat, and troubleshooting. |
+| [claude-code-config-reference.md](config/claude-code-config-reference.md) | Full `ClaudeCodeSettings` field table, read-only allowlist rationale, `auth_mode` semantics and credential precedence, the `claude_code_agent` role example, and the Claude Code event reference. |
+| [openhands-setup.md](config/openhands-setup.md) | Operator install/setup guide for the OpenHands REST/WS sidecar: Docker-on-Windows prerequisite, `python-socketio` status, external vs managed mode, sandbox posture, and troubleshooting. |
+| [openhands-config-reference.md](config/openhands-config-reference.md) | Full `OpenHandsSettings` field table, Docker sandbox default and rationale, the `openhands_agent` role example, and the OpenHands event reference. |
+| [harness-selection.md](config/harness-selection.md) | How Aegis SWR picks which Code Intelligence backend (OpenClaude, Claude Code, OpenHands) is active: the selector env var, presence signals, the selection truth table, and the two failure modes. Implemented by [Milestone 0005](roadmap/0005-harness-backends/plan.md). |
 
 ---
 

@@ -1,7 +1,7 @@
 # 03 - agents.yaml claude_code_agent / openhands_agent roles
 
 **Parent task:** 10.0 Harness Composition Root & CLI
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** Task 02.0 (`ClaudeCodeSettings.request_timeout_s` default, the
 `CLAUDE_CODE_ENABLED` signal); Task 06.0 (`OpenHandsSettings.request_timeout_s`
 default, the `OPENHANDS_SERVER_URL` signal); Task 04.0 (the two C7 auth modes the

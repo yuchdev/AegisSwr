@@ -1,7 +1,7 @@
 # Task 05.0 — Claude Code Events & Exceptions
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Scope
 
@@ -72,8 +72,8 @@ unaffected.
 
 | #  | Document                                                           | Status         | Blocks |
 |----|--------------------------------------------------------------------|----------------|--------|
-| 01 | [Eight `claude_code.*` event dataclasses](01-event-dataclasses.md) | ⬜ Not started | none   |
-| 02 | [Canonical exception hierarchy](02-exception-types.md)             | ⬜ Not started | none   |
+| 01 | [Eight `claude_code.*` event dataclasses](01-event-dataclasses.md) | ✅ Complete    | none   |
+| 02 | [Canonical exception hierarchy](02-exception-types.md)             | ✅ Complete    | none   |
 
 Both subtasks land in the same package and have no ordering dependency on each
 other: `events.py` imports only `aegis_swr.core.events.DomainEvent`, and

@@ -1,7 +1,7 @@
 # Task 06.0 — OpenHands Settings & Config
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Scope
 

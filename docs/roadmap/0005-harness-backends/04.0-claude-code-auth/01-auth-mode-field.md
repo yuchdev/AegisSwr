@@ -1,7 +1,7 @@
 # 01 - `auth_mode` field + subscription-mode rejection validator
 
 **Parent task:** 04.0 Claude Code Subscription/Login Authentication
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** Task 02.0 (`ClaudeCodeSettings` exists), Task 03.0 (the
 subprocess invocation path this mode governs)
 **Blocks:** 02 (credential-resolution helper reads `auth_mode`), 03 (auth-probe
@@ -114,6 +114,26 @@ emitted in subscription mode.
 
 Settle which of the two applies against Task 03.0's shipped `config.py`; do not
 introduce a duplicate bare toggle if one already exists.
+
+> **Resolved 2026-08-24 — the first bullet applies, by construction.** Task 03.0
+> shipped **no** bare toggle (its `build_argv` structurally never emits `--bare`),
+> so on a literal reading the second bullet was indicated. Task 04.0 instead
+> **added** the `bare: bool` field (`CLAUDE_CODE_BARE`, default `False`) and kept
+> the construction-time cross-field check, because the second bullet cannot
+> satisfy this subtask's own success criterion — "`subscription` + a `--bare`
+> request raises `ClaudeCodeConfigError`" requires *something at construction
+> time to reject*, and a resolver-only rule has nothing to reject. Adding the
+> field also gives `api_key` mode the reproducibility toggle C7 explicitly
+> permits it. No duplicate was introduced (there was no existing toggle).
+> `subtask-verifier` reviewed this as a legitimate, minimal, spec-serving
+> addition. Defence in depth is preserved: `--bare` is rejected at settings
+> validation **and** never emitted by the resolver in subscription mode.
+>
+> Follow-up from the pre-merge review: the field's "permitted only in `api_key`
+> mode" docstring was initially unenforced under the default `auth_mode="auto"`,
+> where `bare=True` was accepted and then silently dropped. That silent-ignore is
+> the same failure class C7 exists to eliminate, so it is now constrained at
+> construction rather than ignored.
 
 ## Implementation notes
 

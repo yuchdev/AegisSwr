@@ -1,7 +1,7 @@
 # 03 - `tests/unit/claude_code/` suite
 
 **Parent task:** 11.0 Test Suite — Unit
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01 (shared fixtures — `mock_claude_subprocess`, `mock_event_bus`,
 `ample_budget`, `dry_run_ctx`, `live_ctx`), 02.0 (`ClaudeCodeSettings`,
 `ClaudeCodeConfigError`), 03.0 (`ClaudeCodeTool.delegate()`, `process.py`

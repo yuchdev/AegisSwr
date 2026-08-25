@@ -1,7 +1,7 @@
 # Task 10.0 — Harness Composition Root & CLI
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-25) — all four subtasks
 
 ## Scope
 
@@ -50,10 +50,10 @@ keeps the migration surface to a module-path change only.
 
 | #  | Name                                                                                                       | Status         | Blocks            |
 |----|------------------------------------------------------------------------------------------------------------|----------------|-------------------|
-| 01 | [`harness/composition.py` factory + delete `openclaude/composition.py`](01-harness-composition-factory.md) | ⬜ Not started | 02, 04; Task 11.0 |
-| 02 | [`Settings.harness` nesting (C12 breaking rename)](02-settings-harness-nesting.md)                         | ⬜ Not started | 01, 04; Task 11.0 |
-| 03 | [`agents.yaml` `claude_code_agent` / `openhands_agent` roles](03-agents-yaml-roles.md)                     | ⬜ Not started | -                 |
-| 04 | [`aegis code-intel check` backend-agnostic CLI](04-code-intel-check-cli.md)                                | ⬜ Not started | -                 |
+| 01 | [`harness/composition.py` factory + delete `openclaude/composition.py`](01-harness-composition-factory.md) | ✅ Complete    | 02, 04; Task 11.0 |
+| 02 | [`Settings.harness` nesting (C12 breaking rename)](02-settings-harness-nesting.md)                         | ✅ Complete    | 01, 04; Task 11.0 |
+| 03 | [`agents.yaml` `claude_code_agent` / `openhands_agent` roles](03-agents-yaml-roles.md)                     | ✅ Complete    | -                 |
+| 04 | [`aegis code-intel check` backend-agnostic CLI](04-code-intel-check-cli.md)                                | ✅ Complete    | -                 |
 
 **Intra-task ordering.** 02 (the settings rename) lands first or together with
 01, because `harness/composition.py` consumes `HarnessSettings` and the CLI in 04

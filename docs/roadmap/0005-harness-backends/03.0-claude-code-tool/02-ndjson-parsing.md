@@ -1,7 +1,7 @@
 # 02 - NDJSON stream parsing and token accounting
 
 **Parent task:** 03.0 Claude Code Subprocess Tool
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01
 **Blocks:** 03, 04
 

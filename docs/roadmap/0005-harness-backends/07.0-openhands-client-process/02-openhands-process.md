@@ -1,7 +1,7 @@
 # 02 - `OpenHandsProcess` sidecar lifecycle
 
 **Parent task:** 07.0 OpenHands Client & Process Lifecycle
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01 (`OpenHandsClient.health_check()` is the readiness probe), 06.0 (`OpenHandsSettings`)
 **Blocks:** 08.0 (`OpenHandsTool` runs inside this context), 10.0 (composition root registers this on the app `AsyncExitStack`)
 

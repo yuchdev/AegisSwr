@@ -1,7 +1,7 @@
 # 01 - Claude Code docs (setup and config reference)
 
 **Parent task:** 13.0 Documentation & CI
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 02.0 (`ClaudeCodeSettings`), 03.0 (one-shot subprocess tool + NDJSON parse + real tokens), 04.0 (`auth_mode` + auth-probe, C7), 05.0 (`claude_code.*` event taxonomy, C10); documents behavior delivered by those tasks.
 **Blocks:** none
 

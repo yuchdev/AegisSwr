@@ -1,7 +1,7 @@
 # 04 - Dry-run + timeout + failure-path handling
 
 **Parent task:** 03.0 Claude Code Subprocess Tool
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 03
 **Blocks:** 04.0, 05.0
 

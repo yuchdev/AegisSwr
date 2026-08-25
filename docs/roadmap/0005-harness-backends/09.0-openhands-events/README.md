@@ -1,7 +1,7 @@
 # Task 09.0 — OpenHands Events & Exceptions
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-25) — both subtasks
 
 ## Scope
 
@@ -37,8 +37,8 @@ and 08.0 have the canonical types available to raise and emit.
 
 | #  | Name                                                             | Status         | Blocks     |
 |----|------------------------------------------------------------------|----------------|------------|
-| 01 | [Seven OpenHands event dataclasses](01-event-dataclasses.md)     | ⬜ Not started | 08.0       |
-| 02 | [Canonical OpenHands exception hierarchy](02-exception-types.md) | ⬜ Not started | 07.0, 08.0 |
+| 01 | [Seven OpenHands event dataclasses](01-event-dataclasses.md)     | ✅ Complete    | 08.0       |
+| 02 | [Canonical OpenHands exception hierarchy](02-exception-types.md) | ✅ Complete    | 07.0, 08.0 |
 
 ## Key constraints
 

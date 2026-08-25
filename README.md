@@ -35,6 +35,9 @@ authoritative implementation specification (schemas, pipelines, API contract).
 
 * Python 3.12+
 * Docker / gVisor (for secure code patch validation steps)
+* **Docker Desktop for Windows** — required when using the **OpenHands** Code
+  Intelligence backend only. Not required for the OpenClaude or Claude Code backends.
+  See [Code Intelligence backends](#code-intelligence-backends) below.
 
 ### Installation
 
@@ -134,6 +137,25 @@ grpcurl -plaintext \
    `OPENCLAUDE_GRPC_URL`; if `grpcurl` reports a permission/allowlist error,
    your launch flags don't match `OPENCLAUDE_ALLOWED_TOOLS` /
    `OPENCLAUDE_BASH_ALLOWLIST` (see [C7](docs/roadmap/0004-code-intelligence/plan.md#c7--permission-and-tool-allowlist-enforcement)).
+
+## Code Intelligence backends
+
+Aegis SWR supports three selectable, optional Code Intelligence backends. Exactly one is
+active at a time — selection is driven by environment variables with no fallback chain.
+All three are off by default; enabling any one requires only environment variables with
+no Python changes.
+
+| Backend | Presence signal | Sandbox | Note |
+|---|---|---|---|
+| **OpenClaude** | `OPENCLAUDE_GRPC_URL` set | Host OS (allowlist guard) | gRPC sidecar, long-lived |
+| **Claude Code** | `CLAUDE_CODE_ENABLED=true` | Host OS (allowlist guard) | `claude` CLI, one-shot per delegation |
+| **OpenHands** | `OPENHANDS_SERVER_URL` set | Docker (default) | REST/WS sidecar, long-lived |
+
+See **[docs/config/harness-selection.md](/docs/config/harness-selection.md)** for the selection
+contract, truth table, and the two failure modes. Per-backend setup guides:
+[OpenClaude](/docs/config/openclaude-setup.md) ·
+[Claude Code](/docs/config/claude-code-setup.md) ·
+[OpenHands](/docs/config/openhands-setup.md).
 
 ## Code Intelligence (OpenClaude)
 

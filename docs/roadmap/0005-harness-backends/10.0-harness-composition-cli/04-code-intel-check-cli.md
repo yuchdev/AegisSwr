@@ -1,7 +1,7 @@
 # 04 - aegis code-intel check backend-agnostic CLI
 
 **Parent task:** 10.0 Harness Composition Root & CLI
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01 (`harness.composition.build_code_agent`), 02
 (`settings.harness` field); Task 04.0 (Claude Code auth-mode resolution and probe,
 surfaced through this command per C7)

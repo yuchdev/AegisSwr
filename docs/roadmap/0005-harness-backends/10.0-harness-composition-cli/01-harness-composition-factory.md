@@ -1,7 +1,7 @@
 # 01 - harness/composition.py factory and delete openclaude/composition.py
 
 **Parent task:** 10.0 Harness Composition Root & CLI
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** Task 01.0 (`HarnessSettings`, `active_backend`, `HarnessConfigError`/`HarnessUnavailableError`); Tasks 03.0/04.0 (`ClaudeCodeTool`, auth resolution); Tasks 07.0/08.0 (`OpenHandsClient`/`OpenHandsProcess`/`OpenHandsTool`); Task 02.0/06.0 (per-family settings). Consumes subtask 02 (`Settings.harness`) at wiring time.
 **Blocks:** 02, 04; Task 11.0 (composition-root unit tests re-target here)
 

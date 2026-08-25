@@ -1,7 +1,7 @@
 # 03 - harness-selection.md + root README.md update
 
 **Parent task:** 13.0 Documentation & CI
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01.0 (`HarnessSettings` selector + C1/C2 resolution), 10.0 (backend-agnostic `aegis code-intel check`, `Settings.harness` nesting, C4/C12); documents the operator-facing surface those tasks deliver.
 **Blocks:** none
 

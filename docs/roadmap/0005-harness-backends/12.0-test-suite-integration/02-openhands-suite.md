@@ -1,7 +1,7 @@
 # 02 - `tests/integration/openhands/` live suite
 
 **Parent task:** 12.0 Test Suite — Integration
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** none upstream (self-contained infrastructure and tests); exercises 06.0 (`OpenHandsSettings`), 07.0 (`OpenHandsClient`/`process.py`), 08.0 (`OpenHandsTool`), 09.0 (`openhands.*` events) **live**
 **Blocks:** none
 

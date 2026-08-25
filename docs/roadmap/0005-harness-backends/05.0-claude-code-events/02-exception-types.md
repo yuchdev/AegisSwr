@@ -1,7 +1,7 @@
 # 02 - Canonical exception hierarchy
 
 **Parent task:** 05.0 Claude Code Events & Exceptions
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** none
 **Blocks:** none
 

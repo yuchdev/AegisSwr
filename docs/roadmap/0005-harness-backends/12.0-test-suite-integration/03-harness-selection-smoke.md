@@ -1,7 +1,7 @@
 # 03 - `tests/integration/harness/` selection smoke
 
 **Parent task:** 12.0 Test Suite — Integration
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01 (Claude Code guards), 02 (OpenHands guards), 10.0 (`harness.composition.create_code_intel_backend`, `HarnessSettings`) **live**
 **Blocks:** none
 

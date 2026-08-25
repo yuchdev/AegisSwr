@@ -44,11 +44,41 @@ jobs:
       - run: uv sync
       - run: uv run pytest tests/unit/ -v --cov=aegis_swr --cov-report=term-missing
 
-  openclaude-isolation:
-    name: "Lint: OpenClaude module isolation (C3)"
+  code-intel-isolation:
+    name: "Lint: Code-intel module isolation (C3, all families + harness)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - name: "AST isolation rules 1-4 (single source of truth: pytest mirrors)"
+        # C3, generalised for all three backend families + the neutral harness.
+        # These AST-based pytest modules ARE the authoritative encoding of the
+        # boundary; CI runs them verbatim so the gate and the Stop-hook suite can
+        # never drift. They cover, import-statement-aware (docstring mentions do
+        # not trip them):
+        #   Rule 1 - core/, views/, code_intel/ import no backend family, grpc or
+        #            _pb2 (tests/unit/harness/test_isolation.py::
+        #            test_core_views_code_intel_import_no_backend).
+        #   Rule 2 - no backend package imports a sibling family
+        #            (::test_no_backend_package_imports_a_sibling, plus the per-family
+        #            claude_code / openhands mirrors).
+        #   Rule 3 - only two harness modules may import >1 family, with DISTINCT
+        #            scopes: composition.py may import each family's runtime classes;
+        #            config.py may import each family's SETTINGS class only and no
+        #            runtime submodule (tool/process/client/grpc). Encoded in
+        #            ::test_composition_is_only_runtime_multi_family_importer, which
+        #            asserts the settings-only allowlist for config.py separately —
+        #            a naive single-module rule would reject correct C1 code.
+        #   Rule 4 - grpc/_pb2 only in openclaude/grpc/client.py; the OpenHands
+        #            client library (socketio) only in openhands/client.py.
+        run: >
+          uv run pytest
+          tests/unit/harness/test_isolation.py
+          tests/unit/claude_code/test_isolation.py
+          tests/unit/openhands/test_isolation.py
+          tests/unit/openclaude/test_isolation.py
+          -o addopts="" -v
       - name: "Reject aegis_swr.openclaude imports in core/views/code_intel"
         run: |
           # C3: aegis_swr.openclaude must never be imported by the isolated
@@ -96,6 +126,21 @@ jobs:
             exit 1
           fi
           echo "OK: guard correctly flagged the deliberate violation ($hits)."
+      - name: "Negative-fixture self-test: AST guard reddens on a cross-family import"
+        run: |
+          # Prove the AST isolation mirror (rule 2) turns red on an actual
+          # cross-family import, then clean up - so the generalised guard is a
+          # tested property, not dead prose. A deliberate 'import aegis_swr.openhands'
+          # in a claude_code module MUST make its isolation test fail (non-zero).
+          probe="src/aegis_swr/claude_code/_ci_isolation_probe.py"
+          printf 'import aegis_swr.openhands\n' > "$probe"
+          uv run pytest tests/unit/claude_code/test_isolation.py -o addopts="" -q && rc=0 || rc=$?
+          rm -f "$probe"
+          if [ "${rc:-0}" -eq 0 ]; then
+            echo "ERROR: AST isolation guard did NOT fail on a deliberate cross-family import."
+            exit 1
+          fi
+          echo "OK: AST guard correctly reddened on the deliberate cross-family import."
 
   openclaude-unit-coverage:
     name: "OpenClaude: unit + coverage gate (>=90%, 100% branch on tool.py)"
@@ -118,6 +163,67 @@ jobs:
           uv run pytest tests/unit/openclaude/test_tool.py
           -o addopts=""
           --cov=aegis_swr.openclaude.tool --cov-branch
+          --cov-report=term-missing --cov-fail-under=100
+
+  code-intel-unit-coverage:
+    name: "Code-intel: per-backend unit + coverage gates (>=90%; 100% branch on delegate)"
+    runs-on: ubuntu-latest
+    # Each step runs with ALL presence signals and credentials unset to prove the
+    # unit suites are hermetic (Global acceptance criterion): they pass with no
+    # AEGIS_CODE_INTEL_BACKEND, no per-backend signal, no claude/Docker/OpenHands.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - name: "Harness unit + coverage gate (>=90%)"
+        env:
+          AEGIS_CODE_INTEL_BACKEND: ""
+          OPENCLAUDE_GRPC_URL: ""
+          CLAUDE_CODE_ENABLED: ""
+          OPENHANDS_SERVER_URL: ""
+        run: >
+          uv run pytest tests/unit/harness/
+          -o addopts=""
+          --cov=aegis_swr.harness
+          --cov-report=term-missing --cov-fail-under=90
+      - name: "Claude Code unit + coverage gate (>=90%)"
+        env:
+          CLAUDE_CODE_ENABLED: ""
+          ANTHROPIC_API_KEY: ""
+          ANTHROPIC_AUTH_TOKEN: ""
+          CLAUDE_CODE_OAUTH_TOKEN: ""
+        run: >
+          uv run pytest tests/unit/claude_code/
+          -o addopts=""
+          --cov=aegis_swr.claude_code
+          --cov-report=term-missing --cov-fail-under=90
+      - name: "OpenHands unit + coverage gate (>=90%)"
+        env:
+          OPENHANDS_SERVER_URL: ""
+        run: >
+          uv run pytest tests/unit/openhands/
+          -o addopts=""
+          --cov=aegis_swr.openhands
+          --cov-report=term-missing --cov-fail-under=90
+      - name: "100% branch on claude_code.tool (delegate + probe_auth; separate, stricter gate)"
+        # NOTE (deviation from the subtask-04 sketch, deliberate): the module
+        # aegis_swr.claude_code.tool holds both delegate() AND the C7 auth probe
+        # (probe_auth/_probe_once). The latter is exercised by test_auth_modes.py,
+        # not test_tool.py, so scoping the run to test_tool.py alone measures the
+        # module at only ~80% and would FAIL a 100% gate on correct code. Scope to
+        # the whole claude_code unit suite so the gate is honest and stays at 100%
+        # (the threshold is NOT relaxed). openhands.tool has no sibling method and
+        # stays on test_tool.py below.
+        run: >
+          uv run pytest tests/unit/claude_code/
+          -o addopts=""
+          --cov=aegis_swr.claude_code.tool --cov-branch
+          --cov-report=term-missing --cov-fail-under=100
+      - name: "100% branch on openhands.tool.delegate (separate, stricter gate)"
+        run: >
+          uv run pytest tests/unit/openhands/test_tool.py
+          -o addopts=""
+          --cov=aegis_swr.openhands.tool --cov-branch
           --cov-report=term-missing --cov-fail-under=100
 
   openclaude-integration:
@@ -146,6 +252,68 @@ jobs:
           uv run pytest tests/integration/openclaude/ -o addopts="" -v --tb=short || code=$?
           if [ "${code:-0}" -eq 5 ]; then
             echo "All integration modules self-skipped (no signal/binary present) - OK."
+            exit 0
+          fi
+          exit "${code:-0}"
+
+  claude-code-integration:
+    name: "Claude Code: integration (gated on CLAUDE_CODE_ENABLED + binary; subscription variant needs OAuth)"
+    # Skipped on PRs; runs on master pushes and the nightly schedule. Both the
+    # api-mode module (require_claude_code_api_mode) and the subscription-mode
+    # module (require_claude_code_subscription) self-skip at import via their
+    # module-level guards when the signal, the `claude` binary, or the relevant
+    # credential is absent - so the job reports skipped, never failed. The
+    # subscription variant additionally self-skips without a live login /
+    # CLAUDE_CODE_OAUTH_TOKEN, and when a stray API key makes auth_mode ambiguous.
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/master' || github.event_name == 'schedule')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - name: "Integration tests (self-skip when signal/binary/credential absent)"
+        env:
+          CLAUDE_CODE_ENABLED: ${{ secrets.CLAUDE_CODE_ENABLED }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          # Every module self-skips at collection when its signal/binary/credential
+          # is absent, so pytest exits 5 (EXIT_NOTESTSCOLLECTED). Treat exit 5 as
+          # success ("skipped, not failed"); any other non-zero code fails the job.
+          uv run pytest tests/integration/claude_code/ -o addopts="" -v --tb=short || code=$?
+          if [ "${code:-0}" -eq 5 ]; then
+            echo "All Claude Code integration modules self-skipped - OK."
+            exit 0
+          fi
+          exit "${code:-0}"
+
+  openhands-integration:
+    name: "OpenHands: integration (gated on OPENHANDS_SERVER_URL + Docker)"
+    # Skipped on PRs; runs on master pushes and the nightly schedule. The suite
+    # self-skips at import (require_openhands) when the URL signal is unset, the
+    # Docker daemon is unreachable, or python-socketio is not installed - so it
+    # reports skipped, never failed. CI installs no socketio, so this self-skips
+    # by default; no dependency is added to force it to run.
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/master' || github.event_name == 'schedule')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - name: "Integration tests (self-skip when URL/Docker/socketio absent)"
+        env:
+          OPENHANDS_SERVER_URL: ${{ secrets.OPENHANDS_SERVER_URL }}
+        run: |
+          # Self-skips at collection when the URL/Docker/socketio are absent, so
+          # pytest exits 5 (EXIT_NOTESTSCOLLECTED). Treat exit 5 as success
+          # ("skipped, not failed"); any other non-zero code fails the job.
+          uv run pytest tests/integration/openhands/ -o addopts="" -v --tb=short || code=$?
+          if [ "${code:-0}" -eq 5 ]; then
+            echo "All OpenHands integration modules self-skipped - OK."
             exit 0
           fi
           exit "${code:-0}"

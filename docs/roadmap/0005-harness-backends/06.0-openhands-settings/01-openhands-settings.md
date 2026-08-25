@@ -1,7 +1,7 @@
 # 01 - `OpenHandsSettings` Pydantic class
 
 **Parent task:** 06.0 OpenHands Settings & Config
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** Task 01.0 (Harness Settings & Selection Contract) — sibling only,
 no direct code dependency; this subtask defines a self-contained settings class
 that Task 01.0 / 10.0 later composes into `HarnessSettings` via `default_factory`

@@ -1,7 +1,7 @@
 # 02 - OpenHands docs (setup and config reference)
 
 **Parent task:** 13.0 Documentation & CI
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 06.0 (`OpenHandsSettings`, C8), 07.0 (client and sidecar lifecycle), 08.0 (`OpenHandsTool` — Action/Observation → `CodeResult`), 09.0 (`openhands.*` event taxonomy, C10); documents behavior delivered by those tasks.
 **Blocks:** none
 

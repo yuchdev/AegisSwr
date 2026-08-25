@@ -1,7 +1,7 @@
 # 01 - `HarnessSettings` class shape
 
 **Parent task:** 01.0 Harness Settings & Selection Contract
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 03 (`harness/exceptions.py` — for `HarnessConfigError`)
 **Blocks:** 02 (this task); 02.0, 06.0, 10.0 (downstream tasks)
 

@@ -1,7 +1,7 @@
 # 01 - Tool skeleton + Action/Observation stream consumption
 
 **Parent task:** 08.0 OpenHands Tool Implementor
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 07.0 (`openhands/client.py`, `openhands/process.py`)
 **Blocks:** 02
 

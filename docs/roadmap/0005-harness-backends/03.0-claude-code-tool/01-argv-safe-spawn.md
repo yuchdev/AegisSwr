@@ -1,7 +1,7 @@
 # 01 - Argv-safe subprocess spawn
 
 **Parent task:** 03.0 Claude Code Subprocess Tool
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** none (consumes `ClaudeCodeSettings` from Task 02.0)
 **Blocks:** 02, 03, 04
 

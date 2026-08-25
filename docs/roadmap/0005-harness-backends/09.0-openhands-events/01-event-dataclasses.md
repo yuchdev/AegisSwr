@@ -1,7 +1,7 @@
 # 01 - Seven OpenHands event dataclasses
 
 **Parent task:** 09.0 OpenHands Events & Exceptions
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** none (uses only the live `aegis_swr.core.events.DomainEvent`)
 **Blocks:** 08.0
 

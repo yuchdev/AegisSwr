@@ -1,7 +1,7 @@
 # Task 08.0 — OpenHands Tool Implementor
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-25) — both subtasks
 **Category:** infrastructure
 
 ## Scope
@@ -53,8 +53,8 @@ Action/Observation stream instead of OpenClaude's gRPC frame stream, and for the
 
 | #  | Name                                                                                                                                                                   | Blocks     | Status         |
 |----|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|----------------|
-| 01 | [Tool skeleton + Action/Observation stream consumption](/docs/roadmap/0005-harness-backends/08.0-openhands-tool/01-stream-consumption.md)                              | 02         | ⬜ Not started |
-| 02 | [`delegate()`: budget pre-check, token-estimate resolution, dry-run, truncation](/docs/roadmap/0005-harness-backends/08.0-openhands-tool/02-delegate-budget-tokens.md) | 09.0, 11.0 | ⬜ Not started |
+| 01 | [Tool skeleton + Action/Observation stream consumption](/docs/roadmap/0005-harness-backends/08.0-openhands-tool/01-stream-consumption.md)                              | 02         | ✅ Complete    |
+| 02 | [`delegate()`: budget pre-check, token-estimate resolution, dry-run, truncation](/docs/roadmap/0005-harness-backends/08.0-openhands-tool/02-delegate-budget-tokens.md) | 09.0, 11.0 | ✅ Complete    |
 
 ## Key constraints
 

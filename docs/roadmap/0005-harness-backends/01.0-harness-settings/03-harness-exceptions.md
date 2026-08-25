@@ -1,7 +1,7 @@
 # 03 - `harness/exceptions.py`
 
 **Parent task:** 01.0 Harness Settings & Selection Contract
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** none
 **Blocks:** 01, 02 (this task); 10.0 (downstream — the composition root raises `HarnessUnavailableError`)
 

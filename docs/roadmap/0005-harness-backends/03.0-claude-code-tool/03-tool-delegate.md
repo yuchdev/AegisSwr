@@ -1,7 +1,7 @@
 # 03 - ClaudeCodeTool.delegate() + budget + real tokens
 
 **Parent task:** 03.0 Claude Code Subprocess Tool
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 02
 **Blocks:** 04
 

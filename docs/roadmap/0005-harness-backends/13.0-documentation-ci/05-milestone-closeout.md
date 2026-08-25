@@ -1,7 +1,7 @@
 # 05 - Milestone closeout + Global acceptance criteria walk
 
 **Parent task:** 13.0 Documentation & CI
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01, 02, 03, 04 (docs + CI gates in place) and Tasks 01.0–12.0 (all implementation and test tasks delivered).
 **Blocks:** none
 

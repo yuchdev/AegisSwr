@@ -2,7 +2,7 @@
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
 **Category:** infrastructure
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Scope
 
@@ -63,10 +63,10 @@ this module to import/re-export it, so downstream imports keep resolving. The
 
 | #  | Name                                                                                                                              | Blocks     | Status         |
 |----|-----------------------------------------------------------------------------------------------------------------------------------|------------|----------------|
-| 01 | [Argv-safe subprocess spawn](/docs/roadmap/0005-harness-backends/03.0-claude-code-tool/01-argv-safe-spawn.md)                     | 02, 03, 04 | ⬜ Not started |
-| 02 | [NDJSON stream parsing + token accounting](/docs/roadmap/0005-harness-backends/03.0-claude-code-tool/02-ndjson-parsing.md)        | 03, 04     | ⬜ Not started |
-| 03 | [ClaudeCodeTool.delegate() + budget + real tokens](/docs/roadmap/0005-harness-backends/03.0-claude-code-tool/03-tool-delegate.md) | 04         | ⬜ Not started |
-| 04 | [Dry-run + timeout + failure-path handling](/docs/roadmap/0005-harness-backends/03.0-claude-code-tool/04-dryrun-failure-paths.md) | 04.0, 05.0 | ⬜ Not started |
+| 01 | [Argv-safe subprocess spawn](/docs/roadmap/0005-harness-backends/03.0-claude-code-tool/01-argv-safe-spawn.md)                     | 02, 03, 04 | ✅ Complete    |
+| 02 | [NDJSON stream parsing + token accounting](/docs/roadmap/0005-harness-backends/03.0-claude-code-tool/02-ndjson-parsing.md)        | 03, 04     | ✅ Complete    |
+| 03 | [ClaudeCodeTool.delegate() + budget + real tokens](/docs/roadmap/0005-harness-backends/03.0-claude-code-tool/03-tool-delegate.md) | 04         | ✅ Complete    |
+| 04 | [Dry-run + timeout + failure-path handling](/docs/roadmap/0005-harness-backends/03.0-claude-code-tool/04-dryrun-failure-paths.md) | 04.0, 05.0 | ✅ Complete    |
 
 ## Key constraints
 

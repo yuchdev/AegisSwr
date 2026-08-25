@@ -1,7 +1,7 @@
 # 03 - Startup auth-probe + `ClaudeCodeUnavailableError` distinction
 
 **Parent task:** 04.0 Claude Code Subscription/Login Authentication
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01 (`auth_mode` field + config-error surface), 02 (the resolved
 credential the probe verifies), Task 03.0 (the spawn primitive the probe reuses)
 **Blocks:** Task 05.0 (canonical `exceptions.py`), Task 10.0 (`aegis code-intel

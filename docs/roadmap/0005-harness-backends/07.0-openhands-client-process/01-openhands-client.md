@@ -1,7 +1,7 @@
 # 01 - `OpenHandsClient` (sole client-library importer)
 
 **Parent task:** 07.0 OpenHands Client & Process Lifecycle
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 06.0 (imports `OpenHandsSettings` from `aegis_swr.openhands.config`)
 **Blocks:** 02 (Process Lifecycle health-checks via this client), 08.0 (`OpenHandsTool` delegates through this client)
 

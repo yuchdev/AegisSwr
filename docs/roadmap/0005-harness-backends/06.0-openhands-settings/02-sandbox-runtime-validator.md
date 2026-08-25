@@ -1,7 +1,7 @@
 # 02 - Sandbox-runtime enforcement validator
 
 **Parent task:** 06.0 OpenHands Settings & Config
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01 (`OpenHandsSettings` Pydantic class — this validator
 cross-checks its `runtime_mode` field and adds one new field)
 **Blocks:** 07.0 (the sidecar/process lifecycle relies on the runtime having

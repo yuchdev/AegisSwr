@@ -1,7 +1,7 @@
 # 04 - CI isolation and coverage gate extensions
 
 **Parent task:** 13.0 Documentation & CI
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 10.0 (`harness/composition.py` exists; `openclaude/composition.py` deleted; `Settings.harness` nesting), 11.0 (per-backend unit suites incl. 100% branch on each `tool.py`), 12.0 (integration suites and per-backend skip guards); wires their enforcement into CI. Extends the Milestone 0004 `openclaude-isolation` job and coverage gate (see [0004 subtask 03](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/03-ci-boundary-check.md) and [0004 subtask 04](/docs/roadmap/0004-code-intelligence/09.0-documentation-ci/04-ci-coverage-gate.md)).
 **Blocks:** none
 

@@ -1,7 +1,7 @@
 # Task 11.0 — Test Suite — Unit
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete (2026-08-25) — audited; only 2 gap files needed
 
 ## Scope
 
@@ -68,10 +68,10 @@ Test files mirror the implementation and the plan's File map:
 
 | #  | Name                                                       | Status         | Blocks     |
 |----|------------------------------------------------------------|----------------|------------|
-| 01 | [Shared fixtures / `conftest.py`](01-conftest-fixtures.md) | ⬜ Not started | 02, 03, 04 |
-| 02 | [`tests/unit/harness/` suite](02-harness-suite.md)         | ⬜ Not started | -          |
-| 03 | [`tests/unit/claude_code/` suite](03-claude-code-suite.md) | ⬜ Not started | -          |
-| 04 | [`tests/unit/openhands/` suite](04-openhands-suite.md)     | ⬜ Not started | -          |
+| 01 | [Shared fixtures / `conftest.py`](01-conftest-fixtures.md) | ✅ Complete    | 02, 03, 04 |
+| 02 | [`tests/unit/harness/` suite](02-harness-suite.md)         | ✅ Complete    | -          |
+| 03 | [`tests/unit/claude_code/` suite](03-claude-code-suite.md) | ✅ Complete    | -          |
+| 04 | [`tests/unit/openhands/` suite](04-openhands-suite.md)     | ✅ Complete    | -          |
 
 ## Key constraints
 

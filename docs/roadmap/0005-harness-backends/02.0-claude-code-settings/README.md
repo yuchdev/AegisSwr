@@ -1,7 +1,7 @@
 # Task 02.0 — Claude Code Settings & Config
 
 **Parent milestone:** [Milestone 0005 — Code Intelligence Harness & Multi-Backend Support](/docs/roadmap/0005-harness-backends/plan.md)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ## Scope
 

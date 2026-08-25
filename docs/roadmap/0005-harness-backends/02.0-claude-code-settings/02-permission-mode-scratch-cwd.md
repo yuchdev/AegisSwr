@@ -1,7 +1,7 @@
 # 02 - `permission_mode` & disposable `scratch_cwd`
 
 **Parent task:** 02.0 Claude Code Settings & Config
-**State:** ⬜ Not started
+**State:** ✅ Complete
 **Depends on:** 01 (`ClaudeCodeSettings` class shape)
 **Blocks:** 03.0 (the subprocess tool reads both fields to build the invocation)
 
@@ -53,8 +53,13 @@ _ALLOWED_PERMISSION_MODES: frozenset[str] = frozenset({"default", "acceptEdits",
 #: Values that would cause the tool to skip the permission prompt entirely. Any
 #: of these — or the raw ``--dangerously-skip-permissions`` flag string — is
 #: rejected at settings-validation time.
+# Members MUST be stored pre-lowercased: the validator normalises the incoming
+# value with `.strip().lower()` before the membership test, so a camelCase member
+# such as "bypassPermissions" could never match and the value would be silently
+# ACCEPTED — defeating the C6 read-only guarantee. (Corrected 2026-08-24: the
+# original pseudocode here stored camelCase and was a latent bypass.)
 _BYPASS_PERMISSION_VALUES: frozenset[str] = frozenset(
-    {"bypassPermissions", "bypass", "dangerously-skip-permissions", "--dangerously-skip-permissions"}
+    {"bypasspermissions", "bypass", "dangerously-skip-permissions", "--dangerously-skip-permissions"}
 )
 
 
