@@ -48,6 +48,8 @@ Development timeline, per-phase task briefs, and live progress tracking.
 | [0004-code-intelligence/plan.md](/docs/roadmap/0004-code-intelligence/plan.md)               | OpenClaude integration: the central Code Intelligence mechanism (supersedes the bespoke Milestone 0004 design).                                                                                                                      |
 | [0005-harness-backends/plan.md](/docs/roadmap/0005-harness-backends/plan.md)                 | Code Intelligence harness & multi-backend support: generalises the single-backend subsystem into a neutral `harness/` selection layer and adds Claude Code (`claude` CLI) and OpenHands (Docker-sandboxed) backends. Extends Milestone 0004. |
 | [0005-harness-backends/status.md](/docs/roadmap/0005-harness-backends/status.md)             | Live tracker for Milestone 0005 (Harness & multi-backend): **complete** (2026-08-25), all 13 tasks. Per-task decisions of record, the three backends' contrasting sandbox/token/auth postures, two security threat models, and the open items carried forward. |
+| [0006-improvements-and-optimizations/plan.md](/docs/roadmap/0006-improvements-and-optimizations/plan.md) | Quality/operability pass: static-analysis rule expansion (14 rules, Task 01.0, fully decomposed), plus five task-level proposals (mypy CI gate, storage durability, CI lockfile integrity, router/harness telemetry, scheduled doc-health checks). |
+| [0006-improvements-and-optimizations/status.md](/docs/roadmap/0006-improvements-and-optimizations/status.md) | Live tracker for Milestone 0006: **not started** (opened 2026-08-30), 0 of 6 tasks. |
 
 ---
 

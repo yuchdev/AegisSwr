@@ -62,9 +62,12 @@ absolute-from-repo-root Markdown link:
 | 0003 | LiteLLM model-router integration                    | [plan.md](/docs/roadmap/0003-litellm-routing/plan.md)         | -                                                                    |
 | 0004 | OpenClaude integration (Code Intelligence)          | [plan.md](/docs/roadmap/0004-code-intelligence/plan.md)       | [status.md](/docs/roadmap/0004-code-intelligence/status.md)         |
 | 0005 | Code Intelligence harness & multi-backend support   | [plan.md](/docs/roadmap/0005-harness-backends/plan.md)        | [status.md](/docs/roadmap/0005-harness-backends/status.md)          |
+| 0006 | Improvements & optimizations (quality/operability)  | [plan.md](/docs/roadmap/0006-improvements-and-optimizations/plan.md) | [status.md](/docs/roadmap/0006-improvements-and-optimizations/status.md) |
 
 > Milestones 0001-0004 are decomposed into the full task → subtask tree;
 > Milestone 0005 is at task-level granularity (subtask decomposition is a later pass).
+> Milestone 0006's Task 01.0 is fully decomposed into 14 subtasks; Tasks
+> 02.0-06.0 are at task-level granularity (subtask decomposition is a later pass).
 > Milestone 0004 supersedes an earlier, cancelled Code Intelligence Layer
 > design (its plan document has been removed; see
 > [0004/status.md](/docs/roadmap/0004-code-intelligence/status.md#notes--decisions)
