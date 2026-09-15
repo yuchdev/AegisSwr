@@ -78,7 +78,7 @@ packages = ["src/aegis_swr"]
 # include/exclude: directories and files, first apply whitelist, then blacklist
 # select/ignore: rules, first apply whitelist, then blacklist
 # Leaving both empty (the default) tests every rule.
-include = []
+include = ["src", "tests", "scripts"]
 exclude = [
     "tests/flake8_lint/samples/",
     "src/aegis_swr/openclaude/grpc/client.py",

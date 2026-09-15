@@ -205,6 +205,7 @@ def iter_markdown(paths: list[Path]) -> list[Path]:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    """Parse CLI args, validate links in the target Markdown files, and return the exit code."""
     parser = argparse.ArgumentParser(description="Validate Markdown links and anchors.")
     parser.add_argument(
         "paths",

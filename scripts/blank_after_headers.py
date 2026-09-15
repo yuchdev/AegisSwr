@@ -44,6 +44,7 @@ _FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 
 
 def _is_blank(line: str) -> bool:
+    """Return True when *line* contains only whitespace."""
     return line.strip() == ""
 
 
@@ -116,6 +117,7 @@ def process(path: Path, check: bool) -> bool:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    """Parse CLI args, apply the blank-after-header fix to target files, and return the exit code."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "paths",
