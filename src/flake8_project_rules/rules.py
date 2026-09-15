@@ -1,5 +1,5 @@
 """
-Project-specific AST lint rules X001–X012.
+Project-specific AST lint rules X001–X015.
 
 This module is the authoritative production implementation of the custom rule
 engine.  It must never import from ``tests/lint/`` or any other test-only
@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import ast
 import re
+import tokenize
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 from typing import Optional, Union
 
@@ -67,7 +69,6 @@ def _iter_violations(
 ) -> Iterable[RuleViolation]:
     """Run every custom check and yield the raw (unfiltered) violations."""
     yield from _check_broad_exception(tree, filename)
-    yield from _reserved_method(tree, filename)
     yield from _check_muted_exception(tree, filename)
     yield from _check_local_imports(tree, filename)
     yield from _check_docstrings(tree, filename, source)
@@ -77,6 +78,9 @@ def _iter_violations(
     yield from _check_import_error_suppression(tree, filename)
     yield from _check_union_none_annotations(tree, filename)
     yield from _check_union_type_annotations(tree, filename)
+    yield from _check_non_raii_resources(tree, filename)
+    yield from _check_todo_annotations(filename, source)
+    yield from _reserved_x015(tree, filename)
 
 
 # Matches a trailing ``# noqa`` marker anywhere in a line's comment, optionally
@@ -209,6 +213,13 @@ def _has_test_imports(tree: ast.AST) -> bool:
             if root in ("pytest", "unittest"):
                 return True
     return False
+
+
+def _is_named_or_imported_test_module(tree: ast.AST, filename: str) -> bool:
+    """Return True when *filename* looks like a real test module without using its parent directories."""
+    path = Path(filename)
+    name = path.name
+    return name.startswith("test_") or name.endswith("_test.py") or _has_test_imports(tree)
 
 
 def _iter_test_functions(tree: ast.AST) -> Iterable[ast.AST]:
@@ -431,8 +442,8 @@ def _check_broad_exception(tree: ast.AST, filename: str) -> Iterable[RuleViolati
             )
 
 
-def _reserved_method(tree: ast.AST, filename: str) -> Iterable[RuleViolation]:
-    """X003: Intentionally disabled while the code remains reserved."""
+def _reserved_x015(tree: ast.AST, filename: str) -> Iterable[RuleViolation]:
+    """X015: Intentionally disabled while the code remains reserved."""
     del tree, filename
     return ()
 
@@ -801,3 +812,121 @@ def _check_union_type_annotations(tree: ast.AST, filename: str) -> Iterable[Rule
         elif isinstance(node, ast.AnnAssign):
             if _is_union_without_none(node.annotation):
                 yield _report(node.annotation)
+
+
+def _check_non_raii_resources(tree: ast.AST, filename: str) -> Iterable[RuleViolation]:
+    """X013: Require ``subprocess.Popen`` and ``socket.socket`` to be context-managed."""
+    if _is_named_or_imported_test_module(tree, filename):
+        return ()
+
+    subprocess_aliases = {"subprocess"}
+    socket_module_aliases = {"socket"}
+    popen_aliases: set[str] = set()
+    socket_aliases: set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "subprocess":
+                    subprocess_aliases.add(alias.asname or alias.name)
+                elif alias.name == "socket":
+                    socket_module_aliases.add(alias.asname or alias.name)
+        elif isinstance(node, ast.ImportFrom):
+            if node.module == "subprocess":
+                for alias in node.names:
+                    if alias.name == "Popen":
+                        popen_aliases.add(alias.asname or alias.name)
+            elif node.module == "socket":
+                for alias in node.names:
+                    if alias.name == "socket":
+                        socket_aliases.add(alias.asname or alias.name)
+
+    for node in ast.walk(tree):
+        call: Optional[ast.Call] = None
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+            call = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.value, ast.Call):
+            call = node.value
+        elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            call = node.value
+
+        if call is None:
+            continue
+
+        call_name = _non_raii_resource_call_name(
+            call,
+            subprocess_aliases=subprocess_aliases,
+            socket_module_aliases=socket_module_aliases,
+            popen_aliases=popen_aliases,
+            socket_aliases=socket_aliases,
+        )
+        if call_name is None:
+            continue
+
+        yield RuleViolation(
+            filename=filename,
+            lineno=call.lineno,
+            col_offset=call.col_offset,
+            code="X013",
+            message=(
+                f"`{call_name}(...)` is not used as a context manager; wrap it in a `with` statement "
+                "so the process or socket is always closed, even on exceptions."
+            ),
+        )
+
+
+def _non_raii_resource_call_name(
+    call: ast.Call,
+    *,
+    subprocess_aliases: set[str],
+    socket_module_aliases: set[str],
+    popen_aliases: set[str],
+    socket_aliases: set[str],
+) -> Optional[str]:
+    """Return the matched non-RAII resource call name, or ``None`` when unrelated."""
+    func = call.func
+    if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+        if func.attr == "Popen" and func.value.id in subprocess_aliases:
+            return f"{func.value.id}.Popen"
+        if func.attr == "socket" and func.value.id in socket_module_aliases:
+            return f"{func.value.id}.socket"
+    if isinstance(func, ast.Name):
+        if func.id in popen_aliases:
+            return func.id
+        if func.id in socket_aliases:
+            return func.id
+    return None
+
+
+_TODO_ANNOTATION_RE = re.compile(
+    r"^#\s*(?:TODO|FIXME):\s*"
+    r"\[(?P<date>\d{4}-\d{2}-\d{2})\]"
+    r"\[(?P<owner>[A-Za-z0-9][A-Za-z0-9_-]*)\]\s+"
+    r"(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)\s+"
+    r"\[issue:\s*#(?P<issue>\d+),\s*(?P<url>https?://[^\]\s]+)\]\s+-\s+\S.*$"
+)
+
+
+def _check_todo_annotations(filename: str, source: Optional[str]) -> Iterable[RuleViolation]:
+    """X014: Enforce tracked TODO/FIXME metadata in source comments."""
+    if source is None:
+        return ()
+
+    for token in tokenize.generate_tokens(StringIO(source).readline):
+        if token.type != tokenize.COMMENT:
+            continue
+        comment_upper = token.string.upper()
+        if "TODO" not in comment_upper and "FIXME" not in comment_upper:
+            continue
+        if _TODO_ANNOTATION_RE.fullmatch(token.string.strip()):
+            continue
+        yield RuleViolation(
+            filename=filename,
+            lineno=token.start[0],
+            col_offset=token.start[1],
+            code="X014",
+            message=(
+                "Malformed TODO/FIXME annotation: use `# TODO: [YYYY-MM-DD][developer-name] debt-slug "
+                "[issue: #123, https://example.invalid/issues/123] - short action/context`."
+            ),
+        )

@@ -1,6 +1,6 @@
 """Direct, config-driven tests for the Flake8 rule engine (flake8_project_rules.rules).
 
-Each custom rule ``X001``..``X011`` is paired with a dedicated sample file under
+Each custom rule with a sample is paired with a dedicated sample file under
 ``tests/flake8_lint/samples/``. Instead of one hand-written test per rule, the
 suite is parametrised over a single source of truth (:data:`RULE_SAMPLES`) and
 the set of rules it actually exercises is **configurable from a TOML file**.
@@ -44,7 +44,6 @@ SAMPLES_DIR = Path(__file__).parent / "samples"
 RULE_SAMPLES: dict[str, list[str]] = {
     "X001": ["x001_bare_except.py"],
     "X002": ["x002_broad_exception.py"],
-    "X003": ["x003_settings_set.py"],
     "X004": ["x004_muted_exception.py"],
     "X005": ["x005_missing_docstring.py", "x005_structured_test_docstring.py"],
     "X006": ["x006_local_import.py"],
@@ -53,6 +52,9 @@ RULE_SAMPLES: dict[str, list[str]] = {
     "X009": ["x009_percent_formatting.py"],
     "X010": ["x010_import_error_suppression.py"],
     "X011": ["x011_union_none.py"],
+    "X012": ["x012_union_type.py"],
+    "X013": ["x013_non_raii_resource.py"],
+    "X014": ["x014_malformed_todo.py"],
 }
 
 
@@ -101,7 +103,7 @@ def test_active_rule_is_detected(code: str, sample: str):
 
     Boundaries:
         - Input: tests/flake8_lint/samples/<sample for the active rule>
-        - Rules: the active subset of X001-X011 from [tool.flake8_lint_tests]
+        - Rules: the active subset of sampled custom X-rules from [tool.flake8_lint_tests]
         - Excludes: any code dropped by select/ignore is not parametrised here
 
     On failure, first check:
@@ -125,7 +127,7 @@ def test_active_rule_absent_on_clean_module(code: str):
 
     Boundaries:
         - Input: tests/flake8_lint/samples/valid_clean_module.py
-        - Rules: the active subset of X001-X011 from [tool.flake8_lint_tests]
+        - Rules: the active subset of sampled custom X-rules from [tool.flake8_lint_tests]
 
     On failure, first check:
         - That valid_clean_module.py has not been accidentally modified
@@ -146,7 +148,7 @@ def test_valid_clean_module_has_no_active_violations():
 
     Boundaries:
         - Input: tests/flake8_lint/samples/valid_clean_module.py
-        - Rules: the active subset of X001-X011 from [tool.flake8_lint_tests]
+        - Rules: the active subset of sampled custom X-rules from [tool.flake8_lint_tests]
 
     On failure, first check:
         - That valid_clean_module.py has not been accidentally modified
@@ -274,6 +276,72 @@ def test_apply_noqa_false_disables_noqa_suppression():
     tree = ast.parse(source, filename="<noqa-test>")
     codes = {v.code for v in check_tree(tree, "<noqa-test>", source, apply_noqa=False)}
     assert "X002" in codes
+
+
+def test_x013_non_raii_rule_ignores_with_usage_and_open_calls():
+    """
+    [Unit] rules: X013 only targets bare ``Popen``/``socket`` resources, not compliant ``with`` usage or ``open()``.
+
+    Scenario:
+        Given source that uses ``subprocess.Popen`` and ``socket.socket`` inside ``with`` statements plus a plain ``open()`` call
+        When the rule engine runs over that source
+        Then X013 is not reported, because only non-RAII subprocess/socket resource acquisition is in scope.
+
+    Boundaries:
+        - Real: AST parsing, import-alias resolution, X013 rule matching
+        - Excludes: Ruff-owned ``open()`` context-manager checks
+
+    On failure, first check:
+        - That X013 only inspects assignment / expression statements, not ``with`` items
+        - That bare-name matching requires the corresponding ``from ... import ...`` alias
+    """
+    source = "\n".join(
+        [
+            '"""Valid RAII resource usage sample."""',
+            "import socket",
+            "import subprocess",
+            "",
+            "def run() -> int:",
+            '    with subprocess.Popen(["echo", "ok"], stdout=subprocess.PIPE) as proc:',
+            "        proc.communicate()",
+            "    with socket.socket() as sock:",
+            "        sock.settimeout(1.0)",
+            '    with open("demo.txt", encoding="utf-8") as handle:',
+            "        return len(handle.read())",
+        ]
+    )
+    tree = ast.parse(source, filename="<x013-clean>")
+    codes = {v.code for v in check_tree(tree, "<x013-clean>", source)}
+    assert "X013" not in codes
+
+
+def test_x014_todo_annotation_honours_noqa_and_accepts_valid_metadata():
+    """
+    [Unit] rules: X014 accepts the project TODO metadata format and still honours ``# noqa`` on malformed lines.
+
+    Scenario:
+        Given source with one valid TODO line and one malformed TODO line carrying ``# noqa: X014``
+        When the rule engine runs with source-based suppression enabled
+        Then X014 is not reported, because the valid line matches the required metadata and the invalid line is explicitly suppressed.
+
+    Boundaries:
+        - Real: tokenised comment scanning, X014 metadata regex, noqa suppression
+        - Excludes: AST-only rule matching (X014 is source-text based)
+
+    On failure, first check:
+        - That X014 scans comment tokens rather than raw substrings in strings
+        - That the malformed comment and its ``# noqa: X014`` live on the same physical line
+    """
+    source = "\n".join(
+        [
+            '"""TODO annotation sample."""',
+            "# TODO: [2026-09-15][alice-ng] remove-legacy-parser [issue: #482, https://github.com/acme/service/issues/482] - Delete fallback parser after migration cutover.",
+            "# TODO: fix this later  # noqa: X014",
+        ]
+    )
+    tree = ast.parse(source, filename="<x014-noqa>")
+    codes = {v.code for v in check_tree(tree, "<x014-noqa>", source)}
+    assert "X014" not in codes
 
 
 def test_config_selection_is_consistent_with_rule_table():

@@ -31,7 +31,22 @@ PROJECT_ROOT = Path(__file__).parents[2]
 
 # Canonical catalogue of custom rule codes. Adding a new rule to
 # flake8_project_rules.rules means adding its code here too.
-KNOWN_RULE_CODES: list[str] = [f"X{i:03d}" for i in range(1, 13)]
+KNOWN_RULE_CODES: list[str] = [
+    "X001",
+    "X002",
+    "X004",
+    "X005",
+    "X006",
+    "X007",
+    "X008",
+    "X009",
+    "X010",
+    "X011",
+    "X012",
+    "X013",
+    "X014",
+    "X015",
+]
 
 _CONFIG_SECTION = "flake8_lint_tests"
 

@@ -21,14 +21,11 @@ select = [
     "UP037"
 ]
 
-# Disable the pyupgrade rules that rewrite it to the `X | None` shorthand:
 #   UP007 - Union[...] -> X | Y; Optional[X] -> X | None
-#   UP038 - ininstance(X, Y) -> X | Y
 #   SIM300 - Yoda condition x == f(a, b)
 #   E501 - the line is too long
 ignore = [
     "UP007",
-    "UP038",
     "SIM300",
     "E402",
     "E501"

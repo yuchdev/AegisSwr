@@ -89,8 +89,8 @@ exclude = [
     "src/aegis_swr/claude_code/tool.py"
 ]
 
-select = ["X001", "X002", "X004", "X005", "X006", "X007", "X008", "X009", "X010", "X011", "X012"]
-ignore = ["X003"]
+select = ["X001", "X002", "X004", "X005", "X006", "X007", "X008", "X009", "X010", "X011", "X012", "X013", "X014"]
+ignore = ["X015"]
 
 # When false, a `# noqa` comment never suppresses a violation (the rule
 # engine's noqa support is bypassed entirely). Default true.

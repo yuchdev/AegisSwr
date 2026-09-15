@@ -227,7 +227,7 @@ def test_project_custom_flake8_rules_pass():
     Boundaries:
         - Real: AST parsing, flake8 plugin rule engine, file I/O
         - Scope: configured_directories(["src", "tests"]) via covered_dirs()
-        - Rules: the active subset of X001-X011 from [tool.flake8_lint_tests]
+        - Rules: the active subset of configured custom X-rules from [tool.flake8_lint_tests]
         - Excludes: git-ignored dirs (.venv, build, dist, caches, ...)
 
     On failure, first check:
