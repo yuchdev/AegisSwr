@@ -73,7 +73,11 @@ def test_python_m_entry_point_runs():
 
     Scenario: the module is run with ``--help`` in a subprocess.
 
-    Boundaries: exercises the module entry point end-to-end via subprocess.
+    Boundaries: exercises the module entry point end-to-end via subprocess. The
+    child's stdout is decoded as UTF-8 rather than with the parent's locale,
+    because the CLI hardens its own stdout to UTF-8 (see
+    ``_ensure_unicode_safe_stream``) so box-drawing survives a redirect; decoding
+    with a cp1252 locale would fail on those bytes.
 
     On failure, first check: the process must exit zero and its help must list
     ``analyze`` and a ``Usage:`` line.
@@ -83,6 +87,8 @@ def test_python_m_entry_point_runs():
         [sys.executable, "-m", "aegis_swr.cli", "--help"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     assert result.returncode == 0, result.stderr
     assert "analyze" in result.stdout

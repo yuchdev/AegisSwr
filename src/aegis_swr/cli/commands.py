@@ -18,7 +18,6 @@ from uuid import uuid4
 import click
 import typer
 from loguru import logger
-from rich.console import Console
 from rich.table import Table
 from typer.core import TyperGroup
 
@@ -46,7 +45,10 @@ from aegis_swr.harness.composition import build_code_agent
 from aegis_swr.harness.config import HarnessSettings
 from aegis_swr.harness.exceptions import HarnessConfigError, HarnessUnavailableError
 
-console = Console()
+#: The CLI's shared console. Built through the view factory (never ``Console()``
+#: directly) so it inherits the Unicode-safe stdout hardening every other console
+#: gets; a bare ``Console()`` would abort on a redirected non-UTF-8 stdout.
+console = make_console()
 
 #: Allowed values for the war-room verbosity channels (evidence / process). The
 #: application log channel accepts the full loguru range, so it is left to loguru.
@@ -177,7 +179,12 @@ def analyze(  # noqa: PLR0913
         ),
     ] = None,
     engine: Annotated[str, typer.Option("--engine", help="Debug engine: auto | cdb | windbg_js.")] = "auto",
-    ai: Annotated[Optional[str], typer.Option("--ai", help="AI provider: anthropic | openai | bedrock.")] = None,
+    ai: Annotated[
+        Optional[str],
+        typer.Option(
+            "--ai", help="AI provider: anthropic | openai | bedrock | claude_cli (local claude CLI, no API key)."
+        ),
+    ] = None,
     store: Annotated[
         str,
         typer.Option("--store", help="Storage backend: filesystem | sqlite | s3 | postgres."),

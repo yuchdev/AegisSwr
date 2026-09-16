@@ -6,6 +6,7 @@ real API key and every response is fabricated.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from types import SimpleNamespace
 from typing import Any
@@ -18,11 +19,17 @@ from loguru import logger
 from aegis_swr.backends.ai import create_ai_backend
 from aegis_swr.backends.ai.anthropic_provider import AnthropicBackend
 from aegis_swr.backends.ai.aws_bedrock_provider import AwsBedrockBackend
+from aegis_swr.backends.ai.claude_cli_provider import (
+    ClaudeCliBackend,
+    _flatten_messages,
+    _strip_code_fence,
+)
 from aegis_swr.backends.ai.openai_provider import OpenAIBackend, _to_openai_strict_schema
 from aegis_swr.config.settings import (
     AISettings,
     AnthropicSettings,
     BedrockSettings,
+    ClaudeCliSettings,
     OpenAISettings,
 )
 from aegis_swr.core.exceptions import AIBackendError, AIOutputValidationError
@@ -1194,6 +1201,19 @@ def test_factory_returns_bedrock(monkeypatch: pytest.MonkeyPatch):
     assert isinstance(backend, AwsBedrockBackend)
 
 
+def test_factory_returns_claude_cli():
+    """[Unit] ai backends: the factory builds a ClaudeCliBackend for provider claude_cli.
+
+    Scenario: ``create_ai_backend`` is called with ``provider="claude_cli"``.
+
+    Boundaries: no subprocess is spawned; only backend selection is asserted.
+
+    On failure, first check: the returned instance must be a ``ClaudeCliBackend``.
+    """
+    backend = create_ai_backend(AISettings(provider="claude_cli"))
+    assert isinstance(backend, ClaudeCliBackend)
+
+
 def test_factory_unknown_provider_raises():
     """[Unit] ai backends: the factory rejects an unknown provider.
 
@@ -1208,3 +1228,573 @@ def test_factory_unknown_provider_raises():
     fake = SimpleNamespace(provider="grok")
     with pytest.raises(ValueError, match="Unknown AI provider"):
         create_ai_backend(fake)  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# Claude CLI - local ``claude`` subprocess backend (no API key)
+# ---------------------------------------------------------------------------
+
+
+def _claude_cli_envelope(
+    result: str,
+    inp: int = 10,
+    out: int = 5,
+    is_error: bool = False,
+    subtype: str = "success",
+) -> bytes:
+    """Build the single JSON envelope emitted by ``claude -p --output-format json``."""
+    return json.dumps(
+        {
+            "result": result,
+            "usage": {"input_tokens": inp, "output_tokens": out},
+            "is_error": is_error,
+            "subtype": subtype,
+        }
+    ).encode()
+
+
+def _make_fake_process(stdout_bytes: bytes, returncode: int = 0, stderr_bytes: bytes = b"") -> Any:
+    """Build a fake ``asyncio`` subprocess with StreamReader stdout/stderr at EOF."""
+    stdout = asyncio.StreamReader()
+    stdout.feed_data(stdout_bytes)
+    stdout.feed_eof()
+    stderr = asyncio.StreamReader()
+    stderr.feed_data(stderr_bytes)
+    stderr.feed_eof()
+    proc = mock.MagicMock()
+    proc.stdout = stdout
+    proc.stderr = stderr
+    stdin = mock.MagicMock()
+    stdin.drain = mock.AsyncMock()
+    proc.stdin = stdin
+    proc.returncode = returncode
+    proc.wait = mock.AsyncMock(return_value=returncode)
+    return proc
+
+
+def _patch_exec(*procs: Any) -> Any:
+    """Patch ``asyncio.create_subprocess_exec`` to return the given fake processes."""
+    if len(procs) == 1:
+        return mock.patch("asyncio.create_subprocess_exec", mock.AsyncMock(return_value=procs[0]))
+    return mock.patch("asyncio.create_subprocess_exec", mock.AsyncMock(side_effect=list(procs)))
+
+
+async def test_claude_cli_unstructured_returns_text():
+    """[Unit] ai backends: an unstructured claude CLI call returns the result text.
+
+    Scenario: the fake process prints a JSON envelope whose ``result`` is plain
+    text and ``generate`` is called with no schema.
+
+    Boundaries: the subprocess is faked; only envelope parsing and usage are
+    asserted.
+
+    On failure, first check: the result must equal the envelope ``result`` and
+    ``last_usage`` must reflect the envelope token counts.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    proc = _make_fake_process(_claude_cli_envelope("root cause is a use-after-free."))
+    with _patch_exec(proc):
+        result = await backend.generate("system", _USER)
+    assert result == "root cause is a use-after-free."
+    assert backend.last_usage == {"input_tokens": 10, "output_tokens": 5}
+
+
+async def test_claude_cli_structured_output_valid():
+    """[Unit] ai backends: a valid claude CLI JSON result parses into a Hypothesis.
+
+    Scenario: the ``result`` field holds a JSON object matching the schema.
+
+    Boundaries: the subprocess is faked; only parse/validate and usage are
+    asserted.
+
+    On failure, first check: the result must be a ``Hypothesis`` with the expected
+    confidence and mapped usage counters.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    payload = json.dumps({"root_cause": "uaf", "confidence": 0.8})
+    proc = _make_fake_process(_claude_cli_envelope(payload))
+    with _patch_exec(proc):
+        result = await backend.generate("system", _USER, Hypothesis)
+    assert isinstance(result, Hypothesis)
+    assert result.confidence == 0.8
+    assert backend.last_usage == {"input_tokens": 10, "output_tokens": 5}
+
+
+async def test_claude_cli_payload_goes_via_stdin_not_argv():
+    """[Unit] ai backends: incident payload travels on stdin, never on argv (C13).
+
+    Scenario: a generate call is made and both the argv and the stdin write are
+    captured from the faked subprocess.
+
+    Boundaries: enforces the security rule that payload text is invisible to ``ps``.
+
+    On failure, first check: the message content must be absent from every argv
+    token and present in the bytes written to stdin; ``--bare`` must never appear.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    proc = _make_fake_process(_claude_cli_envelope("ok"))
+    secret_payload = "SECRET-INCIDENT-PAYLOAD-42"
+    messages = [{"role": "user", "content": secret_payload}]
+    with _patch_exec(proc) as exec_mock:
+        await backend.generate("persona system prompt", messages)
+    argv = list(exec_mock.await_args.args)
+    assert all(secret_payload not in token for token in argv)
+    assert "--bare" not in argv
+    assert "--restricted" in argv
+    stdin_written = proc.stdin.write.call_args.args[0]
+    assert secret_payload.encode() in stdin_written
+
+
+async def test_claude_cli_is_error_raises_backend_error():
+    """[Unit] ai backends: an ``is_error`` envelope surfaces as AIBackendError.
+
+    Scenario: the fake process prints an envelope with ``is_error: true``.
+
+    Boundaries: the subprocess is faked; only error translation is asserted.
+
+    On failure, first check: ``generate`` must raise ``AIBackendError`` naming the
+    model, never the payload.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings(max_retries=0))
+    proc = _make_fake_process(_claude_cli_envelope("partial", is_error=True, subtype="error_during_execution"))
+    with _patch_exec(proc), pytest.raises(AIBackendError, match="claude-sonnet-4-6"):
+        await backend.generate("system", _USER)
+
+
+async def test_claude_cli_nonzero_exit_raises_backend_error():
+    """[Unit] ai backends: a non-zero exit with no parseable output raises.
+
+    Scenario: the fake process exits with code 1 and prints nothing.
+
+    Boundaries: the subprocess is faked; only the exit-code failure path is
+    asserted.
+
+    On failure, first check: ``generate`` must raise ``AIBackendError`` mentioning
+    the exit code.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings(max_retries=0))
+    proc = _make_fake_process(b"", returncode=1)
+    with _patch_exec(proc), pytest.raises(AIBackendError, match="exited with code 1"):
+        await backend.generate("system", _USER)
+
+
+async def test_claude_cli_unparseable_output_raises():
+    """[Unit] ai backends: unparseable stdout on a clean exit raises AIBackendError.
+
+    Scenario: the fake process exits 0 but prints non-JSON text.
+
+    Boundaries: the subprocess is faked; only the parse-failure path is asserted.
+
+    On failure, first check: ``generate`` must raise ``AIBackendError`` matching
+    ``unparseable``.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings(max_retries=0))
+    proc = _make_fake_process(b"not json at all")
+    with _patch_exec(proc), pytest.raises(AIBackendError, match="unparseable"):
+        await backend.generate("system", _USER)
+
+
+async def test_claude_cli_retries_process_failure_then_succeeds():
+    """[Unit] ai backends: a process-level failure is retried with backoff.
+
+    Scenario: the first spawn exits non-zero, the second returns a good envelope;
+    ``asyncio.sleep`` is patched so the backoff does not delay the test.
+
+    Boundaries: the subprocess is faked with a two-call side effect.
+
+    On failure, first check: the result must be the second envelope's text and
+    ``create_subprocess_exec`` must be awaited twice.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings(max_retries=2))
+    bad = _make_fake_process(b"", returncode=1)
+    good = _make_fake_process(_claude_cli_envelope("recovered"))
+    with _patch_exec(bad, good) as exec_mock, mock.patch("asyncio.sleep", mock.AsyncMock()):
+        result = await backend.generate("system", _USER)
+    assert result == "recovered"
+    assert exec_mock.await_count == 2
+
+
+async def test_claude_cli_raises_after_retries_exhausted():
+    """[Unit] ai backends: repeated process failures raise after the retry budget.
+
+    Scenario: every spawn exits non-zero and ``asyncio.sleep`` is patched.
+
+    Boundaries: the subprocess is faked to always fail.
+
+    On failure, first check: ``generate`` must raise ``AIBackendError`` after
+    ``max_retries + 1`` attempts.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings(max_retries=2))
+    procs = [_make_fake_process(b"", returncode=1) for _ in range(3)]
+    with _patch_exec(*procs) as exec_mock, mock.patch("asyncio.sleep", mock.AsyncMock()):
+        with pytest.raises(AIBackendError):
+            await backend.generate("system", _USER)
+    assert exec_mock.await_count == 3
+
+
+async def test_claude_cli_stream_yields_partial_deltas():
+    """[Unit] ai backends: ``stream`` yields ``text_delta`` frames in order.
+
+    Scenario: the fake process emits two partial-message text deltas then a
+    terminal ``result`` frame.
+
+    Boundaries: the subprocess is faked; only delta extraction is asserted.
+
+    On failure, first check: the collected tokens must equal the scripted deltas.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    frames = [
+        {
+            "type": "stream_event",
+            "event": {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "hel"}},
+        },
+        {
+            "type": "stream_event",
+            "event": {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "lo"}},
+        },
+        {"type": "result", "subtype": "success", "is_error": False, "usage": {"input_tokens": 3, "output_tokens": 2}},
+    ]
+    stdout = ("\n".join(json.dumps(f) for f in frames) + "\n").encode()
+    proc = _make_fake_process(stdout)
+    with _patch_exec(proc):
+        tokens = [t async for t in backend.stream("system", _USER)]
+    assert tokens == ["hel", "lo"]
+
+
+async def test_claude_cli_stream_falls_back_to_complete_assistant_frames():
+    """[Unit] ai backends: ``stream`` yields complete assistant text when no partials.
+
+    Scenario: the fake process emits only a complete ``assistant`` frame (no
+    partial-message deltas) then a ``result`` frame.
+
+    Boundaries: the subprocess is faked; only the fallback path is asserted.
+
+    On failure, first check: the single complete-frame text must be yielded once.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    frames = [
+        {"type": "assistant", "message": {"content": [{"type": "text", "text": "full answer"}]}},
+        {"type": "result", "subtype": "success", "is_error": False, "usage": {"input_tokens": 1, "output_tokens": 1}},
+    ]
+    stdout = ("\n".join(json.dumps(f) for f in frames) + "\n").encode()
+    proc = _make_fake_process(stdout)
+    with _patch_exec(proc):
+        tokens = [t async for t in backend.stream("system", _USER)]
+    assert tokens == ["full answer"]
+
+
+def test_claude_cli_flatten_single_user_message_verbatim():
+    """[Unit] ai backends: a lone user message is flattened to its content verbatim.
+
+    Scenario: ``_flatten_messages`` is called with a single user turn.
+
+    Boundaries: exercises the pure transcript helper directly.
+
+    On failure, first check: the output must equal the message content with no
+    role label added.
+    """
+    assert _flatten_messages([{"role": "user", "content": "just this"}]) == "just this"
+
+
+def test_claude_cli_flatten_multi_turn_labels_roles():
+    """[Unit] ai backends: a multi-turn conversation is rendered with role labels.
+
+    Scenario: ``_flatten_messages`` is called with a user + assistant + user
+    conversation.
+
+    Boundaries: exercises the pure transcript helper directly.
+
+    On failure, first check: each turn must be delimited and role-labelled in order.
+    """
+    messages = [
+        {"role": "user", "content": "first"},
+        {"role": "assistant", "content": "reply"},
+        {"role": "user", "content": "second"},
+    ]
+    rendered = _flatten_messages(messages)
+    assert rendered == "[USER]\nfirst\n\n[ASSISTANT]\nreply\n\n[USER]\nsecond"
+
+
+def test_claude_cli_rejects_repo_root_cwd(tmp_path: Any):
+    """[Unit] ai backends: a cwd that is an ancestor of the repo root is rejected.
+
+    Scenario: a settings ``cwd`` is set to a directory that contains a ``.git``
+    marker (making it the detected repo root) and a backend is constructed.
+
+    Boundaries: exercises the construction-time cwd guard only.
+
+    On failure, first check: construction must raise ``AIBackendError`` naming the
+    repository-root rule.
+    """
+    (tmp_path / ".git").mkdir()
+    with mock.patch("aegis_swr.backends.ai.claude_cli_provider.Path.cwd", return_value=tmp_path):
+        with pytest.raises(AIBackendError, match="repository root"):
+            ClaudeCliBackend(ClaudeCliSettings(cwd=str(tmp_path)))
+
+
+def test_claude_cli_accepts_safe_cwd(tmp_path: Any):
+    """[Unit] ai backends: a cwd outside the repo tree is accepted and resolved.
+
+    Scenario: the repo root is a sibling directory of an explicit, safe ``cwd``.
+
+    Boundaries: exercises the construction-time cwd guard's accept path.
+
+    On failure, first check: construction must succeed and record the resolved cwd.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / ".git").mkdir()
+    safe = tmp_path / "scratch"
+    safe.mkdir()
+    with mock.patch("aegis_swr.backends.ai.claude_cli_provider.Path.cwd", return_value=repo):
+        backend = ClaudeCliBackend(ClaudeCliSettings(cwd=str(safe)))
+    assert backend._explicit_cwd == str(safe.resolve())
+
+
+@pytest.mark.parametrize(
+    "model, expected",
+    [
+        ("claude-sonnet-4-6", True),
+        ("claude-opus-4-8", True),
+        ("claude-3-7-sonnet", True),
+        ("claude-3-5-sonnet", False),
+    ],
+)
+def test_claude_cli_has_reasoning(model: str, expected: bool):
+    """[Unit] ai backends: ``has_reasoning`` reflects the Claude model generation.
+
+    Scenario: a backend is built for a parametrized model and ``has_reasoning`` is
+    read.
+
+    Boundaries: no subprocess is spawned; only the capability flag is asserted.
+
+    On failure, first check: ``has_reasoning`` must equal the parametrized
+    expectation for each model.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings(model=model))
+    assert backend.has_reasoning is expected
+
+
+async def test_claude_cli_stderr_never_leaks_to_returned_text():
+    """[Unit] ai backends: stderr content is not mixed into the returned result.
+
+    Scenario: the fake process prints a clean envelope on stdout and noise on
+    stderr.
+
+    Boundaries: the subprocess is faked; only stdout parsing is asserted.
+
+    On failure, first check: the result must be exactly the envelope text with no
+    stderr fragment.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    proc = _make_fake_process(_claude_cli_envelope("clean answer"), stderr_bytes=b"warning: noisy stderr line\n")
+    with _patch_exec(proc):
+        result = await backend.generate("system", _USER)
+    assert result == "clean answer"
+    assert "stderr" not in result
+
+
+async def test_claude_cli_spawn_failure_raises_backend_error():
+    """[Unit] ai backends: a spawn OSError surfaces as AIBackendError.
+
+    Scenario: ``create_subprocess_exec`` raises ``OSError`` (e.g. the ``claude``
+    binary is missing).
+
+    Boundaries: the subprocess spawn is faked to fail; only the spawn-failure path
+    is asserted.
+
+    On failure, first check: ``generate`` must raise ``AIBackendError`` matching
+    ``could not be spawned``.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings(max_retries=0))
+    with mock.patch("asyncio.create_subprocess_exec", mock.AsyncMock(side_effect=OSError("no such binary"))):
+        with pytest.raises(AIBackendError, match="could not be spawned"):
+            await backend.generate("system", _USER)
+
+
+async def test_claude_cli_reaps_still_running_process():
+    """[Unit] ai backends: a child still running at exit is terminated (RAII).
+
+    Scenario: the fake process reports ``returncode is None`` at context exit so the
+    teardown must terminate it.
+
+    Boundaries: the subprocess is faked; only the reap-on-exit path is asserted.
+
+    On failure, first check: the result must parse and ``terminate`` must be called
+    exactly once during teardown.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    proc = _make_fake_process(_claude_cli_envelope("done"))
+    proc.returncode = None
+    proc.terminate = mock.MagicMock()
+    with _patch_exec(proc):
+        result = await backend.generate("system", _USER)
+    assert result == "done"
+    proc.terminate.assert_called_once()
+
+
+async def test_claude_cli_stream_skips_malformed_and_nondict_frames():
+    """[Unit] ai backends: ``stream`` skips malformed and non-object NDJSON frames.
+
+    Scenario: the fake process emits a non-JSON line, a JSON scalar, a valid text
+    delta, then a ``result`` frame.
+
+    Boundaries: the subprocess is faked; only the defensive skip paths are asserted.
+
+    On failure, first check: only the well-formed delta must be yielded.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    lines = [
+        "not valid json",
+        "123",
+        json.dumps(
+            {
+                "type": "stream_event",
+                "event": {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "ok"}},
+            }
+        ),
+        json.dumps({"type": "result", "subtype": "success", "is_error": False, "usage": {"input_tokens": 1, "output_tokens": 1}}),
+    ]
+    stdout = ("\n".join(lines) + "\n").encode()
+    proc = _make_fake_process(stdout)
+    with _patch_exec(proc):
+        tokens = [t async for t in backend.stream("system", _USER)]
+    assert tokens == ["ok"]
+
+
+async def test_claude_cli_stream_nonzero_exit_raises():
+    """[Unit] ai backends: a non-zero exit at end of stream raises AIBackendError.
+
+    Scenario: the fake process emits a clean ``result`` frame but exits with code 1.
+
+    Boundaries: the subprocess is faked; only the stream exit-code failure path is
+    asserted.
+
+    On failure, first check: draining ``stream`` must raise ``AIBackendError``
+    mentioning the exit code.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    frames = [{"type": "result", "subtype": "success", "is_error": False, "usage": {"input_tokens": 1, "output_tokens": 1}}]
+    stdout = ("\n".join(json.dumps(f) for f in frames) + "\n").encode()
+    proc = _make_fake_process(stdout, returncode=1)
+    with _patch_exec(proc), pytest.raises(AIBackendError, match="exited with code 1"):
+        async for _ in backend.stream("system", _USER):
+            pass
+
+
+def test_claude_cli_resolved_model_falls_back_to_default():
+    """[Unit] ai backends: a non-Claude model name falls back to the CLI default.
+
+    Scenario: ``resolved_model`` is read for a GPT-style name and a Claude name.
+
+    Boundaries: exercises the settings property directly.
+
+    On failure, first check: a non-Claude name must resolve to ``claude-sonnet-4-6``
+    while a Claude name is returned verbatim.
+    """
+    assert ClaudeCliSettings(model="gpt-4o").resolved_model == "claude-sonnet-4-6"
+    assert ClaudeCliSettings(model="claude-opus-4-8").resolved_model == "claude-opus-4-8"
+
+
+async def test_claude_cli_structured_output_strips_code_fence():
+    """[Unit] ai backends: a fenced JSON result still validates against the schema.
+
+    Scenario: the CLI honours the schema but wraps the object in a ```json code
+    fence - the common shape for this prompt-driven backend, which has no forced
+    tool use - and ``generate`` is called with a schema.
+
+    Boundaries: the subprocess is faked; only fence stripping plus schema
+    validation are asserted.
+
+    On failure, first check: the fence must be peeled before the base class
+    parses, so the first attempt validates instead of burning the correction
+    retry on an already-correct reply.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    payload = json.dumps({"root_cause": "uaf", "confidence": 0.8})
+    proc = _make_fake_process(_claude_cli_envelope(f"```json\n{payload}\n```"))
+    with _patch_exec(proc):
+        result = await backend.generate("system", _USER, Hypothesis)
+    assert isinstance(result, Hypothesis)
+    assert result.confidence == 0.8
+
+
+async def test_claude_cli_unstructured_keeps_code_fence():
+    """[Unit] ai backends: a free-form reply keeps a code fence the model sent.
+
+    Scenario: the envelope ``result`` is a fenced snippet and ``generate`` is
+    called with **no** schema.
+
+    Boundaries: the subprocess is faked; asserts the strip is scoped to schema
+    requests only.
+
+    On failure, first check: fence stripping must not apply without a schema -
+    a free-form answer may legitimately be a code block, and rewriting it would
+    corrupt the agent's own output.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings())
+    fenced = "```c\nint *p = NULL;\n```"
+    proc = _make_fake_process(_claude_cli_envelope(fenced))
+    with _patch_exec(proc):
+        result = await backend.generate("system", _USER)
+    assert result == fenced
+
+
+async def test_claude_cli_error_envelope_reports_cli_reason():
+    """[Unit] ai backends: an error envelope surfaces the CLI's own reason.
+
+    Scenario: the CLI returns ``is_error: true`` while still reporting
+    ``subtype: success`` - the real shape seen when the CLI fails at the
+    transport layer (usage limit, credit balance, upstream API error) - and the
+    cause is carried in ``result``.
+
+    Boundaries: the subprocess is faked; asserts only the error message content.
+
+    On failure, first check: the raised ``AIBackendError`` must name the reason
+    from ``result``; without it a transport failure is indistinguishable from a
+    model failure and the operator has nothing to act on.
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings(max_retries=0))
+    proc = _make_fake_process(
+        _claude_cli_envelope("Usage limit reached. Resets at 5pm.", is_error=True, subtype="success")
+    )
+    with _patch_exec(proc), pytest.raises(AIBackendError, match="Usage limit reached"):
+        await backend.generate("system", _USER)
+
+
+async def test_claude_cli_error_reason_is_truncated_and_single_line():
+    """[Unit] ai backends: an oversized error reason is capped and flattened.
+
+    Scenario: an error envelope carries a very long multi-line ``result``.
+
+    Boundaries: the subprocess is faked; asserts the message bound, not wording.
+
+    On failure, first check: the message must be truncated and newline-free, so
+    an error body that echoes transcript text cannot dump an incident payload
+    into a log or exception (repo security §3).
+    """
+    backend = ClaudeCliBackend(ClaudeCliSettings(max_retries=0))
+    body = "SECRET-STACK-LINE\n" * 500
+    proc = _make_fake_process(_claude_cli_envelope(body, is_error=True, subtype="success"))
+    with _patch_exec(proc), pytest.raises(AIBackendError) as excinfo:
+        await backend.generate("system", _USER)
+    message = str(excinfo.value)
+    assert "\n" not in message
+    assert len(message) < 500
+
+
+def test_strip_code_fence_leaves_bare_and_partial_text_untouched():
+    """[Unit] ai backends: only a fully wrapping code fence is stripped.
+
+    Scenario: ``_strip_code_fence`` is given bare JSON, text that merely contains
+    a fence mid-body, and a properly wrapped block.
+
+    Boundaries: pure function; no subprocess involved.
+
+    On failure, first check: a bare object must be returned unchanged and an
+    inner fence must be preserved - stripping either would corrupt valid output.
+    """
+    assert _strip_code_fence('{"a": 1}') == '{"a": 1}'
+    assert _strip_code_fence("prefix ```json\n{}\n```") == "prefix ```json\n{}\n```"
+    assert _strip_code_fence("```json\n{\"a\": 1}\n```") == '{"a": 1}'
+    assert _strip_code_fence("```\n{\"a\": 1}\n```") == '{"a": 1}'

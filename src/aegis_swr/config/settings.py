@@ -97,6 +97,13 @@ _ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-4-6"
 _OPENAI_DEFAULT_MODEL = "gpt-5.4"
 _OPENAI_MODEL_PREFIXES = ("gpt-",)
 
+"""Default model for the ``claude`` CLI backend. Shares the Anthropic default -
+the CLI drives Claude models - and is used as the fallback when a configured
+model name does not look like a Claude identifier (see
+:attr:`ClaudeCliSettings.resolved_model`).
+"""
+_CLAUDE_CLI_DEFAULT_MODEL = _ANTHROPIC_DEFAULT_MODEL
+
 """Default Bedrock inference profile - Claude Sonnet 4.6 via the APAC
 cross-region profile. Direct model IDs (without an ``au.``/``apac.``/``global.``
 prefix) require provisioned throughput, so an on-demand profile is the safe
@@ -310,14 +317,58 @@ class BedrockSettings(ProviderSettingsBase):
         return self.model_id
 
 
+class ClaudeCliSettings(ProviderSettingsBase):
+    """Local ``claude`` CLI provider configuration.
+
+    Drives the locally-installed ``claude`` command headlessly
+    (``claude -p --output-format json``) so the agentic panel can run with **no
+    API key**: authentication is the CLI's own (subscription / OAuth) login and
+    Aegis never reads or forwards a credential. The backend spawns a one-shot
+    subprocess per call, feeds the incident transcript over **stdin** (never
+    argv), and parses the CLI's JSON envelope for the assistant text and real
+    token usage.
+
+    :ivar model: Model name passed to ``--model``; surfaced via
+        :attr:`resolved_model` (falls back to the module default when the name
+        does not look like a Claude identifier).
+    :ivar binary: The ``claude`` executable - an absolute path, or a bare command
+        name resolved via ``PATH``.
+    :ivar timeout_seconds: Wall-clock deadline for a single one-shot invocation;
+        on expiry the child is reaped and the call fails.
+    :ivar max_retries: Number of extra attempts on a **process-level** failure
+        (spawn error, timeout, non-zero exit); retried with exponential backoff.
+        This is distinct from the schema-correction retry in
+        :meth:`~aegis_swr.backends.ai.base._BaseAIBackend.generate`.
+    :ivar cwd: Working directory for the one-shot process. When ``None`` a fresh
+        per-call temporary directory is created and removed on every exit path.
+        When set it must **not** be the repository root or an ancestor of it, so
+        an untrusted one-shot process can never operate over the live source tree
+        (mirrors the ``scratch_cwd`` guard of the Claude Code harness).
+    """
+
+    model: str = _CLAUDE_CLI_DEFAULT_MODEL
+    binary: str = "claude"
+    timeout_seconds: float = 600.0
+    max_retries: int = 2
+    cwd: Optional[str] = None
+
+    @property
+    def resolved_model(self) -> str:
+        """Return ``model`` when it looks like a Claude name, else the default."""
+        if self.model.startswith("claude"):
+            return self.model
+        return _CLAUDE_CLI_DEFAULT_MODEL
+
+
 class AISettings(BaseSettings):
     """AI backend configuration.
 
     Selects the active ``provider`` and carries one typed sub-config per
-    provider (:attr:`anthropic`, :attr:`openai`, :attr:`bedrock`). All three
-    blocks coexist, so switching provider is a one-field change that preserves
-    every provider's tuning. Each sub-config exposes only the knobs that
-    provider actually supports plus an optional per-model override map.
+    provider (:attr:`anthropic`, :attr:`openai`, :attr:`bedrock`,
+    :attr:`claude_cli`). All blocks coexist, so switching provider is a one-field
+    change that preserves every provider's tuning. Each sub-config exposes only
+    the knobs that provider actually supports plus an optional per-model override
+    map.
     """
 
     model_config = SettingsConfigDict(extra="ignore")
@@ -328,12 +379,13 @@ class AISettings(BaseSettings):
     anthropic: AnthropicSettings = Field(default_factory=AnthropicSettings)
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
     bedrock: BedrockSettings = Field(default_factory=BedrockSettings)
+    claude_cli: ClaudeCliSettings = Field(default_factory=ClaudeCliSettings)
 
     @field_validator("provider")
     @classmethod
     def validate_provider(cls, v: str) -> str:
         """Restrict ``provider`` to a backend that has a sub-config + factory."""
-        allowed = {"anthropic", "openai", "bedrock"}
+        allowed = {"anthropic", "openai", "bedrock", "claude_cli"}
         if v not in allowed:
             raise ValueError(f"provider must be one of {allowed}")
         return v

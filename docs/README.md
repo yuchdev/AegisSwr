@@ -2,6 +2,8 @@
 
 All design, planning, and analysis documents for the Aegis SWR project.
 
+[implementation_spec.md](specs/non-existent-link.md)
+
 ---
 
 ## Architecture Decision Records (`adr/`)

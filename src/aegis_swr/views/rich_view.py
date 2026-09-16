@@ -16,14 +16,17 @@ render an investigation live:
 
 from __future__ import annotations
 
+import codecs
 import io
 import os
+import sys
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Optional, Union, cast
+from typing import Final, Literal, Optional, TextIO, Union, cast
 
+from loguru import logger
 from rich.console import Console, Group, RenderableType
 from rich.json import JSON
 from rich.layout import Layout
@@ -68,6 +71,89 @@ from aegis_swr.views.evidence_detail import (
     pcap_metadata,
 )
 
+#: Encode error handlers that cannot raise on the glyphs the view emits, so a
+#: stream already using one (paired with UTF-8) is left untouched.
+_SAFE_STREAM_ERRORS: Final[frozenset[str]] = frozenset({"replace", "backslashreplace", "xmlcharrefreplace"})
+
+
+def _ensure_unicode_safe_stream(stream: Optional[TextIO]):
+    """Make *stream* able to carry the view's Unicode glyphs without ever raising.
+
+    Every war-room frame contains non-ASCII glyphs (``✔``, the Braille spinner,
+    box-drawing rules). When stdout is **redirected** on Windows, Python opens it
+    with the locale encoding (``cp1252``) rather than UTF-8, and Rich's write
+    raises :class:`UnicodeEncodeError`. That happens in ``Live.stop()``, i.e.
+    *after* a full investigation has succeeded, so an encoding detail destroys a
+    completed multi-minute analysis. Requiring ``PYTHONIOENCODING=utf-8`` from
+    the caller is not a fix - it makes correct behaviour opt-in.
+
+    Two independent guarantees are established, because each covers a failure the
+    other does not:
+
+    * **UTF-8 encoding** so the glyphs survive intact for a consumer that reads
+      UTF-8 (a redirect into a file, a CI log).
+    * **A non-strict error handler**, because UTF-8 alone is *not* sufficient
+      here: incident text is decoded with ``errors="replace"``/``surrogateescape``
+      upstream, so a dump or log can carry lone surrogates, which no UTF-8
+      encoder will accept. ``replace`` degrades those to a placeholder instead of
+      aborting the render.
+
+    Note that ``surrogateescape`` is deliberately *not* treated as safe: on
+    encode it only round-trips the ``U+DC80..U+DCFF`` range it produces itself,
+    so a surrogate outside that range still raises.
+
+    **This changes the bytes on the wire**: a redirected stream that previously
+    got locale-encoded (or ASCII-substituted) output now receives UTF-8, so a
+    consumer decoding with the system locale must be told to read UTF-8. That is
+    the intended trade - ``cp1252`` cannot represent box-drawing at all, so
+    preserving the locale encoding would reduce the whole war-room layout to
+    ``?``. An operator who needs a specific codec can set ``PYTHONIOENCODING``,
+    which is honoured verbatim; only the non-strict error handler is still forced
+    on, since that alone is what prevents the crash.
+
+    The stream is reconfigured in place (rather than wrapped) so ordering with
+    plain ``print`` is preserved, and the call is idempotent - an already-safe
+    stream is left untouched. Anything that cannot be reconfigured (a pytest
+    capture buffer, :class:`io.StringIO`, a closed stream) is skipped with a DEBUG
+    note: this is a best-effort hardening of the output path and must never
+    itself break rendering.
+
+    :param stream: The text stream the console will write to, or ``None``.
+    """
+    reconfigure = getattr(stream, "reconfigure", None)
+    if stream is None or reconfigure is None:
+        return
+
+    try:
+        current = codecs.lookup(stream.encoding).name if stream.encoding else ""
+    except (LookupError, TypeError):
+        current = ""
+
+    errors_safe = getattr(stream, "errors", None) in _SAFE_STREAM_ERRORS
+
+    if os.environ.get("PYTHONIOENCODING"):
+        # An explicit PYTHONIOENCODING is a deliberate choice by the operator (a
+        # consumer that must read a specific codec, say), so the encoding is left
+        # exactly as they set it and only the crash-safety half is enforced.
+        if errors_safe:
+            return
+        changes = {"errors": "replace"}
+    elif current == "utf-8" and errors_safe:
+        return  # already safe; nothing to do
+    else:
+        # Both arguments are always passed together: ``reconfigure(encoding=...)``
+        # silently resets ``errors`` back to ``"strict"``, so setting the encoding
+        # alone would *downgrade* a stream that already had a tolerant handler.
+        changes = {"encoding": "utf-8", "errors": "replace"}
+
+    try:
+        reconfigure(**changes)
+    except (OSError, ValueError, AttributeError) as exc:
+        # An unreconfigurable stream keeps its original settings; rendering
+        # proceeds and any loss is the caller's pre-existing behaviour. Only the
+        # exception type is recorded - never the stream contents.
+        logger.debug("console stream hardening skipped ({})", type(exc).__name__)
+
 
 def make_console(*, stderr: bool = False) -> Console:
     """Console factory used by all Rich rendering.
@@ -76,7 +162,13 @@ def make_console(*, stderr: bool = False) -> Console:
     rich would otherwise disable the live display and all animation.  Force
     terminal mode there; everywhere else keep rich's auto-detection so piped
     output stays clean.
+
+    The target stream is hardened by :func:`_ensure_unicode_safe_stream` first,
+    so a redirected (non-UTF-8) stdout degrades a glyph instead of aborting the
+    run. Routing every console through this factory is what keeps that guarantee
+    global.
     """
+    _ensure_unicode_safe_stream(sys.stderr if stderr else sys.stdout)
     force = True if os.environ.get("PYCHARM_HOSTED") else None
     return Console(stderr=stderr, force_terminal=force)
 

@@ -17,18 +17,7 @@
                 "@sentry/mcp-server@latest"
             ],
             "env": {
-                "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-                "SENTRY_HOST": "${SENTRY_HOST}"
-            }
-        },
-        "pagerduty": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@pagerduty/mcp-server"
-            ],
-            "env": {
-                "PAGERDUTY_USER_API_TOKEN": "${PAGERDUTY_USER_API_TOKEN}"
+                "SENTRY_ACCESS_TOKEN": "${SENTRY_AUTH_TOKEN}"
             }
         },
         "context7": {

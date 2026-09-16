@@ -227,7 +227,9 @@ def test_cdb_command_sequence(debug_settings: DebugSettings, dump_path: str):
     cmd = backend._build_command_sequence(_source(dump_path), ["C:/extra/syms"])
     assert cmd[0] == "cdb.exe"
     assert "-z" in cmd and dump_path in cmd
-    assert ".reload /f /i; !analyze -v; q" in cmd
+    # The chain must enable line loading (.lines -e), keep !analyze -v, and emit
+    # the exception-context stack (.ecxr; k) that carries source annotations.
+    assert ".lines -e; .reload /f /i; !analyze -v; .ecxr; k; q" in cmd
     sym_chain = cmd[cmd.index("-y") + 1]
     assert sym_chain.startswith("srv*")
     assert "msdl.microsoft.com" in sym_chain
@@ -416,6 +418,135 @@ def test_cdb_parses_analyze_stack_text_format():
     # All frames resolve a function on this trace.
     backend_score = sum(1 for f in frames if f.function) / len(frames)
     assert backend_score == 1.0
+
+
+# Realistic `!analyze -v` STACK_TEXT: reliable frames, but NEVER any source
+# annotation, regardless of `.lines -e`.
+_STACK_TEXT_BLOCK = (
+    "STACK_TEXT:  \n"
+    "Child-SP          RetAddr               : Args to Child           : Call Site\n"
+    "000000af`8e7de420 00007ff7`2a734087     : 000001d1`00000007 00007ff7`2a742ed0 "
+    ": CrashUi!Crash_Window::on_access_violation_click+0x509\n"
+    "000000af`8e7de8e0 00007ffa`ade2e858     : 00000000`00000000 00000000`ade28f71 "
+    ": CrashUi!wWinMain+0x614\n"
+    "\n"
+)
+
+# The `.ecxr; k` block: same frames, but each row can carry `[file @ line]`.
+_ANNOTATED_K_BLOCK = (
+    "Child-SP          RetAddr               Call Site\n"
+    "000000af`8e7de420 00007ff7`2a734087     "
+    "CrashUi!Crash_Window::on_access_violation_click+0x509 "
+    "[C:\\Users\\atatat\\Projects\\wincrashdebugger\\src\\CrashUi\\CrashUi.cpp @ 121]\n"
+    "000000af`8e7de8e0 00007ffa`ade2e858     "
+    "CrashUi!wWinMain+0x614 "
+    "[C:\\Users\\atatat\\Projects\\wincrashdebugger\\src\\CrashUi\\CrashUi.cpp @ 251]\n"
+    "\n"
+    "quit:\n"
+)
+
+
+def test_cdb_stack_text_only_carries_no_source_lines():
+    """[Unit] debug backends: a STACK_TEXT-only trace yields frames with no source.
+
+    Scenario: only the ``!analyze -v`` STACK_TEXT block is present (no ``k`` block).
+
+    Boundaries: exercises the unchanged STACK_TEXT path of ``parse_cdb_frames``.
+
+    On failure, first check: frames must be parsed exactly as before and every
+    ``source_file``/``source_line`` must stay ``None`` (STACK_TEXT never annotates).
+    """
+    frames = parse_cdb_frames(_STACK_TEXT_BLOCK)
+    assert len(frames) == 2
+    assert frames[0].function == "Crash_Window::on_access_violation_click"
+    assert frames[1].function == "wWinMain"
+    assert all(f.source_file is None and f.source_line is None for f in frames)
+
+
+def test_cdb_merges_annotated_k_block_into_stack_text():
+    """[Unit] debug backends: the ``k`` block enriches STACK_TEXT with source lines.
+
+    Scenario: STACK_TEXT frames plus a matching annotated ``.ecxr; k`` block.
+
+    Boundaries: exercises the two-block merge in ``parse_cdb_frames``.
+
+    On failure, first check: the returned list must stay the STACK_TEXT count (no
+    duplication) and each frame must carry the source line from its matching ``k``
+    row (matched on the full module+function+offset symbol).
+    """
+    raw = _STACK_TEXT_BLOCK + "\nsome !analyze noise\n\n" + _ANNOTATED_K_BLOCK
+    frames = parse_cdb_frames(raw)
+
+    assert len(frames) == 2  # canonical STACK_TEXT count, not duplicated
+    top = frames[0]
+    assert top.function == "Crash_Window::on_access_violation_click"
+    assert top.source_file.endswith("CrashUi.cpp")
+    assert top.source_line == 121
+    assert frames[1].function == "wWinMain"
+    assert frames[1].source_line == 251
+
+
+def test_cdb_k_block_inline_rows_are_skipped():
+    """[Unit] debug backends: inline-function ``k`` rows do not add phantom frames.
+
+    Scenario: the ``k`` block contains an ``(Inline Function)`` row between two
+    real return-address frames; STACK_TEXT lists only the two real frames.
+
+    Boundaries: exercises the documented inline-row skip in ``_parse_k_frames``.
+
+    On failure, first check: the merged list must contain exactly the two real
+    frames (the inline ``std::invoke`` symbol must not appear) and the real frame
+    that follows the inline row must still be enriched with its source line.
+    """
+    stack_text = (
+        "STACK_TEXT:  \n"
+        "000000f6`b28fe850 00007ff6`74634087     "
+        ": CrashUi!Crash_Window::on_access_violation_click+0x509\n"
+        "000000f6`b28ff000 00007ff6`74620614     : CrashUi!wWinMain+0x614\n"
+        "\n"
+    )
+    k_block = (
+        "Child-SP          RetAddr               Call Site\n"
+        "000000f6`b28fe850 00007ff6`74634087     "
+        "CrashUi!Crash_Window::on_access_violation_click+0x509 "
+        "[C:\\Users\\atatat\\Projects\\wincrashdebugger\\src\\CrashUi\\CrashUi.cpp @ 121]\n"
+        "(Inline Function) --------`--------     "
+        "CrashUi!std::invoke+0x5 "
+        "[C:\\Users\\atatat\\Projects\\wincrashdebugger\\src\\CrashUi\\invoke.h @ 65]\n"
+        "000000f6`b28ff000 00007ff6`74620614     "
+        "CrashUi!wWinMain+0x614 "
+        "[C:\\Users\\atatat\\Projects\\wincrashdebugger\\src\\CrashUi\\CrashUi.cpp @ 251]\n"
+        "\n"
+        "quit:\n"
+    )
+    frames = parse_cdb_frames(stack_text + "\n" + k_block)
+
+    assert len(frames) == 2
+    assert [f.function for f in frames] == [
+        "Crash_Window::on_access_violation_click",
+        "wWinMain",
+    ]
+    # The inline pseudo-frame must not leak into the result.
+    assert all("invoke" not in (f.function or "") for f in frames)
+    # The real frame after the inline row is still enriched.
+    assert frames[1].source_line == 251
+
+
+def test_cdb_falls_back_to_k_block_when_stack_text_absent():
+    """[Unit] debug backends: with no STACK_TEXT, annotated ``k`` frames are returned.
+
+    Scenario: the output has only a ``.ecxr; k`` block and no STACK_TEXT block.
+
+    Boundaries: exercises the STACK_TEXT-absent fallback in ``parse_cdb_frames``.
+
+    On failure, first check: the ``k`` frames must be returned directly, carrying
+    their source annotations, so frames are never lost when STACK_TEXT is missing.
+    """
+    frames = parse_cdb_frames(_ANNOTATED_K_BLOCK)
+    assert len(frames) == 2
+    assert frames[0].function == "Crash_Window::on_access_violation_click"
+    assert frames[0].source_line == 121
+    assert frames[1].source_line == 251
 
 
 # ---------------------------------------------------------------------------

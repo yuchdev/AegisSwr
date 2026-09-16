@@ -70,20 +70,123 @@ def _parse_callsite(symbol: str) -> tuple[Optional[str], Optional[str]]:
     return symbol, None
 
 
-def parse_cdb_frames(raw: str) -> list[StackFrame]:
-    """Parse the STACK_TEXT block into StackFrames.
+def _normalize_symbol(symbol: str) -> str:
+    """Collapse internal whitespace in a call-site *symbol* for stable matching.
 
-    Handles both CDB stack formats:
+    STACK_TEXT and ``k`` rows print the same symbol but may differ in the runs of
+    whitespace around templated argument lists, so both sides are normalised to
+    single spaces before they are used as a merge key.
 
-    * ``!analyze -v`` STACK_TEXT - ``<child-sp> <ret-addr> : <args…> : <CallSite>``
-      with backtick-split 64-bit addresses and colon-delimited argument columns.
-    * ``kn``/simplified - ``<n> <child-sp> <ret-addr> <CallSite> [file @ line]``.
-
-    In both, the call site is isolated first (last colon-segment, else last
-    token); the return address is the last address-looking token in the
-    remaining columns. Header rows and non-frame lines (no address column) are
-    skipped.
+    :param symbol: a raw call-site token (e.g. ``mod!Type::method+0x509``).
+    :return: the symbol with each internal whitespace run collapsed to one space.
     """
+    return " ".join(symbol.split())
+
+
+def _parse_k_frames(raw: str) -> list[tuple[StackFrame, str]]:
+    """Parse the ``.ecxr; k`` stack block into ``(frame, callsite-key)`` pairs.
+
+    The ``k`` block is the only CDB output that carries ``[file @ line]`` source
+    annotations, so it is parsed separately from ``!analyze -v`` STACK_TEXT. Its
+    rows look like::
+
+        Child-SP          RetAddr               Call Site
+        000000f6`b28fe850 00007ff6`74634087     CrashUi!Sym+0x509 [C:\\src\\f.cpp @ 121]
+
+    The block is located by its ``Child-SP ... Call Site`` header; crucially the
+    STACK_TEXT header contains ``" : "`` argument columns and is excluded on that
+    basis. Parsing stops at the first blank line or the first row that lacks the
+    two leading address columns (i.e. the trailing command echo/prompt).
+
+    Inline-function rows (``(Inline Function) --------`--------  ...``) carry no
+    physical return address and are **skipped by design**: they have no matching
+    STACK_TEXT return-address frame, so keeping them would desynchronise the two
+    lists and risk pinning a source line onto the wrong frame.
+
+    :param raw: the full combined CDB output.
+    :return: a list of ``(StackFrame, normalised-callsite)`` pairs in stack order;
+        empty when no ``k`` block is present.
+    """
+    lines = raw.splitlines()
+    header_idx = -1
+    for idx, line in enumerate(lines):
+        if "Child-SP" in line and "Call Site" in line and " : " not in line:
+            header_idx = idx
+            break
+    if header_idx < 0:
+        return []
+
+    results: list[tuple[StackFrame, str]] = []
+    number = 0
+    for line in lines[header_idx + 1 :]:
+        stripped = line.strip()
+        if not stripped:
+            break
+        if stripped.startswith("(Inline Function)"):
+            continue  # documented: inline pseudo-frames are skipped
+
+        source_file: Optional[str] = None
+        source_line: Optional[int] = None
+        src = _SOURCE_RE.search(stripped)
+        if src:
+            source_file = src.group("file")
+            source_line = int(src.group("line"))
+            stripped = stripped[: src.start()].strip()
+
+        tokens = stripped.split()
+        if len(tokens) < 3 or not _looks_like_address(tokens[0]) or not _looks_like_address(tokens[1]):
+            break  # end of the k block (command echo, prompt, or non-frame line)
+
+        callsite = " ".join(tokens[2:])
+        module, function = _parse_callsite(callsite)
+        frame = StackFrame(
+            frame_number=number,
+            module=module,
+            function=function,
+            source_file=source_file,
+            source_line=source_line,
+            instruction_address=normalize_address(tokens[1]),
+        )
+        results.append((frame, _normalize_symbol(callsite)))
+        number += 1
+    return results
+
+
+def parse_cdb_frames(raw: str) -> list[StackFrame]:
+    """Parse CDB output into StackFrames, merging two complementary blocks.
+
+    Two blocks in the debugger output describe the stack, each with a different
+    strength, and this function combines them:
+
+    * ``!analyze -v`` **STACK_TEXT** - ``<child-sp> <ret-addr> : <args…> : <CallSite>``
+      with backtick-split 64-bit addresses and colon-delimited argument columns.
+      This is the reliable, always-present frame list, but it *never* carries a
+      ``[file @ line]`` annotation.
+    * ``.ecxr; k`` - the faulting-context stack walk, whose rows *do* carry
+      ``[file @ line]`` annotations (see :func:`_parse_k_frames`).
+
+    **Merge rule.** STACK_TEXT is treated as the canonical, ordered frame list so
+    the returned count is stable and never duplicated. The ``k`` block is parsed
+    only to build a lookup keyed by the exact normalised call-site symbol
+    (module + function + ``+0x`` offset); each STACK_TEXT frame that has no inline
+    annotation of its own is then enriched with the ``source_file``/``source_line``
+    of the matching ``k`` row. Because the key is the full symbol-plus-offset
+    token, a frame is only ever annotated with its own source location.
+
+    If STACK_TEXT is absent or empty (some dumps emit only the ``k`` block), the
+    parsed ``k`` frames are returned directly so frames are still produced. A line
+    that already carries an inline annotation inside STACK_TEXT keeps it.
+
+    :param raw: the full combined CDB output (``.lines``/``!analyze -v``/``k``).
+    :return: the merged, source-enriched list of stack frames in stack order.
+    """
+    k_frames = _parse_k_frames(raw)
+    annotations: dict[str, tuple[str, int]] = {
+        key: (frame.source_file, frame.source_line)
+        for frame, key in k_frames
+        if frame.source_file is not None and frame.source_line is not None
+    }
+
     frames: list[StackFrame] = []
     in_stack = False
     number = 0
@@ -120,6 +223,11 @@ def parse_cdb_frames(raw: str) -> list[StackFrame]:
         if not ret_candidates or not callsite:
             continue  # column header or non-frame line
 
+        if source_file is None:
+            annotated = annotations.get(_normalize_symbol(callsite))
+            if annotated is not None:
+                source_file, source_line = annotated
+
         module, function = _parse_callsite(callsite)
         frames.append(
             StackFrame(
@@ -132,6 +240,10 @@ def parse_cdb_frames(raw: str) -> list[StackFrame]:
             )
         )
         number += 1
+
+    if not frames:
+        # STACK_TEXT absent/empty: fall back to the annotated k block directly.
+        return [frame for frame, _ in k_frames]
     return frames
 
 
@@ -153,7 +265,25 @@ class CdbBackend(_BaseDebugBackend):
         source: IncidentSource,
         symbol_path: list[str],
     ) -> list[str]:
-        """Build the ``cdb.exe`` argv that reloads symbols and runs ``!analyze -v``."""
+        """Build the ``cdb.exe`` argv that reloads symbols and dumps annotated frames.
+
+        The command chain does three distinct jobs:
+
+        * ``.lines -e`` enables source line-number loading so subsequent stack
+          walks can emit ``[file @ line]`` annotations.
+        * ``.reload /f /i; !analyze -v`` forces a full symbol reload and produces
+          the reliable STACK_TEXT frame list plus bucket/exception metadata
+          (still consumed by :meth:`_parse`). STACK_TEXT never carries source
+          annotations, no matter the switches.
+        * ``.ecxr; k`` sets the register context to the exception record and walks
+          the *faulting* stack; unlike STACK_TEXT this ``k`` block carries the
+          ``[file @ line]`` annotations that :func:`parse_cdb_frames` merges back
+          onto the STACK_TEXT frames.
+
+        :param source: the incident source carrying the dump to analyse.
+        :param symbol_path: extra symbol search paths appended to the SRV chain.
+        :return: the ``cdb.exe`` argv to execute.
+        """
         return [
             "cdb.exe",
             "-z",
@@ -161,7 +291,7 @@ class CdbBackend(_BaseDebugBackend):
             "-y",
             self._symbol_path_string(symbol_path),
             "-c",
-            ".reload /f /i; !analyze -v; q",
+            ".lines -e; .reload /f /i; !analyze -v; .ecxr; k; q",
         ]
 
     def _parse(self, raw: str, source: IncidentSource) -> DebugExtractionResult:
