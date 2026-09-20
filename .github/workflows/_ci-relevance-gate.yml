@@ -49,4 +49,11 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GITHUB_EVENT_BEFORE: ${{ github.event.before }}
           GITHUB_EVENT_AFTER: ${{ github.event.after }}
-        run: python scripts/ci_relevance.py
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_BASE_SHA}" ]; then
+            # For pull_request events, execute the classifier from the protected
+            # base commit, not from the PR checkout.
+            git show "${PR_BASE_SHA}:scripts/ci_relevance.py" | python -
+          else
+            python scripts/ci_relevance.py
+          fi

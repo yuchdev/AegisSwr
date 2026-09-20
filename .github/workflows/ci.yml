@@ -30,7 +30,6 @@ jobs:
   doc-links:
     name: "Docs: cross-reference links and anchors resolve"
     needs: assess
-    if: needs.assess.outputs.run_ci == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

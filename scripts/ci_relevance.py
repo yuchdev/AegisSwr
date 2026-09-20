@@ -77,6 +77,7 @@ NEVER_RUN_ROOT_ONLY_PATTERNS: tuple[str, ...] = ("*.md",)
 #: in the target commit, which is exactly what "before" should mean at the tip
 #: of a brand-new branch (GitHub reports `before` as all zeros in that case).
 _EMPTY_TREE_SHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+_GIT_TIMEOUT_SECONDS = 15
 
 
 def _matches_any(path: str, patterns: tuple[str, ...]) -> bool:
@@ -135,7 +136,13 @@ def decide(changed_files: Optional[list[str]]) -> Decision:
 
 def _run_git(*args: str) -> str:
     """Run a git subcommand and return its captured stdout."""
-    result = subprocess.run(["git", *args], capture_output=True, text=True, check=True)
+    result = subprocess.run(
+        ["git", *args],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=_GIT_TIMEOUT_SECONDS,
+    )
     return result.stdout
 
 
@@ -161,9 +168,10 @@ def get_changed_files_from_git() -> Optional[list[str]]:
                 check=True,
                 capture_output=True,
                 text=True,
+                timeout=_GIT_TIMEOUT_SECONDS,
             )
             diff = _run_git("diff", "--name-only", f"{base_sha}...{head_sha}")
-        except subprocess.CalledProcessError as exc:
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
             print(f"ci_relevance: could not diff against base {base_sha}: {exc}", file=sys.stderr)
             return None
         return diff.splitlines()
@@ -175,7 +183,7 @@ def get_changed_files_from_git() -> Optional[list[str]]:
             before = _EMPTY_TREE_SHA
         try:
             diff = _run_git("diff", "--name-only", before, after)
-        except subprocess.CalledProcessError as exc:
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
             print(f"ci_relevance: could not diff {before}..{after}: {exc}", file=sys.stderr)
             return None
         return diff.splitlines()

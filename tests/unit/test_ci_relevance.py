@@ -417,6 +417,36 @@ class TestGetChangedFilesFromGit:
 
         assert ci_relevance.get_changed_files_from_git() is None
 
+    def test_pull_request_fetch_timeout_fails_safe_to_none(self, monkeypatch: pytest.MonkeyPatch):
+        """
+        [Unit] get changed files from git: verifies pull request fetch timeout fails safe to none.
+
+        Scenario:
+            Given test inputs and fixtures for pull request fetch timeout fails safe to none
+            When test_pull_request_fetch_timeout_fails_safe_to_none executes the target flow
+            Then the expected outcome for pull request fetch timeout fails safe to none is confirmed.
+
+        Boundaries:
+            - Focus: pull request fetch timeout fails safe to none
+            - Fixtures/params: monkeypatch
+            - Scope: assertions and setup in this test case only
+
+        On failure, first check:
+            - Assertion details tied to pull request fetch timeout fails safe to none
+            - Fixture or parameter values used by this test
+            - Recent changes in code paths exercised by get changed files from git
+        """
+        monkeypatch.setenv("GITHUB_EVENT_NAME", "pull_request")
+        monkeypatch.setenv("PR_BASE_SHA", "base-sha")
+
+        def fake_run(cmd, **kwargs):
+            """Simulate a timed-out git invocation."""
+            raise subprocess.TimeoutExpired(cmd=cmd, timeout=15)
+
+        monkeypatch.setattr(ci_relevance.subprocess, "run", fake_run)
+
+        assert ci_relevance.get_changed_files_from_git() is None
+
     def test_push_diffs_between_before_and_after(self, monkeypatch: pytest.MonkeyPatch):
         """
         [Unit] get changed files from git: verifies push diffs between before and after.
@@ -514,6 +544,37 @@ class TestGetChangedFilesFromGit:
         def fake_run(cmd, **kwargs):
             """Simulate a failing git invocation."""
             raise subprocess.CalledProcessError(1, cmd)
+
+        monkeypatch.setattr(ci_relevance.subprocess, "run", fake_run)
+
+        assert ci_relevance.get_changed_files_from_git() is None
+
+    def test_push_diff_os_error_fails_safe_to_none(self, monkeypatch: pytest.MonkeyPatch):
+        """
+        [Unit] get changed files from git: verifies push diff os error fails safe to none.
+
+        Scenario:
+            Given test inputs and fixtures for push diff os error fails safe to none
+            When test_push_diff_os_error_fails_safe_to_none executes the target flow
+            Then the expected outcome for push diff os error fails safe to none is confirmed.
+
+        Boundaries:
+            - Focus: push diff os error fails safe to none
+            - Fixtures/params: monkeypatch
+            - Scope: assertions and setup in this test case only
+
+        On failure, first check:
+            - Assertion details tied to push diff os error fails safe to none
+            - Fixture or parameter values used by this test
+            - Recent changes in code paths exercised by get changed files from git
+        """
+        monkeypatch.setenv("GITHUB_EVENT_NAME", "push")
+        monkeypatch.setenv("GITHUB_EVENT_BEFORE", "before-sha")
+        monkeypatch.setenv("GITHUB_EVENT_AFTER", "after-sha")
+
+        def fake_run(cmd, **kwargs):
+            """Simulate git not being executable."""
+            raise OSError("git unavailable")
 
         monkeypatch.setattr(ci_relevance.subprocess, "run", fake_run)
 
