@@ -178,5 +178,80 @@ def test_skips_urls_templates_and_code(tmp_path: Path, monkeypatch: pytest.Monke
     assert cdl.check_file(src) == []
 
 
+def test_main_scans_docs_and_claude_for_missing_documents(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    """
+    [Unit] check doc links: verifies main scans docs and claude for missing documents.
+
+    Scenario:
+        Given Markdown files under docs and .claude with missing document links
+        When main scans both requested directories
+        Then it reports both dangling links and returns a failure status
+
+    Boundaries:
+        - Focus: directory scanning and CLI result
+        - Fixtures/params: tmp_path, monkeypatch, capsys
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to directory scanning and CLI result
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by check doc links
+    """
+    monkeypatch.setattr(cdl, "REPO_ROOT", tmp_path)
+    docs = tmp_path / "docs"
+    claude = tmp_path / ".claude"
+    docs.mkdir()
+    claude.mkdir()
+    (docs / "README.md").write_text("[missing docs](missing.md)\n", encoding="utf-8")
+    (claude / "CLAUDE.md").write_text("[missing config](config.md)\n", encoding="utf-8")
+
+    result = cdl.main([str(docs), str(claude)])
+
+    output = capsys.readouterr().out
+    assert result == 1
+    assert "missing.md" in output
+    assert "config.md" in output
+    assert "2 problem(s) found" in output
+
+
+def test_main_returns_success_for_clean_docs_and_claude(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    """
+    [Unit] check doc links: verifies main accepts clean docs and claude trees.
+
+    Scenario:
+        Given Markdown files under docs and .claude with existing document links
+        When main scans both requested directories
+        Then it returns success without reporting problems
+
+    Boundaries:
+        - Focus: clean directory scan and CLI result
+        - Fixtures/params: tmp_path, monkeypatch, capsys
+        - Scope: assertions and setup in this test case only
+
+    On failure, first check:
+        - Assertion details tied to clean directory scan and CLI result
+        - Fixture or parameter values used by this test
+        - Recent changes in code paths exercised by check doc links
+    """
+    monkeypatch.setattr(cdl, "REPO_ROOT", tmp_path)
+    docs = tmp_path / "docs"
+    claude = tmp_path / ".claude"
+    docs.mkdir()
+    claude.mkdir()
+    (docs / "README.md").write_text("[config](../config.md)\n", encoding="utf-8")
+    (claude / "CLAUDE.md").write_text("[docs](../docs/README.md)\n", encoding="utf-8")
+    (tmp_path / "config.md").write_text("# Configuration\n", encoding="utf-8")
+
+    result = cdl.main([str(docs), str(claude)])
+
+    output = capsys.readouterr().out
+    assert result == 0
+    assert "0 problem(s) found" in output
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

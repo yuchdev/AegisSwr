@@ -1,0 +1,72 @@
+name: CI relevance gate
+
+# Reusable workflow: computes whether the calling workflow's remaining jobs
+# should run at all, based on scripts/ci_relevance.py's classification of the
+# changed files. Callers depend on this job and gate every other job on its
+# `run_ci` output (see ci.yml / coverage.yml for the wiring).
+#
+# Deliberately NOT a composite action: a reusable `workflow_call` workflow can
+# expose a job-level output usable directly in downstream `needs:`/`if:`
+# expressions, whereas a composite action's outputs are only visible to steps
+# within the SAME job that called it.
+
+on:
+  workflow_call:
+    outputs:
+      run_ci:
+        description: "\"true\" if the full pipeline should run for this changeset; \"false\" to skip it"
+        value: ${{ jobs.assess.outputs.run_ci }}
+
+jobs:
+  assess:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      run_ci: ${{ steps.decide.outputs.run_ci }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history, not just the tip commit: pull_request diffs need the
+          # base commit reachable locally, and push diffs need the previous
+          # commit. This job is cheap and short-lived, so paying for a full
+          # clone here (rather than tuning fetch-depth per-event) keeps the
+          # diff logic simple and correct across pull_request/push/schedule.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Decide whether the full pipeline should run
+        id: decide
+        env:
+          # GitHub Actions does not expose these as plain environment
+          # variables on its own - only as `${{ github.event.* }}` template
+          # expressions - so this step passes them through explicitly for
+          # scripts/ci_relevance.py to read.
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+          GITHUB_EVENT_AFTER: ${{ github.event.after }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_BASE_SHA}" ]; then
+            # For pull_request events, execute the classifier from the protected
+            # base commit, not from the PR checkout.
+            base_script="scripts/.ci_relevance_base.py"
+            cleanup() {
+              rm -f "${base_script}"
+            }
+            trap cleanup EXIT
+            if git show "${PR_BASE_SHA}:scripts/ci_relevance.py" > "${base_script}"; then
+              chmod 600 "${base_script}"
+              python "${base_script}"
+            else
+              echo "ci_relevance: could not load base-commit classifier; fail-safe to run CI" >&2
+              echo "run_ci=true" >> "${GITHUB_OUTPUT}"
+            fi
+            trap - EXIT
+            cleanup
+          else
+            python scripts/ci_relevance.py
+          fi

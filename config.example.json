@@ -92,6 +92,16 @@
             "thinking_budget_tokens": 8192
           }
         }
+      },
+      "claude_cli": {
+        "model": "claude-sonnet-4-6",
+        "binary": "claude",
+        "max_tokens": 4096,
+        "temperature": 0.2,
+        "timeout_seconds": 600.0,
+        "max_retries": 2,
+        "cwd": null,
+        "models": {}
       }
     },
     "debug": {

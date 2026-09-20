@@ -46,6 +46,7 @@ from aegis_swr.views.rich_view import (
     RichView,
     WarRoomView,
     _build_diagnosis,
+    _ensure_unicode_safe_stream,
     _fmt_elapsed,
     _fmt_stamp,
     _spinner_char,
@@ -2050,3 +2051,127 @@ def test_render_verdict_hitl_shows_red_frame():
     assert "What is the DB pool size?" in out
     # The green diagnosis frame is NOT shown for a deadlock.
     assert "AI Root Cause Analysis" not in out
+
+
+def _cp1252_stream(errors: str = "surrogateescape") -> io.TextIOWrapper:
+    """A text stream mimicking a redirected Windows stdout (cp1252, not UTF-8)."""
+    return io.TextIOWrapper(io.BytesIO(), encoding="cp1252", errors=errors)
+
+
+def test_ensure_unicode_safe_stream_upgrades_cp1252_to_utf8():
+    """[Unit] views: a redirected cp1252 stream is upgraded so glyphs survive.
+
+    Scenario: a cp1252 text stream - what Python hands the process when stdout is
+    redirected on Windows - is passed to ``_ensure_unicode_safe_stream`` and then
+    written to with the view's check glyph.
+
+    Boundaries: an in-memory ``TextIOWrapper`` stands in for stdout; no console
+    or live display is involved.
+
+    On failure, first check: the stream must end up UTF-8 with a non-strict error
+    handler, and writing ``✔`` must not raise - this is the crash that destroyed a
+    completed investigation in ``Live.stop()``.
+    """
+    stream = _cp1252_stream()
+    _ensure_unicode_safe_stream(stream)
+    assert stream.encoding == "utf-8"
+    assert stream.errors == "replace"
+    stream.write("✔")  # must not raise
+
+
+def test_ensure_unicode_safe_stream_keeps_tolerant_error_handler():
+    """[Unit] views: setting the encoding must not downgrade the error handler.
+
+    Scenario: the cp1252 stream starts on ``surrogateescape`` (the real default
+    for a redirected stdout), is hardened, and is then written a **lone
+    surrogate** of the kind produced by decoding raw dump bytes.
+
+    Boundaries: in-memory stream; asserts the encode path only.
+
+    On failure, first check: ``reconfigure(encoding=...)`` silently resets
+    ``errors`` to ``strict``, so passing the encoding alone leaves the stream
+    *more* fragile than before - both arguments must be set together. A lone
+    surrogate is exactly what UTF-8 alone cannot encode.
+    """
+    stream = _cp1252_stream(errors="surrogateescape")
+    _ensure_unicode_safe_stream(stream)
+    assert stream.errors in {"replace", "backslashreplace", "xmlcharrefreplace"}
+    stream.write(b"\xed\xa0\x80".decode("utf-8", errors="surrogateescape"))  # must not raise
+
+
+def test_ensure_unicode_safe_stream_leaves_safe_stream_untouched():
+    """[Unit] views: an already-safe UTF-8 stream is not reconfigured.
+
+    Scenario: a UTF-8 stream already using ``replace`` is hardened twice.
+
+    Boundaries: in-memory stream; asserts idempotence.
+
+    On failure, first check: the helper runs on every ``make_console`` call, so a
+    non-idempotent implementation would churn the process's real stdout.
+    """
+    stream = io.TextIOWrapper(io.BytesIO(), encoding="utf-8", errors="replace")
+    _ensure_unicode_safe_stream(stream)
+    _ensure_unicode_safe_stream(stream)
+    assert stream.encoding == "utf-8"
+    assert stream.errors == "replace"
+
+
+def test_ensure_unicode_safe_stream_tolerates_unreconfigurable_streams():
+    """[Unit] views: a stream that cannot be reconfigured is skipped silently.
+
+    Scenario: ``None`` and a bare :class:`io.StringIO` (no ``reconfigure``, as
+    with a pytest capture buffer) are passed to the helper.
+
+    Boundaries: no console involved.
+
+    On failure, first check: this hardening is best-effort and must never raise -
+    an exception here would break rendering for every caller of ``make_console``.
+    """
+    _ensure_unicode_safe_stream(None)
+    _ensure_unicode_safe_stream(io.StringIO())  # must not raise
+
+
+def test_ensure_unicode_safe_stream_honours_explicit_pythonioencoding(monkeypatch):
+    """[Unit] views: an operator-set PYTHONIOENCODING keeps its encoding.
+
+    Scenario: ``PYTHONIOENCODING`` is set and a cp1252 stream is hardened.
+
+    Boundaries: in-memory stream; the env var is monkeypatched.
+
+    On failure, first check: the chosen codec must survive (the operator may have
+    a downstream consumer that requires it) while the error handler is still
+    forced non-strict - that half alone is what stops the crash.
+    """
+    monkeypatch.setenv("PYTHONIOENCODING", "cp1252")
+    stream = _cp1252_stream(errors="strict")
+    _ensure_unicode_safe_stream(stream)
+    assert stream.encoding == "cp1252"
+    assert stream.errors == "replace"
+    stream.write("✔")  # degrades to "?" rather than raising
+
+
+def test_ensure_unicode_safe_stream_swallows_reconfigure_failure():
+    """[Unit] views: a stream whose reconfigure raises does not break rendering.
+
+    Scenario: a stub stream exposes ``reconfigure`` but raises ``OSError`` from it
+    (a detached or closed stdout behaves this way).
+
+    Boundaries: a hand-rolled stub; no real stream or console.
+
+    On failure, first check: the helper must absorb the failure and leave the
+    stream as-is. It runs on every ``make_console`` call, so letting the error
+    escape would turn a best-effort hardening into a hard startup crash - the
+    exact class of failure this whole helper exists to prevent.
+    """
+
+    class _Unreconfigurable:
+        """A cp1252 stream stub whose ``reconfigure`` always fails."""
+
+        encoding = "cp1252"
+        errors = "strict"
+
+        def reconfigure(self, **kwargs):
+            """Reject every reconfiguration, as a detached stream would."""
+            raise OSError("detached stream")
+
+    _ensure_unicode_safe_stream(_Unreconfigurable())  # must not raise
