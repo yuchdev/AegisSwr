@@ -53,7 +53,14 @@ jobs:
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && [ -n "${PR_BASE_SHA}" ]; then
             # For pull_request events, execute the classifier from the protected
             # base commit, not from the PR checkout.
-            git show "${PR_BASE_SHA}:scripts/ci_relevance.py" | python -
+            base_script="$(mktemp)"
+            if git show "${PR_BASE_SHA}:scripts/ci_relevance.py" > "${base_script}"; then
+              python "${base_script}"
+            else
+              echo "ci_relevance: could not load base-commit classifier; fail-safe to run CI" >&2
+              echo "run_ci=true" >> "${GITHUB_OUTPUT}"
+            fi
+            rm -f "${base_script}"
           else
             python scripts/ci_relevance.py
           fi
