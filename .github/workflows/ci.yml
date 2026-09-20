@@ -9,7 +9,12 @@ on:
     - cron: "0 3 * * *"
 
 jobs:
+  assess:
+    uses: ./.github/workflows/_ci-relevance-gate.yml
+
   lint:
+    needs: assess
+    if: needs.assess.outputs.run_ci == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -24,6 +29,7 @@ jobs:
 
   doc-links:
     name: "Docs: cross-reference links and anchors resolve"
+    needs: assess
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +37,8 @@ jobs:
       - run: uv run python scripts/check_doc_links.py
 
   unit-test:
+    needs: assess
+    if: needs.assess.outputs.run_ci == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -46,6 +54,8 @@ jobs:
 
   code-intel-isolation:
     name: "Lint: Code-intel module isolation (C3, all families + harness)"
+    needs: assess
+    if: needs.assess.outputs.run_ci == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -144,6 +154,8 @@ jobs:
 
   openclaude-unit-coverage:
     name: "OpenClaude: unit + coverage gate (>=90%, 100% branch on tool.py)"
+    needs: assess
+    if: needs.assess.outputs.run_ci == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -167,6 +179,8 @@ jobs:
 
   code-intel-unit-coverage:
     name: "Code-intel: per-backend unit + coverage gates (>=90%; 100% branch on delegate)"
+    needs: assess
+    if: needs.assess.outputs.run_ci == 'true'
     runs-on: ubuntu-latest
     # Each step runs with ALL presence signals and credentials unset to prove the
     # unit suites are hermetic (Global acceptance criterion): they pass with no
@@ -231,7 +245,9 @@ jobs:
     # Skipped on PRs; runs on master pushes and the nightly schedule. The suite
     # itself self-skips (module-level guards) when the signal/binary are absent,
     # so it reports skipped, never failed.
+    needs: assess
     if: >-
+      needs.assess.outputs.run_ci == 'true' &&
       github.event_name != 'pull_request' &&
       (github.ref == 'refs/heads/master' || github.event_name == 'schedule')
     runs-on: ubuntu-latest
@@ -265,7 +281,9 @@ jobs:
     # credential is absent - so the job reports skipped, never failed. The
     # subscription variant additionally self-skips without a live login /
     # CLAUDE_CODE_OAUTH_TOKEN, and when a stray API key makes auth_mode ambiguous.
+    needs: assess
     if: >-
+      needs.assess.outputs.run_ci == 'true' &&
       github.event_name != 'pull_request' &&
       (github.ref == 'refs/heads/master' || github.event_name == 'schedule')
     runs-on: ubuntu-latest
@@ -296,7 +314,9 @@ jobs:
     # Docker daemon is unreachable, or python-socketio is not installed - so it
     # reports skipped, never failed. CI installs no socketio, so this self-skips
     # by default; no dependency is added to force it to run.
+    needs: assess
     if: >-
+      needs.assess.outputs.run_ci == 'true' &&
       github.event_name != 'pull_request' &&
       (github.ref == 'refs/heads/master' || github.event_name == 'schedule')
     runs-on: ubuntu-latest

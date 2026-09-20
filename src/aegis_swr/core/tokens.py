@@ -11,6 +11,7 @@ from functools import lru_cache
 from typing import Any, Optional
 
 import tiktoken
+from requests import RequestException
 
 _CHARS_PER_TOKEN = 4
 
@@ -18,7 +19,12 @@ _CHARS_PER_TOKEN = 4
 @lru_cache(maxsize=1)
 def _encoder() -> Optional[Any]:
     """Return a tiktoken encoding instance of the most common CL100K base model."""
-    return tiktoken.get_encoding("cl100k_base")
+    encoder: Optional[Any] = None
+    try:
+        encoder = tiktoken.get_encoding("cl100k_base")
+    except (OSError, RequestException):
+        encoder = None
+    return encoder
 
 
 def count_tokens(text: str) -> int:
