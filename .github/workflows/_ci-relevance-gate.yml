@@ -54,13 +54,19 @@ jobs:
             # For pull_request events, execute the classifier from the protected
             # base commit, not from the PR checkout.
             base_script="$(mktemp)"
+            chmod 600 "${base_script}"
+            cleanup() {
+              rm -f "${base_script}"
+            }
+            trap cleanup EXIT
             if git show "${PR_BASE_SHA}:scripts/ci_relevance.py" > "${base_script}"; then
               python "${base_script}"
             else
               echo "ci_relevance: could not load base-commit classifier; fail-safe to run CI" >&2
               echo "run_ci=true" >> "${GITHUB_OUTPUT}"
             fi
-            rm -f "${base_script}"
+            trap - EXIT
+            cleanup
           else
             python scripts/ci_relevance.py
           fi
