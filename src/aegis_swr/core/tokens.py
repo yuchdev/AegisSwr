@@ -18,7 +18,10 @@ _CHARS_PER_TOKEN = 4
 @lru_cache(maxsize=1)
 def _encoder() -> Optional[Any]:
     """Return a tiktoken encoding instance of the most common CL100K base model."""
-    return tiktoken.get_encoding("cl100k_base")
+    try:
+        return tiktoken.get_encoding("cl100k_base")
+    except Exception:
+        return None
 
 
 def count_tokens(text: str) -> int:
