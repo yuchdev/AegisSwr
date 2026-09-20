@@ -80,7 +80,6 @@ def _iter_violations(
     yield from _check_union_type_annotations(tree, filename)
     yield from _check_non_raii_resources(tree, filename)
     yield from _check_todo_annotations(filename, source)
-    yield from _reserved_x015(tree, filename)
 
 
 # Matches a trailing ``# noqa`` marker anywhere in a line's comment, optionally
@@ -440,12 +439,6 @@ def _check_broad_exception(tree: ast.AST, filename: str) -> Iterable[RuleViolati
                 "X002",
                 "Do not use `except Exception:`; catch a more specific exception.",
             )
-
-
-def _reserved_x015(tree: ast.AST, filename: str) -> Iterable[RuleViolation]:
-    """X015: Intentionally disabled while the code remains reserved."""
-    del tree, filename
-    return ()
 
 
 def _check_muted_exception(tree: ast.AST, filename: str) -> Iterable[RuleViolation]:
