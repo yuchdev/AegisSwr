@@ -152,4 +152,4 @@ The human response is re-ingested through the Data Adapter and debate resumes.
 |---|---|
 | [docs/specs/implementation_spec.md](docs/specs/implementation_spec.md) | Full implementation spec: module layout, Pydantic schemas, Data Adapter pipeline (9 stages), backend ABCs, LangGraph state machine, REST/SSE API, sandbox, config. |
 | [docs/adr/](docs/adr/) | Architecture Decision Records - point-in-time decisions with rationale. |
-| [docs/roadmap/roadmap.md](docs/roadmap/roadmap.md) | 5-phase development roadmap. |
+

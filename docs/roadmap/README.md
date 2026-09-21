@@ -35,8 +35,6 @@ docs/roadmap/
 
 - A milestone's `plan.md` lists its tasks under a `## Tasks` heading (table column: `Task`).
 - A task's `README.md` lists its subtasks under a `## Subtasks` heading.
-- Avoid "Phase" for these tiers - it is reserved for the product-vision phases in
-  [docs/roadmap/roadmap.md](/docs/roadmap/roadmap.md) (usually require months) and would otherwise be ambiguous.
 
 ### Linking convention
 
