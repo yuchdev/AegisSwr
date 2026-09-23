@@ -32,8 +32,8 @@ jobs:
         # Its own step, separate from pytest, so a lint failure is independently
         # visible and carries the engine's own 0/1/2 exit contract instead of
         # hiding behind an unrelated test failure. The pytest mirror lives in
-        # tests/unit/test_project_lint.py; both read [tool.flake8_lint].
-        run: uv run flake8-lint check .
+        # tests/unit/test_project_lint.py; both read [tool.flakeforge].
+        run: uv run flakeforge check .
 
   doc-links:
     name: "Docs: cross-reference links and anchors resolve"

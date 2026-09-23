@@ -389,7 +389,7 @@ class OpenHandsClient:
         (an unexpected error inside a cold ``_ensure_client`` or the transport is
         mapped to ``False``); ``BaseException`` (e.g. ``asyncio.CancelledError``)
         still propagates so cooperative cancellation is preserved. This file is
-        listed in ``[tool.flake8_lint_tests].exclude`` so the X002 rule permits
+        listed in ``[tool.flakeforge].exclude`` so the X002 rule permits
         the backstop, exactly as ``openclaude/grpc/client.py`` is.
 
         :return: ``True`` if the server answered healthy within

@@ -43,7 +43,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "flake8-lint" },
+    { name = "flakeforge" },
     { name = "grpcio-tools" },
     { name = "mypy" },
     { name = "mypy-protobuf" },
@@ -90,7 +90,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "flake8-lint", editable = "../Flake8Lint" },
+    { name = "flakeforge", git = "https://github.com/yuchdev/FlakeForge?rev=034350ce4735ebb4e2f1728f13ad2d46c43a4793" },
     { name = "grpcio-tools", specifier = "==1.82.1" },
     { name = "mypy", specifier = ">=1.10" },
     { name = "mypy-protobuf", specifier = ">=5.1.0" },
@@ -783,21 +783,9 @@ wheels = [
 ]
 
 [[package]]
-name = "flake8-lint"
+name = "flakeforge"
 version = "1.0.0"
-source = { editable = "../Flake8Lint" }
-
-[package.metadata]
-requires-dist = [
-    { name = "build", marker = "extra == 'dev'" },
-    { name = "flake8", marker = "extra == 'dev'" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "pytest-cov", marker = "extra == 'dev'" },
-    { name = "release-saga", marker = "extra == 'dev'", specifier = "==1.0.1" },
-    { name = "ruff", marker = "extra == 'dev'" },
-    { name = "twine", marker = "extra == 'dev'" },
-]
-provides-extras = ["dev"]
+source = { git = "https://github.com/yuchdev/FlakeForge?rev=034350ce4735ebb4e2f1728f13ad2d46c43a4793#034350ce4735ebb4e2f1728f13ad2d46c43a4793" }
 
 [[package]]
 name = "greenlet"

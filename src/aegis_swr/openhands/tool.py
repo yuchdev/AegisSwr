@@ -29,7 +29,7 @@ message, or an event payload - names, sizes, and counts only (C13).
    exception escapes the ``CodeIntelBackend`` boundary (C13). ``asyncio``'s
    ``CancelledError`` is a ``BaseException`` and is therefore **not** caught, so
    cooperative cancellation is preserved. This module is listed in
-   ``[tool.flake8_lint_tests].exclude`` (pyproject.toml) exactly as
+   ``[tool.flakeforge].exclude`` (pyproject.toml) exactly as
    ``openclaude/tool.py`` and ``claude_code/tool.py`` are, so the custom ``X002``
    rule permits that single, load-bearing catch-all.
 """

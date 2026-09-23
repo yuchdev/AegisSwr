@@ -49,7 +49,8 @@ dev = [
     "ruff>=0.8,<0.9",
     # Custom X-rule lint engine (ADR 0005). Supersedes the deleted in-tree
     # `src/flake8_project_rules/` prototype; see [tool.uv.sources] for the pin.
-    "flake8-lint",
+    # Formerly published as `flake8-lint`; renamed upstream to `flakeforge`.
+    "flakeforge",
     # Pinned exact for byte-reproducible `uv run python scripts/proto_gen.py`
     # codegen across machines;
     # compiled against the same `<2` major series as the runtime grpcio
@@ -77,14 +78,14 @@ allow-direct-references = true
 packages = ["src/aegis_swr"]
 
 [tool.uv.sources]
-# `flake8-lint` is not published to an index yet, so it is consumed from the
-# sibling checkout. ADR 0005 requires a pinned reference rather than a floating
-# one; switch this to `{ git = "https://github.com/yuchdev/Flake8Lint", rev = "<sha>" }`
-# once the engine is pushed, because a relative path cannot resolve in CI.
-flake8-lint = { path = "../Flake8Lint", editable = true }
+# `flakeforge` (formerly `flake8-lint`; renamed before any index release, see
+# https://github.com/yuchdev/FlakeForge) is not published to an index yet, so it
+# is pinned to an exact commit on the sibling repo's `master`, per ADR 0005's
+# "pin, never float" requirement. Re-pin here whenever the engine changes.
+flakeforge = { git = "https://github.com/yuchdev/FlakeForge", rev = "034350ce4735ebb4e2f1728f13ad2d46c43a4793" }
 
-[tool.flake8_lint]
-# Governs both lint modes: the `flake8-lint check .` CLI gate and the
+[tool.flakeforge]
+# Governs both lint modes: the `flakeforge check .` CLI gate and the
 # `assert_lint_clean` pytest gate in tests/unit/test_project_lint.py.
 # include/exclude: directories and files, first apply whitelist, then blacklist
 # select/ignore: rules, first apply whitelist, then blacklist

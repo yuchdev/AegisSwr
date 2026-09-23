@@ -12,7 +12,7 @@ are in `assets/`.
 | [0002](0002-agent-weight-as-property.md) | Consensus weight as a `ClassVar` agent property | Accepted | 2026-07-08 |
 | [0003](0003-code-intel-composition-root.md) | Code intelligence composition root and `CodeIntelBackend` rename | Accepted | 2026-07-10 |
 | [0004](0004-harness-composition-generalization.md) | Code-intelligence composition root generalised into a neutral `harness/` package (multi-backend selection) | Proposed | 2026-08-19 |
-| [0005](0005-flake8-lint-adoption.md) | Adopt the standalone `flake8-lint` package as the single lint engine, run via CLI and/or pytest adapters | Proposed | 2026-09-08 |
+| [0005](0005-flake8-lint-adoption.md) | Adopt the standalone `flake8-lint` package as the single lint engine, run via CLI and/or pytest adapters | Accepted | 2026-09-08 |
 
 ## Template
 
