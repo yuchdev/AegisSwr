@@ -1,6 +1,6 @@
 # 0005 - Adopt the standalone `flake8-lint` package as the single lint engine, run via CLI and/or pytest adapters
 
-> **Status:** Proposed
+> **Status:** Accepted
 >
 > **Date:** 2026-09-08
 >

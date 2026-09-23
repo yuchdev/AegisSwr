@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import ClassVar, Optional
 
-from aegis_swr.agents.base import AgentCategory, BaseAgent
+from aegis_swr.agents.base.base import AgentCategory, BaseAgent
 from aegis_swr.core.schemas import (
     AgentRole,
     AgentTurn,

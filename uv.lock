@@ -43,6 +43,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "flake8-lint" },
     { name = "grpcio-tools" },
     { name = "mypy" },
     { name = "mypy-protobuf" },
@@ -89,6 +90,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "flake8-lint", editable = "../Flake8Lint" },
     { name = "grpcio-tools", specifier = "==1.82.1" },
     { name = "mypy", specifier = ">=1.10" },
     { name = "mypy-protobuf", specifier = ">=5.1.0" },
@@ -779,6 +781,23 @@ sdist = { url = "https://files.pythonhosted.org/packages/e3/ee/29c668c50888588c4
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4a/e3/f1fae3647d170919c2cf2a898e77e7d1a4e5c7cae0aed7bb4bd3f5ebff6f/filelock-3.29.5-py3-none-any.whl", hash = "sha256:8af830889ba3a0ffcefbd6c7d2af8a54012058103771f2e10848222f476a1693", size = 45073, upload-time = "2026-07-03T03:50:30.445Z" },
 ]
+
+[[package]]
+name = "flake8-lint"
+version = "1.0.0"
+source = { editable = "../Flake8Lint" }
+
+[package.metadata]
+requires-dist = [
+    { name = "build", marker = "extra == 'dev'" },
+    { name = "flake8", marker = "extra == 'dev'" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-cov", marker = "extra == 'dev'" },
+    { name = "release-saga", marker = "extra == 'dev'", specifier = "==1.0.1" },
+    { name = "ruff", marker = "extra == 'dev'" },
+    { name = "twine", marker = "extra == 'dev'" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "greenlet"

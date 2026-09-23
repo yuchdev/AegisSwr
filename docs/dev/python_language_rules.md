@@ -49,7 +49,7 @@ Every project must run:
 
 - **`ruff`**, for linting and formatting (`ruff check`, `ruff format`). Start from a template `ruff.toml` and adjust `select`/`ignore` and `line-length` for the project - see this repository's own configuration (`.claude/CLAUDE.md`: `ruff.toml`, `ruff format` as the sole formatter) as one worked example.
 - **`mypy`**, for static type checking, configured from a template `mypy.ini`. Run it in CI; do not merge a change that introduces a new `mypy` error.
-- **`Flake8`**, only for project-specific rules `ruff` does not implement as a built-in check (e.g. a bespoke plugin package such as `src/flake8_project_rules/`). Do not use `Flake8` to re-implement checks `ruff` already performs - that just produces duplicate or conflicting diagnostics.
+- **`flake8-lint`**, only for project-specific rules `ruff` does not implement as a built-in check (the custom `X`-rule engine, configured in `[tool.flake8_lint]`). Do not use `Flake8` to re-implement checks `ruff` already performs - that just produces duplicate or conflicting diagnostics.
 
 A project may drop `mypy` or `Flake8` entirely if `ruff` alone covers its needs (this repository does: see `.claude/CLAUDE.md`). Record that decision in the project's own `CLAUDE.md` so it isn't "re-discovered" as a gap later.
 
