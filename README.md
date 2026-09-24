@@ -1,6 +1,6 @@
 # Aegis SWR (Synthetic War Room)
 
-Aegis SWR is a pluggable, Python-based production forensics platform designed for rapid investigation of mission-critical production incidents. Instead of relying on a single AI model to guess a root cause, Aegis SWR spins up a Multi-Agent System (MAS) where specialized AI experts debate conflicting telemetry data inside a virtual "Synthetic War Room".
+Aegis SWR is a pluggable, Python-based production diagnostic platform designed for rapid investigation of mission-critical production incidents. Instead of relying on a single AI model to guess a root cause, Aegis SWR spins up a Multi-Agent System (MAS) where specialized AI experts debate conflicting telemetry data inside a virtual "Synthetic War Room".
 
 The product converts raw telemetry into a highly descriptive **Investigator's Rationale (IR)**, detailing not just the "what," but the logical debate, discarded hypotheses, and consensus maps leading to the resolution.
 
@@ -13,13 +13,11 @@ See **[docs/README.md](docs/README.md)** for the full index of architecture, roa
 * **Multi-Agent Discussion Logs:** Provides the full transcript of specialized agents (OS Kernel, Code Analyst, Skeptic) arguing over system evidence.
 * **The Data Adapter Pipeline:** An intelligent preprocessing layer that automatically filters, deduplicates, and condenses gigabytes of raw logs and crashdumps into token-dense incident briefs.
 * **Probabilistic Auto-Remediation:** Outputs concrete diagnostic instructions alongside a generated code patch mapped against a specific confidence rating.
-* **Human-in-t
-* 
-* he-Loop Triggers:** Automatically queries the developer for specific environmental clarifications if the synthetic agents hit a low-confidence deadlock.
+* **Human-in-the-Loop Triggers:** Automatically queries the developer for specific environmental clarifications if the synthetic agents hit a low-confidence deadlock.
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 Aegis SWR is built around a **Data Adapter → Multi-Agent Debate → Consensus** pipeline.
 See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full design rationale - deployment strategy,
@@ -145,11 +143,11 @@ active at a time — selection is driven by environment variables with no fallba
 All three are off by default; enabling any one requires only environment variables with
 no Python changes.
 
-| Backend | Presence signal | Sandbox | Note |
-|---|---|---|---|
-| **OpenClaude** | `OPENCLAUDE_GRPC_URL` set | Host OS (allowlist guard) | gRPC sidecar, long-lived |
+| Backend         | Presence signal            | Sandbox                   | Note                                  |
+|-----------------|----------------------------|---------------------------|---------------------------------------|
+| **OpenClaude**  | `OPENCLAUDE_GRPC_URL` set  | Host OS (allowlist guard) | gRPC sidecar, long-lived              |
 | **Claude Code** | `CLAUDE_CODE_ENABLED=true` | Host OS (allowlist guard) | `claude` CLI, one-shot per delegation |
-| **OpenHands** | `OPENHANDS_SERVER_URL` set | Docker (default) | REST/WS sidecar, long-lived |
+| **OpenHands**   | `OPENHANDS_SERVER_URL` set | Docker (default)          | REST/WS sidecar, long-lived           |
 
 See **[docs/config/harness-selection.md](/docs/config/harness-selection.md)** for the selection
 contract, truth table, and the two failure modes. Per-backend setup guides:
@@ -176,12 +174,18 @@ the rest of the pipeline is unaffected.
 **Recommended external-mode launch** (OpenClaude already running, read-only
 forensic allowlist):
 
+1. Start OpenClaude yourself (its model/provider is your concern):
+set `CLAUDE_CODE_USE_OPENAI` / `OPENAI_BASE_URL` / `OPENAI_MODEL` / `OPENAI_API_KEY`,
+launch it headless with a read-only tool whitelist, then
+
 ```bash
-# 1. Start OpenClaude yourself (its model/provider is your concern):
-#    set CLAUDE_CODE_USE_OPENAI / OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_API_KEY,
-#    launch it headless with a read-only tool allowlist, then:
 export OPENCLAUDE_GRPC_URL=localhost:50051
-aegis code-intel check   # smoke-test the wiring without connecting (dry-run by default)
+```
+
+smoke-test the wiring without connecting (dry-run by default)
+
+```bash
+aegis code-intel check
 ```
 
 > Aegis SWR does **not** manage OpenClaude's model or provider — you do, via
