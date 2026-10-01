@@ -261,7 +261,6 @@ pytest
 
 1. Verify source path in `pyproject.toml`:
 -`src/aegis_swr`
--`src/flake8_project_rules`
 
 2. Ensure test file imports the `aegis_swr` module.
 

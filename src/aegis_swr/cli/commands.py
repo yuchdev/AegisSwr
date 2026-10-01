@@ -90,7 +90,7 @@ class FullHelpGroup(TyperGroup):
     options at once.
     """
 
-    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter):
+    def format_help(self, ctx: Any, formatter: Any):
         """Render the standard help, then recursively echo every subcommand's help."""
         super().format_help(ctx, formatter)  # the usual top-level summary
         _echo_subcommands_help(self, ctx)

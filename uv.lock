@@ -43,6 +43,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "flakeforge" },
     { name = "grpcio-tools" },
     { name = "mypy" },
     { name = "mypy-protobuf" },
@@ -89,6 +90,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "flakeforge", specifier = "==1.1.0" },
     { name = "grpcio-tools", specifier = "==1.82.1" },
     { name = "mypy", specifier = ">=1.10" },
     { name = "mypy-protobuf", specifier = ">=5.1.0" },
@@ -778,6 +780,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e3/ee/29c668c50888588c432a702f7c2e8ee8a0c9e5286028d91f170308d6b2e9/filelock-3.29.5.tar.gz", hash = "sha256:6e6034c57a00a020e767f2614a5539863f056de7e7991d6d1473aef7ff73f156", size = 68927, upload-time = "2026-07-03T03:50:31.818Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4a/e3/f1fae3647d170919c2cf2a898e77e7d1a4e5c7cae0aed7bb4bd3f5ebff6f/filelock-3.29.5-py3-none-any.whl", hash = "sha256:8af830889ba3a0ffcefbd6c7d2af8a54012058103771f2e10848222f476a1693", size = 45073, upload-time = "2026-07-03T03:50:30.445Z" },
+]
+
+[[package]]
+name = "flakeforge"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4f/69/b1798c0b69892ef5e88788ca9e5053011ce661f2dba76855dd5789c2fe1e/flakeforge-1.1.0.tar.gz", hash = "sha256:9d52f2236551fd745b1422b3f3e284943e7d2bf2c1c61bcae21b2509af0f6b3d", size = 109610, upload-time = "2026-09-30T14:25:23.089Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/ef/0e4a7efabed6c8d50b688869d5310ce6edc975652bb29aa4d4f73f67c6a6/flakeforge-1.1.0-py3-none-any.whl", hash = "sha256:f1044cac4a3d23c7e7d400ce7f2ee0f40a029a1f852c06d7d7b487a2b33d4dd7", size = 68346, upload-time = "2026-09-30T14:25:20.787Z" },
 ]
 
 [[package]]

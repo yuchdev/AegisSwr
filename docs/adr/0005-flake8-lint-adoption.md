@@ -1,12 +1,19 @@
 # 0005 - Adopt the standalone `flake8-lint` package as the single lint engine, run via CLI and/or pytest adapters
 
-> **Status:** Proposed
+> **Status:** Accepted
 >
 > **Date:** 2026-09-08
 >
 > **Supersedes:** _(none)_
 >
 > **Superseded by:** _(none)_
+
+> **Post-acceptance note (2026-09-24):** the sibling package described throughout this ADR as
+> `flake8-lint` was renamed upstream to `flakeforge` before any index release (it now lives at
+> [yuchdev/FlakeForge](https://github.com/yuchdev/FlakeForge)). The decision, rationale, and
+> every technical detail below are unchanged — only the name is. Live references in `pyproject.toml`,
+> CI, and `tests/unit/test_project_lint.py` use the current name; this document is left as the
+> historical record of the decision and is not retroactively edited for the rename.
 
 ## Context
 

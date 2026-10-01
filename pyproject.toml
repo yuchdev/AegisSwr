@@ -47,6 +47,10 @@ dev = [
     "pytest-asyncio>=0.24,<0.25",
     "pytest-cov>=6.0,<7",
     "ruff>=0.8,<0.9",
+    # Custom X-rule lint engine (ADR 0005). Supersedes the deleted in-tree
+    # `src/flake8_project_rules/` prototype.
+    # Formerly published as `flake8-lint`; renamed upstream to `flakeforge`.
+    "flakeforge==1.1.0",
     # Pinned exact for byte-reproducible `uv run python scripts/proto_gen.py`
     # codegen across machines;
     # compiled against the same `<2` major series as the runtime grpcio
@@ -73,14 +77,14 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/aegis_swr"]
 
-[tool.flake8_lint_tests]
-# Selects which custom X-rules tests/flake8_lint/test_plugin_direct.py exercises.
+[tool.flakeforge]
+# Governs both lint modes: the `flakeforge check .` CLI gate and the
+# `assert_lint_clean` pytest gate in tests/unit/test_project_lint.py.
 # include/exclude: directories and files, first apply whitelist, then blacklist
 # select/ignore: rules, first apply whitelist, then blacklist
-# Leaving both empty (the default) tests every rule.
+# Leaving both empty (the default) runs every rule.
 include = ["src", "tests", "scripts"]
 exclude = [
-    "tests/flake8_lint/samples/",
     "src/aegis_swr/openclaude/grpc/client.py",
     "src/aegis_swr/openclaude/tool.py",
     "src/aegis_swr/openclaude/grpc/proto/",
@@ -89,8 +93,11 @@ exclude = [
     "src/aegis_swr/claude_code/tool.py"
 ]
 
-select = ["X001", "X002", "X004", "X005", "X006", "X007", "X008", "X009", "X010", "X011", "X012", "X013", "X014"]
-ignore = ["X015"]
+select = [
+    "X001", "X002", "X003", "X004", "X005", "X006", "X007",
+    "X008", "X009", "X010", "X011", "X012", "X013", "X014"
+]
+ignore = []
 
 # When false, a `# noqa` comment never suppresses a violation (the rule
 # engine's noqa support is bypassed entirely). Default true.

@@ -26,6 +26,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install ruff
       - run: ruff check src/ tests/
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - name: "Custom X-rule lint gate (ADR 0005)"
+        # Its own step, separate from pytest, so a lint failure is independently
+        # visible and carries the engine's own 0/1/2 exit contract instead of
+        # hiding behind an unrelated test failure. The pytest mirror lives in
+        # tests/unit/test_project_lint.py; both read [tool.flakeforge].
+        run: uv run flakeforge check .
 
   doc-links:
     name: "Docs: cross-reference links and anchors resolve"

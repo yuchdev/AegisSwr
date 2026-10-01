@@ -7,7 +7,7 @@ from typing import Any, ClassVar, Optional
 
 from loguru import logger
 
-from aegis_swr.agents.base import AgentCategory, BaseAgent
+from aegis_swr.agents.base.base import AgentCategory, BaseAgent
 from aegis_swr.backends.base import VectorStore
 from aegis_swr.core.exceptions import VectorStoreError
 from aegis_swr.core.fault_codes import FaultClass

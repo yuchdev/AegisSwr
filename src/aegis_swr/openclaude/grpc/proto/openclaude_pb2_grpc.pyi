@@ -26,7 +26,7 @@ else:
 _T = _typing.TypeVar("_T")
 
 class _MaybeAsyncIterator(_abc.AsyncIterator[_T], _abc.Iterator[_T], metaclass=_abc_1.ABCMeta): ...
-class _ServicerContext(_grpc.ServicerContext, _aio.ServicerContext):  # type: ignore[misc, type-arg]
+class _ServicerContext(_grpc.ServicerContext, _aio.ServicerContext):  # type: ignore[misc]
     ...
 
 GRPC_GENERATED_VERSION: str
@@ -49,7 +49,7 @@ class AgentServiceAsyncStub(AgentServiceStub):
     """The OpenClaude delegation surface."""
 
     def __init__(self, channel: _aio.Channel) -> None: ...
-    Query: _aio.UnaryStreamMultiCallable[_openclaude_pb2.PromptRequest, _openclaude_pb2.AgentMessage]  # type: ignore[assignment]
+    Query: _aio.UnaryStreamMultiCallable[_openclaude_pb2.PromptRequest, _openclaude_pb2.AgentMessage]
     """Delegate one task; receive a stream of agent-message frames terminated by
     exactly one DONE or one ERROR frame.
     """
