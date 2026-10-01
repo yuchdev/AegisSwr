@@ -36,7 +36,7 @@ from aegis_swr.openhands.config import OpenHandsSettings
 from aegis_swr.openhands.exceptions import OpenHandsUnavailableError
 
 try:
-    import socketio  # the ONLY module permitted to import the OpenHands HTTP/WS client lib (C3)
+    import socketio  # type: ignore[import-not-found]  # the ONLY module permitted to import the OpenHands HTTP/WS client lib (C3)
 except ImportError:  # pragma: no cover - the OpenHands client lib is optional/absent in this env
     socketio = None
 

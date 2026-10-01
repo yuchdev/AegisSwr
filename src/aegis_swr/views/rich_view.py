@@ -282,9 +282,9 @@ def _normalize_evidence_level(level: object) -> EvidenceLevel:
     ``ERROR``) and anything unrecognised fall back to the ``INFO`` summary stream.
     """
     candidate = str(level).upper()
-    if candidate == "DEBUG":
+    if candidate in ("DEBUG", "TRACE"):
         return "TRACE"
-    return candidate if candidate in _LEVEL_RANK else "INFO"  # type: ignore[return-value]
+    return "INFO"
 
 
 #: Left indent (columns) for sub-detail evidence/process lines.

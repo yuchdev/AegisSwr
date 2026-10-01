@@ -386,7 +386,7 @@ class Orchestrator:
         :return: A compiled LangGraph StateGraph ready for streaming/invocation.
         :rtype: Any
         """
-        builder: StateGraph = StateGraph(InvestigationState)
+        builder: Any = StateGraph(InvestigationState)
 
         node_names = [self._node_name(agent) for agent in ordered_panel]
         first_node = node_names[0]
