@@ -90,7 +90,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "flakeforge", git = "https://github.com/yuchdev/FlakeForge?rev=034350ce4735ebb4e2f1728f13ad2d46c43a4793" },
+    { name = "flakeforge", specifier = "==1.1.0" },
     { name = "grpcio-tools", specifier = "==1.82.1" },
     { name = "mypy", specifier = ">=1.10" },
     { name = "mypy-protobuf", specifier = ">=5.1.0" },
@@ -784,8 +784,12 @@ wheels = [
 
 [[package]]
 name = "flakeforge"
-version = "1.0.0"
-source = { git = "https://github.com/yuchdev/FlakeForge?rev=034350ce4735ebb4e2f1728f13ad2d46c43a4793#034350ce4735ebb4e2f1728f13ad2d46c43a4793" }
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4f/69/b1798c0b69892ef5e88788ca9e5053011ce661f2dba76855dd5789c2fe1e/flakeforge-1.1.0.tar.gz", hash = "sha256:9d52f2236551fd745b1422b3f3e284943e7d2bf2c1c61bcae21b2509af0f6b3d", size = 109610, upload-time = "2026-09-30T14:25:23.089Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/ef/0e4a7efabed6c8d50b688869d5310ce6edc975652bb29aa4d4f73f67c6a6/flakeforge-1.1.0-py3-none-any.whl", hash = "sha256:f1044cac4a3d23c7e7d400ce7f2ee0f40a029a1f852c06d7d7b487a2b33d4dd7", size = 68346, upload-time = "2026-09-30T14:25:20.787Z" },
+]
 
 [[package]]
 name = "greenlet"

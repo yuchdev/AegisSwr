@@ -48,9 +48,9 @@ dev = [
     "pytest-cov>=6.0,<7",
     "ruff>=0.8,<0.9",
     # Custom X-rule lint engine (ADR 0005). Supersedes the deleted in-tree
-    # `src/flake8_project_rules/` prototype; see [tool.uv.sources] for the pin.
+    # `src/flake8_project_rules/` prototype.
     # Formerly published as `flake8-lint`; renamed upstream to `flakeforge`.
-    "flakeforge",
+    "flakeforge==1.1.0",
     # Pinned exact for byte-reproducible `uv run python scripts/proto_gen.py`
     # codegen across machines;
     # compiled against the same `<2` major series as the runtime grpcio
@@ -76,13 +76,6 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aegis_swr"]
-
-[tool.uv.sources]
-# `flakeforge` (formerly `flake8-lint`; renamed before any index release, see
-# https://github.com/yuchdev/FlakeForge) is not published to an index yet, so it
-# is pinned to an exact commit on the sibling repo's `master`, per ADR 0005's
-# "pin, never float" requirement. Re-pin here whenever the engine changes.
-flakeforge = { git = "https://github.com/yuchdev/FlakeForge", rev = "034350ce4735ebb4e2f1728f13ad2d46c43a4793" }
 
 [tool.flakeforge]
 # Governs both lint modes: the `flakeforge check .` CLI gate and the
