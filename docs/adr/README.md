@@ -13,6 +13,9 @@ are in `assets/`.
 | [0003](0003-code-intel-composition-root.md) | Code intelligence composition root and `CodeIntelBackend` rename | Accepted | 2026-07-10 |
 | [0004](0004-harness-composition-generalization.md) | Code-intelligence composition root generalised into a neutral `harness/` package (multi-backend selection) | Proposed | 2026-08-19 |
 | [0005](0005-flake8-lint-adoption.md) | Adopt the standalone `flake8-lint` package as the single lint engine, run via CLI and/or pytest adapters | Accepted | 2026-09-08 |
+| [0006](0006-harness-as-sole-llm-gateway.md) | Harness as the sole LLM gateway: forensic panel on per-role harness sessions, hybrid push+MCP context, trust-tiered sandboxed selection, staged autonomy | Proposed | 2026-10-03 |
+| [0007](0007-multi-instance-mastermind-worker-protocol.md) | Multi-instance mastermind/worker protocol for distributed incident analysis (new `cluster/` gRPC subsystem) | Proposed | 2026-10-03 |
+| [0008](0008-distributed-secure-execution-sandbox.md) | Distributed secure execution: cross-platform sandbox workers that reproduce, capture, and validate on the center's behalf (extends ADR 0007's `cluster/`) | Proposed | 2026-10-03 |
 
 ## Template
 

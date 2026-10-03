@@ -61,12 +61,27 @@ absolute-from-repo-root Markdown link:
 | 0004 | OpenClaude integration (Code Intelligence)          | [plan.md](/docs/roadmap/0004-code-intelligence/plan.md)       | [status.md](/docs/roadmap/0004-code-intelligence/status.md)         |
 | 0005 | Code Intelligence harness & multi-backend support   | [plan.md](/docs/roadmap/0005-harness-backends/plan.md)        | [status.md](/docs/roadmap/0005-harness-backends/status.md)          |
 | 0006 | Improvements & optimizations (quality/operability)  | [plan.md](/docs/roadmap/0006-improvements-and-optimizations/plan.md) | [status.md](/docs/roadmap/0006-improvements-and-optimizations/status.md) |
+| 0007 | Harness as the sole LLM gateway                      | [plan.md](/docs/roadmap/0007-harness-sole-llm-gateway/plan.md) | [status.md](/docs/roadmap/0007-harness-sole-llm-gateway/status.md) |
+| 0008 | Distributed secure execution (cross-platform sandbox workers) | [plan.md](/docs/roadmap/0008-distributed-secure-execution/plan.md) | [status.md](/docs/roadmap/0008-distributed-secure-execution/status.md) |
 
-> Milestones 0001-0004 are decomposed into the full task → subtask tree;
-> Milestone 0005 is at task-level granularity (subtask decomposition is a later pass).
-> Milestone 0006's Task 01.0 is fully decomposed into 14 subtasks; Tasks
-> 02.0-06.0 are at task-level granularity (subtask decomposition is a later pass).
+> Milestones 0001-0004 and 0007 are decomposed into the full task → subtask tree;
+> Milestones 0005 and 0008 are at task-level granularity (subtask decomposition is
+> a later pass; for 0008 that pass is gated on ADR 0007's `cluster/` package being
+> built).
+> Milestone 0006 is fully decomposed into the task → subtask tree — all six
+> tasks, 30 subtasks total (Task 01.0: 14; 02.0: 6; 03.0: 3; 04.0: 2; 05.0: 3;
+> 06.0: 2).
 > Milestone 0004 supersedes an earlier, cancelled Code Intelligence Layer
 > design (its plan document has been removed; see
 > [0004/status.md](/docs/roadmap/0004-code-intelligence/status.md#notes--decisions)
 > for the decision record).
+> Milestone 0007 implements [ADR 0006](/docs/adr/0006-harness-as-sole-llm-gateway.md)
+> (roadmap and ADR numbers are independent sequences; roadmap number 0006 was
+> already taken by the improvements milestone) and retires Milestone 0003's
+> LiteLLM-dispatch tasks 03.0-07.0 (see
+> [0003/status.md](/docs/roadmap/0003-litellm-routing/status.md)).
+> Milestone 0008 implements [ADR 0008](/docs/adr/0008-distributed-secure-execution-sandbox.md)
+> (numbers coincide here but the sequences remain independent) and was extracted
+> from Milestone 0001's former Task 9 ("Secure Code Sandbox"), expanding it from a
+> local patch-compile check into a cross-instance, cross-platform distributed
+> execution architecture that **extends ADR 0007's `cluster/` subsystem**.

@@ -8,11 +8,11 @@ touches `ruff.toml`, `mypy.ini`, `.github/workflows/`,
 This milestone is a **quality and operability pass** across the codebase
 rather than a new feature. It does not add a product capability; it closes
 gaps in the tooling and infrastructure that catches regressions before they
-ship. Six tasks are proposed. **Task 01.0 is fully decomposed** into
-subtasks (the work explicitly requested); Tasks 02.0–06.0 are recorded at
-task level only — each is a verified, evidence-backed gap worth fixing, but
-subtask decomposition is a later pass, following the same staged convention
-[Milestone 0003](/docs/roadmap/0003-litellm-routing/plan.md) used.
+ship. Six tasks are proposed, and **all six are now fully decomposed** into
+subtasks (30 subtasks in total: Task 01.0's 14, plus 16 across Tasks 02.0–06.0).
+Each task's subtasks were written after re-verifying its "verified gap" against
+the current repository — several of this plan's original evidence figures had
+drifted since it was written (see each task's re-verification note).
 
 ---
 
@@ -43,8 +43,10 @@ checklist applied blind.
 | 06.0 | Scheduled Documentation Health Checks              | quality        | `/doc-registry` + `/link-check` wired into the existing weekly cron cadence (mirrors `/dep-audit`)             |
 
 Tasks are independent of each other — none blocks another — so they can be
-picked up in any order. 01.0 is recommended first since it was the explicit
-ask and is the only one with atomic, immediately-implementable subtasks.
+picked up in any order. Each is now fully decomposed into atomic,
+immediately-implementable subtasks (see each task's `README.md`). 01.0 is
+recommended first since it was the explicit ask; 03.0's SQLite pragmas and
+04.0's `--locked` sweep are the quickest standalone wins.
 
 ---
 
@@ -80,6 +82,12 @@ explicitly forbids. The 14 rules below are honestly split:
 
 ## Task 02.0 — Close the mypy Enforcement Gap
 
+**Fully decomposed.** See
+[02.0-close-mypy-enforcement-gap/README.md](02.0-close-mypy-enforcement-gap/README.md)
+for the task scope, the re-verification finding that `mypy.ini` now disables
+**eleven** error codes (not the four this plan recorded), and the 6-subtask
+table (the `mypy` CI job plus five grouped error-code burn-downs).
+
 **Verified gap.** `mypy.ini` exists, sets `strict = true`, and
 `docs/dev/python_language_rules.md` §1.4 lists `mypy` as one of three tools
 "every project must run… in CI; do not merge a change that introduces a new
@@ -99,6 +107,13 @@ zero and drop it from `disable_error_code`, so `strict = true` becomes true
 in practice, not just in the config file's name.
 
 ## Task 03.0 — Storage Layer Durability & Concurrency
+
+**Fully decomposed.** See
+[03.0-storage-durability-concurrency/README.md](03.0-storage-durability-concurrency/README.md)
+for the task scope, the re-verification finding that `PostgresStore` is still a
+stub with **no** SQLAlchemy models (so the Alembic work must first *define* the
+`reports` model this plan assumed already existed), and the 3-subtask table
+(SQLite pragmas, the new SQLAlchemy `reports` model, the Alembic harness).
 
 **Verified gap.** `src/aegis_swr/backends/storage/sqlite_store.py` opens every
 connection with `sqlite3.connect(str(self._db_path), timeout=30)` and issues
@@ -123,6 +138,13 @@ exactly (a no-op in effect, a foundation in practice).
 
 ## Task 04.0 — CI Supply-Chain Integrity
 
+**Fully decomposed.** See
+[04.0-ci-supply-chain-integrity/README.md](04.0-ci-supply-chain-integrity/README.md)
+for the task scope, the re-verification finding that there are **nine** `uv sync`
+call sites (eight in `ci.yml`, one in `coverage.yml`) rather than the eight this
+plan recorded, and the 2-subtask table (the `--locked` sweep and the early
+lockfile-drift gate).
+
 **Verified gap.** `uv.lock` is committed, but every `uv sync` invocation
 across both workflow files (`.github/workflows/ci.yml`,
 `.github/workflows/coverage.yml` — eight call sites total) runs unlocked. If
@@ -138,6 +160,25 @@ drifted lockfile is reported once, clearly, rather than as a confusing
 downstream dependency-resolution difference in some other job.
 
 ## Task 05.0 — Cost & Latency Telemetry for Router/Harness Events
+
+**Fully decomposed.** See
+[05.0-cost-latency-telemetry/README.md](05.0-cost-latency-telemetry/README.md)
+for the task scope, the mapping onto the three *existing* backend `*.completed`
+events (per the amendment below — `openclaude.stream_completed`,
+`claude_code.completed`, `openhands.completed`), the derived-latency design note
+(no event carries a duration), and the 3-subtask table (metrics sink + EventBus
+wiring, env-gated selection, the dashboard runbook).
+
+> **Amended (2026-10-03, Milestone 0007 / ADR 0006).** `RouterCallCompleted`
+> belongs to the LiteLLM Model Router that
+> [ADR 0006](/docs/adr/0006-harness-as-sole-llm-gateway.md) retires (Milestone 0003
+> Task 04.0, now superseded) — it will never be emitted. When this task is
+> decomposed, telemetry should subscribe instead to the per-role harness-session
+> `*.completed` / adapter-completion events that
+> [Milestone 0007](/docs/roadmap/0007-harness-sole-llm-gateway/plan.md) introduces
+> (token/cost flow through `CodeResult.token_estimate`) alongside the existing
+> backend `*.completed` events. This milestone's scope is otherwise unchanged; the
+> two milestones are independent.
 
 **Proposal, not a verified defect.** Milestone 0003's `RouterCallCompleted`
 and each harness backend's `*.completed` event (Milestone 0005 C10) already
@@ -156,6 +197,13 @@ selection convention Milestone 0005 established, with a `docs/runbooks/`
 entry for the on-call dashboard this unlocks.
 
 ## Task 06.0 — Scheduled Documentation Health Checks
+
+**Fully decomposed.** See
+[06.0-scheduled-doc-health-checks/README.md](06.0-scheduled-doc-health-checks/README.md)
+for the task scope, the re-verification of how `/dep-audit`'s cadence is actually
+wired (skill frontmatter + `.claude/CLAUDE.md` §12 + `agentic_fleet_design.md`
+§12 table + the `doc_link_check.py` hook — there is no OS crontab to mirror), and
+the 2-subtask table (declare the cadence, report only on a finding).
 
 **Verified gap.** `/doc-registry`, `/doc-xref`, and `/link-check` all exist
 as user-invoked skills (`.claude/`), and `.claude/CLAUDE.md` §12 already

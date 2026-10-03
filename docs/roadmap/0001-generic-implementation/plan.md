@@ -21,23 +21,32 @@ CLI, and logging architecture - lives in
 
 ## Tasks
 
-| Task  | Name                       | Duration   | Output                                                           |
-|-------|----------------------------|------------|------------------------------------------------------------------|
-| 1     | Foundation & Package Setup | Week 1–2   | Repo skeleton, schemas, ABCs, config, CI                         |
-| 2     | Data Adapter Layer         | Week 3–4   | Preprocessing pipeline; token-dense incident brief               |
-| 3     | AI Backends                | Week 5     | Anthropic + OpenAI providers; streaming; structured output       |
-| 3.1   | Classic APIs               | Week 5     | Anthropic + OpenAI providers; streaming; structured output       |
-| 3.2   | AWS Bedrock Backend        | Week 5     | Bedrock Converse backend; multi-model gateway; IAM-governed auth |
-| 4     | Debug Backends             | Week 6     | CDB (Windows), GDB (Linux), LLDB (macOS); FaultClass mapping     |
-| 5     | Multi-Agent System         | Week 7–9   | LangGraph state graph; 4 agents; consensus; HITL trigger         |
-| 6     | Storage Backends           | Week 10    | PostgreSQL, S3/MinIO, Qdrant; dedup by content hash              |
-| 6.1   | Code Backend               | Week 10    | Git + filesystem code adapters; Stage 8 code-history attribution |
-| 6.2   | Log Backend                | Week 10    | File log adapter + Fluent stub; Stage 4 windowed log queries     |
-| 7     | CLI & Local Mode           | Week 11    | Typer CLI; in-process pipeline without API server                |
-| 8     | REST API Layer             | Week 12–13 | FastAPI app; SSE streaming; auth; rate limiting                  |
-| 9     | Secure Code Sandbox        | Week 14    | Docker/gVisor executor; compile + AST validation                 |
-| 10    | Testing & Hardening        | Week 15–16 | Ground truth suite; benchmark; security audit; CI gates          |
-| 11    | Documentation              | Week 17    | Establish 100% source of truth documentation                     |
+| Task  | Name                       | Output                                                           |
+|-------|----------------------------|------------------------------------------------------------------|
+| 1     | Foundation & Package Setup | Repo skeleton, schemas, ABCs, config, CI                         |
+| 2     | Data Adapter Layer         | Preprocessing pipeline; token-dense incident brief               |
+| 3     | AI Backends                | Anthropic + OpenAI providers; streaming; structured output       |
+| 3.1   | Classic APIs               | Anthropic + OpenAI providers; streaming; structured output       |
+| 3.2   | AWS Bedrock Backend        | Bedrock Converse backend; multi-model gateway; IAM-governed auth |
+| 4     | Debug Backends             | CDB (Windows), GDB (Linux), LLDB (macOS); FaultClass mapping     |
+| 5     | Multi-Agent System         | LangGraph state graph; 4 agents; consensus; HITL trigger         |
+| 6     | Storage Backends           | PostgreSQL, S3/MinIO, Qdrant; dedup by content hash              |
+| 6.1   | Code Backend               | Git + filesystem code adapters; Stage 8 code-history attribution |
+| 6.2   | Log Backend                | File log adapter + Fluent stub; Stage 4 windowed log queries     |
+| 7     | CLI & Local Mode           | Typer CLI; in-process pipeline without API server                |
+| 8     | REST API Layer             | FastAPI app; SSE streaming; auth; rate limiting                  |
+| 9     | Testing & Hardening        | Ground truth suite; benchmark; security audit; CI gates          |
+| 10    | Documentation              | Establish 100% source of truth documentation                     |
+
+> **Extracted 2026-10-03.** The former Task 9 ("Secure Code Sandbox" — a local
+> Docker executor validating AI-generated patches) has been extracted into its
+> own milestone, [0008 — Distributed Secure Execution](/docs/roadmap/0008-distributed-secure-execution/plan.md)
+> ([ADR 0008](/docs/adr/0008-distributed-secure-execution-sandbox.md)), and
+> expanded from a single-host patch-compile check into a cross-instance,
+> cross-platform sandboxed execution architecture (an analytical "center"
+> instance delegating execution/reproduction work to one or more sandboxed
+> "worker" instances, potentially on a different OS). Tasks 10 and 11 below
+> were renumbered to 9 and 10 accordingly.
 
 ---
 
@@ -433,28 +442,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Task 9: Secure Code Sandbox
-
-**Goal:** Implement the Docker-based sandbox executor that compiles and validates AI-generated patches. (Full sandbox spec: `docs/specs/implementation_spec.md` §10.)
-
-### Deliverables
-
-1. **`sandbox/executor.py`** - `SandboxExecutor.validate(patch, language) -> ValidationResult` via `asyncio.create_subprocess_exec` with timeout; `passed=None` + warning when Docker is unavailable (sandbox is optional).
-2. **`sandbox/validators.py`** - language detection (extension and MIME) → Docker image tag.
-3. **`sandbox/Dockerfile.{cpp,python,java,typescript}`** - minimal compiler-only images, no network tools.
-4. **`Makefile`** target `build-sandbox-images`.
-5. **Integration with `agents/code_analyst.py`** - validate after producing `probabilistic_fix`; on `passed=False`, feed compiler output back and retry once; populate `fix_validation_result`.
-6. **`tests/unit/test_sandbox.py`** - mocked `asyncio.create_subprocess_exec` for valid/invalid/no-Docker paths.
-
-### Success Criteria
-
-- Valid C++ patch → `passed=True`; syntax error → `passed=False` with compiler text.
-- Executor returns gracefully (no hang) when Docker is unavailable.
-- Containers have no network access (`docker inspect`).
-
----
-
-## Task 10: Testing & Hardening
+## Task 9: Testing & Hardening
 
 **Goal:** Achieve 80%+ ground-truth accuracy, sub-12k-token average, passing CI, and production-ready security.
 
@@ -463,9 +451,9 @@ streaming work the same way they do for the direct providers in 3.1.
 1. **Ground truth incidents** - ≥10 in `tests/ground_truth/incidents/`, each with raw inputs, `expected_output.json`, and a `README.md`.
 2. **`tests/ground_truth/eval_runner.py`** - runs the full pipeline (real LLM), scores PASS/PARTIAL/FAIL, asserts ≥80% PASS, prints token usage.
 3. **`tests/benchmarks/token_budget.py`** - asserts the average incident brief ≤12,000 tokens (`tiktoken`).
-4. **Security-hardening checklist** - `SensitiveFilter` on all loggers; list-form `subprocess` everywhere; path-traversal validation; bcrypt-hashed API keys; Presidio before any external LLM call; sandbox `--network=none --cap-drop ALL --read-only`.
+4. **Security-hardening checklist** - `SensitiveFilter` on all loggers; list-form `subprocess` everywhere; path-traversal validation; bcrypt-hashed API keys; Presidio before any external LLM call. (Sandbox hardening — `--network=none --cap-drop ALL --read-only` — moved to [Milestone 0008](/docs/roadmap/0008-distributed-secure-execution/plan.md) with the sandbox executor itself.)
 5. **`docker-compose.yml`** + **`docker-compose.test.yml`** - full local stack and test-only stack.
-6. **`Makefile`** targets: `install`, `lint`, `typecheck`, `test`, `test-integration`, `test-ground-truth`, `benchmark-tokens`, `build-sandbox-images`, `up`, `down`.
+6. **`Makefile`** targets: `install`, `lint`, `typecheck`, `test`, `test-integration`, `test-ground-truth`, `benchmark-tokens`, `up`, `down`. (`build-sandbox-images` moved to Milestone 0008.)
 7. **Updated `docs/README.md`** documentation registry.
 
 ### Success Criteria
@@ -476,7 +464,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ---
 
-## Task 11: Documentation
+## Task 10: Documentation
 
 **Goal:** Establish complete, accurate source-of-truth documentation across all `docs/` tracks so that the `docs-updater` agent can maintain it autonomously, new contributors can onboard without asking engineers, and the `.claude/` fleet operating manual stays in sync with the actual agents, skills, and loops in use.
 
@@ -496,7 +484,7 @@ streaming work the same way they do for the direct providers in 3.1.
 
 ### Success Criteria
 
-- All rows in the [`11.0-documentation/README.md`](/docs/roadmap/0001-generic-implementation/11.0-documentation/README.md) tracking table are ✅ Complete.
+- All rows in the [`10.0-documentation/README.md`](/docs/roadmap/0001-generic-implementation/10.0-documentation/README.md) tracking table are ✅ Complete.
 - `docs-updater` can process a code change and update the relevant doc without a human authoring the prose from scratch.
 - Every debate agent in `aegis_swr/agents/` has a corresponding entry in `docs/agent/agents.md`.
 - `docs/dev/` contains all three documents listed above, complete.
@@ -524,13 +512,17 @@ Task 1 (Foundation)
   Task 5 (MAS Engine)
   ├──► Task 7 (CLI)                   ← CLI calls orchestrator; first E2E gate
   │       └──► Task 8 (API)           ← API wraps orchestrator
-  └──► Task 9 (Sandbox)               ← Code Analyst calls sandbox
-  Tasks 7, 8, 9 ──► Task 10 (Testing & Hardening)
-  Task 11 ──► can be performed in parallel
+  Tasks 7, 8 ──► Task 9 (Testing & Hardening)
+  Task 10 ──► can be performed in parallel
 ```
 
+> The former `Task 5 ──► Task 9 (Sandbox)` edge ("Code Analyst calls sandbox")
+> moved with the sandbox extraction to
+> [Milestone 0008](/docs/roadmap/0008-distributed-secure-execution/plan.md) —
+> that milestone owns the Code Analyst's integration point now.
+
 **Minimum viable product** (end-to-end pipeline, no API): Tasks 1 → 4 → 2 → 3 → 5 → 6 → 7. Tasks 6.1 / 6.2 are optional enrichers.
-**Full production deployment:** all 10 tasks.
+**Full production deployment:** all 9 tasks.
 
 ---
 

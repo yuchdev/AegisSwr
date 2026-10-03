@@ -1,9 +1,14 @@
-# Subtask set 0001-11.0 — Documentation
+# Subtask set 0001-10.0 — Documentation
 
-Atomic decomposition of task **11 Documentation** from
+Atomic decomposition of task **10 Documentation** from
 [`docs/roadmap/0001-generic-implementation/plan.md`](/docs/roadmap/0001-generic-implementation/plan.md).
 Progress is tracked in
 [`docs/roadmap/0001-generic-implementation/status.md`](/docs/roadmap/0001-generic-implementation/status.md).
+
+> **Renumbered 2026-10-03.** This was Task 11 before the former Task 9
+> ("Secure Code Sandbox") was extracted into
+> [Milestone 0008](/docs/roadmap/0008-distributed-secure-execution/plan.md);
+> Tasks 10/11 shifted to 9/10. No scope changed, only the number.
 
 ## Goal
 
@@ -16,7 +21,7 @@ tracks so that:
 
 This is a **demotion from milestone** — documentation was deferred from the
 original 10-task plan because it depends on all other tasks having stabilised
-their APIs and conventions. It runs after Task 10 (Testing & Hardening).
+their APIs and conventions. It runs after Task 9 (Testing & Hardening).
 
 ## Scope
 
@@ -67,9 +72,9 @@ any task whose outputs it documents. However, a doc entry written before the
 implementation stabilises will drift; the recommended order is:
 
 ```
-Tasks 1–10 implementation stabilised
+Tasks 1–9 implementation stabilised
     │
-    └──► 11.0 Documentation
+    └──► 10.0 Documentation
               │
               ├── docs/dev/ (python_style_rules complete → language rules → coding standard)
               ├── docs/agent/ (after agents/base.py and all agent modules settle)

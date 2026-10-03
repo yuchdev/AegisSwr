@@ -9,13 +9,23 @@ Updated as each task lands.
 |------|-------------------------|---------------|-------|
 | 01.0 | agents.yaml Schema      | ✅ Complete    | `tests/unit/router/test_config.py` |
 | 02.0 | Router Foundation Types | ✅ Complete (subtask 02 `events.py` deferred) | `tests/unit/router/{test_config,test_exceptions}.py` |
-| 03.0 | LiteLLM Client          | ⬜ Not started | -     |
-| 04.0 | Model Router            | ⬜ Not started | -     |
-| 05.0 | Test Suite              | ⬜ Not started | -     |
-| 06.0 | Agent Wiring            | ⬜ Not started | -     |
-| 07.0 | Documentation & CI      | ⬜ Not started | -     |
+| 03.0 | LiteLLM Client          | ⛔ Superseded by ADR 0006 / Milestone 0007 | -     |
+| 04.0 | Model Router            | ⛔ Superseded by ADR 0006 / Milestone 0007 | -     |
+| 05.0 | Test Suite              | ⛔ Superseded by ADR 0006 / Milestone 0007 | -     |
+| 06.0 | Agent Wiring            | ⛔ Superseded by ADR 0006 / Milestone 0007 | -     |
+| 07.0 | Documentation & CI      | ⛔ Superseded by ADR 0006 / Milestone 0007 | -     |
 
-**Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
+**Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started · ⛔ Superseded
+
+> **Tasks 03.0-07.0 retired (2026-10-03).** [ADR 0006](/docs/adr/0006-harness-as-sole-llm-gateway.md)
+> §A.3 makes the LiteLLM *dispatch* path permanently dead: every path to a model
+> now goes through one of the three agentic harnesses, so there is no Aegis-side
+> model routing left to build and Aegis takes no runtime dependency on `litellm`.
+> These five tasks (LiteLLM client, ModelRouter, router tests, agent wiring, router
+> docs) are therefore **retired, not pending**. Tasks 01.0-02.0 (the `agents.yaml` /
+> `RouterConfig` config slice) **survive**, repurposed by
+> [Milestone 0007](/docs/roadmap/0007-harness-sole-llm-gateway/plan.md) (Task 01.0)
+> as the role → harness-session binding table.
 
 **Current gate status:** the **configuration/foundation slice (Tasks 01.0 + 02.0)
 is implemented** as a dependency of Milestone 0004 — `src/aegis_swr/config/agents.yaml`
